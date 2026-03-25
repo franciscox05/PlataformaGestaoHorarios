@@ -1,102 +1,49 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.HorarioBLL;
-import com.example.projeto2.BLL.UtilizadorBLL;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Utilizador;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Scanner; // Import necessário para ler o teclado
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootApplication
-public class Projeto2Application {
+public class Projeto2Application extends Application {
 
-    public static void main(String[] args) {
-        SpringApplication.run(Projeto2Application.class, args);
+    private ConfigurableApplicationContext springContext;
+
+    // 1. O motor do Spring Boot arranca e liga à Base de Dados
+    @Override
+    public void init() throws Exception {
+        springContext = new SpringApplicationBuilder(Projeto2Application.class).run();
     }
 
-    @Bean
-    @Transactional
-    public CommandLineRunner menuInterativo(UtilizadorBLL userBll, HorarioBLL horarioBll) {
-        return args -> {
-            Scanner scanner = new Scanner(System.in);
+    // 2. O motor do JavaFX desenha a janela no ecrã
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        // Por agora, é apenas uma janela branca com texto para testar a ligação
+        StackPane root = new StackPane();
+        root.getChildren().add(new Text("A carregar a interface da Levi's..."));
 
-            System.out.println("\n=================================");
-            System.out.println("   SISTEMA DE GESTÃO LEVI'S");
-            System.out.println("=================================");
+        Scene scene = new Scene(root, 800, 600);
 
-            // 1. Pede os dados ao utilizador
-            System.out.print("Email: ");
-            String email = scanner.nextLine();
+        primaryStage.setTitle("Levi's Staff Portal");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
 
-            System.out.print("Password: ");
-            String pass = scanner.nextLine();
+    // 3. Quando fechas a janela no "X", o Spring Boot desliga-se em segurança
+    @Override
+    public void stop() throws Exception {
+        springContext.close();
+        Platform.exit();
+    }
 
-            // 2. Tenta fazer o login com o que foi escrito
-            Utilizador logado = userBll.efetuarLogin(email, pass);
-
-            if (logado != null) {
-                System.out.println("\n✅ Login: OK! Bem-vindo(a), " + logado.getNome() + " (ID: " + logado.getId() + ")");
-
-                boolean continuar = true;
-
-                // 3. O Menu Principal entra num loop até o utilizador escolher Sair (Opção 2)
-                while (continuar) {
-                    System.out.println("\n--- MENU PRINCIPAL ---");
-                    System.out.println("1. Ver os meus próximos turnos");
-                    System.out.println("2. Sair");
-                    System.out.print("Escolha uma opção: ");
-
-                    String opcao = scanner.nextLine();
-
-                    switch (opcao) {
-                        case "1":
-                            List<Horario> turnos = horarioBll.listarProximosTurnos(logado.getId());
-
-                            if (turnos.isEmpty()) {
-                                System.out.println("\nNão tens turnos agendados para breve.");
-                            } else {
-                                // Lógica para singular ou plural
-                                if (turnos.size() == 1) {
-                                    System.out.println("\nEncontrei 1 turno futuro:");
-                                } else {
-                                    System.out.println("\nEncontrei " + turnos.size() + " turnos futuros:");
-                                }
-                                for (Horario h : turnos) {
-                                    String infoTurno = "Sem Turno";
-                                    if (h.getIdTurno() != null) {
-                                        infoTurno = h.getIdTurno().getTipo().toString() +
-                                                " (" + h.getIdTurno().getHoraInicio() + " - " + h.getIdTurno().getHoraFim() + ")";
-                                    }
-
-                                    String nomeLoja = "Loja Desconhecida";
-                                    if (h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdLoja() != null) {
-                                        nomeLoja = h.getIdLojautilizador().getIdLoja().getNome();
-                                    }
-
-                                    System.out.println("-> [" + h.getDataTurno() + "] Loja: " + nomeLoja + " | Horário: " + infoTurno + " | Estado: " + h.getEstado());
-                                }
-                            }
-                            break;
-                        case "2":
-                            System.out.println("\nA encerrar sessão... Até à próxima!");
-                            continuar = false;
-                            break;
-                        default:
-                            System.out.println("\n❌ Opção inválida! Tenta novamente.");
-                    }
-                }
-            } else {
-                System.out.println("\n❌ Login falhou! Verifica as credenciais na base de dados (ou se estás inativo).");
-            }
-
-            // Fecha o scanner por boas práticas de programação
-            scanner.close();
-        };
+    // O main agora chama o JavaFX, que por sua vez chama o Spring Boot
+    public static void main(String[] args) {
+        Application.launch(Projeto2Application.class, args);
     }
 }
