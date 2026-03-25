@@ -24,13 +24,15 @@ public class Projeto2Application extends Application {
     // 2. O motor do JavaFX desenha a janela no ecrã
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Por agora, é apenas uma janela branca com texto para testar a ligação
-        StackPane root = new StackPane();
-        root.getChildren().add(new Text("A carregar a interface da Levi's..."));
+        // Truque: O Spring diz ao JavaFX como criar os Controllers (injetando a BLL)
+        javafx.fxml.FXMLLoader fxmlLoader = new javafx.fxml.FXMLLoader(
+                Projeto2Application.class.getResource("login-view.fxml")
+        );
+        fxmlLoader.setControllerFactory(springContext::getBean); // A linha Mágica!
 
-        Scene scene = new Scene(root, 800, 600);
+        Scene scene = new Scene(fxmlLoader.load(), 800, 600);
 
-        primaryStage.setTitle("Levi's Staff Portal");
+        primaryStage.setTitle("Levi's Staff Portal - Autenticação");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
