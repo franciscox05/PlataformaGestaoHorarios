@@ -24,6 +24,38 @@ public interface PermutaRepository extends JpaRepository<Permuta, Integer> {
             "ORDER BY p.dataPedido DESC, p.id DESC")
     List<Permuta> findPedidosEnviadosPorUtilizador(@Param("idUtilizador") Integer idUtilizador);
 
+    @Query("SELECT p FROM Permuta p " +
+            "JOIN FETCH p.idHorarioOrigem ho " +
+            "JOIN FETCH ho.idTurno hto " +
+            "JOIN FETCH ho.idLojautilizador luo " +
+            "JOIN FETCH luo.idUtilizador uo " +
+            "JOIN FETCH luo.idLoja lo " +
+            "JOIN FETCH p.idHorarioDestino hd " +
+            "JOIN FETCH hd.idTurno htd " +
+            "JOIN FETCH hd.idLojautilizador lud " +
+            "JOIN FETCH lud.idUtilizador ud " +
+            "JOIN FETCH lud.idLoja ld " +
+            "WHERE LOWER(p.estado) = 'pendente' " +
+            "AND lo.id = :idLoja " +
+            "AND uo.id <> :idUtilizadorAprovador " +
+            "ORDER BY p.dataPedido ASC, p.id ASC")
+    List<Permuta> findPedidosPendentesDaLoja(@Param("idLoja") Integer idLoja,
+                                             @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
+
+    @Query("SELECT p FROM Permuta p " +
+            "JOIN FETCH p.idHorarioOrigem ho " +
+            "JOIN FETCH ho.idTurno hto " +
+            "JOIN FETCH ho.idLojautilizador luo " +
+            "JOIN FETCH luo.idUtilizador uo " +
+            "JOIN FETCH luo.idLoja lo " +
+            "JOIN FETCH p.idHorarioDestino hd " +
+            "JOIN FETCH hd.idTurno htd " +
+            "JOIN FETCH hd.idLojautilizador lud " +
+            "JOIN FETCH lud.idUtilizador ud " +
+            "JOIN FETCH lud.idLoja ld " +
+            "WHERE p.id = :idPermuta")
+    java.util.Optional<Permuta> findDetalhadaById(@Param("idPermuta") Integer idPermuta);
+
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Permuta p " +
             "WHERE LOWER(p.estado) = 'pendente' " +
             "AND p.idHorarioOrigem.id = :idHorarioOrigem")
@@ -31,8 +63,33 @@ public interface PermutaRepository extends JpaRepository<Permuta, Integer> {
 
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Permuta p " +
             "WHERE LOWER(p.estado) = 'pendente' " +
+            "AND (p.idHorarioOrigem.id = :idHorario OR p.idHorarioDestino.id = :idHorario)")
+    boolean existsPedidoPendentePorHorario(@Param("idHorario") Integer idHorario);
+
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Permuta p " +
+            "WHERE LOWER(p.estado) = 'pendente' " +
             "AND p.idHorarioOrigem.id = :idHorarioOrigem " +
             "AND p.idHorarioDestino.id = :idHorarioDestino")
     boolean existsPedidoPendentePorOrigemEDestino(@Param("idHorarioOrigem") Integer idHorarioOrigem,
                                                   @Param("idHorarioDestino") Integer idHorarioDestino);
+
+    @Query("SELECT p FROM Permuta p " +
+            "JOIN FETCH p.idHorarioOrigem ho " +
+            "JOIN FETCH ho.idTurno hto " +
+            "JOIN FETCH ho.idLojautilizador luo " +
+            "JOIN FETCH luo.idUtilizador uo " +
+            "JOIN FETCH luo.idLoja lo " +
+            "JOIN FETCH p.idHorarioDestino hd " +
+            "JOIN FETCH hd.idTurno htd " +
+            "JOIN FETCH hd.idLojautilizador lud " +
+            "JOIN FETCH lud.idUtilizador ud " +
+            "JOIN FETCH lud.idLoja ld " +
+            "WHERE LOWER(p.estado) = 'pendente' " +
+            "AND p.id <> :idPermutaIgnorada " +
+            "AND (" +
+            "    p.idHorarioOrigem.id IN :idsHorarios " +
+            "    OR p.idHorarioDestino.id IN :idsHorarios" +
+            ")")
+    List<Permuta> findPedidosPendentesConflitantes(@Param("idPermutaIgnorada") Integer idPermutaIgnorada,
+                                                   @Param("idsHorarios") java.util.Collection<Integer> idsHorarios);
 }

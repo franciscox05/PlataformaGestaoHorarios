@@ -1,21 +1,34 @@
 package com.example.projeto2.BLL;
 
 import com.example.projeto2.Modules.Horario;
+import com.example.projeto2.Modules.Lojautilizador;
 import com.example.projeto2.Modules.Permuta;
+import com.example.projeto2.Repositories.HorarioRepository;
+import com.example.projeto2.Repositories.LojautilizadorRepository;
 import com.example.projeto2.Repositories.PermutaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class PermutaBLL {
 
-    private final PermutaRepository permutaRepository;
+    private static final Set<String> CARGOS_COM_APROVACAO = Set.of("gerente", "subgerente", "supervisor");
 
-    public PermutaBLL(PermutaRepository permutaRepository) {
+    private final PermutaRepository permutaRepository;
+    private final LojautilizadorRepository lojautilizadorRepository;
+    private final HorarioRepository horarioRepository;
+
+    public PermutaBLL(PermutaRepository permutaRepository,
+                      LojautilizadorRepository lojautilizadorRepository,
+                      HorarioRepository horarioRepository) {
         this.permutaRepository = permutaRepository;
+        this.lojautilizadorRepository = lojautilizadorRepository;
+        this.horarioRepository = horarioRepository;
     }
 
     @Transactional
@@ -37,7 +50,64 @@ public class PermutaBLL {
             return List.of();
         }
 
-        return permutaRepository.findPedidosEnviadosPorUtilizador(idUtilizadorLogado);
+        return permutaRepository.findPedidosEnviadosPorUtilizador(idUtilizadorLogado).stream()
+                .sorted(Comparator
+                        .comparing(Permuta::getDataPedido, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Permuta::getId, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean utilizadorPodeAprovarPermutas(Integer idUtilizador) {
+        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
+                .map(Lojautilizador::getIdCargo)
+                .map(cargo -> cargo.getTipo() != null && CARGOS_COM_APROVACAO.contains(cargo.getTipo().toLowerCase()))
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Permuta> listarPedidosPendentesParaAprovacao(Integer idUtilizadorAprovador) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
+        validarPermissaoDeAprovacao(ligacaoAtiva);
+
+        return permutaRepository.findPedidosPendentesDaLoja(
+                ligacaoAtiva.getIdLoja().getId(),
+                idUtilizadorAprovador
+        );
+    }
+
+    @Transactional
+    public Permuta aprovarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador) {
+        Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador);
+
+        Horario horarioOrigem = pedido.getIdHorarioOrigem();
+        Horario horarioDestino = pedido.getIdHorarioDestino();
+
+        var turnoOrigem = horarioOrigem.getIdTurno();
+        horarioOrigem.setIdTurno(horarioDestino.getIdTurno());
+        horarioDestino.setIdTurno(turnoOrigem);
+
+        horarioRepository.save(horarioOrigem);
+        horarioRepository.save(horarioDestino);
+
+        pedido.setEstado("aprovado");
+        Permuta pedidoAprovado = permutaRepository.save(pedido);
+
+        List<Permuta> conflitos = permutaRepository.findPedidosPendentesConflitantes(
+                pedido.getId(),
+                Set.of(horarioOrigem.getId(), horarioDestino.getId())
+        );
+        conflitos.forEach(conflicto -> conflicto.setEstado("rejeitado"));
+        permutaRepository.saveAll(conflitos);
+
+        return pedidoAprovado;
+    }
+
+    @Transactional
+    public Permuta rejeitarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador) {
+        Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador);
+        pedido.setEstado("rejeitado");
+        return permutaRepository.save(pedido);
     }
 
     private void validarPedido(Integer idUtilizadorLogado, Horario meuTurno, Horario turnoColega) {
@@ -84,8 +154,52 @@ public class PermutaBLL {
             throw new IllegalArgumentException("Ja existe um pedido pendente para esta combinacao de turnos.");
         }
 
-        if (permutaRepository.existsPedidoPendentePorHorarioOrigem(meuTurno.getId())) {
-            throw new IllegalArgumentException("Ja existe um pedido pendente para o teu turno selecionado.");
+        if (permutaRepository.existsPedidoPendentePorHorario(meuTurno.getId())
+                || permutaRepository.existsPedidoPendentePorHorario(turnoColega.getId())) {
+            throw new IllegalArgumentException("Um dos turnos selecionados ja esta envolvido num pedido pendente.");
+        }
+    }
+
+    private Permuta obterPedidoPendenteGerivel(Integer idPermuta, Integer idUtilizadorAprovador) {
+        if (idPermuta == null) {
+            throw new IllegalArgumentException("O pedido de permuta selecionado e obrigatorio.");
+        }
+
+        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
+        validarPermissaoDeAprovacao(ligacaoAtiva);
+
+        Permuta pedido = permutaRepository.findDetalhadaById(idPermuta)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido de permuta nao encontrado."));
+
+        if (!"pendente".equalsIgnoreCase(pedido.getEstado())) {
+            throw new IllegalArgumentException("Este pedido de permuta ja foi tratado.");
+        }
+
+        Integer idLojaAprovador = ligacaoAtiva.getIdLoja().getId();
+        Integer idLojaOrigem = pedido.getIdHorarioOrigem().getIdLojautilizador().getIdLoja().getId();
+        Integer idLojaDestino = pedido.getIdHorarioDestino().getIdLojautilizador().getIdLoja().getId();
+        Integer idSolicitante = pedido.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador().getId();
+
+        if (!idLojaAprovador.equals(idLojaOrigem) || !idLojaAprovador.equals(idLojaDestino) || idUtilizadorAprovador.equals(idSolicitante)) {
+            throw new IllegalArgumentException("Nao tens permissao para gerir este pedido de permuta.");
+        }
+
+        return pedido;
+    }
+
+    private Lojautilizador obterLigacaoAtiva(Integer idUtilizador) {
+        if (idUtilizador == null) {
+            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
+        }
+
+        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
+                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador."));
+    }
+
+    private void validarPermissaoDeAprovacao(Lojautilizador ligacaoAtiva) {
+        String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
+        if (tipoCargo == null || !CARGOS_COM_APROVACAO.contains(tipoCargo.toLowerCase())) {
+            throw new IllegalArgumentException("Este utilizador nao tem permissao para aprovar permutas.");
         }
     }
 }

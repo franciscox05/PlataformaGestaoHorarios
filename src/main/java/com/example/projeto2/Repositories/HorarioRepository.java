@@ -37,7 +37,7 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "AND NOT EXISTS (" +
             "    SELECT 1 FROM Permuta p " +
             "    WHERE LOWER(p.estado) = 'pendente' " +
-            "    AND p.idHorarioOrigem.id = h.id" +
+            "    AND (p.idHorarioOrigem.id = h.id OR p.idHorarioDestino.id = h.id)" +
             ") " +
             "ORDER BY h.dataTurno ASC, t.horaInicio ASC")
     List<Horario> findTurnosDisponiveisParaPermutaPorUtilizador(@Param("idUtilizador") Integer idUtilizador);
@@ -62,6 +62,11 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "AND l.id = (" +
             "    SELECT origem.idLojautilizador.idLoja.id FROM Horario origem " +
             "    WHERE origem.id = :idHorarioOrigem" +
+            ") " +
+            "AND NOT EXISTS (" +
+            "    SELECT 1 FROM Permuta p " +
+            "    WHERE LOWER(p.estado) = 'pendente' " +
+            "    AND (p.idHorarioOrigem.id = h.id OR p.idHorarioDestino.id = h.id)" +
             ") " +
             "ORDER BY t.horaInicio ASC, u.nome ASC")
     List<Horario> findTurnosElegiveisParaPermuta(@Param("idUtilizador") Integer idUtilizador,
