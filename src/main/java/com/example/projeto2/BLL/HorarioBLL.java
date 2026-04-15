@@ -27,6 +27,24 @@ public class HorarioBLL {
     }
 
     @Transactional(readOnly = true)
+    public List<Horario> listarMeusTurnosDisponiveisParaPermuta(Integer idUtilizadorLogado) {
+        if (idUtilizadorLogado == null) {
+            return List.of();
+        }
+
+        return horarioRepository.findTurnosDisponiveisParaPermutaPorUtilizador(idUtilizadorLogado);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Horario> listarTurnosElegiveisParaPermuta(Integer idUtilizadorLogado, Integer idHorarioOrigem) {
+        if (idUtilizadorLogado == null || idHorarioOrigem == null) {
+            return List.of();
+        }
+
+        return horarioRepository.findTurnosElegiveisParaPermuta(idUtilizadorLogado, idHorarioOrigem);
+    }
+
+    @Transactional(readOnly = true)
     public List<Horario> listarEquipaDeHoje(Integer idUtilizadorLogado) {
         return horarioRepository.findEquipaDeHojeNaLojaDoUtilizador(idUtilizadorLogado);
     }

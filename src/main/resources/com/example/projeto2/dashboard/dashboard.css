@@ -40,6 +40,12 @@
     -fx-text-fill: #333333;
 }
 
+.campo-titulo {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
 /* Botoes */
 .botao-acao {
     -fx-background-color: #c41230;
@@ -179,4 +185,17 @@
     -fx-font-size: 13px;
     -fx-text-fill: #666666;
     -fx-font-weight: bold;
+}
+
+.mensagem-feedback {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.mensagem-sucesso {
+    -fx-text-fill: #2e7d32;
+}
+
+.mensagem-erro {
+    -fx-text-fill: #c41230;
 }
