@@ -25,9 +25,12 @@ public class Projeto2Application extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         // Truque: O Spring diz ao JavaFX como criar os Controllers (injetando a BLL)
+
+        // ⚠️ A ALTERAÇÃO FOI FEITA NESTA LINHA ABAIXO (adicionei a pasta "login/")
         javafx.fxml.FXMLLoader fxmlLoader = new javafx.fxml.FXMLLoader(
-                Projeto2Application.class.getResource("login-view.fxml")
+                Projeto2Application.class.getResource("login/login-view.fxml")
         );
+
         fxmlLoader.setControllerFactory(springContext::getBean); // A linha Mágica!
 
         Scene scene = new Scene(fxmlLoader.load(), 800, 600);
