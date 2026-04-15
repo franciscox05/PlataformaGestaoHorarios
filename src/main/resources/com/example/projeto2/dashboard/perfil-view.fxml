@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="TOP_CENTER" prefHeight="600.0" prefWidth="730.0" spacing="20.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PerfilController">
+
+    <padding>
+        <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+    </padding>
+
+    <children>
+        <Label styleClass="titulo-dashboard" text="O Meu Perfil" />
+        <Label styleClass="subtitulo" text="Consulta os teus dados atuais, o vinculo ativo e um resumo rapido da tua atividade." />
+
+        <HBox alignment="TOP_CENTER" spacing="20.0">
+            <children>
+                <VBox spacing="12.0" styleClass="info-card" HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label styleClass="card-titulo" text="Dados Pessoais" />
+                        <Label styleClass="meta-etiqueta" text="Nome" />
+                        <Label fx:id="lblNomePerfil" styleClass="meta-valor" text="-" />
+                        <Label styleClass="meta-etiqueta" text="Email" />
+                        <Label fx:id="lblEmailPerfil" styleClass="meta-valor" text="-" />
+                        <Label styleClass="meta-etiqueta" text="Telemovel" />
+                        <Label fx:id="lblTelemovelPerfil" styleClass="meta-valor" text="-" />
+                        <Label styleClass="meta-etiqueta" text="Estado" />
+                        <Label fx:id="lblEstadoPerfil" styleClass="meta-valor" text="-" />
+                    </children>
+                </VBox>
+
+                <VBox spacing="12.0" styleClass="info-card" HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label styleClass="card-titulo" text="Vinculo Atual" />
+                        <Label styleClass="meta-etiqueta" text="Loja" />
+                        <Label fx:id="lblLojaAtual" styleClass="meta-valor" text="-" />
+                        <Label styleClass="meta-etiqueta" text="Cargo" />
+                        <Label fx:id="lblCargoAtual" styleClass="meta-valor" text="-" />
+                        <Label styleClass="meta-etiqueta" text="Data de entrada" />
+                        <Label fx:id="lblDataEntrada" styleClass="meta-valor" text="-" />
+                        <Label styleClass="meta-etiqueta" text="Proximo turno" />
+                        <Label fx:id="lblProximoTurno" styleClass="meta-valor" text="-" wrapText="true" />
+                    </children>
+                </VBox>
+            </children>
+        </HBox>
+
+        <HBox alignment="CENTER" spacing="15.0">
+            <children>
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label fx:id="lblHorasMes" styleClass="stat-numero" text="0h 0m" />
+                        <Label styleClass="stat-titulo" text="Horas este mes" />
+                    </children>
+                </VBox>
+
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label fx:id="lblFolgasPendentes" styleClass="stat-numero" text="0" />
+                        <Label styleClass="stat-titulo" text="Folgas pendentes" />
+                    </children>
+                </VBox>
+
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label fx:id="lblFolgasAprovadas" styleClass="stat-numero" text="0" />
+                        <Label styleClass="stat-titulo" text="Folgas aprovadas" />
+                    </children>
+                </VBox>
+
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label fx:id="lblTurnosFuturos" styleClass="stat-numero" text="0" />
+                        <Label styleClass="stat-titulo" text="Turnos futuros" />
+                    </children>
+                </VBox>
+            </children>
+        </HBox>
+
+        <VBox spacing="8.0" styleClass="info-card" VBox.vgrow="ALWAYS">
+            <children>
+                <Label styleClass="card-titulo" text="Resumo" />
+                <Label styleClass="subtitulo" wrapText="true" text="Este painel junta a tua informacao pessoal, a tua ligacao ativa a uma loja e os principais indicadores do mes para te dar uma leitura rapida do teu estado atual na plataforma." />
+            </children>
+        </VBox>
+    </children>
+
+</VBox>

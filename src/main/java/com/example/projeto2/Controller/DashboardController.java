@@ -26,6 +26,9 @@ public class DashboardController {
     @FXML
     private Button btnPermutas;
 
+    @FXML
+    private Button btnPerfil;
+
     private final ApplicationContext applicationContext;
     private Utilizador utilizadorLogado;
 
@@ -60,6 +63,13 @@ public class DashboardController {
     }
 
     @FXML
+    public void onPerfilClick() {
+        limparBotoesAtivos();
+        btnPerfil.getStyleClass().add("sidebar-btn-ativo");
+        mudarEcraCentro("/com/example/projeto2/dashboard/perfil-view.fxml");
+    }
+
+    @FXML
     public void onLogoutClick() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/projeto2/login/login-view.fxml"));
@@ -88,6 +98,8 @@ public class DashboardController {
                 permutasController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PedirFolgaController pedirFolgaController) {
                 pedirFolgaController.setUtilizadorLogado(utilizadorLogado);
+            } else if (controller instanceof PerfilController perfilController) {
+                perfilController.setUtilizadorLogado(utilizadorLogado);
             }
 
             mainContainer.setCenter(novoConteudo);
@@ -100,5 +112,6 @@ public class DashboardController {
         btnDashboard.getStyleClass().remove("sidebar-btn-ativo");
         btnFolgas.getStyleClass().remove("sidebar-btn-ativo");
         btnPermutas.getStyleClass().remove("sidebar-btn-ativo");
+        btnPerfil.getStyleClass().remove("sidebar-btn-ativo");
     }
 }
