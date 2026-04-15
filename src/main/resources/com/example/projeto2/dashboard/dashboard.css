@@ -61,6 +61,22 @@
     -fx-background-color: #a00f25;
 }
 
+.botao-secundario {
+    -fx-background-color: #efefef;
+    -fx-text-fill: #333333;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-border-color: #d0d0d0;
+    -fx-border-radius: 5px;
+}
+
+.botao-secundario:hover {
+    -fx-background-color: #dddddd;
+}
+
 .botao-logout {
     -fx-background-color: transparent;
     -fx-text-fill: #666666;
@@ -198,4 +214,13 @@
 
 .mensagem-erro {
     -fx-text-fill: #c41230;
+}
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
 }
