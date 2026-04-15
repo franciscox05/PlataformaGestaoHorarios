@@ -5,10 +5,13 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="TOP_CENTER" prefHeight="600.0" prefWidth="730.0" spacing="20.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PedirFolgaController">
+<VBox alignment="TOP_CENTER" prefHeight="600.0" prefWidth="730.0" spacing="18.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PedirFolgaController">
 
     <padding>
         <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
@@ -16,14 +19,31 @@
 
     <children>
         <Label styleClass="titulo-dashboard" text="Novo Pedido de Aus&#234;ncia" />
-        <Label styleClass="subtitulo" text="Indica a data, o tipo e a justifica&#231;&#227;o do pedido." />
+        <Label styleClass="subtitulo" text="Regista um novo pedido e acompanha o estado dos teus pedidos anteriores." />
 
-        <DatePicker fx:id="dpData" promptText="Selecionar Data" />
+        <HBox alignment="TOP_CENTER" spacing="15.0">
+            <children>
+                <DatePicker fx:id="dpData" promptText="Selecionar Data" />
+                <ComboBox fx:id="cbTipo" promptText="Tipo de Aus&#234;ncia" />
+            </children>
+        </HBox>
 
-        <ComboBox fx:id="cbTipo" promptText="Tipo de Aus&#234;ncia" />
-
-        <TextArea fx:id="txtMotivo" maxHeight="100.0" promptText="Justifica&#231;&#227;o" wrapText="true" />
+        <TextArea fx:id="txtMotivo" maxHeight="100.0" prefRowCount="3" promptText="Justifica&#231;&#227;o" wrapText="true" />
 
         <Button onAction="#onSubmitClick" styleClass="botao-acao" text="Submeter Pedido" />
+
+        <Label styleClass="subtitulo" text="Hist&#243;rico dos teus pedidos" />
+
+        <TableView fx:id="tabelaPedidos" VBox.vgrow="ALWAYS">
+            <columnResizePolicy>
+                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+            </columnResizePolicy>
+            <columns>
+                <TableColumn fx:id="colDataPedido" prefWidth="120.0" text="Data" />
+                <TableColumn fx:id="colTipoPedido" prefWidth="140.0" text="Tipo" />
+                <TableColumn fx:id="colMotivoPedido" prefWidth="280.0" text="Justifica&#231;&#227;o" />
+                <TableColumn fx:id="colEstadoPedido" prefWidth="140.0" text="Estado" />
+            </columns>
+        </TableView>
     </children>
 </VBox>
