@@ -9,7 +9,15 @@ import java.util.List;
 
 public interface HorarioRepository extends JpaRepository<Horario, Integer> {
 
-    // QUERY: Com JOIN FETCH para trazer os dados completos do Utilizador e do Turno para a memória
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "WHERE u.id = :idUtilizador AND h.dataTurno >= CURRENT_DATE " +
+            "ORDER BY h.dataTurno ASC, t.horaInicio ASC")
+    List<Horario> findProximosTurnosPorUtilizador(@Param("idUtilizador") Integer idUtilizador);
+
     @Query("SELECT h FROM Horario h " +
             "JOIN FETCH h.idLojautilizador lu " +
             "JOIN FETCH lu.idUtilizador u " +

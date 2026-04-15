@@ -1,48 +1,63 @@
 package com.example.projeto2.Modules;
 
-import jakarta.persistence.*;
-import org.hibernate.annotations.ColumnDefault;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "day_offs")
 public class DayOff {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_dayoff", nullable = false)
-    private Integer id;
+    private Integer idDayoff;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_utilizador", nullable = false)
-    private Utilizador idUtilizador;
+    @Column(name = "id_utilizador", nullable = false)
+    private Integer idUtilizador;
 
     @Column(name = "data_ausencia", nullable = false)
     private LocalDate dataAusencia;
 
-    @Column(name = "motivo", length = Integer.MAX_VALUE)
+    @Column(name = "motivo")
     private String motivo;
 
-    @Column(name = "tipo", columnDefinition = "tipo_dayoff_enum not null")
-    private Object tipo;
+    @Column(name = "tipo", nullable = false, length = 50)
+    private String tipo;
 
-    @ColumnDefault("'pendente'")
-    @Column(name = "estado", columnDefinition = "estado_dayoff_enum")
-    private Object estado;
+    @Column(name = "estado", length = 50)
+    private String estado;
 
-    public Integer getId() {
-        return id;
+    public DayOff() {
     }
 
-    public void setId(Integer id) {
-        this.id = id;
+    public DayOff(Integer idDayoff, Integer idUtilizador, LocalDate dataAusencia, String motivo, String tipo, String estado) {
+        this.idDayoff = idDayoff;
+        this.idUtilizador = idUtilizador;
+        this.dataAusencia = dataAusencia;
+        this.motivo = motivo;
+        this.tipo = tipo;
+        this.estado = estado;
     }
 
-    public Utilizador getIdUtilizador() {
+    public Integer getIdDayoff() {
+        return idDayoff;
+    }
+
+    public void setIdDayoff(Integer idDayoff) {
+        this.idDayoff = idDayoff;
+    }
+
+    public Integer getIdUtilizador() {
         return idUtilizador;
     }
 
-    public void setIdUtilizador(Utilizador idUtilizador) {
+    public void setIdUtilizador(Integer idUtilizador) {
         this.idUtilizador = idUtilizador;
     }
 
@@ -62,20 +77,19 @@ public class DayOff {
         this.motivo = motivo;
     }
 
-    public Object getTipo() {
+    public String getTipo() {
         return tipo;
     }
 
-    public void setTipo(Object tipo) {
+    public void setTipo(String tipo) {
         this.tipo = tipo;
     }
 
-    public Object getEstado() {
+    public String getEstado() {
         return estado;
     }
 
-    public void setEstado(Object estado) {
+    public void setEstado(String estado) {
         this.estado = estado;
     }
-
 }

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="TOP_CENTER" prefHeight="600.0" prefWidth="730.0" spacing="20.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PedirFolgaController">
+
+    <padding>
+        <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+    </padding>
+
+    <children>
+        <Label styleClass="titulo-dashboard" text="Novo Pedido de Aus&#234;ncia" />
+        <Label styleClass="subtitulo" text="Indica a data, o tipo e a justifica&#231;&#227;o do pedido." />
+
+        <DatePicker fx:id="dpData" promptText="Selecionar Data" />
+
+        <ComboBox fx:id="cbTipo" promptText="Tipo de Aus&#234;ncia" />
+
+        <TextArea fx:id="txtMotivo" maxHeight="100.0" promptText="Justifica&#231;&#227;o" wrapText="true" />
+
+        <Button onAction="#onSubmitClick" styleClass="botao-acao" text="Submeter Pedido" />
+    </children>
+</VBox>
