@@ -2,6 +2,8 @@ package com.example.projeto2.Modules;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -21,13 +23,13 @@ public class Permuta {
     @JoinColumn(name = "id_horario_destino", nullable = false)
     private Horario idHorarioDestino;
 
-    @ColumnDefault("'pendente'")
     @Column(name = "estado", columnDefinition = "estado_permuta_enum")
-    private Object estado;
+    private String estado;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "data_pedido")
     private Instant dataPedido;
+
 
     public Integer getId() {
         return id;
@@ -53,11 +55,11 @@ public class Permuta {
         this.idHorarioDestino = idHorarioDestino;
     }
 
-    public Object getEstado() {
+    public String getEstado() {
         return estado;
     }
 
-    public void setEstado(Object estado) {
+    public void setEstado(String estado) {
         this.estado = estado;
     }
 
