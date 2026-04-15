@@ -50,7 +50,7 @@ public class DashboardController {
         limparBotoesAtivos();
         btnFolgas.getStyleClass().add("sidebar-btn-ativo");
 
-        // mudarEcraCentro("/com/example/projeto2/dashboard/pedir-folga-view.fxml");
+        mudarEcraCentro("/com/example/projeto2/dashboard/pedir-folga-view.fxml");
     }
 
     @FXML
