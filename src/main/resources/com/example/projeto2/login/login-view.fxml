@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+
+<VBox alignment="CENTER" spacing="20.0" stylesheets="@login.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.LoginController">
+
+   <padding>
+      <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
+   </padding>
+
+   <Label styleClass="titulo-levis" text="Levi's Staff Portal" />
+
+   <TextField fx:id="txtEmail" maxWidth="300.0" promptText="Email" />
+
+   <StackPane maxWidth="300.0">
+      <TextField fx:id="txtPasswordVisible" promptText="Password" visible="false" />
+      <PasswordField fx:id="txtPassword" promptText="Password" />
+
+      <Button fx:id="btnMostrarSenha" alignment="CENTER_RIGHT" onAction="#onMostrarSenhaClick" style="-fx-background-color: transparent; -fx-cursor: hand;" StackPane.alignment="CENTER_RIGHT">
+         <padding>
+            <Insets right="10.0" />
+         </padding>
+      </Button>
+   </StackPane>
+
+   <Label fx:id="lblErro" text="Email ou Password incorretos." visible="false" style="-fx-text-fill: #c41230; -fx-font-weight: bold; -fx-font-size: 13px;" />
+
+   <Button defaultButton="true" maxWidth="300.0" onAction="#onLoginClick" styleClass="botao-login" text="Sign In" />
+
+</VBox>

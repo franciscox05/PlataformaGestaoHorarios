@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="TOP_CENTER" prefHeight="600.0" prefWidth="730.0" spacing="20.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.HomeController">
+
+    <padding>
+        <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+    </padding>
+
+    <Label fx:id="lblBemVindo" styleClass="titulo-dashboard" text="Bem-vindo ao Dashboard!" />
+    <Label styleClass="subtitulo" text="Os teus próximos turnos:" />
+
+    <TableView fx:id="tabelaTurnos" VBox.vgrow="ALWAYS">
+        <columnResizePolicy>
+            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+        </columnResizePolicy>
+        <columns>
+            <TableColumn fx:id="colData" prefWidth="120.0" text="Data" />
+            <TableColumn fx:id="colHorario" prefWidth="150.0" text="Horário" />
+            <TableColumn fx:id="colLoja" prefWidth="250.0" text="Loja" />
+            <TableColumn fx:id="colEstado" prefWidth="150.0" text="Estado" />
+        </columns>
+    </TableView>
+
+</VBox>
