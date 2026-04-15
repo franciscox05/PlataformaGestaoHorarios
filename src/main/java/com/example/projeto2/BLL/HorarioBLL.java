@@ -30,4 +30,9 @@ public class HorarioBLL {
                         h.getDataTurno().isAfter(LocalDate.now().minusDays(1)))
                 .collect(Collectors.toList());
     }
+
+    // Method para a 2ª ComboBox das Permutas
+    public List<Horario> listarTurnosColegas(Integer idUtilizadorLogado) {
+        return horarioRepository.findTurnosDosColegas(idUtilizadorLogado);
+    }
 }

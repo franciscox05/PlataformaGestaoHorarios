@@ -28,7 +28,7 @@ public class Horario {
 
     @ColumnDefault("'pendente'")
     @Column(name = "estado", columnDefinition = "estado_horario_enum")
-    private Object estado;
+    private String estado;
 
     @OneToMany(mappedBy = "idHorario")
     private Set<HistoricoHorarioEstado> historicoHorarioEstados = new LinkedHashSet<>();
@@ -71,11 +71,11 @@ public class Horario {
         this.dataTurno = dataTurno;
     }
 
-    public Object getEstado() {
+    public String getEstado() {
         return estado;
     }
 
-    public void setEstado(Object estado) {
+    public void setEstado(String estado) {
         this.estado = estado;
     }
 

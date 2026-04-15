@@ -58,7 +58,7 @@ public class DashboardController {
         limparBotoesAtivos();
         btnPermutas.getStyleClass().add("sidebar-btn-ativo");
 
-        // mudarEcraCentro("/com/example/projeto2/dashboard/permutas-view.fxml");
+        mudarEcraCentro("/com/example/projeto2/dashboard/permutas-view.fxml");
     }
 
     @FXML
@@ -88,14 +88,19 @@ public class DashboardController {
             Parent novoConteudo = loader.load();
 
             Object controller = loader.getController();
+
+            // Passar o utilizador para o HomeController
             if (controller instanceof HomeController) {
                 ((HomeController) controller).setUtilizadorLogado(utilizadorLogado);
             }
+            // Passar o utilizador também para o PermutasController
+            else if (controller instanceof PermutasController) {
+                ((PermutasController) controller).setUtilizadorLogado(utilizadorLogado);
+            }
 
             mainContainer.setCenter(novoConteudo);
-
         } catch (Exception e) {
-            System.out.println("❌ Erro ao carregar o ecrã " + caminhoFxml + ": " + e.getMessage());
+            System.out.println("❌ Erro ao carregar o ecrã: " + e.getMessage());
         }
     }
 

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="TOP_CENTER" prefHeight="600.0" prefWidth="730.0" spacing="25.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PermutasController">
+
+    <padding>
+        <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
+    </padding>
+
+    <Label styleClass="titulo-dashboard" text="Trocar Turno" />
+    <Label styleClass="subtitulo" text="Seleciona o turno que queres ceder e o colega com quem queres trocar." />
+
+    <VBox alignment="CENTER_LEFT" maxWidth="400.0" spacing="10.0">
+        <Label style="-fx-font-weight: bold; -fx-text-fill: #333333;" text="1. O teu turno a ceder:" />
+        <ComboBox fx:id="cbMeuTurno" maxWidth="400.0" promptText="Escolhe um dos teus turnos futuros..." />
+    </VBox>
+
+    <VBox alignment="CENTER_LEFT" maxWidth="400.0" spacing="10.0">
+        <Label style="-fx-font-weight: bold; -fx-text-fill: #333333;" text="2. Colega / Turno pretendido:" />
+        <ComboBox fx:id="cbTurnoColega" maxWidth="400.0" promptText="Escolhe o turno do colega..." />
+    </VBox>
+
+    <Label fx:id="lblMensagem" visible="false" style="-fx-font-weight: bold;" />
+
+    <Button onAction="#onSubmeterTrocaClick" styleClass="botao-acao" text="Submeter Pedido" />
+
+</VBox>
