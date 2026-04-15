@@ -25,4 +25,9 @@ public class HorarioBLL {
     public List<Horario> listarTurnosColegas(Integer idUtilizadorLogado) {
         return horarioRepository.findTurnosDosColegas(idUtilizadorLogado);
     }
+
+    @Transactional(readOnly = true)
+    public List<Horario> listarEquipaDeHoje(Integer idUtilizadorLogado) {
+        return horarioRepository.findEquipaDeHojeNaLojaDoUtilizador(idUtilizadorLogado);
+    }
 }

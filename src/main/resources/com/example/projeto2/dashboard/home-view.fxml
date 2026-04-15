@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox alignment="TOP_CENTER" prefHeight="600.0" prefWidth="730.0" spacing="20.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.HomeController">
@@ -13,18 +14,43 @@
     </padding>
 
     <Label fx:id="lblBemVindo" styleClass="titulo-dashboard" text="Bem-vindo ao Dashboard!" />
-    <Label styleClass="subtitulo" text="Os teus próximos turnos:" />
+    <Label styleClass="subtitulo" text="Os teus pr&#243;ximos turnos e a equipa da tua loja hoje." />
 
-    <TableView fx:id="tabelaTurnos" VBox.vgrow="ALWAYS">
-        <columnResizePolicy>
-            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-        </columnResizePolicy>
-        <columns>
-            <TableColumn fx:id="colData" prefWidth="120.0" text="Data" />
-            <TableColumn fx:id="colHorario" prefWidth="150.0" text="Horário" />
-            <TableColumn fx:id="colLoja" prefWidth="250.0" text="Loja" />
-            <TableColumn fx:id="colEstado" prefWidth="150.0" text="Estado" />
-        </columns>
-    </TableView>
+    <HBox alignment="TOP_CENTER" spacing="20.0" VBox.vgrow="ALWAYS">
+        <children>
+            <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+                <children>
+                    <Label styleClass="subtitulo" text="Pr&#243;ximos turnos" />
+                    <TableView fx:id="tabelaTurnos" VBox.vgrow="ALWAYS">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                        <columns>
+                            <TableColumn fx:id="colData" prefWidth="120.0" text="Data" />
+                            <TableColumn fx:id="colHorario" prefWidth="150.0" text="Hor&#225;rio" />
+                            <TableColumn fx:id="colLoja" prefWidth="250.0" text="Loja" />
+                            <TableColumn fx:id="colEstado" prefWidth="150.0" text="Estado" />
+                        </columns>
+                    </TableView>
+                </children>
+            </VBox>
+
+            <VBox prefWidth="280.0" spacing="10.0">
+                <children>
+                    <Label styleClass="subtitulo" text="Equipa de Hoje" />
+                    <TableView fx:id="tabelaEquipaHoje" prefWidth="280.0" VBox.vgrow="ALWAYS">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                        <columns>
+                            <TableColumn fx:id="colColaboradorHoje" prefWidth="130.0" text="Colaborador" />
+                            <TableColumn fx:id="colHorarioHoje" prefWidth="90.0" text="Hor&#225;rio" />
+                            <TableColumn fx:id="colEstadoHoje" prefWidth="80.0" text="Estado" />
+                        </columns>
+                    </TableView>
+                </children>
+            </VBox>
+        </children>
+    </HBox>
 
 </VBox>
