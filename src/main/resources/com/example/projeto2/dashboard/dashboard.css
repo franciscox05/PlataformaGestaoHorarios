@@ -224,3 +224,28 @@
 .scroll-pane > .viewport {
     -fx-background-color: transparent;
 }
+
+
+/* ========================================================
+   ESTILOS PARA ALERTAS E POP-UPS NATIVOS (DialogPane)
+   ======================================================== */
+
+.alerta-personalizado {
+    -fx-background-color: #ffffff;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1px;
+}
+
+/* O cabeçalho do alerta (onde diz "Vais alterar o teu contacto") */
+.alerta-personalizado .header-panel {
+    -fx-background-color: #f8f9fa;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+/* O texto principal */
+.alerta-personalizado .content {
+    -fx-font-size: 14px;
+    -fx-text-fill: #333333;
+}
