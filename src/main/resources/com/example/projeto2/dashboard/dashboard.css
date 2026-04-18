@@ -208,6 +208,26 @@
     -fx-font-weight: bold;
 }
 
+.campo-input,
+.campo-textarea {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d6d6d6;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px 10px;
+    -fx-font-size: 13px;
+    -fx-text-fill: #333333;
+}
+
+.campo-input:focused,
+.campo-textarea:focused {
+    -fx-border-color: #c41230;
+}
+
+.campo-textarea {
+    -fx-pref-row-count: 2;
+}
+
 .mensagem-sucesso {
     -fx-text-fill: #2e7d32;
 }
@@ -223,6 +243,13 @@
 
 .scroll-pane > .viewport {
     -fx-background-color: transparent;
+}
+
+.regra-card {
+    -fx-background-color: #fafafa;
+    -fx-background-radius: 8px;
+    -fx-border-color: #e4e4e4;
+    -fx-border-radius: 8px;
 }
 
 
