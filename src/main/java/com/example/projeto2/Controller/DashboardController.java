@@ -1,5 +1,6 @@
 package com.example.projeto2.Controller;
 
+import com.example.projeto2.BLL.GestaoLojaBLL;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -21,6 +22,9 @@ public class DashboardController {
     private Button btnDashboard;
 
     @FXML
+    private Button btnGestaoLoja;
+
+    @FXML
     private Button btnFolgas;
 
     @FXML
@@ -30,14 +34,17 @@ public class DashboardController {
     private Button btnPerfil;
 
     private final ApplicationContext applicationContext;
+    private final GestaoLojaBLL gestaoLojaBLL;
     private Utilizador utilizadorLogado;
 
-    public DashboardController(ApplicationContext applicationContext) {
+    public DashboardController(ApplicationContext applicationContext, GestaoLojaBLL gestaoLojaBLL) {
         this.applicationContext = applicationContext;
+        this.gestaoLojaBLL = gestaoLojaBLL;
     }
 
     public void setUtilizadorLogado(Utilizador utilizador) {
         this.utilizadorLogado = utilizador;
+        configurarPermissoesMenu();
         onDashboardHomeClick();
     }
 
@@ -53,6 +60,13 @@ public class DashboardController {
         limparBotoesAtivos();
         btnFolgas.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/pedir-folga-view.fxml");
+    }
+
+    @FXML
+    public void onGestaoLojaClick() {
+        limparBotoesAtivos();
+        btnGestaoLoja.getStyleClass().add("sidebar-btn-ativo");
+        mudarEcraCentro("/com/example/projeto2/dashboard/gestao-loja-view.fxml");
     }
 
     @FXML
@@ -94,6 +108,8 @@ public class DashboardController {
 
             if (controller instanceof HomeController homeController) {
                 homeController.setUtilizadorLogado(utilizadorLogado);
+            } else if (controller instanceof GestaoLojaController gestaoLojaController) {
+                gestaoLojaController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PermutasController permutasController) {
                 permutasController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PedirFolgaController pedirFolgaController) {
@@ -110,8 +126,15 @@ public class DashboardController {
 
     private void limparBotoesAtivos() {
         btnDashboard.getStyleClass().remove("sidebar-btn-ativo");
+        btnGestaoLoja.getStyleClass().remove("sidebar-btn-ativo");
         btnFolgas.getStyleClass().remove("sidebar-btn-ativo");
         btnPermutas.getStyleClass().remove("sidebar-btn-ativo");
         btnPerfil.getStyleClass().remove("sidebar-btn-ativo");
+    }
+
+    private void configurarPermissoesMenu() {
+        boolean podeGerirLoja = utilizadorLogado != null && gestaoLojaBLL.utilizadorPodeGerirLoja(utilizadorLogado.getId());
+        btnGestaoLoja.setVisible(podeGerirLoja);
+        btnGestaoLoja.setManaged(podeGerirLoja);
     }
 }

@@ -28,6 +28,7 @@
                 <Label styleClass="sidebar-titulo" text="Levi's Portal" />
 
                 <Button fx:id="btnDashboard" onAction="#onDashboardHomeClick" styleClass="sidebar-btn sidebar-btn-ativo" text="Dashboard" />
+                <Button fx:id="btnGestaoLoja" managed="false" onAction="#onGestaoLojaClick" styleClass="sidebar-btn" text="Loja e Regras" visible="false" />
                 <Button fx:id="btnFolgas" onAction="#onPedirFolgaClick" styleClass="sidebar-btn" text="Pedir Folga" />
                 <Button fx:id="btnPermutas" onAction="#onTrocarTurnoClick" styleClass="sidebar-btn" text="Trocar Turno" />
                 <Button fx:id="btnPerfil" onAction="#onPerfilClick" styleClass="sidebar-btn" text="Perfil" />

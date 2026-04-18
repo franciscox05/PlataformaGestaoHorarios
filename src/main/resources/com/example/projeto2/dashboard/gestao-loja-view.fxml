@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToWidth="true" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.GestaoLojaController">
+    <content>
+        <VBox alignment="TOP_CENTER" prefWidth="760.0" spacing="20.0">
+            <padding>
+                <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+            </padding>
+
+            <children>
+                <Label styleClass="titulo-dashboard" text="Loja e Regras" />
+                <Label styleClass="subtitulo" text="Atualiza o horario da loja e ajusta as regras especificas que servem de base ao planeamento." wrapText="true" />
+
+                <VBox spacing="14.0" styleClass="info-card">
+                    <children>
+                        <Label styleClass="card-titulo" text="Contexto da Loja" />
+
+                        <HBox spacing="20.0">
+                            <children>
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="meta-etiqueta" text="Loja" />
+                                        <Label fx:id="lblNomeLoja" styleClass="meta-valor" text="-" />
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="meta-etiqueta" text="Localizacao" />
+                                        <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="meta-etiqueta" text="Perfil de acesso" />
+                                        <Label fx:id="lblCargoGestor" styleClass="meta-valor" text="-" />
+                                    </children>
+                                </VBox>
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+
+                <VBox spacing="14.0" styleClass="info-card">
+                    <children>
+                        <Label styleClass="card-titulo" text="Horario de Funcionamento" />
+                        <Label styleClass="subtitulo" text="Usa sempre o formato HH:mm para manter a validacao consistente." />
+
+                        <HBox spacing="20.0">
+                            <children>
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Hora de abertura" />
+                                        <TextField fx:id="txtHoraAbertura" promptText="09:00" styleClass="campo-input" />
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Hora de fecho" />
+                                        <TextField fx:id="txtHoraFecho" promptText="22:00" styleClass="campo-input" />
+                                    </children>
+                                </VBox>
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+
+                <VBox spacing="14.0" styleClass="info-card">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                            <children>
+                                <Label styleClass="card-titulo" text="Regras Especificas da Loja" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button onAction="#onGuardarClick" styleClass="botao-acao" text="Guardar Configuracao" />
+                            </children>
+                        </HBox>
+
+                        <Label fx:id="lblMensagem" styleClass="mensagem-feedback" text="-" wrapText="true" />
+                        <VBox fx:id="regrasContainer" spacing="14.0" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+    </content>
+</ScrollPane>
