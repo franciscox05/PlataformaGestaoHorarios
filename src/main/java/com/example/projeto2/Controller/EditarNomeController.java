@@ -19,13 +19,13 @@ import java.util.Optional;
 
 @Component
 @Scope("prototype")
-public class EditarEmailController {
+public class EditarNomeController {
 
     @FXML
-    private TextField txtEmailAtual;
+    private TextField txtNomeAtual;
 
     @FXML
-    private TextField txtEmailNovo;
+    private TextField txtNomeNovo;
 
     @FXML
     private Label lblErro;
@@ -33,22 +33,22 @@ public class EditarEmailController {
     private final PerfilBLL perfilBLL;
     private Utilizador utilizadorLogado;
 
-    public EditarEmailController(PerfilBLL perfilBLL) {
+    public EditarNomeController(PerfilBLL perfilBLL) {
         this.perfilBLL = perfilBLL;
     }
 
     @FXML
     public void initialize() {
-        txtEmailNovo.textProperty().addListener((observavel, valorAntigo, valorNovo) -> esconderErro());
+        txtNomeNovo.textProperty().addListener((observavel, valorAntigo, valorNovo) -> esconderErro());
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
         this.utilizadorLogado = utilizadorLogado;
 
-        if (utilizadorLogado != null && utilizadorLogado.getEmail() != null && !utilizadorLogado.getEmail().isBlank()) {
-            txtEmailAtual.setText(utilizadorLogado.getEmail());
+        if (utilizadorLogado != null && utilizadorLogado.getNome() != null && !utilizadorLogado.getNome().isBlank()) {
+            txtNomeAtual.setText(utilizadorLogado.getNome());
         } else {
-            txtEmailAtual.setText("Nao definido");
+            txtNomeAtual.setText("Nao definido");
         }
     }
 
@@ -58,7 +58,7 @@ public class EditarEmailController {
         confirmacao.setTitle("Confirmar Alteracao");
         confirmacao.setHeaderText(null);
         confirmacao.setGraphic(null);
-        confirmacao.setContentText("Tens a certeza que queres atualizar o teu email?");
+        confirmacao.setContentText("Tens a certeza que queres atualizar o teu nome?");
 
         ButtonType btnGuardar = new ButtonType("Guardar", ButtonBar.ButtonData.OK_DONE);
         ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -84,7 +84,7 @@ public class EditarEmailController {
         }
 
         try {
-            utilizadorLogado = perfilBLL.atualizarEmail(utilizadorLogado.getId(), txtEmailNovo.getText());
+            utilizadorLogado = perfilBLL.atualizarNome(utilizadorLogado.getId(), txtNomeNovo.getText());
             fecharJanela(event);
         } catch (IllegalArgumentException e) {
             lblErro.setText(e.getMessage());

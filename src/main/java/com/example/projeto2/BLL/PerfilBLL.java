@@ -147,6 +147,63 @@ public class PerfilBLL {
         return utilizadorRepository.save(utilizador);
     }
 
+    @Transactional
+    public Utilizador atualizarNome(Integer idUtilizador, String novoNome) {
+        Utilizador utilizador = obterUtilizadorPersistido(idUtilizador);
+        String nomeNormalizado = normalizarTexto(novoNome);
+
+        if (nomeNormalizado == null) {
+            throw new IllegalArgumentException("O nome e obrigatorio.");
+        }
+
+        if (nomeNormalizado.length() < 3) {
+            throw new IllegalArgumentException("O nome deve ter pelo menos 3 caracteres.");
+        }
+
+        if (nomeNormalizado.length() > 100) {
+            throw new IllegalArgumentException("O nome nao pode ter mais de 100 caracteres.");
+        }
+
+        if (nomeNormalizado.equalsIgnoreCase(utilizador.getNome())) {
+            throw new IllegalArgumentException("O novo nome nao pode ser igual ao atual.");
+        }
+
+        utilizador.setNome(nomeNormalizado);
+        return utilizadorRepository.save(utilizador);
+    }
+
+    @Transactional
+    public Utilizador atualizarPassword(Integer idUtilizador, String passwordAtual, String novaPassword, String confirmarPassword) {
+        Utilizador utilizador = obterUtilizadorPersistido(idUtilizador);
+
+        String passwordAtualNormalizada = normalizarTexto(passwordAtual);
+        String novaPasswordNormalizada = normalizarTexto(novaPassword);
+        String confirmarPasswordNormalizada = normalizarTexto(confirmarPassword);
+
+        if (passwordAtualNormalizada == null || novaPasswordNormalizada == null || confirmarPasswordNormalizada == null) {
+            throw new IllegalArgumentException("Por favor, preenche todos os campos.");
+        }
+
+        if (!passwordAtualNormalizada.equals(utilizador.getPasswordHash())) {
+            throw new IllegalArgumentException("A password atual esta incorreta.");
+        }
+
+        if (novaPasswordNormalizada.length() < 6) {
+            throw new IllegalArgumentException("A nova password deve ter pelo menos 6 caracteres.");
+        }
+
+        if (!novaPasswordNormalizada.equals(confirmarPasswordNormalizada)) {
+            throw new IllegalArgumentException("As novas passwords nao coincidem.");
+        }
+
+        if (novaPasswordNormalizada.equals(passwordAtualNormalizada)) {
+            throw new IllegalArgumentException("A nova password tem de ser diferente da atual.");
+        }
+
+        utilizador.setPasswordHash(novaPasswordNormalizada);
+        return utilizadorRepository.save(utilizador);
+    }
+
     private long calcularDuracaoEmMinutos(Turno turno) {
         if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null) {
             return 0;

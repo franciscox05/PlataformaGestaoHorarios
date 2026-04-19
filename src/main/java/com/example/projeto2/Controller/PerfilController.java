@@ -104,6 +104,11 @@ public class PerfilController {
     }
 
     @FXML
+    public void onEditarNomeClick() {
+        abrirModalComBlur("/com/example/projeto2/dashboard/editar-nome-view.fxml", "Editar Nome");
+    }
+
+    @FXML
     public void onEditarTelemovelClick() {
         abrirModalComBlur("/com/example/projeto2/dashboard/editar-telemovel-view.fxml", "Editar Telemovel");
     }
@@ -122,7 +127,9 @@ public class PerfilController {
             Parent root = loader.load();
 
             Object controller = loader.getController();
-            if (controller instanceof EditarEmailController emailController) {
+            if (controller instanceof EditarNomeController nomeController) {
+                nomeController.setUtilizadorLogado(this.utilizadorLogado);
+            } else if (controller instanceof EditarEmailController emailController) {
                 emailController.setUtilizadorLogado(this.utilizadorLogado);
             } else if (controller instanceof EditarTelemovelController telemovelController) {
                 telemovelController.setUtilizadorLogado(this.utilizadorLogado);

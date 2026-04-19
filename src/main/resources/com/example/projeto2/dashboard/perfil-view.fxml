@@ -35,10 +35,11 @@
                                 <Insets top="10.0" />
                             </padding>
                             <HBox spacing="10.0">
+                                <Button onAction="#onEditarNomeClick" styleClass="botao-acao" text="Editar Nome" />
                                 <Button onAction="#onEditarEmailClick" styleClass="botao-acao" text="Editar Email" />
-                                <Button onAction="#onEditarTelemovelClick" styleClass="botao-acao" text="Editar Telemovel" />
                             </HBox>
                             <HBox spacing="10.0">
+                                <Button onAction="#onEditarTelemovelClick" styleClass="botao-acao" text="Editar Telemovel" />
                                 <Button onAction="#onAlterarPasswordClick" styleClass="botao-acao" text="Alterar Password" />
                             </HBox>
                         </VBox>

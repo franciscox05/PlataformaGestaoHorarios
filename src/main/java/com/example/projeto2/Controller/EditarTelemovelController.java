@@ -40,6 +40,8 @@ public class EditarTelemovelController {
     @FXML
     public void initialize() {
         txtTelemovel.textProperty().addListener((observavel, valorAntigo, valorNovo) -> {
+            esconderErro();
+
             if (!valorNovo.matches("\\d*")) {
                 txtTelemovel.setText(valorNovo.replaceAll("[^\\d]", ""));
             }
@@ -106,6 +108,11 @@ public class EditarTelemovelController {
     @FXML
     public void onCancelarClick(ActionEvent event) {
         fecharJanela(event);
+    }
+
+    private void esconderErro() {
+        lblErro.setVisible(false);
+        lblErro.setText("");
     }
 
     private void fecharJanela(ActionEvent event) {
