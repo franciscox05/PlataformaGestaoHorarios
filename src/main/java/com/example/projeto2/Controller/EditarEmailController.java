@@ -19,13 +19,13 @@ import java.util.Optional;
 
 @Component
 @Scope("prototype")
-public class EditarTelemovelController {
+public class EditarEmailController {
 
     @FXML
-    private TextField txtTelemovelAtual;
+    private TextField txtEmailAtual;
 
     @FXML
-    private TextField txtTelemovel;
+    private TextField txtEmailNovo;
 
     @FXML
     private Label lblErro;
@@ -33,30 +33,17 @@ public class EditarTelemovelController {
     private final PerfilBLL perfilBLL;
     private Utilizador utilizadorLogado;
 
-    public EditarTelemovelController(PerfilBLL perfilBLL) {
+    public EditarEmailController(PerfilBLL perfilBLL) {
         this.perfilBLL = perfilBLL;
-    }
-
-    @FXML
-    public void initialize() {
-        txtTelemovel.textProperty().addListener((observavel, valorAntigo, valorNovo) -> {
-            if (!valorNovo.matches("\\d*")) {
-                txtTelemovel.setText(valorNovo.replaceAll("[^\\d]", ""));
-            }
-
-            if (txtTelemovel.getText().length() > 9) {
-                txtTelemovel.setText(txtTelemovel.getText().substring(0, 9));
-            }
-        });
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
         this.utilizadorLogado = utilizadorLogado;
 
-        if (utilizadorLogado != null && utilizadorLogado.getTelemovel() != null && !utilizadorLogado.getTelemovel().isBlank()) {
-            txtTelemovelAtual.setText(utilizadorLogado.getTelemovel());
+        if (utilizadorLogado != null && utilizadorLogado.getEmail() != null && !utilizadorLogado.getEmail().isBlank()) {
+            txtEmailAtual.setText(utilizadorLogado.getEmail());
         } else {
-            txtTelemovelAtual.setText("Nao definido");
+            txtEmailAtual.setText("Nao definido");
         }
     }
 
@@ -66,7 +53,7 @@ public class EditarTelemovelController {
         confirmacao.setTitle("Confirmar Alteracao");
         confirmacao.setHeaderText(null);
         confirmacao.setGraphic(null);
-        confirmacao.setContentText("Tens a certeza que queres atualizar o teu telemovel?");
+        confirmacao.setContentText("Tens a certeza que queres atualizar o teu email?");
 
         ButtonType btnGuardar = new ButtonType("Guardar", ButtonBar.ButtonData.OK_DONE);
         ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -92,7 +79,7 @@ public class EditarTelemovelController {
         }
 
         try {
-            utilizadorLogado = perfilBLL.atualizarTelemovel(utilizadorLogado.getId(), txtTelemovel.getText());
+            utilizadorLogado = perfilBLL.atualizarEmail(utilizadorLogado.getId(), txtEmailNovo.getText());
             fecharJanela(event);
         } catch (IllegalArgumentException e) {
             lblErro.setText(e.getMessage());

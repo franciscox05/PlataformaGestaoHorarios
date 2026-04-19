@@ -20,24 +20,47 @@ import org.springframework.stereotype.Component;
 public class PerfilController {
 
     @FXML
-    private VBox raizPerfil; // <--- A base para aplicar o Blur
+    private VBox raizPerfil;
 
-    @FXML private Label lblNomePerfil;
-    @FXML private Label lblEmailPerfil;
-    @FXML private Label lblTelemovelPerfil;
-    @FXML private Label lblEstadoPerfil;
-    @FXML private Label lblLojaAtual;
-    @FXML private Label lblCargoAtual;
-    @FXML private Label lblDataEntrada;
-    @FXML private Label lblProximoTurno;
-    @FXML private Label lblHorasMes;
-    @FXML private Label lblFolgasPendentes;
-    @FXML private Label lblFolgasAprovadas;
-    @FXML private Label lblTurnosFuturos;
+    @FXML
+    private Label lblNomePerfil;
+
+    @FXML
+    private Label lblEmailPerfil;
+
+    @FXML
+    private Label lblTelemovelPerfil;
+
+    @FXML
+    private Label lblEstadoPerfil;
+
+    @FXML
+    private Label lblLojaAtual;
+
+    @FXML
+    private Label lblCargoAtual;
+
+    @FXML
+    private Label lblDataEntrada;
+
+    @FXML
+    private Label lblProximoTurno;
+
+    @FXML
+    private Label lblHorasMes;
+
+    @FXML
+    private Label lblFolgasPendentes;
+
+    @FXML
+    private Label lblFolgasAprovadas;
+
+    @FXML
+    private Label lblTurnosFuturos;
 
     private final PerfilBLL perfilBLL;
-    private final ApplicationContext applicationContext; // <--- Injetar o contexto
-    private Utilizador utilizadorLogado; // <--- Guardar o utilizador para passar ao Pop-up
+    private final ApplicationContext applicationContext;
+    private Utilizador utilizadorLogado;
 
     public PerfilController(PerfilBLL perfilBLL, ApplicationContext applicationContext) {
         this.perfilBLL = perfilBLL;
@@ -45,7 +68,7 @@ public class PerfilController {
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
-        this.utilizadorLogado = utilizadorLogado; // Guardamos na classe
+        this.utilizadorLogado = utilizadorLogado;
 
         if (utilizadorLogado == null) {
             preencherValoresEmFalta();
@@ -76,8 +99,13 @@ public class PerfilController {
     }
 
     @FXML
+    public void onEditarEmailClick() {
+        abrirModalComBlur("/com/example/projeto2/dashboard/editar-email-view.fxml", "Editar Email");
+    }
+
+    @FXML
     public void onEditarTelemovelClick() {
-        abrirModalComBlur("/com/example/projeto2/dashboard/editar-telemovel-view.fxml", "Editar Telemóvel");
+        abrirModalComBlur("/com/example/projeto2/dashboard/editar-telemovel-view.fxml", "Editar Telemovel");
     }
 
     @FXML
@@ -93,28 +121,29 @@ public class PerfilController {
             loader.setControllerFactory(applicationContext::getBean);
             Parent root = loader.load();
 
-            // --- CÓDIGO NOVO AQUI: Passar o utilizador para o popup ---
             Object controller = loader.getController();
-            if (controller instanceof EditarTelemovelController editController) {
-                editController.setUtilizadorLogado(this.utilizadorLogado);
-            } else if (controller instanceof AlterarPasswordController passController) { // NOVO!
-                passController.setUtilizadorLogado(this.utilizadorLogado);
+            if (controller instanceof EditarEmailController emailController) {
+                emailController.setUtilizadorLogado(this.utilizadorLogado);
+            } else if (controller instanceof EditarTelemovelController telemovelController) {
+                telemovelController.setUtilizadorLogado(this.utilizadorLogado);
+            } else if (controller instanceof AlterarPasswordController passwordController) {
+                passwordController.setUtilizadorLogado(this.utilizadorLogado);
             }
-            // ----------------------------------------------------------
 
             Stage modalStage = new Stage();
             modalStage.setTitle(titulo);
             modalStage.setScene(new Scene(root));
             modalStage.initModality(Modality.APPLICATION_MODAL);
             modalStage.setResizable(false);
-
             modalStage.showAndWait();
 
-            raizPerfil.setEffect(null);
+            if (this.utilizadorLogado != null && this.utilizadorLogado.getId() != null) {
+                this.utilizadorLogado = perfilBLL.obterUtilizadorPorId(this.utilizadorLogado.getId());
+            }
             setUtilizadorLogado(this.utilizadorLogado);
-
         } catch (Exception e) {
             System.out.println("Erro ao abrir modal: " + e.getMessage());
+        } finally {
             raizPerfil.setEffect(null);
         }
     }

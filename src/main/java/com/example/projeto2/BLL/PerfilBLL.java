@@ -8,6 +8,7 @@ import com.example.projeto2.Modules.Utilizador;
 import com.example.projeto2.Repositories.DayOffRepository;
 import com.example.projeto2.Repositories.HorarioRepository;
 import com.example.projeto2.Repositories.LojautilizadorRepository;
+import com.example.projeto2.Repositories.UtilizadorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,22 +18,27 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 public class PerfilBLL {
 
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     private final LojautilizadorRepository lojautilizadorRepository;
     private final HorarioRepository horarioRepository;
     private final DayOffRepository dayOffRepository;
+    private final UtilizadorRepository utilizadorRepository;
 
     public PerfilBLL(LojautilizadorRepository lojautilizadorRepository,
                      HorarioRepository horarioRepository,
-                     DayOffRepository dayOffRepository) {
+                     DayOffRepository dayOffRepository,
+                     UtilizadorRepository utilizadorRepository) {
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.horarioRepository = horarioRepository;
         this.dayOffRepository = dayOffRepository;
+        this.utilizadorRepository = utilizadorRepository;
     }
 
     @Transactional(readOnly = true)
@@ -90,6 +96,57 @@ public class PerfilBLL {
         );
     }
 
+    @Transactional(readOnly = true)
+    public Utilizador obterUtilizadorPorId(Integer idUtilizador) {
+        return obterUtilizadorPersistido(idUtilizador);
+    }
+
+    @Transactional
+    public Utilizador atualizarTelemovel(Integer idUtilizador, String novoTelemovel) {
+        Utilizador utilizador = obterUtilizadorPersistido(idUtilizador);
+        String telemovelNormalizado = normalizarTexto(novoTelemovel);
+
+        if (telemovelNormalizado == null || !telemovelNormalizado.matches("\\d{9}")) {
+            throw new IllegalArgumentException("O telemovel deve ter exatamente 9 digitos.");
+        }
+
+        if (telemovelNormalizado.equals(utilizador.getTelemovel())) {
+            throw new IllegalArgumentException("O novo telemovel nao pode ser igual ao atual.");
+        }
+
+        if (utilizadorRepository.existsByTelemovelAndIdNot(telemovelNormalizado, utilizador.getId())) {
+            throw new IllegalArgumentException("Este telemovel ja esta registado noutra conta.");
+        }
+
+        utilizador.setTelemovel(telemovelNormalizado);
+        return utilizadorRepository.save(utilizador);
+    }
+
+    @Transactional
+    public Utilizador atualizarEmail(Integer idUtilizador, String novoEmail) {
+        Utilizador utilizador = obterUtilizadorPersistido(idUtilizador);
+        String emailNormalizado = normalizarTexto(novoEmail);
+
+        if (emailNormalizado == null) {
+            throw new IllegalArgumentException("O email e obrigatorio.");
+        }
+
+        if (!EMAIL_PATTERN.matcher(emailNormalizado).matches()) {
+            throw new IllegalArgumentException("Indica um email valido.");
+        }
+
+        if (utilizador.getEmail() != null && utilizador.getEmail().equalsIgnoreCase(emailNormalizado)) {
+            throw new IllegalArgumentException("O novo email nao pode ser igual ao atual.");
+        }
+
+        if (utilizadorRepository.existsByEmailIgnoreCaseAndIdNot(emailNormalizado, utilizador.getId())) {
+            throw new IllegalArgumentException("Este email ja esta registado noutra conta.");
+        }
+
+        utilizador.setEmail(emailNormalizado);
+        return utilizadorRepository.save(utilizador);
+    }
+
     private long calcularDuracaoEmMinutos(Turno turno) {
         if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null) {
             return 0;
@@ -137,6 +194,24 @@ public class PerfilBLL {
             return "-";
         }
         return valor;
+    }
+
+    private Utilizador obterUtilizadorPersistido(Integer idUtilizador) {
+        if (idUtilizador == null) {
+            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
+        }
+
+        return utilizadorRepository.findById(idUtilizador)
+                .orElseThrow(() -> new IllegalArgumentException("Nao foi possivel encontrar o utilizador autenticado."));
+    }
+
+    private String normalizarTexto(String valor) {
+        if (valor == null) {
+            return null;
+        }
+
+        String valorNormalizado = valor.trim();
+        return valorNormalizado.isEmpty() ? null : valorNormalizado;
     }
 
     public record PerfilResumo(
