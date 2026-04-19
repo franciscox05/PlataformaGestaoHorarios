@@ -6,7 +6,10 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UtilizadorRepository extends JpaRepository<Utilizador, Integer> {
-    // Aqui não precisas de escrever código nenhum!
-    // O Spring já sabe fazer SELECT, INSERT, UPDATE e DELETE sozinho.
+
     boolean existsByTelemovel(String telemovel);
+
+    boolean existsByTelemovelAndIdNot(String telemovel, Integer id);
+
+    boolean existsByEmailIgnoreCaseAndIdNot(String email, Integer id);
 }

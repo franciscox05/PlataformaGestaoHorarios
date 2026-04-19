@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?> <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
@@ -13,7 +14,7 @@
 
     <children>
         <Label styleClass="titulo-dashboard" text="O Meu Perfil" />
-        <Label styleClass="subtitulo" text="Consulta os teus dados atuais, o vinculo ativo e um resumo rapido da tua atividade." />
+        <Label styleClass="subtitulo" text="Consulta os teus dados atuais, o teu vinculo ativo e um resumo rapido da tua atividade." />
 
         <HBox alignment="TOP_CENTER" spacing="20.0">
             <children>
@@ -29,13 +30,19 @@
                         <Label styleClass="meta-etiqueta" text="Estado" />
                         <Label fx:id="lblEstadoPerfil" styleClass="meta-valor" text="-" />
 
-                        <HBox spacing="10.0">
+                        <VBox spacing="10.0">
                             <padding>
                                 <Insets top="10.0" />
                             </padding>
-                            <Button text="✏️ Editar Telemovel" onAction="#onEditarTelemovelClick" styleClass="botao-acao" />
-                            <Button text="🔒 Alterar Password" onAction="#onAlterarPasswordClick" styleClass="botao-acao" />
-                        </HBox>
+                            <HBox spacing="10.0">
+                                <Button onAction="#onEditarNomeClick" styleClass="botao-acao" text="Editar Nome" />
+                                <Button onAction="#onEditarEmailClick" styleClass="botao-acao" text="Editar Email" />
+                            </HBox>
+                            <HBox spacing="10.0">
+                                <Button onAction="#onEditarTelemovelClick" styleClass="botao-acao" text="Editar Telemovel" />
+                                <Button onAction="#onAlterarPasswordClick" styleClass="botao-acao" text="Alterar Password" />
+                            </HBox>
+                        </VBox>
                     </children>
                 </VBox>
 
@@ -90,7 +97,7 @@
         <VBox spacing="8.0" styleClass="info-card" VBox.vgrow="ALWAYS">
             <children>
                 <Label styleClass="card-titulo" text="Resumo" />
-                <Label styleClass="subtitulo" wrapText="true" text="Este painel junta a tua informacao pessoal, a tua ligacao ativa a uma loja e os principais indicadores do mes para te dar uma leitura rapida do teu estado atual na plataforma." />
+                <Label styleClass="subtitulo" text="Este painel junta a tua informacao pessoal, a tua ligacao ativa a uma loja e os principais indicadores do mes para te dar uma leitura rapida do teu estado atual na plataforma." wrapText="true" />
             </children>
         </VBox>
     </children>

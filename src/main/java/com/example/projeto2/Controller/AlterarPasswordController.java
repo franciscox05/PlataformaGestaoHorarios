@@ -1,12 +1,21 @@
 package com.example.projeto2.Controller;
 
+import com.example.projeto2.BLL.PerfilBLL;
 import com.example.projeto2.Modules.Utilizador;
-import com.example.projeto2.Repositories.UtilizadorRepository;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.DialogPane;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
@@ -19,33 +28,56 @@ import java.util.Optional;
 @Scope("prototype")
 public class AlterarPasswordController {
 
-    // Campos de Texto
-    @FXML private PasswordField txtPasswordAtual;
-    @FXML private TextField txtPasswordAtualVisivel;
-    @FXML private PasswordField txtNovaPassword;
-    @FXML private TextField txtNovaPasswordVisivel;
-    @FXML private PasswordField txtConfirmarPassword;
-    @FXML private TextField txtConfirmarPasswordVisivel;
+    @FXML
+    private PasswordField txtPasswordAtual;
 
-    // Botões, Imagens e Checkbox
-    @FXML private ToggleButton btnVerPassAtual;
-    @FXML private ImageView imgPassAtual;
-    @FXML private ToggleButton btnVerNovaPass;
-    @FXML private ImageView imgNovaPass;
-    @FXML private ToggleButton btnVerConfirmarPass;
-    @FXML private ImageView imgConfirmarPass;
-    @FXML private CheckBox chkMostrarTodas;
+    @FXML
+    private TextField txtPasswordAtualVisivel;
 
-    @FXML private Label lblErro;
+    @FXML
+    private PasswordField txtNovaPassword;
+
+    @FXML
+    private TextField txtNovaPasswordVisivel;
+
+    @FXML
+    private PasswordField txtConfirmarPassword;
+
+    @FXML
+    private TextField txtConfirmarPasswordVisivel;
+
+    @FXML
+    private ToggleButton btnVerPassAtual;
+
+    @FXML
+    private ImageView imgPassAtual;
+
+    @FXML
+    private ToggleButton btnVerNovaPass;
+
+    @FXML
+    private ImageView imgNovaPass;
+
+    @FXML
+    private ToggleButton btnVerConfirmarPass;
+
+    @FXML
+    private ImageView imgConfirmarPass;
+
+    @FXML
+    private CheckBox chkMostrarTodas;
+
+    @FXML
+    private Label lblErro;
 
     private final Image imgOlhoAberto = new Image(getClass().getResourceAsStream("/com/example/projeto2/imagens/login/olho-aberto.png"));
     private final Image imgOlhoFechado = new Image(getClass().getResourceAsStream("/com/example/projeto2/imagens/login/olho-fechado.png"));
 
-    private final UtilizadorRepository utilizadorRepository;
+    private final PerfilBLL perfilBLL;
     private Utilizador utilizadorLogado;
 
-    public AlterarPasswordController(UtilizadorRepository utilizadorRepository) {
-        this.utilizadorRepository = utilizadorRepository;
+    public AlterarPasswordController(PerfilBLL perfilBLL) {
+        this.perfilBLL = perfilBLL;
     }
 
     @FXML
@@ -53,6 +85,10 @@ public class AlterarPasswordController {
         txtPasswordAtualVisivel.textProperty().bindBidirectional(txtPasswordAtual.textProperty());
         txtNovaPasswordVisivel.textProperty().bindBidirectional(txtNovaPassword.textProperty());
         txtConfirmarPasswordVisivel.textProperty().bindBidirectional(txtConfirmarPassword.textProperty());
+
+        txtPasswordAtual.textProperty().addListener((obs, antigo, novo) -> esconderErro());
+        txtNovaPassword.textProperty().addListener((obs, antigo, novo) -> esconderErro());
+        txtConfirmarPassword.textProperty().addListener((obs, antigo, novo) -> esconderErro());
 
         btnVerPassAtual.selectedProperty().addListener((obs, antigo, novoVisivel) -> {
             txtPasswordAtual.setVisible(!novoVisivel);
@@ -72,9 +108,6 @@ public class AlterarPasswordController {
             imgConfirmarPass.setImage(novoVisivel ? imgOlhoFechado : imgOlhoAberto);
         });
 
-        // --- A SOLUÇÃO DEFINITIVA ---
-
-        // 1. Ação Humana: Quando o utilizador clica fisicamente na CheckBox
         chkMostrarTodas.setOnAction(event -> {
             boolean estado = chkMostrarTodas.isSelected();
             btnVerPassAtual.setSelected(estado);
@@ -82,13 +115,11 @@ public class AlterarPasswordController {
             btnVerConfirmarPass.setSelected(estado);
         });
 
-        // 2. Ação Automática: Quando o utilizador clica nos botões individuais
         ChangeListener<Boolean> validadorOlhos = (obs, antigo, novo) -> {
-            boolean todosAbertos = btnVerPassAtual.isSelected() &&
-                    btnVerNovaPass.isSelected() &&
-                    btnVerConfirmarPass.isSelected();
+            boolean todosAbertos = btnVerPassAtual.isSelected()
+                    && btnVerNovaPass.isSelected()
+                    && btnVerConfirmarPass.isSelected();
 
-            // Isto atualiza a CheckBox visualmente, mas NÃO dispara o "setOnAction" acima. Zero loops!
             chkMostrarTodas.setSelected(todosAbertos);
         };
 
@@ -103,37 +134,8 @@ public class AlterarPasswordController {
 
     @FXML
     public void onGuardarClick(ActionEvent event) {
-        String passAtual = txtPasswordAtual.getText();
-        String novaPass = txtNovaPassword.getText();
-        String confirmarPass = txtConfirmarPassword.getText();
-
-        if (passAtual.isEmpty() || novaPass.isEmpty() || confirmarPass.isEmpty()) {
-            mostrarErro("Por favor, preenche todos os campos.");
-            return;
-        }
-
-        if (novaPass.length() < 6) {
-            mostrarErro("A nova password deve ter pelo menos 6 caracteres.");
-            return;
-        }
-
-        if (!novaPass.equals(confirmarPass)) {
-            mostrarErro("As novas passwords não coincidem.");
-            return;
-        }
-
-        if (!passAtual.equals(utilizadorLogado.getPasswordHash())) {
-            mostrarErro("A password atual está incorreta.");
-            return;
-        }
-
-        if (novaPass.equals(passAtual)) {
-            mostrarErro("A nova password tem de ser diferente da atual.");
-            return;
-        }
-
         Alert confirmacao = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmacao.setTitle("Confirmar Alteração");
+        confirmacao.setTitle("Confirmar Alteracao");
         confirmacao.setHeaderText(null);
         confirmacao.setGraphic(null);
         confirmacao.setContentText("Tens a certeza que queres alterar a tua password?");
@@ -153,30 +155,39 @@ public class AlterarPasswordController {
             Button nodeCancelar = (Button) dialogPane.lookupButton(btnCancelar);
             nodeCancelar.getStyleClass().add("botao-secundario");
         } catch (Exception e) {
-            System.out.println("Aviso: CSS do Alerta não carregado.");
+            System.out.println("Aviso: Nao foi possivel aplicar CSS ao Alerta.");
         }
 
         Optional<ButtonType> resultado = confirmacao.showAndWait();
-
-        if (resultado.isPresent() && resultado.get() == btnGuardar) {
-            try {
-                utilizadorLogado.setPasswordHash(novaPass);
-                utilizadorRepository.save(utilizadorLogado);
-                fecharJanela(event);
-            } catch (Exception e) {
-                mostrarErro("Erro ao guardar na base de dados.");
-            }
+        if (resultado.isEmpty() || resultado.get() != btnGuardar) {
+            return;
         }
-    }
 
-    private void mostrarErro(String mensagem) {
-        lblErro.setText(mensagem);
-        lblErro.setVisible(true);
+        try {
+            utilizadorLogado = perfilBLL.atualizarPassword(
+                    utilizadorLogado.getId(),
+                    txtPasswordAtual.getText(),
+                    txtNovaPassword.getText(),
+                    txtConfirmarPassword.getText()
+            );
+            fecharJanela(event);
+        } catch (IllegalArgumentException e) {
+            lblErro.setText(e.getMessage());
+            lblErro.setVisible(true);
+        } catch (Exception e) {
+            lblErro.setText("Erro ao guardar na base de dados.");
+            lblErro.setVisible(true);
+        }
     }
 
     @FXML
     public void onCancelarClick(ActionEvent event) {
         fecharJanela(event);
+    }
+
+    private void esconderErro() {
+        lblErro.setVisible(false);
+        lblErro.setText("");
     }
 
     private void fecharJanela(ActionEvent event) {
