@@ -36,6 +36,9 @@ public class DashboardController {
     @FXML
     private Button btnPreferencias;
 
+    @FXML
+    private Button btnRelatorios;
+
     private final ApplicationContext applicationContext;
     private final GestaoLojaBLL gestaoLojaBLL;
     private Utilizador utilizadorLogado;
@@ -94,6 +97,13 @@ public class DashboardController {
     }
 
     @FXML
+    public void onRelatoriosHorasClick() {
+        limparBotoesAtivos();
+        btnRelatorios.getStyleClass().add("sidebar-btn-ativo");
+        mudarEcraCentro("/com/example/projeto2/dashboard/relatorios-horas-view.fxml");
+    }
+
+    @FXML
     public void onLogoutClick() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/projeto2/login/login-view.fxml"));
@@ -128,6 +138,8 @@ public class DashboardController {
                 perfilController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PreferenciasController preferenciasController) {
                 preferenciasController.setUtilizadorLogado(utilizadorLogado);
+            } else if (controller instanceof RelatoriosHorasController relatoriosHorasController) {
+                relatoriosHorasController.setUtilizadorLogado(utilizadorLogado);
             }
 
             mainContainer.setCenter(novoConteudo);
@@ -143,11 +155,14 @@ public class DashboardController {
         btnPermutas.getStyleClass().remove("sidebar-btn-ativo");
         btnPerfil.getStyleClass().remove("sidebar-btn-ativo");
         btnPreferencias.getStyleClass().remove("sidebar-btn-ativo");
+        btnRelatorios.getStyleClass().remove("sidebar-btn-ativo");
     }
 
     private void configurarPermissoesMenu() {
         boolean podeGerirLoja = utilizadorLogado != null && gestaoLojaBLL.utilizadorPodeGerirLoja(utilizadorLogado.getId());
         btnGestaoLoja.setVisible(podeGerirLoja);
         btnGestaoLoja.setManaged(podeGerirLoja);
+        btnRelatorios.setVisible(podeGerirLoja);
+        btnRelatorios.setManaged(podeGerirLoja);
     }
 }
