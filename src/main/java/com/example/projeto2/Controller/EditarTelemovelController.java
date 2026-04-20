@@ -84,8 +84,7 @@ public class EditarTelemovelController {
 
             javafx.scene.control.Button nodeCancelar = (javafx.scene.control.Button) dialogPane.lookupButton(btnCancelar);
             nodeCancelar.getStyleClass().add("botao-secundario");
-        } catch (Exception e) {
-            System.out.println("Aviso: Nao foi possivel aplicar CSS ao Alerta.");
+        } catch (Exception ignored) {
         }
 
         Optional<ButtonType> resultado = confirmacao.showAndWait();
