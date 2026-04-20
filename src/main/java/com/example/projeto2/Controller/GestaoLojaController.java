@@ -2,9 +2,14 @@ package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.GestaoLojaBLL;
 import com.example.projeto2.Modules.Utilizador;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -13,6 +18,7 @@ import javafx.scene.layout.VBox;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -48,10 +54,59 @@ public class GestaoLojaController {
     @FXML
     private VBox regrasContainer;
 
+    @FXML
+    private TextField txtDescricaoExcecao;
+
+    @FXML
+    private DatePicker dpDataInicioExcecao;
+
+    @FXML
+    private DatePicker dpDataFimExcecao;
+
+    @FXML
+    private CheckBox chkLojaEncerrada;
+
+    @FXML
+    private TextField txtHoraAberturaExcecao;
+
+    @FXML
+    private TextField txtHoraFechoExcecao;
+
+    @FXML
+    private TextField txtMinimoExcecao;
+
+    @FXML
+    private TextArea txtObservacoesExcecao;
+
+    @FXML
+    private Label lblMensagemExcecao;
+
+    @FXML
+    private TableView<GestaoLojaBLL.HorarioEspecialResumo> tabelaHorariosEspeciais;
+
+    @FXML
+    private TableColumn<GestaoLojaBLL.HorarioEspecialResumo, String> colPeriodoExcecao;
+
+    @FXML
+    private TableColumn<GestaoLojaBLL.HorarioEspecialResumo, String> colOperacaoExcecao;
+
+    @FXML
+    private TableColumn<GestaoLojaBLL.HorarioEspecialResumo, String> colHorarioExcecao;
+
+    @FXML
+    private TableColumn<GestaoLojaBLL.HorarioEspecialResumo, String> colMinimoExcecao;
+
+    @FXML
+    private TableColumn<GestaoLojaBLL.HorarioEspecialResumo, String> colDescricaoExcecao;
+
+    @FXML
+    private TableColumn<GestaoLojaBLL.HorarioEspecialResumo, String> colTurnosCompativeisExcecao;
+
     private final GestaoLojaBLL gestaoLojaBLL;
     private final Map<Integer, TextField> camposValor = new LinkedHashMap<>();
     private final Map<Integer, TextArea> camposObservacoes = new LinkedHashMap<>();
     private Utilizador utilizadorLogado;
+    private Integer idHorarioEspecialEmEdicao;
 
     public GestaoLojaController(GestaoLojaBLL gestaoLojaBLL) {
         this.gestaoLojaBLL = gestaoLojaBLL;
@@ -60,7 +115,13 @@ public class GestaoLojaController {
     @FXML
     public void initialize() {
         esconderMensagem();
+        esconderMensagemExcecao();
         configurarOcultacaoFeedback();
+        configurarTabelaHorariosEspeciais();
+        configurarFormularioEncerrada();
+        limparFormularioHorarioEspecial();
+
+        tabelaHorariosEspeciais.setPlaceholder(new Label("Ainda nao existem excecoes de horario configuradas para esta loja."));
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -101,6 +162,70 @@ public class GestaoLojaController {
         }
     }
 
+    @FXML
+    public void onGuardarHorarioEspecialClick() {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+            }
+
+            gestaoLojaBLL.guardarHorarioEspecial(
+                    utilizadorLogado.getId(),
+                    new GestaoLojaBLL.ConfiguracaoHorarioEspecialRequest(
+                            idHorarioEspecialEmEdicao,
+                            txtDescricaoExcecao.getText(),
+                            dpDataInicioExcecao.getValue(),
+                            dpDataFimExcecao.getValue(),
+                            chkLojaEncerrada.isSelected(),
+                            parseHoraOpcional(txtHoraAberturaExcecao.getText(), "abertura especial"),
+                            parseHoraOpcional(txtHoraFechoExcecao.getText(), "fecho especial"),
+                            parseInteiroPositivoOpcional(txtMinimoExcecao.getText(), "minimo especial por turno"),
+                            txtObservacoesExcecao.getText()
+                    )
+            );
+
+            mostrarMensagemExcecao(
+                    idHorarioEspecialEmEdicao == null
+                            ? "Excecao guardada com sucesso."
+                            : "Excecao atualizada com sucesso.",
+                    true
+            );
+            carregarDados();
+            limparFormularioHorarioEspecial();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagemExcecao(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagemExcecao("Nao foi possivel guardar a excecao de horario.", false);
+        }
+    }
+
+    @FXML
+    public void onLimparHorarioEspecialClick() {
+        limparFormularioHorarioEspecial();
+        esconderMensagemExcecao();
+    }
+
+    @FXML
+    public void onRemoverHorarioEspecialClick() {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+            }
+            if (idHorarioEspecialEmEdicao == null) {
+                throw new IllegalArgumentException("Seleciona uma excecao antes de a remover.");
+            }
+
+            gestaoLojaBLL.removerHorarioEspecial(utilizadorLogado.getId(), idHorarioEspecialEmEdicao);
+            mostrarMensagemExcecao("Excecao removida com sucesso.", true);
+            carregarDados();
+            limparFormularioHorarioEspecial();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagemExcecao(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagemExcecao("Nao foi possivel remover a excecao selecionada.", false);
+        }
+    }
+
     private void carregarDados() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
@@ -116,6 +241,7 @@ public class GestaoLojaController {
             txtHoraFecho.setText(resumo.horaFecho());
 
             preencherRegras(resumo.regras());
+            preencherHorariosEspeciais(resumo.horariosEspeciais());
         } catch (IllegalArgumentException e) {
             lblNomeLoja.setText("-");
             lblLocalizacao.setText("-");
@@ -123,6 +249,7 @@ public class GestaoLojaController {
             txtHoraAbertura.clear();
             txtHoraFecho.clear();
             preencherRegras(List.of());
+            preencherHorariosEspeciais(List.of());
             mostrarMensagem(e.getMessage(), false);
         }
     }
@@ -192,9 +319,93 @@ public class GestaoLojaController {
         return card;
     }
 
+    private void preencherHorariosEspeciais(List<GestaoLojaBLL.HorarioEspecialResumo> horariosEspeciais) {
+        tabelaHorariosEspeciais.getItems().setAll(horariosEspeciais == null ? List.of() : horariosEspeciais);
+    }
+
+    private void configurarTabelaHorariosEspeciais() {
+        colPeriodoExcecao.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().periodo()));
+        colOperacaoExcecao.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().tipoOperacao()));
+        colHorarioExcecao.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().horarioAplicado()));
+        colMinimoExcecao.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().minimoColaboradoresTurno() != null
+                        ? String.valueOf(cellData.getValue().minimoColaboradoresTurno())
+                        : "-"));
+        colDescricaoExcecao.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().descricao()));
+        colTurnosCompativeisExcecao.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().turnosCompativeis()));
+
+        tabelaHorariosEspeciais.getSelectionModel().selectedItemProperty().addListener((observavel, antigo, novo) -> {
+            if (novo == null) {
+                return;
+            }
+            preencherFormularioHorarioEspecial(novo);
+            esconderMensagemExcecao();
+        });
+    }
+
+    private void preencherFormularioHorarioEspecial(GestaoLojaBLL.HorarioEspecialResumo horarioEspecial) {
+        idHorarioEspecialEmEdicao = horarioEspecial.idHorarioEspecial();
+        txtDescricaoExcecao.setText(horarioEspecial.descricao());
+        dpDataInicioExcecao.setValue(horarioEspecial.dataInicio());
+        dpDataFimExcecao.setValue(horarioEspecial.dataFim());
+        chkLojaEncerrada.setSelected(horarioEspecial.lojaEncerrada());
+        txtHoraAberturaExcecao.setText(horarioEspecial.horaAbertura() != null ? horarioEspecial.horaAbertura().format(HORA_FORMATTER) : "");
+        txtHoraFechoExcecao.setText(horarioEspecial.horaFecho() != null ? horarioEspecial.horaFecho().format(HORA_FORMATTER) : "");
+        txtMinimoExcecao.setText(horarioEspecial.minimoColaboradoresTurno() != null
+                ? String.valueOf(horarioEspecial.minimoColaboradoresTurno())
+                : "");
+        txtObservacoesExcecao.setText(horarioEspecial.observacoes() != null ? horarioEspecial.observacoes() : "");
+        aplicarModoEncerrada();
+    }
+
+    private void limparFormularioHorarioEspecial() {
+        idHorarioEspecialEmEdicao = null;
+        txtDescricaoExcecao.clear();
+        dpDataInicioExcecao.setValue(null);
+        dpDataFimExcecao.setValue(null);
+        chkLojaEncerrada.setSelected(false);
+        txtHoraAberturaExcecao.clear();
+        txtHoraFechoExcecao.clear();
+        txtMinimoExcecao.clear();
+        txtObservacoesExcecao.clear();
+        tabelaHorariosEspeciais.getSelectionModel().clearSelection();
+        aplicarModoEncerrada();
+    }
+
+    private void configurarFormularioEncerrada() {
+        chkLojaEncerrada.selectedProperty().addListener((observavel, antigo, novo) -> {
+            aplicarModoEncerrada();
+            esconderMensagemExcecao();
+        });
+    }
+
+    private void aplicarModoEncerrada() {
+        boolean encerrada = chkLojaEncerrada.isSelected();
+        txtHoraAberturaExcecao.setDisable(encerrada);
+        txtHoraFechoExcecao.setDisable(encerrada);
+        txtMinimoExcecao.setDisable(encerrada);
+        if (encerrada) {
+            txtHoraAberturaExcecao.clear();
+            txtHoraFechoExcecao.clear();
+            txtMinimoExcecao.clear();
+        }
+    }
+
     private void configurarOcultacaoFeedback() {
         txtHoraAbertura.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
         txtHoraFecho.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+        txtDescricaoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        txtHoraAberturaExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        txtHoraFechoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        txtMinimoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        txtObservacoesExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        dpDataInicioExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        dpDataFimExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
     }
 
     private LocalTime parseHora(String texto, String campo) {
@@ -202,6 +413,17 @@ public class GestaoLojaController {
             throw new IllegalArgumentException("Indica a hora de " + campo + " no formato HH:mm.");
         }
 
+        try {
+            return LocalTime.parse(texto.trim(), HORA_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("A hora de " + campo + " deve seguir o formato HH:mm.");
+        }
+    }
+
+    private LocalTime parseHoraOpcional(String texto, String campo) {
+        if (texto == null || texto.isBlank()) {
+            return null;
+        }
         try {
             return LocalTime.parse(texto.trim(), HORA_FORMATTER);
         } catch (DateTimeParseException e) {
@@ -218,6 +440,22 @@ public class GestaoLojaController {
             return Integer.valueOf(texto.trim());
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("O valor especifico da regra " + idRegra + " deve ser um numero inteiro.");
+        }
+    }
+
+    private Integer parseInteiroPositivoOpcional(String texto, String campo) {
+        if (texto == null || texto.isBlank()) {
+            return null;
+        }
+
+        try {
+            int valor = Integer.parseInt(texto.trim());
+            if (valor <= 0) {
+                throw new IllegalArgumentException("O campo " + campo + " deve ser superior a zero.");
+            }
+            return valor;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("O campo " + campo + " deve ser um numero inteiro.");
         }
     }
 
@@ -241,5 +479,19 @@ public class GestaoLojaController {
         lblMensagem.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
         lblMensagem.setManaged(true);
         lblMensagem.setVisible(true);
+    }
+
+    private void esconderMensagemExcecao() {
+        lblMensagemExcecao.setManaged(false);
+        lblMensagemExcecao.setVisible(false);
+        lblMensagemExcecao.setText("");
+    }
+
+    private void mostrarMensagemExcecao(String mensagem, boolean sucesso) {
+        lblMensagemExcecao.setText(mensagem);
+        lblMensagemExcecao.getStyleClass().removeAll("mensagem-sucesso", "mensagem-erro");
+        lblMensagemExcecao.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
+        lblMensagemExcecao.setManaged(true);
+        lblMensagemExcecao.setVisible(true);
     }
 }

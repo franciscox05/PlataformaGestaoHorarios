@@ -1,6 +1,7 @@
 package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.BLL.GestaoLojaBLL;
 import com.example.projeto2.BLL.PerfilBLL;
 import com.example.projeto2.BLL.PreferenciaBLL;
 import com.example.projeto2.BLL.SegurancaBLL;
@@ -9,6 +10,7 @@ import com.example.projeto2.BLL.UtilizadorBLL;
 import com.example.projeto2.Modules.Cargo;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.HistoricoHorarioEstado;
+import com.example.projeto2.Modules.HorarioEspecialLoja;
 import com.example.projeto2.Modules.Loja;
 import com.example.projeto2.Modules.Lojautilizador;
 import com.example.projeto2.Modules.Preferencia;
@@ -20,6 +22,7 @@ import com.example.projeto2.Repositories.CargoRepository;
 import com.example.projeto2.Repositories.DayOffRepository;
 import com.example.projeto2.Repositories.EventoAuditoriaRepository;
 import com.example.projeto2.Repositories.HistoricoHorarioEstadoRepository;
+import com.example.projeto2.Repositories.HorarioEspecialLojaRepository;
 import com.example.projeto2.Repositories.HorarioRepository;
 import com.example.projeto2.Repositories.LojaRepository;
 import com.example.projeto2.Repositories.LojautilizadorRepository;
@@ -57,6 +60,9 @@ abstract class FluxosCriticosTestSupport {
 
     @Autowired
     protected PerfilBLL perfilBLL;
+
+    @Autowired
+    protected GestaoLojaBLL gestaoLojaBLL;
 
     @Autowired
     protected PreferenciaBLL preferenciaBLL;
@@ -105,6 +111,9 @@ abstract class FluxosCriticosTestSupport {
 
     @Autowired
     protected HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
+
+    @Autowired
+    protected HorarioEspecialLojaRepository horarioEspecialLojaRepository;
 
     @PersistenceContext
     protected EntityManager entityManager;
@@ -247,6 +256,42 @@ abstract class FluxosCriticosTestSupport {
         return (int) lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(idLoja).stream()
                 .filter(ligacao -> ligacao.getDataFim() == null)
                 .count();
+    }
+
+    protected HorarioEspecialLoja criarHorarioEspecial(Integer idUtilizadorGerente,
+                                                       String descricao,
+                                                       LocalDate dataInicio,
+                                                       LocalDate dataFim,
+                                                       boolean lojaEncerrada,
+                                                       LocalTime horaAbertura,
+                                                       LocalTime horaFecho,
+                                                       Integer minimoColaboradoresTurno,
+                                                       String observacoes) {
+        gestaoLojaBLL.guardarHorarioEspecial(
+                idUtilizadorGerente,
+                new GestaoLojaBLL.ConfiguracaoHorarioEspecialRequest(
+                        null,
+                        descricao,
+                        dataInicio,
+                        dataFim,
+                        lojaEncerrada,
+                        horaAbertura,
+                        horaFecho,
+                        minimoColaboradoresTurno,
+                        observacoes
+                )
+        );
+
+        return horarioEspecialLojaRepository.findAll().stream()
+                .filter(horarioEspecial -> horarioEspecial.getIdLoja() != null)
+                .filter(horarioEspecial -> horarioEspecial.getIdLoja().getId() != null)
+                .filter(horarioEspecial -> horarioEspecial.getDataInicio() != null)
+                .filter(horarioEspecial -> horarioEspecial.getDataFim() != null)
+                .filter(horarioEspecial -> horarioEspecial.getDataInicio().equals(dataInicio))
+                .filter(horarioEspecial -> horarioEspecial.getDataFim().equals(dataFim))
+                .filter(horarioEspecial -> descricao.equals(horarioEspecial.getDescricao()))
+                .findFirst()
+                .orElseThrow();
     }
 
     protected String descreverTurnosBase() {
