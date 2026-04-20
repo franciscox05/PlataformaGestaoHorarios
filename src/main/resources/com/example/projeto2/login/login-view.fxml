@@ -33,9 +33,10 @@
             </children>
         </StackPane>
 
-        <Label fx:id="lblErro" maxWidth="320.0" styleClass="erro-login" text="Nao foi possivel autenticar." visible="false" wrapText="true" />
+        <Label fx:id="lblErro" managed="false" maxWidth="320.0" styleClass="erro-login" visible="false" wrapText="true" />
 
         <Button defaultButton="true" maxWidth="320.0" onAction="#onLoginClick" styleClass="botao-login" text="Entrar" />
+        <Label maxWidth="320.0" styleClass="mensagem-info-autenticacao" text="Por seguranca, a sessao termina automaticamente apos 15 minutos de inatividade." textAlignment="CENTER" wrapText="true" />
     </children>
 
 </VBox>

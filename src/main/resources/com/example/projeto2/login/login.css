@@ -11,7 +11,6 @@
     -fx-max-width: 420px;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 20, 0.18, 0, 6);
 }
-
 .titulo-levis {
     -fx-font-size: 28px;
     -fx-font-weight: bold;
@@ -67,4 +66,11 @@
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
     -fx-padding: 10px 12px;
+}
+
+.mensagem-info-autenticacao {
+    -fx-text-fill: #475467;
+    -fx-font-size: 12px;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
 }

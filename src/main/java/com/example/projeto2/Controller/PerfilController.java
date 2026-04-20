@@ -12,6 +12,8 @@ import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Component;
 @Component
 @Scope("prototype")
 public class PerfilController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PerfilController.class);
 
     @FXML
     private VBox raizPerfil;
@@ -150,7 +154,11 @@ public class PerfilController {
             }
             setUtilizadorLogado(this.utilizadorLogado);
         } catch (Exception e) {
-            mostrarErro("Nao foi possivel abrir esta janela.", "Tenta novamente dentro de instantes.");
+            LOGGER.error("Erro ao abrir o modal {}.", caminhoFxml, e);
+            mostrarErro(
+                    "Nao foi possivel abrir esta janela.",
+                    "Tenta novamente. Se o problema persistir, volta a abrir o perfil."
+            );
         } finally {
             raizPerfil.setEffect(null);
         }

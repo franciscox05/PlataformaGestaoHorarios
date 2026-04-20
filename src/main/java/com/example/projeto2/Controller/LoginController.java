@@ -6,7 +6,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -14,6 +13,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,8 @@ import java.io.InputStream;
 
 @Component
 public class LoginController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
     @FXML
     private TextField txtEmail;
@@ -77,12 +80,13 @@ public class LoginController {
 
         Utilizador logado = userBll.efetuarLogin(email, password);
 
-        if (logado != null) {
-            esconderErro();
-            abrirDashboard(logado);
-        } else {
+        if (logado == null) {
             mostrarErro("Email ou password incorretos. Confirma os dados e tenta novamente.");
+            return;
         }
+
+        esconderErro();
+        abrirDashboard(logado);
     }
 
     @FXML
@@ -101,6 +105,7 @@ public class LoginController {
     private void mudarIconeBotao(String nomeImagem) {
         try (InputStream imageStream = getClass().getResourceAsStream("/com/example/projeto2/imagens/login/" + nomeImagem)) {
             if (imageStream == null) {
+                LOGGER.warn("Imagem de autenticacao nao encontrada: {}", nomeImagem);
                 return;
             }
 
@@ -109,7 +114,8 @@ public class LoginController {
             view.setFitHeight(18);
             view.setFitWidth(18);
             btnMostrarSenha.setGraphic(view);
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            LOGGER.warn("Nao foi possivel carregar o icone de autenticacao.", e);
         }
     }
 
@@ -126,26 +132,21 @@ public class LoginController {
             stage.setScene(new Scene(root, 800, 600));
             stage.setTitle("Levi's Staff Portal - Dashboard");
         } catch (IOException e) {
+            LOGGER.error("Erro ao abrir o dashboard.", e);
             mostrarErro("Nao foi possivel abrir o dashboard. Tenta novamente dentro de instantes.");
-            mostrarAlertaErro("Erro ao abrir dashboard", "Nao foi possivel carregar o dashboard com sucesso.");
         }
     }
 
     private void mostrarErro(String mensagem) {
         lblErro.setText(mensagem);
         lblErro.setVisible(true);
+        lblErro.setManaged(true);
     }
 
     private void esconderErro() {
         lblErro.setText("");
         lblErro.setVisible(false);
-    }
-
-    private void mostrarAlertaErro(String titulo, String mensagem) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensagem);
-        alert.showAndWait();
+        lblErro.setManaged(false);
+        lblErro.setManaged(false);
     }
 }

@@ -12,6 +12,8 @@ import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +22,8 @@ import java.util.Optional;
 @Component
 @Scope("prototype")
 public class EditarEmailController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EditarEmailController.class);
 
     @FXML
     private TextField txtEmailAtual;
@@ -74,7 +78,8 @@ public class EditarEmailController {
 
             javafx.scene.control.Button nodeCancelar = (javafx.scene.control.Button) dialogPane.lookupButton(btnCancelar);
             nodeCancelar.getStyleClass().add("botao-secundario");
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LOGGER.warn("Nao foi possivel aplicar o estilo do alerta de edicao de email.", e);
         }
 
         Optional<ButtonType> resultado = confirmacao.showAndWait();
@@ -89,7 +94,8 @@ public class EditarEmailController {
             lblErro.setText(e.getMessage());
             lblErro.setVisible(true);
         } catch (Exception e) {
-            lblErro.setText("Erro ao guardar na base de dados.");
+            LOGGER.error("Erro ao atualizar o email do utilizador {}.", utilizadorLogado != null ? utilizadorLogado.getId() : null, e);
+            lblErro.setText("Nao foi possivel atualizar o email. Tenta novamente.");
             lblErro.setVisible(true);
         }
     }

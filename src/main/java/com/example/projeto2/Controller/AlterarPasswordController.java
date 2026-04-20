@@ -19,6 +19,8 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +29,8 @@ import java.util.Optional;
 @Component
 @Scope("prototype")
 public class AlterarPasswordController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AlterarPasswordController.class);
 
     @FXML
     private PasswordField txtPasswordAtual;
@@ -154,7 +158,8 @@ public class AlterarPasswordController {
 
             Button nodeCancelar = (Button) dialogPane.lookupButton(btnCancelar);
             nodeCancelar.getStyleClass().add("botao-secundario");
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LOGGER.warn("Nao foi possivel aplicar o estilo ao alerta de alteracao de password.", e);
         }
 
         Optional<ButtonType> resultado = confirmacao.showAndWait();
@@ -174,7 +179,8 @@ public class AlterarPasswordController {
             lblErro.setText(e.getMessage());
             lblErro.setVisible(true);
         } catch (Exception e) {
-            lblErro.setText("Erro ao guardar na base de dados.");
+            LOGGER.error("Erro inesperado ao atualizar a password.", e);
+            lblErro.setText("Nao foi possivel atualizar a password. Tenta novamente.");
             lblErro.setVisible(true);
         }
     }
