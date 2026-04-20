@@ -195,4 +195,22 @@ INSERT INTO public.permutas (id_permuta, id_horario_origem, id_horario_destino, 
     (1, 15, 16, 'pendente', CURRENT_TIMESTAMP - INTERVAL '1 day'),
     (2, 17, 18, 'aprovada', CURRENT_TIMESTAMP - INTERVAL '3 days');
 
+INSERT INTO public.eventos_auditoria (
+    id_evento,
+    tipo_evento,
+    resultado,
+    origem,
+    id_utilizador,
+    email_referencia,
+    identificador_sessao,
+    data_evento,
+    detalhes
+) VALUES
+    (1, 'login', 'sucesso', 'autenticacao', 7, 'francisco@levis.com', 'sess-demo-001', CURRENT_TIMESTAMP - INTERVAL '4 hours', 'Autenticacao concluida com sucesso.'),
+    (2, 'login', 'falha', 'autenticacao', NULL, 'francisco@levis.com', NULL, CURRENT_TIMESTAMP - INTERVAL '3 hours', 'Credenciais invalidas.'),
+    (3, 'alteracao_password', 'sucesso', 'perfil', 7, 'francisco@levis.com', 'sess-demo-001', CURRENT_TIMESTAMP - INTERVAL '2 hours', 'Password atualizada com sucesso.'),
+    (4, 'colaborador_criado', 'sucesso', 'gestao_funcionarios', 1, 'francisco.gomes@levis.com', 'sess-demo-gestor', CURRENT_TIMESTAMP - INTERVAL '1 day', 'Colaborador beatriz@levis.com criado na loja Levi''s Braga Parque.'),
+    (5, 'logout', 'sucesso', 'sessao', 7, 'francisco@levis.com', 'sess-demo-001', CURRENT_TIMESTAMP - INTERVAL '90 minutes', 'Sessao terminada manualmente.'),
+    (6, 'sessao_expirada', 'sucesso', 'sessao', 3, 'henrique.siano@levis.com', 'sess-demo-004', CURRENT_TIMESTAMP - INTERVAL '30 minutes', 'Sessao terminada por inatividade.');
+
 COMMIT;

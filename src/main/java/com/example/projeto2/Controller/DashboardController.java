@@ -48,6 +48,9 @@ public class DashboardController {
     private Button btnPainelGerente;
 
     @FXML
+    private Button btnAuditoria;
+
+    @FXML
     private Button btnFolgas;
 
     @FXML
@@ -135,6 +138,13 @@ public class DashboardController {
     }
 
     @FXML
+    public void onPainelAuditoriaClick() {
+        limparBotoesAtivos();
+        btnAuditoria.getStyleClass().add("sidebar-btn-ativo");
+        mudarEcraCentro("/com/example/projeto2/dashboard/painel-auditoria-view.fxml");
+    }
+
+    @FXML
     public void onTrocarTurnoClick() {
         limparBotoesAtivos();
         btnPermutas.getStyleClass().add("sidebar-btn-ativo");
@@ -188,6 +198,8 @@ public class DashboardController {
                 geracaoHorariosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PainelGerentePedidosController painelGerentePedidosController) {
                 painelGerentePedidosController.setUtilizadorLogado(utilizadorLogado);
+            } else if (controller instanceof PainelAuditoriaController painelAuditoriaController) {
+                painelAuditoriaController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PermutasController permutasController) {
                 permutasController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PedirFolgaController pedirFolgaController) {
@@ -214,6 +226,7 @@ public class DashboardController {
         btnGestaoFuncionarios.getStyleClass().remove("sidebar-btn-ativo");
         btnHorarios.getStyleClass().remove("sidebar-btn-ativo");
         btnPainelGerente.getStyleClass().remove("sidebar-btn-ativo");
+        btnAuditoria.getStyleClass().remove("sidebar-btn-ativo");
         btnFolgas.getStyleClass().remove("sidebar-btn-ativo");
         btnPermutas.getStyleClass().remove("sidebar-btn-ativo");
         btnPerfil.getStyleClass().remove("sidebar-btn-ativo");
@@ -235,6 +248,8 @@ public class DashboardController {
         btnHorarios.setManaged(podeAcederHorarios);
         btnPainelGerente.setVisible(podeGerirLoja);
         btnPainelGerente.setManaged(podeGerirLoja);
+        btnAuditoria.setVisible(podeGerirLoja);
+        btnAuditoria.setManaged(podeGerirLoja);
     }
 
     private void configurarMonitorizacaoSessao() {
