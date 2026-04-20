@@ -143,7 +143,7 @@
                                     </children>
                                 </VBox>
 
-                                <Label fx:id="lblMensagem" styleClass="mensagem-feedback" text="-" wrapText="true" />
+                                <Label fx:id="lblMensagem" managed="false" styleClass="mensagem-feedback" text="" visible="false" wrapText="true" />
 
                                 <HBox alignment="CENTER_RIGHT" spacing="10.0">
                                     <children>

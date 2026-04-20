@@ -207,6 +207,10 @@ public class RelatoriosHorasController {
 
         spAno.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(2024, 2100, java.time.LocalDate.now().getYear()));
         spAno.setEditable(true);
+
+        cbMes.valueProperty().addListener((observavel, antigo, valor) -> invalidarRelatorioAtual());
+        cbColaborador.valueProperty().addListener((observavel, antigo, valor) -> invalidarRelatorioAtual());
+        spAno.valueProperty().addListener((observavel, antigo, valor) -> invalidarRelatorioAtual());
     }
 
     private void preencherContexto(RelatorioHorasBLL.RelatorioContexto contexto) {
@@ -274,6 +278,18 @@ public class RelatoriosHorasController {
         lblTotalTurnos.setText("0");
         lblTotalHoras.setText("0h 0m");
         lblTotalFolgas.setText("0");
+    }
+
+    private void invalidarRelatorioAtual() {
+        if (utilizadorLogado == null) {
+            return;
+        }
+
+        ultimoResultado = null;
+        tabelaRelatorio.setItems(FXCollections.observableArrayList());
+        limparResumo();
+        btnExportarCsv.setDisable(true);
+        esconderFeedback();
     }
 
     private void mostrarFeedback(String mensagem, boolean sucesso) {
