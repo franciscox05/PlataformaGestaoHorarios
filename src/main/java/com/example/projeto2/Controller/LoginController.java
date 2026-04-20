@@ -61,6 +61,7 @@ public class LoginController {
 
         txtEmail.textProperty().addListener((observable, oldValue, newValue) -> esconderErro());
         txtPassword.textProperty().addListener((observable, oldValue, newValue) -> esconderErro());
+        txtPasswordVisible.textProperty().addListener((observable, oldValue, newValue) -> esconderErro());
 
         txtEmail.setOnAction(event -> onLoginClick());
         txtPassword.setOnAction(event -> onLoginClick());
@@ -69,18 +70,18 @@ public class LoginController {
 
     @FXML
     protected void onLoginClick() {
-        String email = txtEmail.getText();
-        String password = txtPassword.getText();
+        String email = txtEmail.getText() == null ? "" : txtEmail.getText().trim();
+        String password = txtPassword.getText() == null ? "" : txtPassword.getText().trim();
 
-        if (email == null || email.trim().isEmpty() || password == null || password.trim().isEmpty()) {
-            mostrarErro("Preenche o email e a password para continuar.");
+        if (email.isEmpty() || password.isEmpty()) {
+            mostrarErro("Preenche o email e a password antes de continuares.");
             return;
         }
 
         Utilizador logado = userBll.efetuarLogin(email, password);
 
         if (logado == null) {
-            mostrarErro("Nao foi possivel iniciar sessao. Confirma as credenciais e o estado da conta.");
+            mostrarErro("Email ou password incorretos. Confirma os dados e tenta novamente.");
             return;
         }
 
@@ -132,7 +133,7 @@ public class LoginController {
             stage.setTitle("Levi's Staff Portal - Dashboard");
         } catch (IOException e) {
             LOGGER.error("Erro ao abrir o dashboard.", e);
-            mostrarErro("A autenticacao foi concluida, mas nao foi possivel abrir o painel principal.");
+            mostrarErro("Nao foi possivel abrir o dashboard. Tenta novamente dentro de instantes.");
         }
     }
 
@@ -145,6 +146,7 @@ public class LoginController {
     private void esconderErro() {
         lblErro.setText("");
         lblErro.setVisible(false);
+        lblErro.setManaged(false);
         lblErro.setManaged(false);
     }
 }

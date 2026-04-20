@@ -1,37 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" spacing="20.0" stylesheets="@login.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.LoginController">
+<VBox alignment="CENTER" spacing="24.0" styleClass="painel-login" stylesheets="@login.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.LoginController">
 
-   <padding>
-      <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
-   </padding>
+    <padding>
+        <Insets bottom="42.0" left="42.0" right="42.0" top="42.0" />
+    </padding>
 
-   <Label styleClass="titulo-levis" text="Levi's Staff Portal" />
-   <Label maxWidth="320.0" styleClass="subtitulo-autenticacao" text="Inicia sessao com as credenciais da tua conta." textAlignment="CENTER" wrapText="true" />
+    <children>
+        <Label styleClass="titulo-levis" text="Levi&apos;s Staff Portal" />
+        <Label styleClass="subtitulo-login" text="Entra na plataforma para consultar turnos, folgas, permutas e o estado atual da tua loja." wrapText="true" />
 
-   <TextField fx:id="txtEmail" maxWidth="300.0" promptText="Email" />
+        <TextField fx:id="txtEmail" maxWidth="320.0" promptText="Email institucional" styleClass="campo-login" />
 
-   <StackPane maxWidth="300.0">
-      <TextField fx:id="txtPasswordVisible" promptText="Password" visible="false" />
-      <PasswordField fx:id="txtPassword" promptText="Password" />
+        <StackPane maxWidth="320.0">
+            <children>
+                <TextField fx:id="txtPasswordVisible" promptText="Password" styleClass="campo-login" visible="false" />
+                <PasswordField fx:id="txtPassword" promptText="Password" styleClass="campo-login" />
 
-      <Button fx:id="btnMostrarSenha" alignment="CENTER_RIGHT" onAction="#onMostrarSenhaClick" style="-fx-background-color: transparent; -fx-cursor: hand;" StackPane.alignment="CENTER_RIGHT">
-         <padding>
-            <Insets right="10.0" />
-         </padding>
-      </Button>
-   </StackPane>
+                <Button fx:id="btnMostrarSenha" alignment="CENTER_RIGHT" onAction="#onMostrarSenhaClick" styleClass="botao-mostrar-senha" StackPane.alignment="CENTER_RIGHT">
+                    <padding>
+                        <Insets right="10.0" />
+                    </padding>
+                </Button>
+            </children>
+        </StackPane>
 
-   <Label fx:id="lblErro" managed="false" maxWidth="320.0" styleClass="mensagem-erro-autenticacao" textAlignment="CENTER" visible="false" wrapText="true" />
+        <Label fx:id="lblErro" managed="false" maxWidth="320.0" styleClass="erro-login" visible="false" wrapText="true" />
 
-   <Button defaultButton="true" maxWidth="300.0" onAction="#onLoginClick" styleClass="botao-login" text="Entrar" />
-   <Label maxWidth="320.0" styleClass="mensagem-info-autenticacao" text="Por seguranca, a sessao termina automaticamente apos 15 minutos de inatividade." textAlignment="CENTER" wrapText="true" />
+        <Button defaultButton="true" maxWidth="320.0" onAction="#onLoginClick" styleClass="botao-login" text="Entrar" />
+        <Label maxWidth="320.0" styleClass="mensagem-info-autenticacao" text="Por seguranca, a sessao termina automaticamente apos 15 minutos de inatividade." textAlignment="CENTER" wrapText="true" />
+    </children>
 
 </VBox>

@@ -31,6 +31,7 @@
                 <Button fx:id="btnGestaoLoja" managed="false" onAction="#onGestaoLojaClick" styleClass="sidebar-btn" text="Loja e Regras" visible="false" />
                 <Button fx:id="btnGestaoFuncionarios" managed="false" onAction="#onGestaoFuncionariosClick" styleClass="sidebar-btn" text="Funcionarios" visible="false" />
                 <Button fx:id="btnHorarios" managed="false" onAction="#onHorariosClick" styleClass="sidebar-btn" text="Horarios" visible="false" />
+                <Button fx:id="btnPainelGerente" managed="false" onAction="#onPainelGerentePedidosClick" styleClass="sidebar-btn" text="Painel do Gerente" visible="false" />
                 <Button fx:id="btnFolgas" onAction="#onPedirFolgaClick" styleClass="sidebar-btn" text="Pedir Folga" />
                 <Button fx:id="btnPermutas" onAction="#onTrocarTurnoClick" styleClass="sidebar-btn" text="Trocar Turno" />
                 <Button fx:id="btnPerfil" onAction="#onPerfilClick" styleClass="sidebar-btn" text="Perfil" />

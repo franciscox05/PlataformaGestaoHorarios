@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.VBox;
@@ -154,21 +155,13 @@ public class PerfilController {
             setUtilizadorLogado(this.utilizadorLogado);
         } catch (Exception e) {
             LOGGER.error("Erro ao abrir o modal {}.", caminhoFxml, e);
-            mostrarErroModal(
+            mostrarErro(
                     "Nao foi possivel abrir esta janela.",
                     "Tenta novamente. Se o problema persistir, volta a abrir o perfil."
             );
         } finally {
             raizPerfil.setEffect(null);
         }
-    }
-
-    private void mostrarErroModal(String cabecalho, String conteudo) {
-        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
-        alert.setTitle("Erro");
-        alert.setHeaderText(cabecalho);
-        alert.setContentText(conteudo);
-        alert.showAndWait();
     }
 
     private void preencherValoresEmFalta() {
@@ -184,5 +177,13 @@ public class PerfilController {
         lblFolgasPendentes.setText("0");
         lblFolgasAprovadas.setText("0");
         lblTurnosFuturos.setText("0");
+    }
+
+    private void mostrarErro(String titulo, String mensagem) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erro");
+        alert.setHeaderText(titulo);
+        alert.setContentText(mensagem);
+        alert.showAndWait();
     }
 }

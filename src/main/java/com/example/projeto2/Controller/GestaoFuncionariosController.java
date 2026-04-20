@@ -209,10 +209,19 @@ public class GestaoFuncionariosController {
     private void configurarFiltros() {
         cbFiltroEstado.setItems(FXCollections.observableArrayList(FILTRO_TODOS, ESTADO_ATIVO, ESTADO_INATIVO));
         cbFiltroEstado.setValue(FILTRO_TODOS);
-        cbFiltroEstado.valueProperty().addListener((observavel, antigo, valor) -> atualizarFiltros());
+        cbFiltroEstado.valueProperty().addListener((observavel, antigo, valor) -> {
+            atualizarFiltros();
+            esconderMensagem();
+        });
 
-        cbFiltroCargo.valueProperty().addListener((observavel, antigo, valor) -> atualizarFiltros());
-        txtPesquisa.textProperty().addListener((observavel, antigo, valor) -> atualizarFiltros());
+        cbFiltroCargo.valueProperty().addListener((observavel, antigo, valor) -> {
+            atualizarFiltros();
+            esconderMensagem();
+        });
+        txtPesquisa.textProperty().addListener((observavel, antigo, valor) -> {
+            atualizarFiltros();
+            esconderMensagem();
+        });
     }
 
     private void configurarFormulario() {
@@ -233,6 +242,12 @@ public class GestaoFuncionariosController {
                 txtTelemovel.setText(apenasDigitos);
             }
         });
+
+        txtNome.textProperty().addListener((observavel, antigo, valor) -> esconderMensagem());
+        txtEmail.textProperty().addListener((observavel, antigo, valor) -> esconderMensagem());
+        txtPassword.textProperty().addListener((observavel, antigo, valor) -> esconderMensagem());
+        cbCargo.valueProperty().addListener((observavel, antigo, valor) -> esconderMensagem());
+        cbEstado.valueProperty().addListener((observavel, antigo, valor) -> esconderMensagem());
     }
 
     private void carregarDados(Integer idPreferido) {
@@ -432,6 +447,7 @@ public class GestaoFuncionariosController {
     private void esconderMensagem() {
         lblMensagem.setManaged(false);
         lblMensagem.setVisible(false);
+        lblMensagem.setText("");
     }
 
     private void mostrarMensagem(String mensagem, boolean sucesso) {

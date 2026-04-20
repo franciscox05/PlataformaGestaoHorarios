@@ -79,6 +79,8 @@ public class HomeController {
 
         colEstado.setCellValueFactory(cellData ->
                 new SimpleStringProperty(String.valueOf(cellData.getValue().getEstado())));
+
+        tabelaTurnos.setPlaceholder(new Label("Ainda nao tens turnos futuros atribuidos."));
     }
 
     private void configurarTabelaEquipaHoje() {

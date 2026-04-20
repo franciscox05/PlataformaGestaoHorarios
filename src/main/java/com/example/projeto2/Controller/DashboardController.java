@@ -45,6 +45,9 @@ public class DashboardController {
     private Button btnHorarios;
 
     @FXML
+    private Button btnPainelGerente;
+
+    @FXML
     private Button btnFolgas;
 
     @FXML
@@ -125,6 +128,13 @@ public class DashboardController {
     }
 
     @FXML
+    public void onPainelGerentePedidosClick() {
+        limparBotoesAtivos();
+        btnPainelGerente.getStyleClass().add("sidebar-btn-ativo");
+        mudarEcraCentro("/com/example/projeto2/dashboard/painel-gerente-pedidos-view.fxml");
+    }
+
+    @FXML
     public void onTrocarTurnoClick() {
         limparBotoesAtivos();
         btnPermutas.getStyleClass().add("sidebar-btn-ativo");
@@ -176,6 +186,8 @@ public class DashboardController {
                 gestaoFuncionariosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof GeracaoHorariosController geracaoHorariosController) {
                 geracaoHorariosController.setUtilizadorLogado(utilizadorLogado);
+            } else if (controller instanceof PainelGerentePedidosController painelGerentePedidosController) {
+                painelGerentePedidosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PermutasController permutasController) {
                 permutasController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PedirFolgaController pedirFolgaController) {
@@ -192,10 +204,7 @@ public class DashboardController {
             registarAtividadeSessao();
         } catch (Exception e) {
             LOGGER.error("Erro ao carregar o ecra {}", caminhoFxml, e);
-            mostrarAlertaErro(
-                    "Nao foi possivel abrir este ecra.",
-                    "Tenta novamente. Se o problema persistir, volta a iniciar sessao."
-            );
+            mostrarErro("Nao foi possivel abrir este ecra.", "Tenta novamente dentro de instantes.");
         }
     }
 
@@ -204,6 +213,7 @@ public class DashboardController {
         btnGestaoLoja.getStyleClass().remove("sidebar-btn-ativo");
         btnGestaoFuncionarios.getStyleClass().remove("sidebar-btn-ativo");
         btnHorarios.getStyleClass().remove("sidebar-btn-ativo");
+        btnPainelGerente.getStyleClass().remove("sidebar-btn-ativo");
         btnFolgas.getStyleClass().remove("sidebar-btn-ativo");
         btnPermutas.getStyleClass().remove("sidebar-btn-ativo");
         btnPerfil.getStyleClass().remove("sidebar-btn-ativo");
@@ -223,6 +233,8 @@ public class DashboardController {
         btnGestaoFuncionarios.setManaged(podeGerirLoja);
         btnHorarios.setVisible(podeAcederHorarios);
         btnHorarios.setManaged(podeAcederHorarios);
+        btnPainelGerente.setVisible(podeGerirLoja);
+        btnPainelGerente.setManaged(podeGerirLoja);
     }
 
     private void configurarMonitorizacaoSessao() {
@@ -301,21 +313,21 @@ public class DashboardController {
             stage.setTitle("Levi's Staff Portal - Autenticacao");
 
             if (sessaoExpirada) {
-                Platform.runLater(() -> mostrarAlertaInformacao(
+                Platform.runLater(() -> mostrarInformacao(
                         "Sessao terminada",
                         "A tua sessao terminou por inatividade. Inicia sessao novamente para continuar."
                 ));
             }
         } catch (Exception e) {
             LOGGER.error("Erro ao abrir o login.", e);
-            mostrarAlertaErro(
+            mostrarErro(
                     "Nao foi possivel regressar ao login.",
                     "Fecha e volta a abrir a aplicacao para continuares."
             );
         }
     }
 
-    private void mostrarAlertaErro(String cabecalho, String conteudo) {
+    private void mostrarErro(String cabecalho, String conteudo) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Erro");
         alert.setHeaderText(cabecalho);
@@ -323,7 +335,7 @@ public class DashboardController {
         alert.showAndWait();
     }
 
-    private void mostrarAlertaInformacao(String cabecalho, String conteudo) {
+    private void mostrarInformacao(String cabecalho, String conteudo) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Informacao");
         alert.setHeaderText(cabecalho);
