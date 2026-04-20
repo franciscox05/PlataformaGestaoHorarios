@@ -29,6 +29,7 @@
 
                 <Button fx:id="btnDashboard" onAction="#onDashboardHomeClick" styleClass="sidebar-btn sidebar-btn-ativo" text="Dashboard" />
                 <Button fx:id="btnGestaoLoja" managed="false" onAction="#onGestaoLojaClick" styleClass="sidebar-btn" text="Loja e Regras" visible="false" />
+                <Button fx:id="btnGestaoFuncionarios" managed="false" onAction="#onGestaoFuncionariosClick" styleClass="sidebar-btn" text="Funcionarios" visible="false" />
                 <Button fx:id="btnFolgas" onAction="#onPedirFolgaClick" styleClass="sidebar-btn" text="Pedir Folga" />
                 <Button fx:id="btnPermutas" onAction="#onTrocarTurnoClick" styleClass="sidebar-btn" text="Trocar Turno" />
                 <Button fx:id="btnPerfil" onAction="#onPerfilClick" styleClass="sidebar-btn" text="Perfil" />

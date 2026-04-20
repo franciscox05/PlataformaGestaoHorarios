@@ -17,6 +17,7 @@ target/
 .idea
 .tools/
 .m2/
+.m2repo/
 .pyhome/
 tmp_relatorio_extraido.txt
 *.iws
