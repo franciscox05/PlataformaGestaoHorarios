@@ -228,6 +228,23 @@
     -fx-pref-row-count: 2;
 }
 
+.campo-combo {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d6d6d6;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 2px;
+}
+
+.campo-combo:focused {
+    -fx-border-color: #c41230;
+}
+
+.texto-ajuda {
+    -fx-font-size: 12px;
+    -fx-text-fill: #777777;
+}
+
 .mensagem-sucesso {
     -fx-text-fill: #2e7d32;
 }

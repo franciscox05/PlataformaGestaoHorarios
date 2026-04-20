@@ -37,7 +37,7 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "AND h.dataTurno >= CURRENT_DATE " +
             "AND NOT EXISTS (" +
             "    SELECT 1 FROM Permuta p " +
-            "    WHERE LOWER(p.estado) = 'pendente' " +
+            "    WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
             "    AND (p.idHorarioOrigem.id = h.id OR p.idHorarioDestino.id = h.id)" +
             ") " +
             "ORDER BY h.dataTurno ASC, t.horaInicio ASC")
@@ -66,7 +66,7 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             ") " +
             "AND NOT EXISTS (" +
             "    SELECT 1 FROM Permuta p " +
-            "    WHERE LOWER(p.estado) = 'pendente' " +
+            "    WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
             "    AND (p.idHorarioOrigem.id = h.id OR p.idHorarioDestino.id = h.id)" +
             ") " +
             "ORDER BY t.horaInicio ASC, u.nome ASC")
