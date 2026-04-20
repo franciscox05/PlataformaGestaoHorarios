@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
@@ -134,7 +135,7 @@ public class DashboardController {
             stage.setScene(new Scene(root, 800, 600));
             stage.setTitle("Levi's Staff Portal - Autenticacao");
         } catch (Exception e) {
-            System.out.println("Erro no logout: " + e.getMessage());
+            mostrarErro("Nao foi possivel terminar a sessao.", "Tenta novamente dentro de instantes.");
         }
     }
 
@@ -168,7 +169,7 @@ public class DashboardController {
 
             mainContainer.setCenter(novoConteudo);
         } catch (Exception e) {
-            System.out.println("Erro ao carregar o ecra: " + e.getMessage());
+            mostrarErro("Nao foi possivel abrir este ecra.", "Tenta novamente dentro de instantes.");
         }
     }
 
@@ -194,5 +195,13 @@ public class DashboardController {
         btnGestaoFuncionarios.setManaged(podeGerirLoja);
         btnHorarios.setVisible(podeGerirLoja);
         btnHorarios.setManaged(podeGerirLoja);
+    }
+
+    private void mostrarErro(String titulo, String mensagem) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erro");
+        alert.setHeaderText(titulo);
+        alert.setContentText(mensagem);
+        alert.showAndWait();
     }
 }
