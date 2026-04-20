@@ -23,6 +23,10 @@ public class Horario {
     @JoinColumn(name = "id_turno", nullable = false)
     private Turno idTurno;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_proposta_horario")
+    private PropostaHorarioMensal idPropostaHorario;
+
     @Column(name = "data_turno", nullable = false)
     private LocalDate dataTurno;
 
@@ -69,6 +73,14 @@ public class Horario {
 
     public void setDataTurno(LocalDate dataTurno) {
         this.dataTurno = dataTurno;
+    }
+
+    public PropostaHorarioMensal getIdPropostaHorario() {
+        return idPropostaHorario;
+    }
+
+    public void setIdPropostaHorario(PropostaHorarioMensal idPropostaHorario) {
+        this.idPropostaHorario = idPropostaHorario;
     }
 
     public String getEstado() {
