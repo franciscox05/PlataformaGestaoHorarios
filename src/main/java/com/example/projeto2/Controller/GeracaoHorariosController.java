@@ -176,6 +176,9 @@ public class GeracaoHorariosController {
                 LocalDate.now().getYear()
         ));
         spAno.setEditable(true);
+
+        cbMes.valueProperty().addListener((observavel, antigo, novo) -> invalidarPropostaAtual());
+        spAno.valueProperty().addListener((observavel, antigo, novo) -> invalidarPropostaAtual());
     }
 
     private void configurarTabelas() {
@@ -303,6 +306,15 @@ public class GeracaoHorariosController {
 
         tabelaResumoColaboradores.setItems(FXCollections.observableArrayList());
         tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
+    }
+
+    private void invalidarPropostaAtual() {
+        if (utilizadorLogado == null) {
+            return;
+        }
+
+        limparResultado();
+        esconderFeedback();
     }
 
     private void bloquearEcraSemPermissao(String mensagem) {
