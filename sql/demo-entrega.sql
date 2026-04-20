@@ -3,10 +3,55 @@ BEGIN;
 -- Este script prepara um conjunto de dados estavel para demonstracao local.
 -- Substitui os dados funcionais atuais da aplicacao.
 
+-- Compatibilidade com a aprovacao de preferencias (#17).
+ALTER TABLE public.preferencias
+    ADD COLUMN IF NOT EXISTS tipo varchar(50),
+    ADD COLUMN IF NOT EXISTS data_inicio date,
+    ADD COLUMN IF NOT EXISTS data_fim date,
+    ADD COLUMN IF NOT EXISTS prioridade integer,
+    ADD COLUMN IF NOT EXISTS estado varchar(50),
+    ADD COLUMN IF NOT EXISTS decisao text,
+    ADD COLUMN IF NOT EXISTS id_decisor integer,
+    ADD COLUMN IF NOT EXISTS data_decisao timestamp without time zone;
+
+ALTER TABLE public.preferencias
+    DROP CONSTRAINT IF EXISTS fk_preferencias_decisor;
+
+ALTER TABLE public.preferencias
+    ADD CONSTRAINT fk_preferencias_decisor
+        FOREIGN KEY (id_decisor) REFERENCES public.utilizadores(id_utilizador);
+
+-- Compatibilidade com a geracao de horarios (#20).
+CREATE TABLE IF NOT EXISTS public.propostas_horario_mensal (
+    id_proposta_horario serial PRIMARY KEY,
+    id_loja integer NOT NULL,
+    id_utilizador_geracao integer NOT NULL,
+    ano integer NOT NULL,
+    mes integer NOT NULL,
+    estado varchar(50) NOT NULL DEFAULT 'pendente',
+    resumo_geracao text,
+    data_geracao timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_proposta_horario_loja
+        FOREIGN KEY (id_loja) REFERENCES public.lojas(id_loja),
+    CONSTRAINT fk_proposta_horario_utilizador
+        FOREIGN KEY (id_utilizador_geracao) REFERENCES public.utilizadores(id_utilizador)
+);
+
+ALTER TABLE public.horarios
+    ADD COLUMN IF NOT EXISTS id_proposta_horario integer;
+
+ALTER TABLE public.horarios
+    DROP CONSTRAINT IF EXISTS fk_horarios_proposta_horario;
+
+ALTER TABLE public.horarios
+    ADD CONSTRAINT fk_horarios_proposta_horario
+        FOREIGN KEY (id_proposta_horario) REFERENCES public.propostas_horario_mensal(id_proposta_horario);
+
 TRUNCATE TABLE
     public.historico_horario_estados,
     public.permutas,
     public.horarios,
+    public.propostas_horario_mensal,
     public.day_offs,
     public.preferencias,
     public.lojautilizador,
@@ -103,10 +148,23 @@ INSERT INTO public.day_offs (id_dayoff, id_utilizador, data_ausencia, motivo, ti
     (5, 7, CURRENT_DATE + 2, 'Assunto pessoal urgente.', 'folgas', 'aprovado'),
     (6, 5, CURRENT_DATE - 10, 'Baixa medica curta.', 'baixa', 'aprovado');
 
-INSERT INTO public.preferencias (id_preferencia, id_utilizador, descricao, tipo, data_inicio, data_fim, prioridade, estado) VALUES
-    (1, 7, 'Preferencia por dois dias consecutivos para compromisso familiar.', 'folgas', CURRENT_DATE + 20, CURRENT_DATE + 21, 5, 'pendente'),
-    (2, 3, 'Preferencia por turnos da manha durante a semana.', 'turnos', NULL, NULL, 3, 'aprovado'),
-    (3, 4, 'Preferencia para trabalhar com Afonso Barbosa no proximo periodo.', 'colegas', NULL, NULL, 2, 'rejeitado');
+INSERT INTO public.preferencias (
+    id_preferencia,
+    id_utilizador,
+    descricao,
+    tipo,
+    data_inicio,
+    data_fim,
+    prioridade,
+    estado,
+    decisao,
+    id_decisor,
+    data_decisao
+) VALUES
+    (1, 7, 'Preferencia por dois dias consecutivos para compromisso familiar.', 'folgas', CURRENT_DATE + 20, CURRENT_DATE + 21, 5, 'pendente', NULL, NULL, NULL),
+    (2, 3, 'Preferencia por turnos da manha durante a semana.', 'turnos', NULL, NULL, 3, 'aprovado', 'Aprovado para equilibrar a distribuicao dos turnos da equipa.', 7, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (3, 4, 'Preferencia para trabalhar com Afonso Barbosa no proximo periodo.', 'colegas', NULL, NULL, 2, 'rejeitado', 'Nao foi possivel acomodar esta preferencia sem comprometer a cobertura da loja.', 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (4, 5, 'Pedido de ferias para ponte familiar do proximo mes.', 'ferias', CURRENT_DATE + 25, CURRENT_DATE + 27, 4, 'pendente', NULL, NULL, NULL);
 
 INSERT INTO public.permutas (id_permuta, id_horario_origem, id_horario_destino, estado, data_pedido) VALUES
     (1, 15, 16, 'pendente', CURRENT_TIMESTAMP - INTERVAL '1 day'),

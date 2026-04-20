@@ -9,9 +9,11 @@ O projeto ja inclui os principais modulos da entrega desktop:
 - autenticacao e dashboard
 - gestao da loja e regras
 - gestao de funcionarios
+- geracao de propostas mensais de horarios
 - pedidos e historico de folgas
 - permutas de turnos
 - preferencias do funcionario
+- aprovacao de preferencias por gerencia
 - perfil do utilizador
 - relatorios mensais de horas
 
@@ -40,6 +42,7 @@ O projeto ja inclui os principais modulos da entrega desktop:
 
 O script [demo-entrega.sql](sql/demo-entrega.sql):
 
+- prepara a estrutura adicional das features mais recentes, como aprovacao de preferencias e propostas mensais
 - limpa os dados funcionais da aplicacao
 - volta a criar cargos, lojas, regras e turnos
 - prepara utilizadores e ligacoes a lojas
@@ -59,6 +62,14 @@ Contas recomendadas:
 - Gerencia com acesso completo: `francisco@levis.com`
 - Gerente da loja: `francisco.gomes@levis.com`
 - Colaborador para fluxos do funcionario: `henrique.siano@levis.com`
+
+Com estas contas consegues demonstrar:
+
+- gestao de colaboradores
+- aprovacao de preferencias
+- geracao de horarios
+- relatorios mensais
+- fluxos do colaborador
 
 ## Apoio a apresentacao
 
