@@ -19,7 +19,7 @@ O projeto ja inclui os principais modulos da entrega desktop:
 
 ## Tecnologias
 
-- Java 24
+- Java 25
 - Spring Boot
 - Spring Data JPA
 - PostgreSQL
@@ -37,6 +37,36 @@ O projeto ja inclui os principais modulos da entrega desktop:
 ```
 
 4. Arrancar a aplicacao no IntelliJ ou com Maven.
+
+## Gerar o ZIP da entrega
+
+Para gerar o ZIP final da aplicacao desktop sem depender do IntelliJ:
+
+```powershell
+.\scripts\gerar-zip-entrega.ps1
+```
+
+Se o Java nao estiver configurado no teu `JAVA_HOME`, podes indicar o caminho manualmente:
+
+```powershell
+.\scripts\gerar-zip-entrega.ps1 -JavaHome 'C:\Users\franc\.jdks\openjdk-25'
+```
+
+O artefacto final fica em:
+
+```text
+target\PlataformaGestaoHorarios-desktop.zip
+```
+
+Depois de extrair o ZIP, a app pode ser arrancada com:
+
+```powershell
+.\scripts\iniciar-aplicacao.ps1
+```
+
+Documentacao especifica do pacote entregue:
+
+- [docs/execucao-zip-entrega.md](docs/execucao-zip-entrega.md)
 
 ## Dados de demonstracao
 
