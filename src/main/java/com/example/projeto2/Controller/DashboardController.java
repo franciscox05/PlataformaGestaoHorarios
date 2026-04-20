@@ -1,6 +1,7 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.GestaoLojaBLL;
+import com.example.projeto2.BLL.GeracaoHorariosBLL;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -47,11 +48,15 @@ public class DashboardController {
 
     private final ApplicationContext applicationContext;
     private final GestaoLojaBLL gestaoLojaBLL;
+    private final GeracaoHorariosBLL geracaoHorariosBLL;
     private Utilizador utilizadorLogado;
 
-    public DashboardController(ApplicationContext applicationContext, GestaoLojaBLL gestaoLojaBLL) {
+    public DashboardController(ApplicationContext applicationContext,
+                               GestaoLojaBLL gestaoLojaBLL,
+                               GeracaoHorariosBLL geracaoHorariosBLL) {
         this.applicationContext = applicationContext;
         this.gestaoLojaBLL = gestaoLojaBLL;
+        this.geracaoHorariosBLL = geracaoHorariosBLL;
     }
 
     public void setUtilizadorLogado(Utilizador utilizador) {
@@ -186,13 +191,15 @@ public class DashboardController {
 
     private void configurarPermissoesMenu() {
         boolean podeGerirLoja = utilizadorLogado != null && gestaoLojaBLL.utilizadorPodeGerirLoja(utilizadorLogado.getId());
+        boolean podeAcederHorarios = utilizadorLogado != null
+                && (podeGerirLoja || geracaoHorariosBLL.utilizadorPodeValidarHorarios(utilizadorLogado.getId()));
         btnGestaoLoja.setVisible(podeGerirLoja);
         btnGestaoLoja.setManaged(podeGerirLoja);
         btnRelatorios.setVisible(podeGerirLoja);
         btnRelatorios.setManaged(podeGerirLoja);
         btnGestaoFuncionarios.setVisible(podeGerirLoja);
         btnGestaoFuncionarios.setManaged(podeGerirLoja);
-        btnHorarios.setVisible(podeGerirLoja);
-        btnHorarios.setManaged(podeGerirLoja);
+        btnHorarios.setVisible(podeAcederHorarios);
+        btnHorarios.setManaged(podeAcederHorarios);
     }
 }

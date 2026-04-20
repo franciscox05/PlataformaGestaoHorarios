@@ -32,6 +32,10 @@ public class PropostaHorarioMensal {
     @JoinColumn(name = "id_utilizador_geracao", nullable = false)
     private Utilizador idUtilizadorGeracao;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_utilizador_decisao")
+    private Utilizador idUtilizadorDecisao;
+
     @Column(name = "ano", nullable = false)
     private Integer ano;
 
@@ -48,6 +52,12 @@ public class PropostaHorarioMensal {
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "data_geracao", nullable = false)
     private LocalDateTime dataGeracao;
+
+    @Column(name = "data_decisao")
+    private LocalDateTime dataDecisao;
+
+    @Column(name = "observacoes_supervisor", columnDefinition = "TEXT")
+    private String observacoesSupervisor;
 
     @OneToMany(mappedBy = "idPropostaHorario")
     private Set<Horario> horarios = new LinkedHashSet<>();
@@ -74,6 +84,14 @@ public class PropostaHorarioMensal {
 
     public void setIdUtilizadorGeracao(Utilizador idUtilizadorGeracao) {
         this.idUtilizadorGeracao = idUtilizadorGeracao;
+    }
+
+    public Utilizador getIdUtilizadorDecisao() {
+        return idUtilizadorDecisao;
+    }
+
+    public void setIdUtilizadorDecisao(Utilizador idUtilizadorDecisao) {
+        this.idUtilizadorDecisao = idUtilizadorDecisao;
     }
 
     public Integer getAno() {
@@ -114,6 +132,22 @@ public class PropostaHorarioMensal {
 
     public void setDataGeracao(LocalDateTime dataGeracao) {
         this.dataGeracao = dataGeracao;
+    }
+
+    public LocalDateTime getDataDecisao() {
+        return dataDecisao;
+    }
+
+    public void setDataDecisao(LocalDateTime dataDecisao) {
+        this.dataDecisao = dataDecisao;
+    }
+
+    public String getObservacoesSupervisor() {
+        return observacoesSupervisor;
+    }
+
+    public void setObservacoesSupervisor(String observacoesSupervisor) {
+        this.observacoesSupervisor = observacoesSupervisor;
     }
 
     public Set<Horario> getHorarios() {
