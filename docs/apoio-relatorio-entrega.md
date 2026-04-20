@@ -2,6 +2,12 @@
 
 Este documento resume o que deve ficar refletido no relatorio PDF atualizado da entrega desktop.
 
+O documento final preparado para submissao passa a estar materializado em:
+
+- [relatorio-final-entrega.md](relatorio-final-entrega.md)
+- [relatorio-final-entrega.html](relatorio-final-entrega.html)
+- `Projeto2_EI_33400_33397_relatorio_atualizado.pdf`
+
 ## Objetivo da aplicacao
 
 Disponibilizar uma plataforma desktop para apoiar a gestao de horarios por turnos numa loja Levi's, cobrindo autenticacao, operacao diaria, planeamento e fluxos de colaborador e gerencia.

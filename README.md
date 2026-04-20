@@ -83,6 +83,8 @@ Ficheiros adicionais de apoio:
 
 - [docs/validacao-entrega.md](docs/validacao-entrega.md) com a checklist de validacao final
 - [docs/apoio-relatorio-entrega.md](docs/apoio-relatorio-entrega.md) com o resumo para atualizar o PDF do relatorio
+- [docs/relatorio-final-entrega.md](docs/relatorio-final-entrega.md) com o conteudo atualizado do relatorio
+- `Projeto2_EI_33400_33397_relatorio_atualizado.pdf` como artefacto final pronto a submeter
 
 ## Nota
 
