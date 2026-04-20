@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "preferencias")
@@ -41,6 +42,16 @@ public class Preferencia {
 
     @Column(name = "descricao", nullable = false, columnDefinition = "TEXT")
     private String descricao;
+
+    @Column(name = "decisao", columnDefinition = "TEXT")
+    private String decisao;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_decisor")
+    private Utilizador idDecisor;
+
+    @Column(name = "data_decisao")
+    private LocalDateTime dataDecisao;
 
     public Integer getId() {
         return id;
@@ -104,5 +115,29 @@ public class Preferencia {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public String getDecisao() {
+        return decisao;
+    }
+
+    public void setDecisao(String decisao) {
+        this.decisao = decisao;
+    }
+
+    public Utilizador getIdDecisor() {
+        return idDecisor;
+    }
+
+    public void setIdDecisor(Utilizador idDecisor) {
+        this.idDecisor = idDecisor;
+    }
+
+    public LocalDateTime getDataDecisao() {
+        return dataDecisao;
+    }
+
+    public void setDataDecisao(LocalDateTime dataDecisao) {
+        this.dataDecisao = dataDecisao;
     }
 }
