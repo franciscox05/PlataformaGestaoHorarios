@@ -53,6 +53,22 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
     Optional<Preferencia> findPreferenciaDaLoja(@Param("idPreferencia") Integer idPreferencia,
                                                 @Param("idLoja") Integer idLoja);
 
+    @Query("SELECT p " +
+            "FROM Preferencia p " +
+            "JOIN FETCH p.idUtilizador u " +
+            "JOIN u.lojautilizadors lu " +
+            "JOIN FETCH lu.idLoja l " +
+            "LEFT JOIN FETCH p.idDecisor d " +
+            "WHERE l.id = :idLoja " +
+            "AND lu.dataFim IS NULL " +
+            "AND LOWER(p.estado) = 'aprovado' " +
+            "AND ((p.dataInicio IS NULL) OR p.dataInicio <= :dataFim) " +
+            "AND ((p.dataFim IS NULL) OR p.dataFim >= :dataInicio) " +
+            "ORDER BY u.nome ASC, p.id ASC")
+    List<Preferencia> findPreferenciasAprovadasDaLojaEntreDatas(@Param("idLoja") Integer idLoja,
+                                                                @Param("dataInicio") LocalDate dataInicio,
+                                                                @Param("dataFim") LocalDate dataFim);
+
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
             "FROM Preferencia p " +
             "WHERE p.idUtilizador.id = :idUtilizador " +

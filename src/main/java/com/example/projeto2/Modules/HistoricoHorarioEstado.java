@@ -18,7 +18,7 @@ public class HistoricoHorarioEstado {
     private Horario idHorario;
 
     @Column(name = "estado_novo", columnDefinition = "estado_horario_enum not null")
-    private Object estadoNovo;
+    private String estadoNovo;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "data_registo")
@@ -43,11 +43,11 @@ public class HistoricoHorarioEstado {
         this.idHorario = idHorario;
     }
 
-    public Object getEstadoNovo() {
+    public String getEstadoNovo() {
         return estadoNovo;
     }
 
-    public void setEstadoNovo(Object estadoNovo) {
+    public void setEstadoNovo(String estadoNovo) {
         this.estadoNovo = estadoNovo;
     }
 

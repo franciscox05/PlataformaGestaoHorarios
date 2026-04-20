@@ -28,6 +28,9 @@ public class DashboardController {
     private Button btnGestaoFuncionarios;
 
     @FXML
+    private Button btnHorarios;
+
+    @FXML
     private Button btnFolgas;
 
     @FXML
@@ -83,6 +86,13 @@ public class DashboardController {
         limparBotoesAtivos();
         btnGestaoFuncionarios.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/gestao-funcionarios-view.fxml");
+    }
+
+    @FXML
+    public void onHorariosClick() {
+        limparBotoesAtivos();
+        btnHorarios.getStyleClass().add("sidebar-btn-ativo");
+        mudarEcraCentro("/com/example/projeto2/dashboard/geracao-horarios-view.fxml");
     }
 
     @FXML
@@ -142,6 +152,8 @@ public class DashboardController {
                 gestaoLojaController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof GestaoFuncionariosController gestaoFuncionariosController) {
                 gestaoFuncionariosController.setUtilizadorLogado(utilizadorLogado);
+            } else if (controller instanceof GeracaoHorariosController geracaoHorariosController) {
+                geracaoHorariosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PermutasController permutasController) {
                 permutasController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PedirFolgaController pedirFolgaController) {
@@ -164,6 +176,7 @@ public class DashboardController {
         btnDashboard.getStyleClass().remove("sidebar-btn-ativo");
         btnGestaoLoja.getStyleClass().remove("sidebar-btn-ativo");
         btnGestaoFuncionarios.getStyleClass().remove("sidebar-btn-ativo");
+        btnHorarios.getStyleClass().remove("sidebar-btn-ativo");
         btnFolgas.getStyleClass().remove("sidebar-btn-ativo");
         btnPermutas.getStyleClass().remove("sidebar-btn-ativo");
         btnPerfil.getStyleClass().remove("sidebar-btn-ativo");
@@ -179,5 +192,7 @@ public class DashboardController {
         btnRelatorios.setManaged(podeGerirLoja);
         btnGestaoFuncionarios.setVisible(podeGerirLoja);
         btnGestaoFuncionarios.setManaged(podeGerirLoja);
+        btnHorarios.setVisible(podeGerirLoja);
+        btnHorarios.setManaged(podeGerirLoja);
     }
 }

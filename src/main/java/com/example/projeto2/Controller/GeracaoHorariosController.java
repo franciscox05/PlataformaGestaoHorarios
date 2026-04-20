@@ -1,0 +1,355 @@
+package com.example.projeto2.Controller;
+
+import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Modules.Utilizador;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.fxml.FXML;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+
+@Component
+@Scope("prototype")
+public class GeracaoHorariosController {
+
+    @FXML
+    private Label lblLoja;
+
+    @FXML
+    private Label lblLocalizacao;
+
+    @FXML
+    private ComboBox<MesOption> cbMes;
+
+    @FXML
+    private Spinner<Integer> spAno;
+
+    @FXML
+    private Button btnVerProposta;
+
+    @FXML
+    private Button btnGerarProposta;
+
+    @FXML
+    private Label lblFeedback;
+
+    @FXML
+    private Label lblEstadoProposta;
+
+    @FXML
+    private Label lblGeradoPor;
+
+    @FXML
+    private Label lblDataGeracao;
+
+    @FXML
+    private Label lblResumoGeracao;
+
+    @FXML
+    private Label lblTotalColaboradores;
+
+    @FXML
+    private Label lblTotalTurnos;
+
+    @FXML
+    private Label lblTotalDiasCobertos;
+
+    @FXML
+    private TableView<GeracaoHorariosBLL.ResumoColaborador> tabelaResumoColaboradores;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.ResumoColaborador, String> colResumoColaborador;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.ResumoColaborador, String> colResumoCargo;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.ResumoColaborador, String> colResumoTurnos;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.ResumoColaborador, String> colResumoHoras;
+
+    @FXML
+    private TableView<GeracaoHorariosBLL.HorarioLinha> tabelaHorariosGerados;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colData;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colDiaSemana;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colTurno;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colPeriodo;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colColaborador;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colCargo;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colEstado;
+
+    private final GeracaoHorariosBLL geracaoHorariosBLL;
+
+    private Utilizador utilizadorLogado;
+
+    public GeracaoHorariosController(GeracaoHorariosBLL geracaoHorariosBLL) {
+        this.geracaoHorariosBLL = geracaoHorariosBLL;
+    }
+
+    @FXML
+    public void initialize() {
+        configurarFiltros();
+        configurarTabelas();
+        limparResultado();
+        esconderFeedback();
+
+        tabelaResumoColaboradores.setPlaceholder(new Label("Ainda nao existe proposta gerada para apresentar o resumo da equipa."));
+        tabelaHorariosGerados.setPlaceholder(new Label("Ainda nao existe proposta gerada para o periodo selecionado."));
+    }
+
+    public void setUtilizadorLogado(Utilizador utilizadorLogado) {
+        this.utilizadorLogado = utilizadorLogado;
+        carregarContextoInicial();
+    }
+
+    @FXML
+    public void onVerPropostaClick() {
+        carregarPropostaSelecionada();
+    }
+
+    @FXML
+    public void onGerarPropostaClick() {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+            }
+
+            MesOption mesSelecionado = obterMesSelecionado();
+            GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.gerarProposta(
+                    utilizadorLogado.getId(),
+                    spAno.getValue(),
+                    mesSelecionado.numero()
+            );
+
+            preencherResultado(resultado);
+            mostrarSucesso("Proposta mensal gerada com sucesso.");
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Nao foi possivel gerar a proposta mensal.");
+        }
+    }
+
+    private void configurarFiltros() {
+        cbMes.setItems(FXCollections.observableArrayList(
+                new MesOption(1, "Janeiro"),
+                new MesOption(2, "Fevereiro"),
+                new MesOption(3, "Marco"),
+                new MesOption(4, "Abril"),
+                new MesOption(5, "Maio"),
+                new MesOption(6, "Junho"),
+                new MesOption(7, "Julho"),
+                new MesOption(8, "Agosto"),
+                new MesOption(9, "Setembro"),
+                new MesOption(10, "Outubro"),
+                new MesOption(11, "Novembro"),
+                new MesOption(12, "Dezembro")
+        ));
+
+        spAno.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
+                LocalDate.now().getYear(),
+                LocalDate.now().getYear() + 5,
+                LocalDate.now().getYear()
+        ));
+        spAno.setEditable(true);
+    }
+
+    private void configurarTabelas() {
+        colResumoColaborador.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().nome()));
+
+        colResumoCargo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().cargo()));
+
+        colResumoTurnos.setCellValueFactory(cellData ->
+                new SimpleStringProperty(String.valueOf(cellData.getValue().turnos())));
+
+        colResumoHoras.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().horasFormatadas()));
+
+        colData.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().data() != null ? cellData.getValue().data().toString() : "-"));
+
+        colDiaSemana.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().diaSemana()));
+
+        colTurno.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().turno()));
+
+        colPeriodo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().periodo()));
+
+        colColaborador.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().colaborador()));
+
+        colCargo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().cargo()));
+
+        colEstado.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().estado()));
+    }
+
+    private void carregarContextoInicial() {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+            }
+
+            GeracaoHorariosBLL.GeracaoContexto contexto = geracaoHorariosBLL.obterContexto(utilizadorLogado.getId());
+            lblLoja.setText(contexto.nomeLoja());
+            lblLocalizacao.setText(contexto.localizacao());
+            spAno.getValueFactory().setValue(contexto.anoAtual());
+            selecionarMes(contexto.mesAtual());
+            carregarPropostaSelecionada();
+        } catch (IllegalArgumentException e) {
+            bloquearEcraSemPermissao(e.getMessage());
+        } catch (Exception e) {
+            bloquearEcraSemPermissao("Nao foi possivel carregar o contexto da geracao de horarios.");
+        }
+    }
+
+    private void carregarPropostaSelecionada() {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+            }
+
+            MesOption mesSelecionado = obterMesSelecionado();
+            GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.obterProposta(
+                    utilizadorLogado.getId(),
+                    spAno.getValue(),
+                    mesSelecionado.numero()
+            );
+
+            if (resultado == null) {
+                limparResultado();
+                mostrarInformacao("Ainda nao existe proposta gerada para o periodo selecionado.");
+                return;
+            }
+
+            preencherResultado(resultado);
+            mostrarInformacao("Proposta carregada com sucesso.");
+        } catch (IllegalArgumentException e) {
+            limparResultado();
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            limparResultado();
+            mostrarErro("Nao foi possivel carregar a proposta selecionada.");
+        }
+    }
+
+    private MesOption obterMesSelecionado() {
+        MesOption mesSelecionado = cbMes.getValue();
+        if (mesSelecionado == null) {
+            throw new IllegalArgumentException("Seleciona um mes para consultar ou gerar a proposta.");
+        }
+        return mesSelecionado;
+    }
+
+    private void selecionarMes(int numeroMes) {
+        cbMes.getItems().stream()
+                .filter(item -> item.numero() == numeroMes)
+                .findFirst()
+                .ifPresent(cbMes::setValue);
+    }
+
+    private void preencherResultado(GeracaoHorariosBLL.PropostaResultado resultado) {
+        lblEstadoProposta.setText(resultado.estado());
+        lblGeradoPor.setText(resultado.geradoPor());
+        lblDataGeracao.setText(resultado.dataGeracao());
+        lblResumoGeracao.setText(resultado.resumoGeracao() != null ? resultado.resumoGeracao() : "-");
+
+        lblTotalColaboradores.setText(String.valueOf(resultado.resumo().colaboradores()));
+        lblTotalTurnos.setText(String.valueOf(resultado.resumo().turnos()));
+        lblTotalDiasCobertos.setText(String.valueOf(resultado.resumo().diasCobertos()));
+
+        tabelaResumoColaboradores.setItems(FXCollections.observableArrayList(resultado.resumoColaboradores()));
+        tabelaHorariosGerados.setItems(FXCollections.observableArrayList(resultado.linhas()));
+    }
+
+    private void limparResultado() {
+        lblEstadoProposta.setText("-");
+        lblGeradoPor.setText("-");
+        lblDataGeracao.setText("-");
+        lblResumoGeracao.setText("Ainda nao existe uma proposta carregada.");
+
+        lblTotalColaboradores.setText("0");
+        lblTotalTurnos.setText("0");
+        lblTotalDiasCobertos.setText("0");
+
+        tabelaResumoColaboradores.setItems(FXCollections.observableArrayList());
+        tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
+    }
+
+    private void bloquearEcraSemPermissao(String mensagem) {
+        lblLoja.setText("-");
+        lblLocalizacao.setText("-");
+        limparResultado();
+
+        cbMes.setDisable(true);
+        spAno.setDisable(true);
+        btnVerProposta.setDisable(true);
+        btnGerarProposta.setDisable(true);
+        mostrarErro(mensagem);
+    }
+
+    private void mostrarSucesso(String mensagem) {
+        mostrarFeedback(mensagem, "mensagem-sucesso");
+    }
+
+    private void mostrarErro(String mensagem) {
+        mostrarFeedback(mensagem, "mensagem-erro");
+    }
+
+    private void mostrarInformacao(String mensagem) {
+        mostrarFeedback(mensagem, null);
+    }
+
+    private void mostrarFeedback(String mensagem, String estilo) {
+        lblFeedback.setText(mensagem);
+        lblFeedback.getStyleClass().removeAll("mensagem-feedback", "mensagem-sucesso", "mensagem-erro");
+        lblFeedback.getStyleClass().add("mensagem-feedback");
+        if (estilo != null) {
+            lblFeedback.getStyleClass().add(estilo);
+        }
+        lblFeedback.setVisible(true);
+        lblFeedback.setManaged(true);
+    }
+
+    private void esconderFeedback() {
+        lblFeedback.setVisible(false);
+        lblFeedback.setManaged(false);
+        lblFeedback.setText("");
+    }
+
+    private record MesOption(int numero, String nome) {
+        @Override
+        public String toString() {
+            return nome;
+        }
+    }
+}
