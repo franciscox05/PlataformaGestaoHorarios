@@ -35,7 +35,7 @@ public interface PermutaRepository extends JpaRepository<Permuta, Integer> {
             "JOIN FETCH hd.idLojautilizador lud " +
             "JOIN FETCH lud.idUtilizador ud " +
             "JOIN FETCH lud.idLoja ld " +
-            "WHERE LOWER(p.estado) = 'pendente' " +
+            "WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
             "AND lo.id = :idLoja " +
             "AND uo.id <> :idUtilizadorAprovador " +
             "ORDER BY p.dataPedido ASC, p.id ASC")
@@ -57,17 +57,17 @@ public interface PermutaRepository extends JpaRepository<Permuta, Integer> {
     java.util.Optional<Permuta> findDetalhadaById(@Param("idPermuta") Integer idPermuta);
 
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Permuta p " +
-            "WHERE LOWER(p.estado) = 'pendente' " +
+            "WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
             "AND p.idHorarioOrigem.id = :idHorarioOrigem")
     boolean existsPedidoPendentePorHorarioOrigem(@Param("idHorarioOrigem") Integer idHorarioOrigem);
 
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Permuta p " +
-            "WHERE LOWER(p.estado) = 'pendente' " +
+            "WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
             "AND (p.idHorarioOrigem.id = :idHorario OR p.idHorarioDestino.id = :idHorario)")
     boolean existsPedidoPendentePorHorario(@Param("idHorario") Integer idHorario);
 
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Permuta p " +
-            "WHERE LOWER(p.estado) = 'pendente' " +
+            "WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
             "AND p.idHorarioOrigem.id = :idHorarioOrigem " +
             "AND p.idHorarioDestino.id = :idHorarioDestino")
     boolean existsPedidoPendentePorOrigemEDestino(@Param("idHorarioOrigem") Integer idHorarioOrigem,
@@ -84,7 +84,7 @@ public interface PermutaRepository extends JpaRepository<Permuta, Integer> {
             "JOIN FETCH hd.idLojautilizador lud " +
             "JOIN FETCH lud.idUtilizador ud " +
             "JOIN FETCH lud.idLoja ld " +
-            "WHERE LOWER(p.estado) = 'pendente' " +
+            "WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
             "AND p.id <> :idPermutaIgnorada " +
             "AND (" +
             "    p.idHorarioOrigem.id IN :idsHorarios " +

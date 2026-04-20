@@ -12,7 +12,7 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
     List<DayOff> findByIdUtilizador(Integer idUtilizador);
 
     @Query("SELECT d FROM DayOff d " +
-            "WHERE d.estado = 'pendente' " +
+            "WHERE LOWER(CAST(d.estado AS string)) = 'pendente' " +
             "AND d.idUtilizador <> :idUtilizadorAprovador " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +
