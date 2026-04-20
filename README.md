@@ -79,6 +79,11 @@ O ficheiro [docs/roteiro-demo.md](docs/roteiro-demo.md) resume:
 - ordem sugerida para a demonstracao
 - modulos que vale a pena mostrar em cada perfil
 
+Ficheiros adicionais de apoio:
+
+- [docs/validacao-entrega.md](docs/validacao-entrega.md) com a checklist de validacao final
+- [docs/apoio-relatorio-entrega.md](docs/apoio-relatorio-entrega.md) com o resumo para atualizar o PDF do relatorio
+
 ## Nota
 
 O script de demonstracao foi pensado para ambiente local de desenvolvimento e apresentacao. Nao deve ser usado em producao porque substitui os dados funcionais atuais.
