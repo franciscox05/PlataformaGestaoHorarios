@@ -1,44 +1,70 @@
-/* --- FUNDO DA JANELA --- */
 .root {
-    -fx-background-color: #f4f4f4;
+    -fx-background-color: linear-gradient(to bottom right, #f8f8f8, #ececec);
     -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
-/* --- TÍTULO PRINCIPAL --- */
+.painel-login {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 14px;
+    -fx-border-color: #e3e3e3;
+    -fx-border-radius: 14px;
+    -fx-max-width: 420px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 20, 0.18, 0, 6);
+}
+
 .titulo-levis {
     -fx-font-size: 28px;
     -fx-font-weight: bold;
-    -fx-text-fill: #c41230; /* Vermelho Levi's */
+    -fx-text-fill: #c41230;
 }
 
-/* --- CAIXAS DE TEXTO (Email e Password) --- */
-.text-field, .password-field {
+.subtitulo-login {
+    -fx-font-size: 13px;
+    -fx-text-fill: #666666;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+
+.campo-login {
     -fx-background-color: #ffffff;
-    -fx-border-color: #cccccc;
-    -fx-border-radius: 5px;
-    -fx-background-radius: 5px;
-    -fx-padding: 10px;
+    -fx-border-color: #d0d0d0;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 11px 12px;
     -fx-font-size: 14px;
 }
 
-/* Efeito quando clicas para escrever (Focus) */
-.text-field:focused, .password-field:focused {
+.campo-login:focused {
     -fx-border-color: #c41230;
     -fx-border-width: 2px;
 }
 
-/* --- BOTÃO DE LOGIN --- */
-.botao-login {
-    -fx-background-color: #c41230; /* Vermelho Levi's */
-    -fx-text-fill: white;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-    -fx-background-radius: 5px;
-    -fx-padding: 10px 20px;
+.botao-mostrar-senha {
+    -fx-background-color: transparent;
     -fx-cursor: hand;
 }
 
-/* Efeito quando passas o rato por cima do botão (Hover) */
+.botao-login {
+    -fx-background-color: #c41230;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8px;
+    -fx-padding: 11px 18px;
+    -fx-cursor: hand;
+}
+
 .botao-login:hover {
-    -fx-background-color: #a00f25; /* Vermelho mais escuro */
+    -fx-background-color: #a00f25;
+}
+
+.erro-login {
+    -fx-text-fill: #c41230;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-color: #fdecef;
+    -fx-border-color: #f4bec7;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 10px 12px;
 }

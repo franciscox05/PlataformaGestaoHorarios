@@ -73,7 +73,7 @@
                             </children>
                         </HBox>
 
-                        <Label fx:id="lblFeedback" managed="false" visible="false" wrapText="true" />
+                        <Label fx:id="lblFeedback" managed="false" styleClass="mensagem-feedback" visible="false" wrapText="true" />
                     </children>
                 </VBox>
 

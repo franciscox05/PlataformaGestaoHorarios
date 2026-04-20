@@ -60,6 +60,7 @@ public class GestaoLojaController {
     @FXML
     public void initialize() {
         esconderMensagem();
+        configurarOcultacaoFeedback();
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -191,6 +192,11 @@ public class GestaoLojaController {
         return card;
     }
 
+    private void configurarOcultacaoFeedback() {
+        txtHoraAbertura.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+        txtHoraFecho.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+    }
+
     private LocalTime parseHora(String texto, String campo) {
         if (texto == null || texto.isBlank()) {
             throw new IllegalArgumentException("Indica a hora de " + campo + " no formato HH:mm.");
@@ -226,6 +232,7 @@ public class GestaoLojaController {
     private void esconderMensagem() {
         lblMensagem.setManaged(false);
         lblMensagem.setVisible(false);
+        lblMensagem.setText("");
     }
 
     private void mostrarMensagem(String mensagem, boolean sucesso) {

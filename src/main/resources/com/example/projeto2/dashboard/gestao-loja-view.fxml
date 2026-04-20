@@ -86,7 +86,7 @@
                             </children>
                         </HBox>
 
-                        <Label fx:id="lblMensagem" styleClass="mensagem-feedback" text="-" wrapText="true" />
+                        <Label fx:id="lblMensagem" managed="false" styleClass="mensagem-feedback" text="" visible="false" wrapText="true" />
                         <VBox fx:id="regrasContainer" spacing="14.0" />
                     </children>
                 </VBox>

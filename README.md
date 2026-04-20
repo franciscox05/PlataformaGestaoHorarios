@@ -1,31 +1,89 @@
-# 📅 Plataforma de Gestão de Horários
+# Plataforma de Gestao de Horarios
 
-![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
-![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apache-maven&logoColor=white)
+Aplicacao desktop desenvolvida em Java, Spring Boot, Spring Data JPA, PostgreSQL e JavaFX para apoiar a gestao de horarios por turnos numa loja Levi's.
 
-## 📌 Sobre o Projeto
-Este projeto foi desenvolvido no âmbito da unidade curricular de **Projeto II (2º Ano, 2º Semestre)** do curso de Licenciatura em Engenharia Informática (LEI). 
+## Estado atual
 
-A **Plataforma de Gestão de Horários** é um sistema robusto desenvolvido em Java (Spring Boot) desenhado para facilitar e automatizar a gestão de escalas de trabalho, turnos, funcionários e lojas.
+O projeto ja inclui os principais modulos da entrega desktop:
 
-## 🚀 Funcionalidades Principais
-Com base na arquitetura do sistema, a plataforma permite:
-* **Gestão de Utilizadores e Cargos:** Controlo de acessos e permissões por função.
-* **Gestão de Lojas e Regras:** Configuração de regras específicas de funcionamento para cada loja.
-* **Planeamento de Horários e Turnos:** Criação e alocação de turnos para os utilizadores.
-* **Gestão de Preferências e Folgas (DayOff):** Registo de indisponibilidades e preferências de horário dos funcionários.
-* **Sistema de Permutas:** Possibilidade de troca de turnos entre utilizadores.
-* **Histórico e Estados:** Rastreio das alterações e estados dos horários ao longo do tempo.
+- autenticacao e dashboard
+- gestao da loja e regras
+- gestao de funcionarios
+- geracao de propostas mensais de horarios
+- pedidos e historico de folgas
+- permutas de turnos
+- preferencias do funcionario
+- aprovacao de preferencias por gerencia
+- perfil do utilizador
+- relatorios mensais de horas
 
-## 🛠️ Tecnologias Utilizadas
-* **Backend:** Java
-* **Framework:** Spring Boot
-* **Gestão de Dependências:** Maven
-* **Arquitetura:** MVC (Model-View-Controller) / Camadas (BLL, Repositories, Modules)
+## Tecnologias
 
-## ⚙️ Como Executar o Projeto Localmente
+- Java 24
+- Spring Boot
+- Spring Data JPA
+- PostgreSQL
+- JavaFX 21
+- Maven
 
-1. **Clonar o repositório:**
-   ```bash
-   git clone [https://github.com/franciscox05/PlataformaGestaoHorarios.git](https://github.com/franciscox05/PlataformaGestaoHorarios.git)
+## Como executar
+
+1. Garantir que tens PostgreSQL a correr localmente.
+2. Confirmar as credenciais em [application.properties](src/main/resources/application.properties).
+3. Preparar a base de dados com o script de demonstracao:
+
+```powershell
+& 'C:\Program Files\PostgreSQL\18\bin\psql.exe' -U postgres -d gestaohorarios -f .\sql\demo-entrega.sql
+```
+
+4. Arrancar a aplicacao no IntelliJ ou com Maven.
+
+## Dados de demonstracao
+
+O script [demo-entrega.sql](sql/demo-entrega.sql):
+
+- prepara a estrutura adicional das features mais recentes, como aprovacao de preferencias e propostas mensais
+- limpa os dados funcionais da aplicacao
+- volta a criar cargos, lojas, regras e turnos
+- prepara utilizadores e ligacoes a lojas
+- carrega horarios, folgas, preferencias e permutas de exemplo
+- deixa a aplicacao pronta para demonstracao
+
+## Contas de demonstracao
+
+Todas as contas abaixo usam a password:
+
+```text
+123456
+```
+
+Contas recomendadas:
+
+- Gerencia com acesso completo: `francisco@levis.com`
+- Gerente da loja: `francisco.gomes@levis.com`
+- Colaborador para fluxos do funcionario: `henrique.siano@levis.com`
+
+Com estas contas consegues demonstrar:
+
+- gestao de colaboradores
+- aprovacao de preferencias
+- geracao de horarios
+- relatorios mensais
+- fluxos do colaborador
+
+## Apoio a apresentacao
+
+O ficheiro [docs/roteiro-demo.md](docs/roteiro-demo.md) resume:
+
+- contas para login
+- ordem sugerida para a demonstracao
+- modulos que vale a pena mostrar em cada perfil
+
+Ficheiros adicionais de apoio:
+
+- [docs/validacao-entrega.md](docs/validacao-entrega.md) com a checklist de validacao final
+- [docs/apoio-relatorio-entrega.md](docs/apoio-relatorio-entrega.md) com o resumo para atualizar o PDF do relatorio
+
+## Nota
+
+O script de demonstracao foi pensado para ambiente local de desenvolvimento e apresentacao. Nao deve ser usado em producao porque substitui os dados funcionais atuais.

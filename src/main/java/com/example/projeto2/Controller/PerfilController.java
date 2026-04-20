@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.VBox;
@@ -149,7 +150,7 @@ public class PerfilController {
             }
             setUtilizadorLogado(this.utilizadorLogado);
         } catch (Exception e) {
-            System.out.println("Erro ao abrir modal: " + e.getMessage());
+            mostrarErro("Nao foi possivel abrir esta janela.", "Tenta novamente dentro de instantes.");
         } finally {
             raizPerfil.setEffect(null);
         }
@@ -168,5 +169,13 @@ public class PerfilController {
         lblFolgasPendentes.setText("0");
         lblFolgasAprovadas.setText("0");
         lblTurnosFuturos.setText("0");
+    }
+
+    private void mostrarErro(String titulo, String mensagem) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erro");
+        alert.setHeaderText(titulo);
+        alert.setContentText(mensagem);
+        alert.showAndWait();
     }
 }

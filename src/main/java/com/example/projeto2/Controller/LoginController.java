@@ -6,10 +6,11 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
@@ -17,6 +18,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 @Component
 public class LoginController {
@@ -52,42 +54,34 @@ public class LoginController {
 
         btnMostrarSenha.setText("");
         mudarIconeBotao("olho-aberto.png");
+        esconderErro();
 
-        // ====== Esconder o erro APENAS se o texto mudar ======
-        txtEmail.textProperty().addListener((observable, oldValue, newValue) -> lblErro.setVisible(false));
-        txtPassword.textProperty().addListener((observable, oldValue, newValue) -> lblErro.setVisible(false));
+        txtEmail.textProperty().addListener((observable, oldValue, newValue) -> esconderErro());
+        txtPassword.textProperty().addListener((observable, oldValue, newValue) -> esconderErro());
+        txtPasswordVisible.textProperty().addListener((observable, oldValue, newValue) -> esconderErro());
 
-        // Ligar o "ENTER" ao Login
         txtEmail.setOnAction(event -> onLoginClick());
         txtPassword.setOnAction(event -> onLoginClick());
         txtPasswordVisible.setOnAction(event -> onLoginClick());
     }
 
-    // Method de Login!
     @FXML
     protected void onLoginClick() {
-        String email = txtEmail.getText();
-        String password = txtPassword.getText(); // Sempre atualizado graças ao bindBidirectional!
+        String email = txtEmail.getText() == null ? "" : txtEmail.getText().trim();
+        String password = txtPassword.getText() == null ? "" : txtPassword.getText().trim();
 
-        // 1. VALIDAÇÃO: Verificar se os campos estão vazios ANTES de ir à Base de Dados
-        if (email == null || email.trim().isEmpty() || password == null || password.trim().isEmpty()) {
-            lblErro.setText("Por favor, preencha o Email e/ou a Password.");
-            lblErro.setVisible(true);
-            return; // Aborta o login aqui, poupando a base de dados
+        if (email.isEmpty() || password.isEmpty()) {
+            mostrarErro("Preenche o email e a password antes de continuares.");
+            return;
         }
 
-        // 2. BLL: Tentar autenticar o utilizador
         Utilizador logado = userBll.efetuarLogin(email, password);
 
         if (logado != null) {
-            lblErro.setVisible(false); // Limpa qualquer erro antigo
-            System.out.println("✅ SUCESSO! A abrir o Dashboard...");
+            esconderErro();
             abrirDashboard(logado);
         } else {
-            // 3. ERRO: Atualiza o texto para erro de credenciais erradas
-            lblErro.setText("❌ Email ou Password incorretos.");
-            lblErro.setVisible(true);
-            System.out.println("❌ ERRO! Email ou Password incorretos.");
+            mostrarErro("Email ou password incorretos. Confirma os dados e tenta novamente.");
         }
     }
 
@@ -105,27 +99,17 @@ public class LoginController {
     }
 
     private void mudarIconeBotao(String nomeImagem) {
-        try {
-            // 1. Tenta carregar o ficheiro primeiro
-            java.io.InputStream imageStream = getClass().getResourceAsStream("/com/example/projeto2/imagens/login/" + nomeImagem);
-
-            // 2. O nosso guarda-costas para deixar o IntelliJ feliz
+        try (InputStream imageStream = getClass().getResourceAsStream("/com/example/projeto2/imagens/login/" + nomeImagem)) {
             if (imageStream == null) {
-                System.out.println("⚠️ Imagem não encontrada no caminho especificado: " + nomeImagem);
-                return; // Sai do method para evitar o erro fatal
+                return;
             }
 
-            // 3. Se chegou aqui, é porque a imagem existe. Já podemos usá-la!
             Image img = new Image(imageStream);
             ImageView view = new ImageView(img);
-
             view.setFitHeight(18);
             view.setFitWidth(18);
-
             btnMostrarSenha.setGraphic(view);
-
-        } catch (Exception e) {
-            System.out.println("Erro ao carregar a imagem: " + e.getMessage());
+        } catch (IOException ignored) {
         }
     }
 
@@ -141,9 +125,27 @@ public class LoginController {
             Stage stage = (Stage) txtEmail.getScene().getWindow();
             stage.setScene(new Scene(root, 800, 600));
             stage.setTitle("Levi's Staff Portal - Dashboard");
-
         } catch (IOException e) {
-            System.out.println("Erro ao abrir o Dashboard: " + e.getMessage());
+            mostrarErro("Nao foi possivel abrir o dashboard. Tenta novamente dentro de instantes.");
+            mostrarAlertaErro("Erro ao abrir dashboard", "Nao foi possivel carregar o dashboard com sucesso.");
         }
+    }
+
+    private void mostrarErro(String mensagem) {
+        lblErro.setText(mensagem);
+        lblErro.setVisible(true);
+    }
+
+    private void esconderErro() {
+        lblErro.setText("");
+        lblErro.setVisible(false);
+    }
+
+    private void mostrarAlertaErro(String titulo, String mensagem) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensagem);
+        alert.showAndWait();
     }
 }
