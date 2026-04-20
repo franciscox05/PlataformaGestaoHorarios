@@ -14,6 +14,7 @@
    </padding>
 
    <Label styleClass="titulo-levis" text="Levi's Staff Portal" />
+   <Label maxWidth="320.0" styleClass="subtitulo-autenticacao" text="Inicia sessao com as credenciais da tua conta." textAlignment="CENTER" wrapText="true" />
 
    <TextField fx:id="txtEmail" maxWidth="300.0" promptText="Email" />
 
@@ -28,8 +29,9 @@
       </Button>
    </StackPane>
 
-   <Label fx:id="lblErro" text="Email ou Password incorretos." visible="false" style="-fx-text-fill: #c41230; -fx-font-weight: bold; -fx-font-size: 13px;" />
+   <Label fx:id="lblErro" managed="false" maxWidth="320.0" styleClass="mensagem-erro-autenticacao" textAlignment="CENTER" visible="false" wrapText="true" />
 
-   <Button defaultButton="true" maxWidth="300.0" onAction="#onLoginClick" styleClass="botao-login" text="Sign In" />
+   <Button defaultButton="true" maxWidth="300.0" onAction="#onLoginClick" styleClass="botao-login" text="Entrar" />
+   <Label maxWidth="320.0" styleClass="mensagem-info-autenticacao" text="Por seguranca, a sessao termina automaticamente apos 15 minutos de inatividade." textAlignment="CENTER" wrapText="true" />
 
 </VBox>

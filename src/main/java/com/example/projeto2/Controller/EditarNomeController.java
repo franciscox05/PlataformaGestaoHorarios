@@ -12,6 +12,8 @@ import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +22,8 @@ import java.util.Optional;
 @Component
 @Scope("prototype")
 public class EditarNomeController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EditarNomeController.class);
 
     @FXML
     private TextField txtNomeAtual;
@@ -75,7 +79,7 @@ public class EditarNomeController {
             javafx.scene.control.Button nodeCancelar = (javafx.scene.control.Button) dialogPane.lookupButton(btnCancelar);
             nodeCancelar.getStyleClass().add("botao-secundario");
         } catch (Exception e) {
-            System.out.println("Aviso: Nao foi possivel aplicar CSS ao Alerta.");
+            LOGGER.warn("Nao foi possivel aplicar o estilo do alerta de edicao de nome.", e);
         }
 
         Optional<ButtonType> resultado = confirmacao.showAndWait();
@@ -90,7 +94,8 @@ public class EditarNomeController {
             lblErro.setText(e.getMessage());
             lblErro.setVisible(true);
         } catch (Exception e) {
-            lblErro.setText("Erro ao guardar na base de dados.");
+            LOGGER.error("Erro ao atualizar o nome do utilizador {}.", utilizadorLogado != null ? utilizadorLogado.getId() : null, e);
+            lblErro.setText("Nao foi possivel atualizar o nome. Tenta novamente.");
             lblErro.setVisible(true);
         }
     }

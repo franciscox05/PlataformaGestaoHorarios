@@ -1,44 +1,56 @@
-/* --- FUNDO DA JANELA --- */
 .root {
-    -fx-background-color: #f4f4f4;
+    -fx-background-color: linear-gradient(to bottom, #f7f7f7, #ececec);
     -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
-/* --- TÍTULO PRINCIPAL --- */
 .titulo-levis {
     -fx-font-size: 28px;
     -fx-font-weight: bold;
-    -fx-text-fill: #c41230; /* Vermelho Levi's */
+    -fx-text-fill: #c41230;
 }
 
-/* --- CAIXAS DE TEXTO (Email e Password) --- */
-.text-field, .password-field {
+.subtitulo-autenticacao {
+    -fx-font-size: 13px;
+    -fx-text-fill: #4b5563;
+}
+
+.text-field,
+.password-field {
     -fx-background-color: #ffffff;
-    -fx-border-color: #cccccc;
-    -fx-border-radius: 5px;
-    -fx-background-radius: 5px;
-    -fx-padding: 10px;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 12px;
     -fx-font-size: 14px;
 }
 
-/* Efeito quando clicas para escrever (Focus) */
-.text-field:focused, .password-field:focused {
+.text-field:focused,
+.password-field:focused {
     -fx-border-color: #c41230;
     -fx-border-width: 2px;
 }
 
-/* --- BOTÃO DE LOGIN --- */
 .botao-login {
-    -fx-background-color: #c41230; /* Vermelho Levi's */
+    -fx-background-color: #c41230;
     -fx-text-fill: white;
     -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-background-radius: 5px;
+    -fx-background-radius: 8px;
     -fx-padding: 10px 20px;
     -fx-cursor: hand;
 }
 
-/* Efeito quando passas o rato por cima do botão (Hover) */
 .botao-login:hover {
-    -fx-background-color: #a00f25; /* Vermelho mais escuro */
+    -fx-background-color: #a00f25;
+}
+
+.mensagem-erro-autenticacao {
+    -fx-text-fill: #b42318;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+.mensagem-info-autenticacao {
+    -fx-text-fill: #475467;
+    -fx-font-size: 12px;
 }

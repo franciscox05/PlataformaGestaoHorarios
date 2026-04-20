@@ -30,15 +30,24 @@ public class PerfilBLL {
     private final HorarioRepository horarioRepository;
     private final DayOffRepository dayOffRepository;
     private final UtilizadorRepository utilizadorRepository;
+    private final SegurancaBLL segurancaBLL;
+    private final AuditoriaBLL auditoriaBLL;
+    private final SessaoBLL sessaoBLL;
 
     public PerfilBLL(LojautilizadorRepository lojautilizadorRepository,
                      HorarioRepository horarioRepository,
                      DayOffRepository dayOffRepository,
-                     UtilizadorRepository utilizadorRepository) {
+                     UtilizadorRepository utilizadorRepository,
+                     SegurancaBLL segurancaBLL,
+                     AuditoriaBLL auditoriaBLL,
+                     SessaoBLL sessaoBLL) {
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.horarioRepository = horarioRepository;
         this.dayOffRepository = dayOffRepository;
         this.utilizadorRepository = utilizadorRepository;
+        this.segurancaBLL = segurancaBLL;
+        this.auditoriaBLL = auditoriaBLL;
+        this.sessaoBLL = sessaoBLL;
     }
 
     @Transactional(readOnly = true)
@@ -184,24 +193,24 @@ public class PerfilBLL {
             throw new IllegalArgumentException("Por favor, preenche todos os campos.");
         }
 
-        if (!passwordAtualNormalizada.equals(utilizador.getPasswordHash())) {
+        if (!segurancaBLL.passwordCorresponde(passwordAtualNormalizada, utilizador.getPasswordHash())) {
             throw new IllegalArgumentException("A password atual esta incorreta.");
         }
 
-        if (novaPasswordNormalizada.length() < 6) {
-            throw new IllegalArgumentException("A nova password deve ter pelo menos 6 caracteres.");
-        }
+        segurancaBLL.validarPasswordNova(novaPasswordNormalizada);
 
         if (!novaPasswordNormalizada.equals(confirmarPasswordNormalizada)) {
             throw new IllegalArgumentException("As novas passwords nao coincidem.");
         }
 
-        if (novaPasswordNormalizada.equals(passwordAtualNormalizada)) {
+        if (segurancaBLL.passwordCorresponde(novaPasswordNormalizada, utilizador.getPasswordHash())) {
             throw new IllegalArgumentException("A nova password tem de ser diferente da atual.");
         }
 
-        utilizador.setPasswordHash(novaPasswordNormalizada);
-        return utilizadorRepository.save(utilizador);
+        utilizador.setPasswordHash(segurancaBLL.gerarHash(novaPasswordNormalizada));
+        Utilizador utilizadorAtualizado = utilizadorRepository.save(utilizador);
+        auditoriaBLL.registarAlteracaoPassword(utilizadorAtualizado, sessaoBLL.obterIdentificadorSessao());
+        return utilizadorAtualizado;
     }
 
     private long calcularDuracaoEmMinutos(Turno turno) {

@@ -29,13 +29,22 @@ public class GestaoFuncionariosBLL {
     private final LojautilizadorRepository lojautilizadorRepository;
     private final UtilizadorRepository utilizadorRepository;
     private final CargoRepository cargoRepository;
+    private final SegurancaBLL segurancaBLL;
+    private final AuditoriaBLL auditoriaBLL;
+    private final SessaoBLL sessaoBLL;
 
     public GestaoFuncionariosBLL(LojautilizadorRepository lojautilizadorRepository,
                                  UtilizadorRepository utilizadorRepository,
-                                 CargoRepository cargoRepository) {
+                                 CargoRepository cargoRepository,
+                                 SegurancaBLL segurancaBLL,
+                                 AuditoriaBLL auditoriaBLL,
+                                 SessaoBLL sessaoBLL) {
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.utilizadorRepository = utilizadorRepository;
         this.cargoRepository = cargoRepository;
+        this.segurancaBLL = segurancaBLL;
+        this.auditoriaBLL = auditoriaBLL;
+        this.sessaoBLL = sessaoBLL;
     }
 
     @Transactional(readOnly = true)
@@ -88,14 +97,23 @@ public class GestaoFuncionariosBLL {
         String nome = normalizarNome(request.nome());
         String email = normalizarEmail(request.email());
         String telemovel = normalizarTelemovel(request.telemovel());
-        String password = normalizarPassword(request.password());
         String estado = normalizarEstado(request.estado());
 
         if (request.idUtilizador() == null) {
-            return criarColaborador(ligacaoGestor.getIdLoja(), cargoSelecionado, nome, email, telemovel, password, estado);
+            String password = segurancaBLL.prepararPasswordParaPersistencia(request.password(), true);
+            Integer idCriado = criarColaborador(ligacaoGestor.getIdLoja(), cargoSelecionado, nome, email, telemovel, password, estado);
+            auditoriaBLL.registarEventoSensivel(
+                    "colaborador_criado",
+                    ligacaoGestor.getIdUtilizador(),
+                    sessaoBLL.obterIdentificadorSessao(),
+                    "gestao_funcionarios",
+                    "Colaborador " + email + " criado na loja " + valorOuTraco(ligacaoGestor.getIdLoja().getNome()) + "."
+            );
+            return idCriado;
         }
 
-        return atualizarColaborador(
+        String password = segurancaBLL.prepararPasswordParaPersistencia(request.password(), false);
+        Integer idAtualizado = atualizarColaborador(
                 ligacaoGestor,
                 request.idUtilizador(),
                 cargoSelecionado,
@@ -105,6 +123,14 @@ public class GestaoFuncionariosBLL {
                 password,
                 estado
         );
+        auditoriaBLL.registarEventoSensivel(
+                "colaborador_atualizado",
+                ligacaoGestor.getIdUtilizador(),
+                sessaoBLL.obterIdentificadorSessao(),
+                "gestao_funcionarios",
+                "Colaborador " + email + " atualizado na loja " + valorOuTraco(ligacaoGestor.getIdLoja().getNome()) + "."
+        );
+        return idAtualizado;
     }
 
     @Transactional
@@ -128,6 +154,13 @@ public class GestaoFuncionariosBLL {
 
         desativarLigacaoDaLoja(ligacaoGestor.getIdLoja(), colaborador, ligacaoAtiva);
         utilizadorRepository.save(colaborador);
+        auditoriaBLL.registarEventoSensivel(
+                "colaborador_desativado",
+                ligacaoGestor.getIdUtilizador(),
+                sessaoBLL.obterIdentificadorSessao(),
+                "gestao_funcionarios",
+                "Colaborador " + valorOuTraco(colaborador.getEmail()) + " desativado na loja " + valorOuTraco(ligacaoGestor.getIdLoja().getNome()) + "."
+        );
     }
 
     private Integer criarColaborador(Loja loja,
@@ -458,16 +491,6 @@ public class GestaoFuncionariosBLL {
         }
 
         return telemovelNormalizado;
-    }
-
-    private String normalizarPassword(String password) {
-        String passwordNormalizada = normalizarTexto(password);
-
-        if (passwordNormalizada != null && passwordNormalizada.length() < 6) {
-            throw new IllegalArgumentException("A password deve ter pelo menos 6 caracteres.");
-        }
-
-        return passwordNormalizada;
     }
 
     private String normalizarEstado(String estado) {
