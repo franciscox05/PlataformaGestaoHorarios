@@ -46,6 +46,7 @@ import java.util.Set;
 public class GeracaoHorariosBLL {
 
     private static final Set<String> CARGOS_COM_GERACAO = Set.of("gerente", "subgerente");
+    private static final Set<String> CARGOS_COM_VALIDACAO = Set.of("supervisor");
     private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final LojautilizadorRepository lojautilizadorRepository;
@@ -86,8 +87,15 @@ public class GeracaoHorariosBLL {
     }
 
     @Transactional(readOnly = true)
+    public boolean utilizadorPodeValidarHorarios(Integer idUtilizador) {
+        return obterLigacaoAtiva(idUtilizador)
+                .map(this::temPermissaoDeValidacao)
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
     public GeracaoContexto obterContexto(Integer idUtilizador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComAcessoAoPainel(idUtilizador);
         LocalDate hoje = LocalDate.now();
 
         return new GeracaoContexto(
@@ -96,6 +104,8 @@ public class GeracaoHorariosBLL {
                 valorOuTraco(ligacaoAtiva.getIdLoja().getLocalizacao()),
                 hoje.getYear(),
                 hoje.getMonthValue(),
+                temPermissaoDeGeracao(ligacaoAtiva),
+                temPermissaoDeValidacao(ligacaoAtiva),
                 propostaHorarioMensalRepository.findFirstByIdLojaIdAndAnoAndMesOrderByDataGeracaoDesc(
                         ligacaoAtiva.getIdLoja().getId(),
                         hoje.getYear(),
@@ -106,7 +116,7 @@ public class GeracaoHorariosBLL {
 
     @Transactional(readOnly = true)
     public PropostaResultado obterProposta(Integer idUtilizador, Integer ano, Integer mes) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComAcessoAoPainel(idUtilizador);
         int anoNormalizado = normalizarAno(ano);
         int mesNormalizado = normalizarMes(mes);
 
@@ -122,6 +132,16 @@ public class GeracaoHorariosBLL {
         }
 
         return construirResultado(proposta.get(), horarioRepository.findByIdPropostaHorarioId(proposta.get().getId()));
+    }
+
+    @Transactional
+    public PropostaResultado aprovarProposta(Integer idUtilizador, Integer idProposta, String observacoesSupervisor) {
+        return decidirProposta(idUtilizador, idProposta, "aprovado", observacoesSupervisor);
+    }
+
+    @Transactional
+    public PropostaResultado rejeitarProposta(Integer idUtilizador, Integer idProposta, String observacoesSupervisor) {
+        return decidirProposta(idUtilizador, idProposta, "rejeitado", observacoesSupervisor);
     }
 
     @Transactional
@@ -200,6 +220,50 @@ public class GeracaoHorariosBLL {
         historicoHorarioEstadoRepository.saveAll(historicos);
 
         return construirResultado(proposta, horariosPersistidos);
+    }
+
+    private PropostaResultado decidirProposta(Integer idUtilizador,
+                                              Integer idProposta,
+                                              String novoEstado,
+                                              String observacoesSupervisor) {
+        if (idProposta == null) {
+            throw new IllegalArgumentException("Seleciona uma proposta antes de tomar uma decisao.");
+        }
+
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissaoDeValidacao(idUtilizador);
+        PropostaHorarioMensal proposta = propostaHorarioMensalRepository.findByIdAndIdLojaId(
+                        idProposta,
+                        ligacaoAtiva.getIdLoja().getId()
+                )
+                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada nenhuma proposta para a tua loja com esse identificador."));
+
+        if (!"pendente".equals(normalizarTexto(proposta.getEstado()))) {
+            throw new IllegalArgumentException("Esta proposta ja foi decidida e nao pode voltar a ser alterada.");
+        }
+
+        proposta.setEstado(novoEstado);
+        proposta.setIdUtilizadorDecisao(ligacaoAtiva.getIdUtilizador());
+        proposta.setDataDecisao(LocalDateTime.now());
+        proposta.setObservacoesSupervisor(limparTexto(observacoesSupervisor));
+        proposta = propostaHorarioMensalRepository.save(proposta);
+
+        List<Horario> horarios = horarioRepository.findByIdPropostaHorarioId(proposta.getId());
+        List<HistoricoHorarioEstado> historicos = new ArrayList<>();
+        for (Horario horario : horarios) {
+            horario.setEstado(novoEstado);
+
+            HistoricoHorarioEstado historico = new HistoricoHorarioEstado();
+            historico.setIdHorario(horario);
+            historico.setEstadoNovo(novoEstado);
+            historico.setDataRegisto(Instant.now());
+            historico.setObservacoes(criarObservacaoHistoricoDecisao(proposta, novoEstado));
+            historicos.add(historico);
+        }
+
+        horarioRepository.saveAll(horarios);
+        historicoHorarioEstadoRepository.saveAll(historicos);
+
+        return construirResultado(proposta, horarios);
     }
 
     private PlaneamentoGerado gerarPlaneamento(List<Lojautilizador> colaboradoresAtivos,
@@ -544,10 +608,7 @@ public class GeracaoHorariosBLL {
 
         if (propostaExistente.isPresent()) {
             String estado = normalizarTexto(propostaExistente.get().getEstado());
-            if ("rejeitado".equals(estado)) {
-                horarioRepository.deleteByIdPropostaHorarioId(propostaExistente.get().getId());
-                propostaHorarioMensalRepository.delete(propostaExistente.get());
-            } else {
+            if (!"rejeitado".equals(estado)) {
                 throw new IllegalArgumentException("Ja existe uma proposta mensal para o periodo selecionado.");
             }
         }
@@ -571,6 +632,15 @@ public class GeracaoHorariosBLL {
                 + "h. Maximo consecutivo: "
                 + parametros.maxDiasConsecutivos()
                 + " dias.";
+    }
+
+    private String criarObservacaoHistoricoDecisao(PropostaHorarioMensal proposta, String novoEstado) {
+        String acao = "aprovado".equals(normalizarTexto(novoEstado)) ? "aprovado" : "rejeitado";
+        String observacoes = limparTexto(proposta.getObservacoesSupervisor());
+        if (observacoes == null) {
+            return "Horario " + acao + " pelo supervisor.";
+        }
+        return "Horario " + acao + " pelo supervisor. Observacoes: " + observacoes;
     }
 
     private PropostaResultado construirResultado(PropostaHorarioMensal proposta, List<Horario> horarios) {
@@ -630,6 +700,10 @@ public class GeracaoHorariosBLL {
                 proposta.getResumoGeracao(),
                 valorOuTraco(proposta.getIdUtilizadorGeracao().getNome()),
                 proposta.getDataGeracao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataGeracao()) : "-",
+                proposta.getIdUtilizadorDecisao() != null ? valorOuTraco(proposta.getIdUtilizadorDecisao().getNome()) : "-",
+                proposta.getDataDecisao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataDecisao()) : "-",
+                valorOuTraco(proposta.getObservacoesSupervisor()),
+                "pendente".equals(normalizarTexto(proposta.getEstado())),
                 linhas,
                 resumoColaboradores,
                 new ResumoGeral(
@@ -676,9 +750,34 @@ public class GeracaoHorariosBLL {
         return ligacaoAtiva;
     }
 
+    private Lojautilizador obterLigacaoAtivaComAcessoAoPainel(Integer idUtilizador) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizador)
+                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para o utilizador autenticado."));
+
+        if (!temPermissaoDeGeracao(ligacaoAtiva) && !temPermissaoDeValidacao(ligacaoAtiva)) {
+            throw new IllegalArgumentException("Nao tens permissao para consultar o painel de horarios da loja.");
+        }
+        return ligacaoAtiva;
+    }
+
+    private Lojautilizador obterLigacaoAtivaComPermissaoDeValidacao(Integer idUtilizador) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizador)
+                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para o utilizador autenticado."));
+
+        if (!temPermissaoDeValidacao(ligacaoAtiva)) {
+            throw new IllegalArgumentException("Nao tens permissao para validar a proposta mensal.");
+        }
+        return ligacaoAtiva;
+    }
+
     private boolean temPermissaoDeGeracao(Lojautilizador ligacaoAtiva) {
         String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
         return tipoCargo != null && CARGOS_COM_GERACAO.contains(normalizarTexto(tipoCargo));
+    }
+
+    private boolean temPermissaoDeValidacao(Lojautilizador ligacaoAtiva) {
+        String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
+        return tipoCargo != null && CARGOS_COM_VALIDACAO.contains(normalizarTexto(tipoCargo));
     }
 
     private int normalizarAno(Integer ano) {
@@ -817,12 +916,23 @@ public class GeracaoHorariosBLL {
         return semAcentos.toLowerCase(Locale.ROOT).trim();
     }
 
+    private String limparTexto(String texto) {
+        if (texto == null) {
+            return null;
+        }
+
+        String textoLimpo = texto.trim();
+        return textoLimpo.isEmpty() ? null : textoLimpo;
+    }
+
     public record GeracaoContexto(
             Integer idLoja,
             String nomeLoja,
             String localizacao,
             Integer anoAtual,
             Integer mesAtual,
+            boolean podeGerar,
+            boolean podeValidar,
             boolean existePropostaAtual
     ) {
     }
@@ -837,6 +947,10 @@ public class GeracaoHorariosBLL {
             String resumoGeracao,
             String geradoPor,
             String dataGeracao,
+            String decididoPor,
+            String dataDecisao,
+            String observacoesSupervisor,
+            boolean podeSerDecidida,
             List<HorarioLinha> linhas,
             List<ResumoColaborador> resumoColaboradores,
             ResumoGeral resumo

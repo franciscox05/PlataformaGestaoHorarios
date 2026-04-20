@@ -8,6 +8,7 @@
 <?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -20,8 +21,8 @@
             </padding>
 
             <children>
-                <Label styleClass="titulo-dashboard" text="Geracao de Horarios" />
-                <Label styleClass="subtitulo" text="Gera a proposta mensal da tua loja com base nas regras configuradas, na equipa ativa e nas ausencias ou preferencias ja aprovadas." wrapText="true" />
+                <Label styleClass="titulo-dashboard" text="Horarios da Loja" />
+                <Label styleClass="subtitulo" text="Gera, consulta e valida a proposta mensal da tua loja com base nas regras configuradas, na equipa ativa e nas ausencias ou preferencias ja aprovadas." wrapText="true" />
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
@@ -102,6 +103,31 @@
                                         <Label fx:id="lblDataGeracao" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="meta-etiqueta" text="Decidido por" />
+                                        <Label fx:id="lblDecididoPor" styleClass="meta-valor" text="-" />
+                                    </children>
+                                </VBox>
+                            </children>
+                        </HBox>
+
+                        <HBox spacing="20.0">
+                            <children>
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="meta-etiqueta" text="Data da decisao" />
+                                        <Label fx:id="lblDataDecisao" styleClass="meta-valor" text="-" />
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="meta-etiqueta" text="Observacoes do supervisor" />
+                                        <Label fx:id="lblObservacoesSupervisor" styleClass="meta-valor" text="-" wrapText="true" />
+                                    </children>
+                                </VBox>
                             </children>
                         </HBox>
 
@@ -138,6 +164,29 @@
                         </VBox>
                     </children>
                 </HBox>
+
+                <VBox fx:id="painelValidacaoSupervisor" spacing="14.0" styleClass="info-card">
+                    <children>
+                        <Label styleClass="card-titulo" text="Validacao do Supervisor" />
+                        <Label styleClass="subtitulo" text="Revê a proposta mensal selecionada e decide se os horarios devem ser publicados ou rejeitados." wrapText="true" />
+
+                        <VBox spacing="6.0">
+                            <children>
+                                <Label styleClass="campo-titulo" text="Observacoes da decisao" />
+                                <TextArea fx:id="txtObservacoesSupervisor" prefRowCount="3" promptText="Opcional: acrescenta observacoes para o historico da decisao." styleClass="campo-textarea" wrapText="true" />
+                            </children>
+                        </VBox>
+
+                        <Label fx:id="lblFeedbackValidacao" managed="false" visible="false" wrapText="true" />
+
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                            <children>
+                                <Button fx:id="btnRejeitarProposta" onAction="#onRejeitarPropostaClick" styleClass="botao-secundario" text="Rejeitar Proposta" />
+                                <Button fx:id="btnAprovarProposta" onAction="#onAprovarPropostaClick" styleClass="botao-acao" text="Aprovar e Publicar" />
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
 
                 <Label styleClass="subtitulo" text="Distribuicao por colaborador" />
 

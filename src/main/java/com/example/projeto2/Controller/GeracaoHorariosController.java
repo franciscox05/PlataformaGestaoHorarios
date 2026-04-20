@@ -12,6 +12,8 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.layout.VBox;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -43,6 +45,21 @@ public class GeracaoHorariosController {
     private Label lblFeedback;
 
     @FXML
+    private VBox painelValidacaoSupervisor;
+
+    @FXML
+    private TextArea txtObservacoesSupervisor;
+
+    @FXML
+    private Button btnAprovarProposta;
+
+    @FXML
+    private Button btnRejeitarProposta;
+
+    @FXML
+    private Label lblFeedbackValidacao;
+
+    @FXML
     private Label lblEstadoProposta;
 
     @FXML
@@ -50,6 +67,15 @@ public class GeracaoHorariosController {
 
     @FXML
     private Label lblDataGeracao;
+
+    @FXML
+    private Label lblDecididoPor;
+
+    @FXML
+    private Label lblDataDecisao;
+
+    @FXML
+    private Label lblObservacoesSupervisor;
 
     @FXML
     private Label lblResumoGeracao;
@@ -105,6 +131,9 @@ public class GeracaoHorariosController {
     private final GeracaoHorariosBLL geracaoHorariosBLL;
 
     private Utilizador utilizadorLogado;
+    private GeracaoHorariosBLL.PropostaResultado propostaAtual;
+    private boolean podeGerar;
+    private boolean podeValidar;
 
     public GeracaoHorariosController(GeracaoHorariosBLL geracaoHorariosBLL) {
         this.geracaoHorariosBLL = geracaoHorariosBLL;
@@ -116,6 +145,9 @@ public class GeracaoHorariosController {
         configurarTabelas();
         limparResultado();
         esconderFeedback();
+        esconderFeedbackValidacao();
+        painelValidacaoSupervisor.setManaged(false);
+        painelValidacaoSupervisor.setVisible(false);
 
         tabelaResumoColaboradores.setPlaceholder(new Label("Ainda nao existe proposta gerada para apresentar o resumo da equipa."));
         tabelaHorariosGerados.setPlaceholder(new Label("Ainda nao existe proposta gerada para o periodo selecionado."));
@@ -146,12 +178,23 @@ public class GeracaoHorariosController {
             );
 
             preencherResultado(resultado);
+            esconderFeedbackValidacao();
             mostrarSucesso("Proposta mensal gerada com sucesso.");
         } catch (IllegalArgumentException e) {
             mostrarErro(e.getMessage());
         } catch (Exception e) {
             mostrarErro("Nao foi possivel gerar a proposta mensal.");
         }
+    }
+
+    @FXML
+    public void onAprovarPropostaClick() {
+        decidirProposta(true);
+    }
+
+    @FXML
+    public void onRejeitarPropostaClick() {
+        decidirProposta(false);
     }
 
     private void configurarFiltros() {
@@ -220,10 +263,14 @@ public class GeracaoHorariosController {
             }
 
             GeracaoHorariosBLL.GeracaoContexto contexto = geracaoHorariosBLL.obterContexto(utilizadorLogado.getId());
+            podeGerar = contexto.podeGerar();
+            podeValidar = contexto.podeValidar();
+
             lblLoja.setText(contexto.nomeLoja());
             lblLocalizacao.setText(contexto.localizacao());
             spAno.getValueFactory().setValue(contexto.anoAtual());
             selecionarMes(contexto.mesAtual());
+            configurarPermissoesEcra();
             carregarPropostaSelecionada();
         } catch (IllegalArgumentException e) {
             bloquearEcraSemPermissao(e.getMessage());
@@ -262,6 +309,42 @@ public class GeracaoHorariosController {
         }
     }
 
+    private void decidirProposta(boolean aprovar) {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+            }
+
+            if (propostaAtual == null || propostaAtual.idProposta() == null) {
+                throw new IllegalArgumentException("Seleciona primeiro uma proposta para validar.");
+            }
+
+            GeracaoHorariosBLL.PropostaResultado resultado = aprovar
+                    ? geracaoHorariosBLL.aprovarProposta(
+                    utilizadorLogado.getId(),
+                    propostaAtual.idProposta(),
+                    txtObservacoesSupervisor.getText()
+            )
+                    : geracaoHorariosBLL.rejeitarProposta(
+                    utilizadorLogado.getId(),
+                    propostaAtual.idProposta(),
+                    txtObservacoesSupervisor.getText()
+            );
+
+            preencherResultado(resultado);
+            mostrarFeedbackValidacao(
+                    aprovar
+                            ? "Proposta aprovada e horarios publicados com sucesso."
+                            : "Proposta rejeitada com sucesso.",
+                    true
+            );
+        } catch (IllegalArgumentException e) {
+            mostrarFeedbackValidacao(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarFeedbackValidacao("Nao foi possivel atualizar a decisao da proposta.", false);
+        }
+    }
+
     private MesOption obterMesSelecionado() {
         MesOption mesSelecionado = cbMes.getValue();
         if (mesSelecionado == null) {
@@ -278,9 +361,13 @@ public class GeracaoHorariosController {
     }
 
     private void preencherResultado(GeracaoHorariosBLL.PropostaResultado resultado) {
+        propostaAtual = resultado;
         lblEstadoProposta.setText(resultado.estado());
         lblGeradoPor.setText(resultado.geradoPor());
         lblDataGeracao.setText(resultado.dataGeracao());
+        lblDecididoPor.setText(resultado.decididoPor());
+        lblDataDecisao.setText(resultado.dataDecisao());
+        lblObservacoesSupervisor.setText(resultado.observacoesSupervisor());
         lblResumoGeracao.setText(resultado.resumoGeracao() != null ? resultado.resumoGeracao() : "-");
 
         lblTotalColaboradores.setText(String.valueOf(resultado.resumo().colaboradores()));
@@ -289,13 +376,19 @@ public class GeracaoHorariosController {
 
         tabelaResumoColaboradores.setItems(FXCollections.observableArrayList(resultado.resumoColaboradores()));
         tabelaHorariosGerados.setItems(FXCollections.observableArrayList(resultado.linhas()));
+        atualizarPainelValidacao();
     }
 
     private void limparResultado() {
+        propostaAtual = null;
         lblEstadoProposta.setText("-");
         lblGeradoPor.setText("-");
         lblDataGeracao.setText("-");
+        lblDecididoPor.setText("-");
+        lblDataDecisao.setText("-");
+        lblObservacoesSupervisor.setText("-");
         lblResumoGeracao.setText("Ainda nao existe uma proposta carregada.");
+        txtObservacoesSupervisor.clear();
 
         lblTotalColaboradores.setText("0");
         lblTotalTurnos.setText("0");
@@ -303,6 +396,7 @@ public class GeracaoHorariosController {
 
         tabelaResumoColaboradores.setItems(FXCollections.observableArrayList());
         tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
+        atualizarPainelValidacao();
     }
 
     private void bloquearEcraSemPermissao(String mensagem) {
@@ -314,7 +408,35 @@ public class GeracaoHorariosController {
         spAno.setDisable(true);
         btnVerProposta.setDisable(true);
         btnGerarProposta.setDisable(true);
+        painelValidacaoSupervisor.setManaged(false);
+        painelValidacaoSupervisor.setVisible(false);
         mostrarErro(mensagem);
+    }
+
+    private void configurarPermissoesEcra() {
+        btnGerarProposta.setManaged(podeGerar);
+        btnGerarProposta.setVisible(podeGerar);
+
+        painelValidacaoSupervisor.setManaged(podeValidar);
+        painelValidacaoSupervisor.setVisible(podeValidar);
+        atualizarPainelValidacao();
+    }
+
+    private void atualizarPainelValidacao() {
+        if (!podeValidar) {
+            return;
+        }
+
+        boolean podeDecidirAgora = propostaAtual != null && propostaAtual.podeSerDecidida();
+        btnAprovarProposta.setDisable(!podeDecidirAgora);
+        btnRejeitarProposta.setDisable(!podeDecidirAgora);
+        txtObservacoesSupervisor.setDisable(!podeDecidirAgora);
+
+        if (podeDecidirAgora) {
+            esconderFeedbackValidacao();
+        } else if (propostaAtual == null) {
+            txtObservacoesSupervisor.clear();
+        }
     }
 
     private void mostrarSucesso(String mensagem) {
@@ -344,6 +466,21 @@ public class GeracaoHorariosController {
         lblFeedback.setVisible(false);
         lblFeedback.setManaged(false);
         lblFeedback.setText("");
+    }
+
+    private void mostrarFeedbackValidacao(String mensagem, boolean sucesso) {
+        lblFeedbackValidacao.setText(mensagem);
+        lblFeedbackValidacao.getStyleClass().removeAll("mensagem-feedback", "mensagem-sucesso", "mensagem-erro");
+        lblFeedbackValidacao.getStyleClass().add("mensagem-feedback");
+        lblFeedbackValidacao.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
+        lblFeedbackValidacao.setVisible(true);
+        lblFeedbackValidacao.setManaged(true);
+    }
+
+    private void esconderFeedbackValidacao() {
+        lblFeedbackValidacao.setVisible(false);
+        lblFeedbackValidacao.setManaged(false);
+        lblFeedbackValidacao.setText("");
     }
 
     private record MesOption(int numero, String nome) {

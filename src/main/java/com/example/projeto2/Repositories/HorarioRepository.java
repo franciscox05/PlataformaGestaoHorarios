@@ -15,8 +15,9 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH lu.idUtilizador u " +
             "JOIN FETCH lu.idLoja l " +
             "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE u.id = :idUtilizador " +
-            "AND (h.idPropostaHorario IS NULL OR LOWER(CAST(h.estado AS string)) <> 'pendente') " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
             "ORDER BY h.dataTurno ASC, t.horaInicio ASC")
     List<Horario> findTurnosPorUtilizador(@Param("idUtilizador") Integer idUtilizador);
 
@@ -25,8 +26,9 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH lu.idUtilizador u " +
             "JOIN FETCH lu.idLoja l " +
             "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE u.id = :idUtilizador AND h.dataTurno >= CURRENT_DATE " +
-            "AND (h.idPropostaHorario IS NULL OR LOWER(CAST(h.estado AS string)) <> 'pendente') " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
             "ORDER BY h.dataTurno ASC, t.horaInicio ASC")
     List<Horario> findProximosTurnosPorUtilizador(@Param("idUtilizador") Integer idUtilizador);
 
@@ -35,9 +37,10 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH lu.idUtilizador u " +
             "JOIN FETCH lu.idLoja l " +
             "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE u.id = :idUtilizador " +
             "AND h.dataTurno >= CURRENT_DATE " +
-            "AND (h.idPropostaHorario IS NULL OR LOWER(CAST(h.estado AS string)) <> 'pendente') " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
             "AND NOT EXISTS (" +
             "    SELECT 1 FROM Permuta p " +
             "    WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
@@ -50,8 +53,9 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH h.idLojautilizador lu " +
             "JOIN FETCH lu.idUtilizador u " +
             "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE u.id != :meuId AND h.dataTurno >= CURRENT_DATE " +
-            "AND (h.idPropostaHorario IS NULL OR LOWER(CAST(h.estado AS string)) <> 'pendente') " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
             "ORDER BY h.dataTurno ASC")
     List<Horario> findTurnosDosColegas(@Param("meuId") Integer meuId);
 
@@ -60,8 +64,9 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH lu.idUtilizador u " +
             "JOIN FETCH lu.idLoja l " +
             "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE u.id <> :idUtilizador " +
-            "AND (h.idPropostaHorario IS NULL OR LOWER(CAST(h.estado AS string)) <> 'pendente') " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
             "AND h.dataTurno = (" +
             "    SELECT origem.dataTurno FROM Horario origem " +
             "    WHERE origem.id = :idHorarioOrigem" +
@@ -84,8 +89,9 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH lu.idUtilizador u " +
             "JOIN FETCH lu.idLoja l " +
             "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE h.dataTurno = CURRENT_DATE " +
-            "AND (h.idPropostaHorario IS NULL OR LOWER(CAST(h.estado AS string)) <> 'pendente') " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
             "AND l.id = (" +
             "    SELECT luAtivo.idLoja.id FROM Lojautilizador luAtivo " +
             "    WHERE luAtivo.idUtilizador.id = :idUtilizador " +
@@ -100,9 +106,10 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH lu.idCargo c " +
             "JOIN FETCH lu.idLoja l " +
             "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE l.id = :idLoja " +
             "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
-            "AND (h.idPropostaHorario IS NULL OR LOWER(CAST(h.estado AS string)) <> 'pendente') " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
             "AND lu.dataFim IS NULL " +
             "ORDER BY u.nome ASC, h.dataTurno ASC, t.horaInicio ASC")
     List<Horario> findHorariosDaLojaEntreDatas(@Param("idLoja") Integer idLoja,
@@ -121,9 +128,10 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
 
     @Query("SELECT COUNT(h) FROM Horario h " +
             "JOIN h.idLojautilizador lu " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE lu.idLoja.id = :idLoja " +
             "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
-            "AND (h.idPropostaHorario IS NULL OR LOWER(CAST(h.estado AS string)) <> 'pendente')")
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado')")
     long countHorariosVisiveisDaLojaEntreDatas(@Param("idLoja") Integer idLoja,
                                                @Param("dataInicio") LocalDate dataInicio,
                                                @Param("dataFim") LocalDate dataFim);
