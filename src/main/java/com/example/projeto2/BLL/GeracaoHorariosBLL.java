@@ -2,7 +2,9 @@ package com.example.projeto2.BLL;
 
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.HistoricoHorarioEstado;
+import com.example.projeto2.Modules.HorarioEspecialLoja;
 import com.example.projeto2.Modules.Horario;
+import com.example.projeto2.Modules.Loja;
 import com.example.projeto2.Modules.Lojautilizador;
 import com.example.projeto2.Modules.Preferencia;
 import com.example.projeto2.Modules.PropostaHorarioMensal;
@@ -10,6 +12,7 @@ import com.example.projeto2.Modules.Regra;
 import com.example.projeto2.Modules.RegrasLoja;
 import com.example.projeto2.Modules.Turno;
 import com.example.projeto2.Repositories.DayOffRepository;
+import com.example.projeto2.Repositories.HorarioEspecialLojaRepository;
 import com.example.projeto2.Repositories.HistoricoHorarioEstadoRepository;
 import com.example.projeto2.Repositories.HorarioRepository;
 import com.example.projeto2.Repositories.LojautilizadorRepository;
@@ -54,6 +57,7 @@ public class GeracaoHorariosBLL {
     private final DayOffRepository dayOffRepository;
     private final PreferenciaRepository preferenciaRepository;
     private final PropostaHorarioMensalRepository propostaHorarioMensalRepository;
+    private final HorarioEspecialLojaRepository horarioEspecialLojaRepository;
     private final RegrasLojaRepository regrasLojaRepository;
     private final RegraRepository regraRepository;
     private final TurnoRepository turnoRepository;
@@ -64,6 +68,7 @@ public class GeracaoHorariosBLL {
                               DayOffRepository dayOffRepository,
                               PreferenciaRepository preferenciaRepository,
                               PropostaHorarioMensalRepository propostaHorarioMensalRepository,
+                              HorarioEspecialLojaRepository horarioEspecialLojaRepository,
                               RegrasLojaRepository regrasLojaRepository,
                               RegraRepository regraRepository,
                               TurnoRepository turnoRepository,
@@ -73,6 +78,7 @@ public class GeracaoHorariosBLL {
         this.dayOffRepository = dayOffRepository;
         this.preferenciaRepository = preferenciaRepository;
         this.propostaHorarioMensalRepository = propostaHorarioMensalRepository;
+        this.horarioEspecialLojaRepository = horarioEspecialLojaRepository;
         this.regrasLojaRepository = regrasLojaRepository;
         this.regraRepository = regraRepository;
         this.turnoRepository = turnoRepository;
@@ -147,12 +153,13 @@ public class GeracaoHorariosBLL {
     @Transactional
     public PropostaResultado gerarProposta(Integer idUtilizador, Integer ano, Integer mes) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Loja loja = ligacaoAtiva.getIdLoja();
         int anoNormalizado = normalizarAno(ano);
         int mesNormalizado = normalizarMes(mes);
 
         LocalDate dataInicio = LocalDate.of(anoNormalizado, mesNormalizado, 1);
         LocalDate dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
-        Integer idLoja = ligacaoAtiva.getIdLoja().getId();
+        Integer idLoja = loja.getId();
 
         validarEstadoAtualDaLoja(idLoja, anoNormalizado, mesNormalizado, dataInicio, dataFim);
 
@@ -171,6 +178,7 @@ public class GeracaoHorariosBLL {
 
         List<DayOff> dayOffsAprovados = dayOffRepository.findPedidosAprovadosDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<Preferencia> preferenciasAprovadas = preferenciaRepository.findPreferenciasAprovadasDaLojaEntreDatas(idLoja, dataInicio, dataFim);
+        List<HorarioEspecialLoja> horariosEspeciais = horarioEspecialLojaRepository.findAtivosNoPeriodo(idLoja, dataInicio, dataFim);
 
         Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador = construirBloqueiosPorUtilizador(
                 dataInicio,
@@ -180,6 +188,11 @@ public class GeracaoHorariosBLL {
         );
         Map<Integer, List<Preferencia>> preferenciasTurnos = agruparPreferenciasPorTipo(preferenciasAprovadas, "turnos");
         Map<Integer, List<Preferencia>> preferenciasColegas = agruparPreferenciasPorTipo(preferenciasAprovadas, "colegas");
+        Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData = construirConfiguracoesEspeciaisPorData(
+                loja,
+                turnos,
+                horariosEspeciais
+        );
 
         PlaneamentoGerado planeamento = gerarPlaneamento(
                 colaboradoresAtivos,
@@ -188,6 +201,7 @@ public class GeracaoHorariosBLL {
                 bloqueiosPorUtilizador,
                 preferenciasTurnos,
                 preferenciasColegas,
+                configuracoesPorData,
                 dataInicio,
                 dataFim
         );
@@ -272,6 +286,7 @@ public class GeracaoHorariosBLL {
                                                Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
                                                Map<Integer, List<Preferencia>> preferenciasTurnos,
                                                Map<Integer, List<Preferencia>> preferenciasColegas,
+                                               Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData,
                                                LocalDate dataInicio,
                                                LocalDate dataFim) {
         Map<Integer, EstadoColaborador> estadoPorColaborador = new LinkedHashMap<>();
@@ -287,8 +302,28 @@ public class GeracaoHorariosBLL {
 
         for (LocalDate data = dataInicio; !data.isAfter(dataFim); data = data.plusDays(1)) {
             LocalDate dataAtual = data;
-            for (Turno turno : turnos) {
-                Integer minimoNecessario = parametros.minimosPorTurno().get(turno.getId());
+            ConfiguracaoDiaEspecial configuracaoDia = configuracoesPorData.get(dataAtual);
+            if (configuracaoDia != null && configuracaoDia.lojaEncerrada()) {
+                continue;
+            }
+
+            List<Turno> turnosDoDia = configuracaoDia != null
+                    ? configuracaoDia.turnosCompativeis()
+                    : turnos;
+            if (turnosDoDia.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Nao existem turnos base compativeis com a excecao \""
+                                + configuracaoDia.descricao()
+                                + "\" em "
+                                + dataAtual
+                                + "."
+                );
+            }
+
+            for (Turno turno : turnosDoDia) {
+                Integer minimoNecessario = configuracaoDia != null && configuracaoDia.minimoColaboradoresTurno() != null
+                        ? configuracaoDia.minimoColaboradoresTurno()
+                        : parametros.minimosPorTurno().get(turno.getId());
                 if (minimoNecessario == null || minimoNecessario <= 0) {
                     throw new IllegalArgumentException("Foi encontrada uma regra minima invalida para um dos turnos.");
                 }
@@ -461,6 +496,73 @@ public class GeracaoHorariosBLL {
         }
 
         return bloqueios;
+    }
+
+    private Map<LocalDate, ConfiguracaoDiaEspecial> construirConfiguracoesEspeciaisPorData(Loja loja,
+                                                                                            List<Turno> turnosBase,
+                                                                                            List<HorarioEspecialLoja> horariosEspeciais) {
+        Map<LocalDate, ConfiguracaoDiaEspecial> configuracoes = new LinkedHashMap<>();
+        if (loja == null || horariosEspeciais == null || horariosEspeciais.isEmpty()) {
+            return configuracoes;
+        }
+
+        for (HorarioEspecialLoja horarioEspecial : horariosEspeciais) {
+            if (horarioEspecial.getDataInicio() == null || horarioEspecial.getDataFim() == null) {
+                continue;
+            }
+
+            LocalDate dataAtual = horarioEspecial.getDataInicio();
+            while (!dataAtual.isAfter(horarioEspecial.getDataFim())) {
+                configuracoes.put(dataAtual, criarConfiguracaoDiaEspecial(loja, turnosBase, horarioEspecial));
+                dataAtual = dataAtual.plusDays(1);
+            }
+        }
+
+        return configuracoes;
+    }
+
+    private ConfiguracaoDiaEspecial criarConfiguracaoDiaEspecial(Loja loja,
+                                                                 List<Turno> turnosBase,
+                                                                 HorarioEspecialLoja horarioEspecial) {
+        boolean lojaEncerrada = Boolean.TRUE.equals(horarioEspecial.getLojaEncerrada());
+        if (lojaEncerrada) {
+            return new ConfiguracaoDiaEspecial(true, List.of(), null, horarioEspecial.getDescricao());
+        }
+
+        LocalTime horaAbertura = horarioEspecial.getHoraAbertura();
+        LocalTime horaFecho = horarioEspecial.getHoraFecho();
+        List<Turno> turnosCompativeis = (horaAbertura != null && horaFecho != null)
+                ? filtrarTurnosCompativeis(turnosBase, horaAbertura, horaFecho)
+                : turnosBase;
+
+        return new ConfiguracaoDiaEspecial(
+                false,
+                turnosCompativeis,
+                horarioEspecial.getMinimoColaboradoresTurno(),
+                horarioEspecial.getDescricao()
+        );
+    }
+
+    private List<Turno> filtrarTurnosCompativeis(List<Turno> turnosBase, LocalTime horaAbertura, LocalTime horaFecho) {
+        if (turnosBase == null || turnosBase.isEmpty()) {
+            return List.of();
+        }
+        if (horaAbertura == null || horaFecho == null) {
+            return turnosBase;
+        }
+
+        return turnosBase.stream()
+                .filter(turno -> turnoCabeNoHorario(turno, horaAbertura, horaFecho))
+                .toList();
+    }
+
+    private boolean turnoCabeNoHorario(Turno turno, LocalTime horaAbertura, LocalTime horaFecho) {
+        if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null
+                || horaAbertura == null || horaFecho == null) {
+            return false;
+        }
+        return !turno.getHoraInicio().isBefore(horaAbertura)
+                && !turno.getHoraFim().isAfter(horaFecho);
     }
 
     private Map<Integer, List<Preferencia>> agruparPreferenciasPorTipo(List<Preferencia> preferencias, String tipo) {
@@ -982,6 +1084,14 @@ public class GeracaoHorariosBLL {
             int colaboradores,
             int turnos,
             int diasCobertos
+    ) {
+    }
+
+    private record ConfiguracaoDiaEspecial(
+            boolean lojaEncerrada,
+            List<Turno> turnosCompativeis,
+            Integer minimoColaboradoresTurno,
+            String descricao
     ) {
     }
 

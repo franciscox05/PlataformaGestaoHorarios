@@ -32,6 +32,9 @@ public class Loja {
     @OneToMany(mappedBy = "idLoja")
     private Set<RegrasLoja> regrasLojas = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "idLoja")
+    private Set<HorarioEspecialLoja> horariosEspeciais = new LinkedHashSet<>();
+
     public Integer getId() {
         return id;
     }
@@ -88,4 +91,11 @@ public class Loja {
         this.regrasLojas = regrasLojas;
     }
 
+    public Set<HorarioEspecialLoja> getHorariosEspeciais() {
+        return horariosEspeciais;
+    }
+
+    public void setHorariosEspeciais(Set<HorarioEspecialLoja> horariosEspeciais) {
+        this.horariosEspeciais = horariosEspeciais;
+    }
 }

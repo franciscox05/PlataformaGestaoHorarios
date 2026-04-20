@@ -2,8 +2,13 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -18,7 +23,7 @@
 
             <children>
                 <Label styleClass="titulo-dashboard" text="Loja e Regras" />
-                <Label styleClass="subtitulo" text="Atualiza o horario da loja e ajusta as regras especificas que servem de base ao planeamento." wrapText="true" />
+                <Label styleClass="subtitulo" text="Atualiza o horario da loja, ajusta as regras base do planeamento e define excecoes por data para feriados, campanhas ou operacao sazonal." wrapText="true" />
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
@@ -88,6 +93,112 @@
 
                         <Label fx:id="lblMensagem" managed="false" styleClass="mensagem-feedback" text="" visible="false" wrapText="true" />
                         <VBox fx:id="regrasContainer" spacing="14.0" />
+                    </children>
+                </VBox>
+
+                <VBox spacing="14.0" styleClass="info-card">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                            <children>
+                                <Label styleClass="card-titulo" text="Horarios Especiais e Excecoes por Data" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button onAction="#onLimparHorarioEspecialClick" styleClass="botao-secundario" text="Nova Excecao" />
+                                <Button onAction="#onGuardarHorarioEspecialClick" styleClass="botao-acao" text="Guardar Excecao" />
+                            </children>
+                        </HBox>
+
+                        <Label styleClass="subtitulo" text="Cria excecoes especificas para um intervalo de datas. Podes encerrar a loja, reduzir ou alargar o horario do dia e ajustar o minimo por turno." wrapText="true" />
+
+                        <HBox spacing="20.0">
+                            <children>
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Descricao" />
+                                        <TextField fx:id="txtDescricaoExcecao" promptText="Ex.: Feriado local ou campanha de fim de semana" styleClass="campo-input" />
+                                    </children>
+                                </VBox>
+                            </children>
+                        </HBox>
+
+                        <HBox spacing="20.0">
+                            <children>
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Data inicial" />
+                                        <DatePicker fx:id="dpDataInicioExcecao" />
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Data final" />
+                                        <DatePicker fx:id="dpDataFimExcecao" />
+                                    </children>
+                                </VBox>
+
+                                <VBox alignment="BOTTOM_LEFT" spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Modo da excecao" />
+                                        <CheckBox fx:id="chkLojaEncerrada" text="Loja encerrada neste periodo" />
+                                    </children>
+                                </VBox>
+                            </children>
+                        </HBox>
+
+                        <HBox spacing="20.0">
+                            <children>
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Hora de abertura especial" />
+                                        <TextField fx:id="txtHoraAberturaExcecao" promptText="Opcional: HH:mm" styleClass="campo-input" />
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Hora de fecho especial" />
+                                        <TextField fx:id="txtHoraFechoExcecao" promptText="Opcional: HH:mm" styleClass="campo-input" />
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Minimo especial por turno" />
+                                        <TextField fx:id="txtMinimoExcecao" promptText="Opcional: inteiro" styleClass="campo-input" />
+                                    </children>
+                                </VBox>
+                            </children>
+                        </HBox>
+
+                        <VBox spacing="6.0">
+                            <children>
+                                <Label styleClass="campo-titulo" text="Observacoes internas" />
+                                <TextArea fx:id="txtObservacoesExcecao" prefRowCount="3" promptText="Notas para contextualizar a excecao configurada." styleClass="campo-textarea" wrapText="true" />
+                            </children>
+                        </VBox>
+
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                            <children>
+                                <Button onAction="#onRemoverHorarioEspecialClick" styleClass="botao-secundario" text="Remover Selecionada" />
+                                <Label styleClass="subtitulo" text="Seleciona uma linha da tabela para editar ou remover uma excecao existente." wrapText="true" />
+                            </children>
+                        </HBox>
+
+                        <Label fx:id="lblMensagemExcecao" managed="false" styleClass="mensagem-feedback" text="" visible="false" wrapText="true" />
+
+                        <TableView fx:id="tabelaHorariosEspeciais" prefHeight="240.0">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                            <columns>
+                                <TableColumn fx:id="colPeriodoExcecao" prefWidth="140.0" text="Periodo" />
+                                <TableColumn fx:id="colOperacaoExcecao" prefWidth="170.0" text="Operacao" />
+                                <TableColumn fx:id="colHorarioExcecao" prefWidth="170.0" text="Horario Aplicado" />
+                                <TableColumn fx:id="colMinimoExcecao" prefWidth="120.0" text="Minimo" />
+                                <TableColumn fx:id="colDescricaoExcecao" prefWidth="190.0" text="Descricao" />
+                                <TableColumn fx:id="colTurnosCompativeisExcecao" prefWidth="230.0" text="Turnos Compativeis" />
+                            </columns>
+                        </TableView>
                     </children>
                 </VBox>
             </children>
