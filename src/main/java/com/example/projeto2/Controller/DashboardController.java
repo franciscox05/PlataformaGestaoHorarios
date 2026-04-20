@@ -117,7 +117,6 @@ public class DashboardController {
             mainContainer.setCenter(novoConteudo);
         } catch (Exception e) {
             System.out.println("Erro ao carregar o ecra: " + e.getMessage());
-            e.printStackTrace(); // <--- ADICIONA ESTA LINHA!
         }
     }
 
