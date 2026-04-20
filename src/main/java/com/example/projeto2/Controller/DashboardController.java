@@ -33,6 +33,9 @@ public class DashboardController {
     @FXML
     private Button btnPerfil;
 
+    @FXML
+    private Button btnPreferencias;
+
     private final ApplicationContext applicationContext;
     private final GestaoLojaBLL gestaoLojaBLL;
     private Utilizador utilizadorLogado;
@@ -84,6 +87,13 @@ public class DashboardController {
     }
 
     @FXML
+    public void onPreferenciasClick() {
+        limparBotoesAtivos();
+        btnPreferencias.getStyleClass().add("sidebar-btn-ativo");
+        mudarEcraCentro("/com/example/projeto2/dashboard/preferencias-view.fxml");
+    }
+
+    @FXML
     public void onLogoutClick() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/projeto2/login/login-view.fxml"));
@@ -116,6 +126,8 @@ public class DashboardController {
                 pedirFolgaController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PerfilController perfilController) {
                 perfilController.setUtilizadorLogado(utilizadorLogado);
+            } else if (controller instanceof PreferenciasController preferenciasController) {
+                preferenciasController.setUtilizadorLogado(utilizadorLogado);
             }
 
             mainContainer.setCenter(novoConteudo);
@@ -130,6 +142,7 @@ public class DashboardController {
         btnFolgas.getStyleClass().remove("sidebar-btn-ativo");
         btnPermutas.getStyleClass().remove("sidebar-btn-ativo");
         btnPerfil.getStyleClass().remove("sidebar-btn-ativo");
+        btnPreferencias.getStyleClass().remove("sidebar-btn-ativo");
     }
 
     private void configurarPermissoesMenu() {
