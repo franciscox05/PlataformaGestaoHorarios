@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatorio Atualizado - Plataforma de Gestao de Horarios</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 16mm;
+        }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #1f2937;
+            line-height: 1.45;
+            margin: 0;
+            background: #f4f6f8;
+        }
+
+        .page {
+            width: 180mm;
+            margin: 0 auto;
+            background: white;
+            padding: 0;
+        }
+
+        .cover {
+            min-height: 255mm;
+            padding: 28mm 18mm;
+            background: linear-gradient(160deg, #0f172a 0%, #1f2937 48%, #b91c1c 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .eyebrow {
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.85;
+        }
+
+        .cover h1 {
+            font-size: 30px;
+            margin: 18px 0 10px 0;
+            line-height: 1.2;
+        }
+
+        .cover h2 {
+            font-size: 18px;
+            margin: 0;
+            font-weight: 500;
+            opacity: 0.92;
+        }
+
+        .cover .meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 30px;
+        }
+
+        .meta-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+
+        .meta-card strong {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 6px;
+        }
+
+        .content {
+            padding: 18mm 16mm 12mm 16mm;
+        }
+
+        h1, h2, h3 {
+            color: #111827;
+        }
+
+        h2 {
+            margin-top: 28px;
+            margin-bottom: 12px;
+            font-size: 21px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 6px;
+        }
+
+        h3 {
+            margin-top: 18px;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        p, li {
+            font-size: 13px;
+        }
+
+        ul {
+            margin-top: 6px;
+            padding-left: 20px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: #fafafa;
+        }
+
+        .stack {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 14px;
+            margin-bottom: 14px;
+        }
+
+        .stack .layer {
+            border-radius: 12px;
+            padding: 12px 10px;
+            text-align: center;
+            color: white;
+            font-size: 12px;
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .layer.view { background: #b91c1c; }
+        .layer.controller { background: #dc2626; }
+        .layer.bll { background: #1f2937; }
+        .layer.repo { background: #334155; }
+        .layer.db { background: #0f766e; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 8px 10px;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f3f4f6;
+            text-align: left;
+        }
+
+        .status-ok {
+            color: #166534;
+            font-weight: 700;
+        }
+
+        .status-next {
+            color: #92400e;
+            font-weight: 700;
+        }
+
+        .section-note {
+            background: #fff7ed;
+            border-left: 4px solid #ea580c;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .footer-space {
+            height: 8mm;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="cover">
+        <div>
+            <div class="eyebrow">Projeto Integrado II · Entrega Desktop</div>
+            <h1>Plataforma de Gestao de Horarios</h1>
+            <h2>Relatorio atualizado com base no estado real da aplicacao desktop</h2>
+        </div>
+
+        <div class="meta">
+            <div class="meta-card">
+                <strong>Contexto</strong>
+                Loja Levi's com operacao por turnos, fluxos de colaborador e gerencia, e suporte a planeamento mensal.
+            </div>
+            <div class="meta-card">
+                <strong>Stack</strong>
+                Java 25, Spring Boot 4.0.3, Spring Data JPA, PostgreSQL, JavaFX 21.0.2 e Maven.
+            </div>
+            <div class="meta-card">
+                <strong>Entrega</strong>
+                Aplicacao desktop demonstravel, dados de demo, ZIP de distribuicao e documentacao de apoio.
+            </div>
+            <div class="meta-card">
+                <strong>Estado</strong>
+                Documento alinhado com a implementacao existente em <code>main</code> no repositório.
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <h2>1. Enquadramento</h2>
+        <p>
+            A Plataforma de Gestao de Horarios foi desenvolvida para apoiar a organizacao do trabalho por turnos numa loja Levi's,
+            com foco na distribuicao operacional do trabalho, na comunicacao entre colaboradores e gerencia e na reducao do esforco
+            manual associado ao planeamento e validacao mensal dos horarios.
+        </p>
+        <p>
+            Nesta fase do projeto, o resultado entregue corresponde a uma aplicacao desktop funcional, suportada por JavaFX para a
+            interface grafica, Spring Boot para a estrutura aplicacional e PostgreSQL para persistencia dos dados.
+        </p>
+
+        <h2>2. Objetivos da solucao</h2>
+        <div class="grid-2">
+            <div class="card">
+                <h3>Objetivos operacionais</h3>
+                <ul>
+                    <li>autenticacao e separacao de perfis</li>
+                    <li>consulta de turnos e contexto diario</li>
+                    <li>gestao de folgas, permutas e preferencias</li>
+                    <li>fluxos de aprovacao pela gerencia</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Objetivos tecnicos</h3>
+                <ul>
+                    <li>arquitetura por camadas</li>
+                    <li>integracao Spring Boot + JavaFX</li>
+                    <li>persistencia com JPA</li>
+                    <li>demonstracao estavel com dados de exemplo</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>3. Tecnologias e arquitetura</h2>
+        <p>
+            A aplicacao foi estruturada segundo uma organizacao por camadas, permitindo separar interface, controlo de fluxo,
+            regras de negocio e acesso a dados.
+        </p>
+
+        <div class="stack">
+            <div class="layer view">Views JavaFX / FXML</div>
+            <div class="layer controller">Controllers</div>
+            <div class="layer bll">BLL</div>
+            <div class="layer repo">Repositories JPA</div>
+            <div class="layer db">PostgreSQL</div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Frontend desktop</h3>
+                <p>
+                    Interface em JavaFX com ecras FXML para login, dashboard, perfil, preferências, folgas, permutas,
+                    gestao da loja, gestao de funcionarios, geracao de horarios, painel da gerencia e relatorios.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Backend aplicacional</h3>
+                <p>
+                    Spring Boot com BLL dedicada para cada modulo, repositorios JPA, seguranca de passwords com BCrypt,
+                    controlo de sessao e auditoria de eventos relevantes.
+                </p>
+            </div>
+        </div>
+
+        <h2>4. Modelo de dados principal</h2>
+        <p>
+            O dominio persistido cobre os elementos nucleares da operacao da loja.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Entidade</th>
+                <th>Papel principal</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td>Utilizador / Cargo / Lojautilizador</td><td>Representam pessoas, papeis e ligacao ativa a uma loja.</td></tr>
+            <tr><td>Loja / Regra / RegrasLoja</td><td>Definem o contexto operacional e os parametros configuraveis por loja.</td></tr>
+            <tr><td>Turno / Horario / HistoricoHorarioEstado</td><td>Modelam turnos, atribuicoes e historico dos estados dos horarios.</td></tr>
+            <tr><td>DayOff</td><td>Guarda pedidos de folga e respetivos estados.</td></tr>
+            <tr><td>Permuta</td><td>Representa pedidos de troca de turno e respetiva decisao.</td></tr>
+            <tr><td>Preferencia</td><td>Regista preferencias de folgas, ferias, colegas e turnos.</td></tr>
+            <tr><td>PropostaHorarioMensal</td><td>Suporta a geracao e validacao de propostas mensais.</td></tr>
+            <tr><td>EventoAuditoria</td><td>Regista eventos de seguranca, autenticacao e sessao.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>5. Funcionalidades implementadas</h2>
+
+        <h3>5.1 Autenticacao e sessao</h3>
+        <ul>
+            <li>login por email e password</li>
+            <li>validacao de contas ativas</li>
+            <li>hashing com BCrypt</li>
+            <li>migracao transparente de passwords antigas</li>
+            <li>timeout de sessao por inatividade</li>
+            <li>auditoria de login, logout e expiracao</li>
+        </ul>
+
+        <h3>5.2 Dashboard e colaborador</h3>
+        <ul>
+            <li>proximos turnos</li>
+            <li>equipa do dia</li>
+            <li>navegacao lateral por modulos</li>
+            <li>perfil com edicao de dados e password</li>
+        </ul>
+
+        <h3>5.3 Gestao operacional</h3>
+        <ul>
+            <li>gestao da loja e regras operacionais</li>
+            <li>gestao de funcionarios</li>
+            <li>pedidos de folga e historico</li>
+            <li>permutas com aprovacao</li>
+            <li>preferencias do funcionario com aprovacao</li>
+            <li>painel unificado do gerente para pedidos pendentes</li>
+        </ul>
+
+        <h3>5.4 Planeamento e controlo</h3>
+        <ul>
+            <li>geracao de propostas mensais de horarios</li>
+            <li>validacao de propostas pelo supervisor</li>
+            <li>relatorios mensais de horas e exportacao CSV</li>
+        </ul>
+
+        <h3>5.5 Entrega desktop</h3>
+        <ul>
+            <li>script SQL de demonstracao</li>
+            <li>roteiro de demo e checklist de validacao</li>
+            <li>ZIP de entrega com JAR, config, scripts e SQL</li>
+        </ul>
+
+        <h2>6. Mapeamento de requisitos</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Requisito</th>
+                <th>Estado</th>
+                <th>Observacao</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td>RFU01 - Definir horario da loja</td><td class="status-ok">Implementado</td><td>Gestao de abertura, fecho e regras da loja.</td></tr>
+            <tr><td>RFU02 - Horarios especiais por data</td><td class="status-next">Trabalho futuro</td><td>Planeado em backlog proprio.</td></tr>
+            <tr><td>RFU03 / RFU04 / RFU05</td><td class="status-ok">Implementado</td><td>Gestao de funcionarios com criacao, edicao e alteracao de estado.</td></tr>
+            <tr><td>RFU06 - Aprovar permutas</td><td class="status-ok">Implementado</td><td>Permutas com fluxo de decisao por gerencia.</td></tr>
+            <tr><td>RFU07 - Aprovar preferencias</td><td class="status-ok">Implementado</td><td>Area de aprovacao e decisao centralizada.</td></tr>
+            <tr><td>RFU08 / RFU09</td><td class="status-ok">Implementado</td><td>Regras da loja e lancamento do horario.</td></tr>
+            <tr><td>RFU10 / RFU12 / RFU13</td><td class="status-ok">Implementado</td><td>Preferencias de colegas, folgas e ferias.</td></tr>
+            <tr><td>RFU14 - Pedir troca de turno</td><td class="status-ok">Implementado</td><td>Fluxo de permutas com validacao.</td></tr>
+            <tr><td>RFU15 - Validar proposta de horario</td><td class="status-ok">Implementado</td><td>Supervisor valida proposta mensal.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>7. Dados de demonstracao e validacao</h2>
+        <p>
+            O projeto inclui um script de demonstracao que repoe dados estaveis e deixa o ambiente pronto para apresentacao,
+            com lojas, cargos, utilizadores, horarios, folgas, preferencias, permutas e estrutura de propostas mensais.
+        </p>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Contas demo recomendadas</h3>
+                <ul>
+                    <li><strong>francisco@levis.com</strong></li>
+                    <li><strong>francisco.gomes@levis.com</strong></li>
+                    <li><strong>henrique.siano@levis.com</strong></li>
+                </ul>
+                <p>Password comum: <strong>123456</strong></p>
+            </div>
+            <div class="card">
+                <h3>Validacoes realizadas</h3>
+                <ul>
+                    <li>login com perfis distintos</li>
+                    <li>fluxos de colaborador e de gestao</li>
+                    <li>relatorios mensais</li>
+                    <li>geracao de horarios</li>
+                    <li>ZIP extraido e arrancado fora do IntelliJ</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>8. Evidencias visuais</h2>
+        <div class="card">
+            <h3>Captura do ecrã de autenticacao</h3>
+            <p>Vista inicial da aplicacao desktop, utilizada para autenticar colaboradores e perfis de gestao.</p>
+            <img src="capturas/captura-login.png" alt="Captura do ecrã de autenticacao" style="width:100%; border:1px solid #d1d5db; border-radius:10px;">
+        </div>
+
+        <div class="card" style="margin-top: 14px;">
+            <h3>Estrutura do pacote ZIP de entrega</h3>
+            <p>Vista da pasta extraida com os artefactos entregues: JAR, configuracao, scripts, SQL e documentacao.</p>
+            <img src="capturas/captura-zip-entrega.png" alt="Estrutura do pacote ZIP entregue" style="width:100%; border:1px solid #d1d5db; border-radius:10px;">
+        </div>
+
+        <h2>9. Estrutura da entrega desktop</h2>
+        <p>
+            A entrega passa a incluir nao apenas o codigo-fonte, mas tambem um pacote ZIP preparado para execução local
+            com o JAR da aplicacao, configuracao externa, scripts de arranque, SQL e documentacao de apoio.
+        </p>
+
+        <div class="section-note">
+            O ficheiro ZIP de entrega e gerado automaticamente pelo Maven e produz o artefacto
+            <strong>target/PlataformaGestaoHorarios-desktop.zip</strong>.
+        </div>
+
+        <h2>10. Trabalho futuro</h2>
+        <ul>
+            <li>gestao de horarios especiais e excecoes por data</li>
+            <li>testes automatizados dos fluxos criticos</li>
+            <li>painel de auditoria com historico navegavel</li>
+            <li>evolucao para API e interface web</li>
+        </ul>
+
+        <h2>11. Conclusao</h2>
+        <p>
+            O estado atual do projeto demonstra uma aplicacao desktop consistente, funcional e coerente com os objetivos
+            propostos para a fase de entrega. A solucao cobre autenticacao, operacao do colaborador, decisao por parte da
+            gerencia, geracao de horarios, relatorios e preparacao da demonstracao.
+        </p>
+        <p>
+            Esta versao estabelece uma base solida para a apresentacao da entrega desktop e para futuras evolucoes do projeto.
+        </p>
+
+        <div class="footer-space"></div>
+    </section>
+</div>
+</body>
+</html>
