@@ -33,6 +33,9 @@ public class DashboardController {
     private Button btnHorarios;
 
     @FXML
+    private Button btnPainelGerente;
+
+    @FXML
     private Button btnFolgas;
 
     @FXML
@@ -102,6 +105,13 @@ public class DashboardController {
     }
 
     @FXML
+    public void onPainelGerentePedidosClick() {
+        limparBotoesAtivos();
+        btnPainelGerente.getStyleClass().add("sidebar-btn-ativo");
+        mudarEcraCentro("/com/example/projeto2/dashboard/painel-gerente-pedidos-view.fxml");
+    }
+
+    @FXML
     public void onTrocarTurnoClick() {
         limparBotoesAtivos();
         btnPermutas.getStyleClass().add("sidebar-btn-ativo");
@@ -160,6 +170,8 @@ public class DashboardController {
                 gestaoFuncionariosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof GeracaoHorariosController geracaoHorariosController) {
                 geracaoHorariosController.setUtilizadorLogado(utilizadorLogado);
+            } else if (controller instanceof PainelGerentePedidosController painelGerentePedidosController) {
+                painelGerentePedidosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PermutasController permutasController) {
                 permutasController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PedirFolgaController pedirFolgaController) {
@@ -183,6 +195,7 @@ public class DashboardController {
         btnGestaoLoja.getStyleClass().remove("sidebar-btn-ativo");
         btnGestaoFuncionarios.getStyleClass().remove("sidebar-btn-ativo");
         btnHorarios.getStyleClass().remove("sidebar-btn-ativo");
+        btnPainelGerente.getStyleClass().remove("sidebar-btn-ativo");
         btnFolgas.getStyleClass().remove("sidebar-btn-ativo");
         btnPermutas.getStyleClass().remove("sidebar-btn-ativo");
         btnPerfil.getStyleClass().remove("sidebar-btn-ativo");
@@ -202,6 +215,8 @@ public class DashboardController {
         btnGestaoFuncionarios.setManaged(podeGerirLoja);
         btnHorarios.setVisible(podeAcederHorarios);
         btnHorarios.setManaged(podeAcederHorarios);
+        btnPainelGerente.setVisible(podeGerirLoja);
+        btnPainelGerente.setManaged(podeGerirLoja);
     }
 
     private void mostrarErro(String titulo, String mensagem) {
