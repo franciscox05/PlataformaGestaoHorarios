@@ -3,6 +3,30 @@ BEGIN;
 -- Este script prepara um conjunto de dados estavel para demonstracao local.
 -- Substitui os dados funcionais atuais da aplicacao.
 
+-- Compatibilidade com seguranca e auditoria (#23).
+CREATE TABLE IF NOT EXISTS public.eventos_auditoria (
+    id_evento serial PRIMARY KEY,
+    tipo_evento varchar(80) NOT NULL,
+    resultado varchar(20) NOT NULL,
+    origem varchar(80) NOT NULL,
+    id_utilizador integer,
+    email_referencia varchar(150),
+    identificador_sessao varchar(64),
+    data_evento timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    detalhes text,
+    CONSTRAINT fk_eventos_auditoria_utilizador
+        FOREIGN KEY (id_utilizador) REFERENCES public.utilizadores(id_utilizador)
+);
+
+CREATE INDEX IF NOT EXISTS idx_eventos_auditoria_data
+    ON public.eventos_auditoria (data_evento DESC);
+
+CREATE INDEX IF NOT EXISTS idx_eventos_auditoria_utilizador
+    ON public.eventos_auditoria (id_utilizador, data_evento DESC);
+
+CREATE INDEX IF NOT EXISTS idx_eventos_auditoria_sessao
+    ON public.eventos_auditoria (identificador_sessao);
+
 -- Compatibilidade com a aprovacao de preferencias (#17).
 ALTER TABLE public.preferencias
     ADD COLUMN IF NOT EXISTS tipo varchar(50),
@@ -48,6 +72,7 @@ ALTER TABLE public.horarios
         FOREIGN KEY (id_proposta_horario) REFERENCES public.propostas_horario_mensal(id_proposta_horario);
 
 TRUNCATE TABLE
+    public.eventos_auditoria,
     public.historico_horario_estados,
     public.permutas,
     public.horarios,
