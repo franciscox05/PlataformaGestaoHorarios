@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface HorarioRepository extends JpaRepository<Horario, Integer> {
@@ -85,4 +86,18 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             ") " +
             "ORDER BY t.horaInicio ASC, u.nome ASC")
     List<Horario> findEquipaDeHojeNaLojaDoUtilizador(@Param("idUtilizador") Integer idUtilizador);
+
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "WHERE l.id = :idLoja " +
+            "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
+            "AND lu.dataFim IS NULL " +
+            "ORDER BY u.nome ASC, h.dataTurno ASC, t.horaInicio ASC")
+    List<Horario> findHorariosDaLojaEntreDatas(@Param("idLoja") Integer idLoja,
+                                               @Param("dataInicio") LocalDate dataInicio,
+                                               @Param("dataFim") LocalDate dataFim);
 }

@@ -34,6 +34,7 @@
                 <Button fx:id="btnPermutas" onAction="#onTrocarTurnoClick" styleClass="sidebar-btn" text="Trocar Turno" />
                 <Button fx:id="btnPerfil" onAction="#onPerfilClick" styleClass="sidebar-btn" text="Perfil" />
                 <Button fx:id="btnPreferencias" onAction="#onPreferenciasClick" styleClass="sidebar-btn" text="Preferencias" />
+                <Button fx:id="btnRelatorios" managed="false" onAction="#onRelatoriosHorasClick" styleClass="sidebar-btn" text="Relatorios" visible="false" />
 
                 <Region VBox.vgrow="ALWAYS" />
             </children>
