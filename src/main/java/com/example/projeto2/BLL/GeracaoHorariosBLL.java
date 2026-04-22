@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -177,10 +178,14 @@ public class GeracaoHorariosBLL {
 
         List<RegraAplicada> regras = obterRegrasAplicadas(idLoja);
         ParametrosGeracao parametros = resolverParametrosGeracao(regras, turnos);
+        LocalDate inicioHistorico = resolverInicioHistoricoParaGeracao(dataInicio, parametros);
 
         List<DayOff> dayOffsAprovados = dayOffRepository.findPedidosAprovadosDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<Preferencia> preferenciasAprovadas = preferenciaRepository.findPreferenciasAprovadasDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<HorarioEspecialLoja> horariosEspeciais = horarioEspecialLojaRepository.findAtivosNoPeriodo(idLoja, dataInicio, dataFim);
+        List<Horario> historicoHorarios = inicioHistorico.isBefore(dataInicio)
+                ? horarioRepository.findHorariosDaLojaEntreDatas(idLoja, inicioHistorico, dataInicio.minusDays(1))
+                : List.of();
 
         Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador = construirBloqueiosPorUtilizador(
                 dataInicio,
@@ -200,6 +205,7 @@ public class GeracaoHorariosBLL {
                 colaboradoresAtivos,
                 turnos,
                 parametros,
+                historicoHorarios,
                 bloqueiosPorUtilizador,
                 preferenciasTurnos,
                 preferenciasColegas,
@@ -285,6 +291,7 @@ public class GeracaoHorariosBLL {
     private PlaneamentoGerado gerarPlaneamento(List<Lojautilizador> colaboradoresAtivos,
                                                List<Turno> turnos,
                                                ParametrosGeracao parametros,
+                                               List<Horario> historicoHorarios,
                                                Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
                                                Map<Integer, List<Preferencia>> preferenciasTurnos,
                                                Map<Integer, List<Preferencia>> preferenciasColegas,
@@ -304,6 +311,28 @@ public class GeracaoHorariosBLL {
                     ligacao.getIdUtilizador().getId(),
                     new EstadoColaborador(ligacao, perfilContratual, cargaMaximaMinutos)
             );
+        }
+
+        Map<Integer, List<Horario>> historicoPorUtilizador = new HashMap<>();
+        for (Horario horario : historicoHorarios) {
+            if (horario.getIdLojautilizador() == null
+                    || horario.getIdLojautilizador().getIdUtilizador() == null
+                    || horario.getIdLojautilizador().getIdUtilizador().getId() == null
+                    || horario.getDataTurno() == null
+                    || horario.getIdTurno() == null) {
+                continue;
+            }
+            historicoPorUtilizador
+                    .computeIfAbsent(horario.getIdLojautilizador().getIdUtilizador().getId(), ignored -> new ArrayList<>())
+                    .add(horario);
+        }
+        for (List<Horario> historicoDoColaborador : historicoPorUtilizador.values()) {
+            historicoDoColaborador.sort(Comparator
+                    .comparing(Horario::getDataTurno)
+                    .thenComparing(horario -> horario.getIdTurno().getHoraInicio(), Comparator.nullsLast(Comparator.naturalOrder())));
+        }
+        for (EstadoColaborador estado : estadoPorColaborador.values()) {
+            estado.inicializarComHistorico(historicoPorUtilizador.getOrDefault(estado.idUtilizador(), List.of()));
         }
 
         List<Horario> horarios = new ArrayList<>();
@@ -345,7 +374,9 @@ public class GeracaoHorariosBLL {
                                 minutosTurno,
                                 bloqueiosPorUtilizador.getOrDefault(estado.idUtilizador(), Set.of()),
                                 parametros.maxDiasConsecutivos(),
-                                parametros.descansoMinimoHoras()
+                                parametros.descansoMinimoHoras(),
+                                parametros.descansoSemanalMinimoDias(),
+                                parametros.janelaRotacaoFinsDeSemanaSemanas()
                         ))
                         .sorted(criarComparatorCandidatos(
                                 dataAtual,
@@ -363,7 +394,7 @@ public class GeracaoHorariosBLL {
                                     + formatarTurno(turno)
                                     + " em "
                                     + dataAtual
-                                    + ". Verifica equipa ativa, elegibilidade contratual, carga mensal, descansos e regras minimas."
+                                    + ". Verifica equipa ativa, elegibilidade contratual, carga mensal, descanso semanal, rotacao de fins de semana, descansos entre turnos e regras minimas."
                     );
                 }
 
@@ -651,6 +682,22 @@ public class GeracaoHorariosBLL {
                 .findFirst()
                 .orElse(11);
 
+        int descansoSemanalMinimoDias = regras.stream()
+                .filter(this::ehRegraDescansoSemanal)
+                .map(RegraAplicada::valor)
+                .filter(Objects::nonNull)
+                .filter(valor -> valor >= 1 && valor <= 6)
+                .findFirst()
+                .orElse(2);
+
+        int janelaRotacaoFinsDeSemanaSemanas = regras.stream()
+                .filter(this::ehRegraRotacaoFinsDeSemana)
+                .map(RegraAplicada::valor)
+                .filter(Objects::nonNull)
+                .filter(valor -> valor >= 2)
+                .findFirst()
+                .orElse(2);
+
         Map<PerfilContratual, Long> cargaMaximaMinutosPorPerfil = new EnumMap<>(PerfilContratual.class);
         for (PerfilContratual perfilContratual : PerfilContratual.values()) {
             Integer horasMensais = regras.stream()
@@ -669,7 +716,14 @@ public class GeracaoHorariosBLL {
             cargaMaximaMinutosPorPerfil.put(perfilContratual, horasMensais * 60L);
         }
 
-        return new ParametrosGeracao(minimosPorTurno, maxDiasConsecutivos, descansoMinimoHoras, cargaMaximaMinutosPorPerfil);
+        return new ParametrosGeracao(
+                minimosPorTurno,
+                maxDiasConsecutivos,
+                descansoMinimoHoras,
+                descansoSemanalMinimoDias,
+                janelaRotacaoFinsDeSemanaSemanas,
+                cargaMaximaMinutosPorPerfil
+        );
     }
 
     private boolean ehRegraDeMinimos(RegraAplicada regra) {
@@ -686,6 +740,19 @@ public class GeracaoHorariosBLL {
     private boolean ehRegraDescanso(RegraAplicada regra) {
         String texto = regra.textoNormalizado();
         return texto.contains("descanso") && (texto.contains("hora") || texto.contains("interval"));
+    }
+
+    private boolean ehRegraDescansoSemanal(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return texto.contains("descanso")
+                && (texto.contains("seman") || texto.contains("folga"))
+                && texto.contains("dia");
+    }
+
+    private boolean ehRegraRotacaoFinsDeSemana(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return (texto.contains("rotacao") || texto.contains("janela"))
+                && (texto.contains("fim de semana") || texto.contains("weekend"));
     }
 
     private boolean ehRegraCargaContratual(RegraAplicada regra) {
@@ -778,6 +845,21 @@ public class GeracaoHorariosBLL {
     private boolean utilizadorEstaAtivo(Lojautilizador ligacao) {
         return ligacao.getIdUtilizador() != null
                 && "ativo".equals(normalizarTexto(ligacao.getIdUtilizador().getEstado()));
+    }
+
+    private LocalDate resolverInicioHistoricoParaGeracao(LocalDate dataInicio, ParametrosGeracao parametros) {
+        LocalDate inicioConsecutivos = dataInicio.minusDays(Math.max(1, parametros.maxDiasConsecutivos()));
+        LocalDate inicioSemanaAtual = inicioSemana(dataInicio);
+        LocalDate inicioRotacao = dataInicio.minusWeeks(Math.max(1, parametros.janelaRotacaoFinsDeSemanaSemanas()));
+
+        LocalDate inicioHistorico = inicioConsecutivos;
+        if (inicioSemanaAtual.isBefore(inicioHistorico)) {
+            inicioHistorico = inicioSemanaAtual;
+        }
+        if (inicioRotacao.isBefore(inicioHistorico)) {
+            inicioHistorico = inicioRotacao;
+        }
+        return inicioHistorico;
     }
 
     private Lojautilizador preferirLigacaoMaisRecente(Lojautilizador ligacaoAtual, Lojautilizador novaLigacao) {
@@ -1058,6 +1140,19 @@ public class GeracaoHorariosBLL {
         return Duration.between(fimAnterior, inicioAtual).toHours();
     }
 
+    private LocalDate inicioSemana(LocalDate data) {
+        return data.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    }
+
+    private LocalDate inicioFimDeSemana(LocalDate data) {
+        return data.with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY));
+    }
+
+    private boolean ehFimDeSemana(LocalDate data) {
+        DayOfWeek diaSemana = data.getDayOfWeek();
+        return diaSemana == DayOfWeek.SATURDAY || diaSemana == DayOfWeek.SUNDAY;
+    }
+
     private String normalizarTurno(Turno turno) {
         return normalizarTexto(turno != null && turno.getTipo() != null ? String.valueOf(turno.getTipo()) : "");
     }
@@ -1218,6 +1313,8 @@ public class GeracaoHorariosBLL {
             Map<Integer, Integer> minimosPorTurno,
             int maxDiasConsecutivos,
             int descansoMinimoHoras,
+            int descansoSemanalMinimoDias,
+            int janelaRotacaoFinsDeSemanaSemanas,
             Map<PerfilContratual, Long> cargaMaximaMinutosPorPerfil
     ) {
     }
@@ -1346,7 +1443,9 @@ public class GeracaoHorariosBLL {
         private int diasConsecutivos;
         private int turnosAtribuidos;
         private long minutosAtribuidos;
-        private final Map<LocalDate, Turno> atribuicoes = new HashMap<>();
+        private final Map<LocalDate, Turno> atribuicoesConhecidas = new HashMap<>();
+        private final Map<LocalDate, Integer> diasTrabalhadosPorSemana = new HashMap<>();
+        private final Set<LocalDate> finsDeSemanaTrabalhados = new LinkedHashSet<>();
         private final Map<String, Integer> turnosPorTipo = new HashMap<>();
 
         private EstadoColaborador(Lojautilizador ligacao,
@@ -1362,12 +1461,16 @@ public class GeracaoHorariosBLL {
                                     long minutosTurno,
                                     Set<LocalDate> bloqueios,
                                     int maxDiasConsecutivos,
-                                    int descansoMinimoHoras) {
+                                    int descansoMinimoHoras,
+                                    int descansoSemanalMinimoDias,
+                                    int janelaRotacaoFinsDeSemanaSemanas) {
             if (bloqueios.contains(data)
-                    || atribuicoes.containsKey(data)
+                    || atribuicoesConhecidas.containsKey(data)
                     || !temVinculoValidoNaData(data)
                     || !perfilContratual.permiteData(data)
-                    || (minutosAtribuidos + minutosTurno) > cargaMaximaMensalMinutos) {
+                    || (minutosAtribuidos + minutosTurno) > cargaMaximaMensalMinutos
+                    || excedeMaximoDiasTrabalhadosNaSemana(data, descansoSemanalMinimoDias)
+                    || violariaRotacaoDeFimDeSemana(data, janelaRotacaoFinsDeSemanaSemanas)) {
                 return false;
             }
 
@@ -1382,7 +1485,7 @@ public class GeracaoHorariosBLL {
             if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
                 long horasDescanso = calcularHorasDescanso(
                         ultimaDataAtribuida,
-                        atribuicoes.get(ultimaDataAtribuida),
+                        atribuicoesConhecidas.get(ultimaDataAtribuida),
                         data,
                         turno
                 );
@@ -1395,16 +1498,43 @@ public class GeracaoHorariosBLL {
         }
 
         private void registarAtribuicao(LocalDate data, Turno turno, long minutosTurno) {
+            registarAtribuicaoConhecida(data, turno, minutosTurno, true);
+        }
+
+        private void inicializarComHistorico(List<Horario> historicoHorarios) {
+            for (Horario horario : historicoHorarios) {
+                if (horario.getDataTurno() == null || horario.getIdTurno() == null) {
+                    continue;
+                }
+                registarAtribuicaoConhecida(horario.getDataTurno(), horario.getIdTurno(), 0, false);
+            }
+        }
+
+        private void registarAtribuicaoConhecida(LocalDate data,
+                                                 Turno turno,
+                                                 long minutosTurno,
+                                                 boolean contarParaDistribuicaoAtual) {
+            if (data == null || turno == null || atribuicoesConhecidas.containsKey(data)) {
+                return;
+            }
+
             if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
                 diasConsecutivos++;
             } else {
                 diasConsecutivos = 1;
             }
             ultimaDataAtribuida = data;
-            turnosAtribuidos++;
-            minutosAtribuidos += minutosTurno;
-            atribuicoes.put(data, turno);
-            turnosPorTipo.merge(normalizarTurno(turno), 1, Integer::sum);
+            atribuicoesConhecidas.put(data, turno);
+            diasTrabalhadosPorSemana.merge(inicioSemana(data), 1, Integer::sum);
+            if (ehFimDeSemana(data)) {
+                finsDeSemanaTrabalhados.add(inicioFimDeSemana(data));
+            }
+
+            if (contarParaDistribuicaoAtual) {
+                turnosAtribuidos++;
+                minutosAtribuidos += minutosTurno;
+                turnosPorTipo.merge(normalizarTurno(turno), 1, Integer::sum);
+            }
         }
 
         private Integer idUtilizador() {
@@ -1428,6 +1558,38 @@ public class GeracaoHorariosBLL {
                 return Double.MAX_VALUE;
             }
             return (minutosAtribuidos + minutosTurno) / (double) cargaMaximaMensalMinutos;
+        }
+
+        private boolean excedeMaximoDiasTrabalhadosNaSemana(LocalDate data, int descansoSemanalMinimoDias) {
+            int maxDiasTrabalhados = Math.max(0, 7 - descansoSemanalMinimoDias);
+            LocalDate inicioSemana = inicioSemana(data);
+            return diasTrabalhadosPorSemana.getOrDefault(inicioSemana, 0) + 1 > maxDiasTrabalhados;
+        }
+
+        private boolean violariaRotacaoDeFimDeSemana(LocalDate data, int janelaRotacaoFinsDeSemanaSemanas) {
+            if (!ehFimDeSemana(data) || janelaRotacaoFinsDeSemanaSemanas < 2) {
+                return false;
+            }
+
+            LocalDate fimDeSemanaAtual = inicioFimDeSemana(data);
+            if (finsDeSemanaTrabalhados.contains(fimDeSemanaAtual)) {
+                return false;
+            }
+
+            for (int deslocamento = janelaRotacaoFinsDeSemanaSemanas - 1; deslocamento >= 0; deslocamento--) {
+                LocalDate inicioJanela = fimDeSemanaAtual.minusWeeks(deslocamento);
+                int finsDeSemanaComTrabalho = 0;
+                for (int indice = 0; indice < janelaRotacaoFinsDeSemanaSemanas; indice++) {
+                    LocalDate fimDeSemanaNaJanela = inicioJanela.plusWeeks(indice);
+                    if (fimDeSemanaNaJanela.equals(fimDeSemanaAtual) || finsDeSemanaTrabalhados.contains(fimDeSemanaNaJanela)) {
+                        finsDeSemanaComTrabalho++;
+                    }
+                }
+                if (finsDeSemanaComTrabalho >= janelaRotacaoFinsDeSemanaSemanas) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private boolean temVinculoValidoNaData(LocalDate data) {
