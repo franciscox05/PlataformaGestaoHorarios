@@ -335,6 +335,16 @@ public class GestaoLojaBLL {
     }
 
     private List<Turno> filtrarTurnosCompativeis(List<Turno> turnosBase, LocalTime abertura, LocalTime fecho) {
+        List<Turno> turnosComCorrespondenciaExata = turnosBase.stream()
+                .filter(turno -> turno != null)
+                .filter(turno -> abertura != null && fecho != null)
+                .filter(turno -> abertura.equals(turno.getHoraInicio()) && fecho.equals(turno.getHoraFim()))
+                .sorted(Comparator.comparing(Turno::getHoraInicio, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+        if (!turnosComCorrespondenciaExata.isEmpty()) {
+            return turnosComCorrespondenciaExata;
+        }
+
         return turnosBase.stream()
                 .filter(turno -> turnoCabeNoHorario(turno, abertura, fecho))
                 .sorted(Comparator.comparing(Turno::getHoraInicio, Comparator.nullsLast(Comparator.naturalOrder())))

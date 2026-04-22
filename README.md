@@ -79,6 +79,29 @@ O script [demo-entrega.sql](sql/demo-entrega.sql):
 - carrega horarios, folgas, preferencias e permutas de exemplo
 - deixa a aplicacao pronta para demonstracao
 
+## Dados operacionais complementares
+
+Para enriquecer testes manuais sem destruir a demo principal, existe também o script:
+
+- [sql/issue-56-dados-teste-operacionais.sql](sql/issue-56-dados-teste-operacionais.sql)
+
+Este script:
+
+- adiciona uma equipa operacional complementar na loja Braga Parque
+- cria cenarios com full-time, part-time, reforco de fim de semana e colaborador inativo
+- acrescenta folgas, preferencias, permutas, horarios especiais e auditoria
+- foi pensado para apoiar o dashboard de gestão, o painel do gerente e os testes do motor de geração
+
+Helper opcional para carregar estes dados:
+
+```powershell
+.\scripts\carregar-dados-teste-operacionais.ps1 -Password 'projeto2026'
+```
+
+Documentacao especifica destes cenarios:
+
+- [docs/cenarios-teste-operacionais.md](docs/cenarios-teste-operacionais.md)
+
 ## Contas de demonstracao
 
 Todas as contas abaixo usam a password:

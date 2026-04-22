@@ -551,6 +551,14 @@ public class GeracaoHorariosBLL {
             return turnosBase;
         }
 
+        List<Turno> turnosComCorrespondenciaExata = turnosBase.stream()
+                .filter(turno -> turno != null)
+                .filter(turno -> horaAbertura.equals(turno.getHoraInicio()) && horaFecho.equals(turno.getHoraFim()))
+                .toList();
+        if (!turnosComCorrespondenciaExata.isEmpty()) {
+            return turnosComCorrespondenciaExata;
+        }
+
         return turnosBase.stream()
                 .filter(turno -> turnoCabeNoHorario(turno, horaAbertura, horaFecho))
                 .toList();
@@ -693,6 +701,9 @@ public class GeracaoHorariosBLL {
         Map<Integer, Lojautilizador> ativos = new LinkedHashMap<>();
         for (Lojautilizador ligacao : lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(idLoja)) {
             if (ligacao.getDataFim() != null || ligacao.getIdUtilizador() == null || ligacao.getIdUtilizador().getId() == null) {
+                continue;
+            }
+            if (!"ativo".equals(normalizarTexto(ligacao.getIdUtilizador().getEstado()))) {
                 continue;
             }
             ativos.putIfAbsent(ligacao.getIdUtilizador().getId(), ligacao);

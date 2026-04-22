@@ -39,6 +39,7 @@ import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.text.Normalizer;
 import java.time.LocalDate;
@@ -55,6 +56,24 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 abstract class FluxosCriticosTestSupport {
+
+    private static final List<SequenciaTabela> SEQUENCIAS_TABELAS = List.of(
+            new SequenciaTabela("public.cargos", "id_cargo"),
+            new SequenciaTabela("public.lojas", "id_loja"),
+            new SequenciaTabela("public.utilizadores", "id_utilizador"),
+            new SequenciaTabela("public.lojautilizador", "id_lojautilizador"),
+            new SequenciaTabela("public.turnos", "id_turno"),
+            new SequenciaTabela("public.regras", "id_regra"),
+            new SequenciaTabela("public.regras_loja", "id_regra_loja"),
+            new SequenciaTabela("public.day_offs", "id_dayoff"),
+            new SequenciaTabela("public.preferencias", "id_preferencia"),
+            new SequenciaTabela("public.propostas_horario_mensal", "id_proposta_horario"),
+            new SequenciaTabela("public.horarios", "id_horario"),
+            new SequenciaTabela("public.historico_horario_estados", "id_registo"),
+            new SequenciaTabela("public.horarios_especiais_loja", "id_horario_especial"),
+            new SequenciaTabela("public.permutas", "id_permuta"),
+            new SequenciaTabela("public.eventos_auditoria", "id_evento")
+    );
 
     private int sequenciaTelemovel = 930000000;
 
@@ -93,6 +112,9 @@ abstract class FluxosCriticosTestSupport {
 
     @Autowired
     protected EventoAuditoriaRepository eventoAuditoriaRepository;
+
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
 
     @Autowired
     protected CargoRepository cargoRepository;
@@ -135,6 +157,9 @@ abstract class FluxosCriticosTestSupport {
         if (sessaoBLL.temSessaoAtiva()) {
             sessaoBLL.terminarSessaoManual();
         }
+
+        garantirEstruturasDeTeste();
+        sincronizarSequencias();
     }
 
     @AfterEach
@@ -434,6 +459,228 @@ abstract class FluxosCriticosTestSupport {
         return valor == null ? "" : valor.trim();
     }
 
+    private void sincronizarSequencias() {
+        for (SequenciaTabela sequenciaTabela : SEQUENCIAS_TABELAS) {
+            Boolean tabelaExiste = jdbcTemplate.queryForObject(
+                    "SELECT to_regclass('%s') IS NOT NULL".formatted(sequenciaTabela.tabela()),
+                    Boolean.class
+            );
+            if (!Boolean.TRUE.equals(tabelaExiste)) {
+                continue;
+            }
+
+            String nomeSequencia = jdbcTemplate.queryForObject(
+                    "SELECT pg_get_serial_sequence('%s', '%s')".formatted(
+                            sequenciaTabela.tabela(),
+                            sequenciaTabela.colunaId()
+                    ),
+                    String.class
+            );
+            if (nomeSequencia == null || nomeSequencia.isBlank()) {
+                continue;
+            }
+
+            jdbcTemplate.execute(
+                    """
+                    SELECT setval(
+                        '%s',
+                        COALESCE((SELECT MAX(%s) FROM %s), 1),
+                        true
+                    )
+                    """.formatted(
+                            nomeSequencia,
+                            sequenciaTabela.colunaId(),
+                            sequenciaTabela.tabela()
+                    )
+            );
+        }
+    }
+
+    private void garantirEstruturasDeTeste() {
+        jdbcTemplate.execute(
+                """
+                CREATE TABLE IF NOT EXISTS public.eventos_auditoria (
+                    id_evento SERIAL PRIMARY KEY,
+                    id_utilizador INTEGER NULL,
+                    email_referencia VARCHAR(160) NULL,
+                    tipo_evento VARCHAR(80) NOT NULL,
+                    resultado VARCHAR(40) NOT NULL,
+                    detalhe TEXT NULL,
+                    identificador_sessao VARCHAR(120) NULL,
+                    data_evento TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT fk_eventos_auditoria_utilizador
+                        FOREIGN KEY (id_utilizador) REFERENCES public.utilizadores(id_utilizador)
+                )
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.eventos_auditoria
+                    ADD COLUMN IF NOT EXISTS origem VARCHAR(80)
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.eventos_auditoria
+                    ADD COLUMN IF NOT EXISTS detalhes TEXT
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'eventos_auditoria'
+                          AND column_name = 'detalhe'
+                    ) THEN
+                        EXECUTE '
+                            UPDATE public.eventos_auditoria
+                            SET detalhes = COALESCE(detalhes, detalhe)
+                        ';
+                    END IF;
+                END $$;
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                UPDATE public.eventos_auditoria
+                SET origem = COALESCE(NULLIF(origem, ''), 'sistema')
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.eventos_auditoria
+                    ALTER COLUMN origem SET DEFAULT 'sistema'
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.eventos_auditoria
+                    ALTER COLUMN origem SET NOT NULL
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_eventos_auditoria_data
+                    ON public.eventos_auditoria (data_evento DESC)
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_eventos_auditoria_utilizador
+                    ON public.eventos_auditoria (id_utilizador, data_evento DESC)
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_eventos_auditoria_sessao
+                    ON public.eventos_auditoria (identificador_sessao)
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                CREATE TABLE IF NOT EXISTS public.propostas_horario_mensal (
+                    id_proposta_horario SERIAL PRIMARY KEY,
+                    id_loja INTEGER NOT NULL,
+                    id_utilizador_geracao INTEGER NOT NULL,
+                    ano INTEGER NOT NULL,
+                    mes INTEGER NOT NULL,
+                    estado VARCHAR(50) NOT NULL DEFAULT 'pendente',
+                    resumo_geracao TEXT NULL,
+                    data_geracao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT fk_proposta_horario_loja
+                        FOREIGN KEY (id_loja) REFERENCES public.lojas(id_loja),
+                    CONSTRAINT fk_proposta_horario_utilizador
+                        FOREIGN KEY (id_utilizador_geracao) REFERENCES public.utilizadores(id_utilizador)
+                )
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.propostas_horario_mensal
+                    ADD COLUMN IF NOT EXISTS id_utilizador_decisao INTEGER
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.propostas_horario_mensal
+                    ADD COLUMN IF NOT EXISTS data_decisao TIMESTAMP
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.propostas_horario_mensal
+                    ADD COLUMN IF NOT EXISTS observacoes_supervisor TEXT
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.propostas_horario_mensal
+                    DROP CONSTRAINT IF EXISTS fk_proposta_horario_decisao_utilizador
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                ALTER TABLE public.propostas_horario_mensal
+                    ADD CONSTRAINT fk_proposta_horario_decisao_utilizador
+                        FOREIGN KEY (id_utilizador_decisao) REFERENCES public.utilizadores(id_utilizador)
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                CREATE TABLE IF NOT EXISTS public.horarios_especiais_loja (
+                    id_horario_especial SERIAL PRIMARY KEY,
+                    id_loja INTEGER NOT NULL,
+                    descricao VARCHAR(160) NOT NULL,
+                    data_inicio DATE NOT NULL,
+                    data_fim DATE NOT NULL,
+                    hora_abertura TIME NULL,
+                    hora_fecho TIME NULL,
+                    minimo_colaboradores_turno INTEGER NULL,
+                    loja_encerrada BOOLEAN NOT NULL DEFAULT FALSE,
+                    observacoes TEXT NULL,
+                    CONSTRAINT fk_horarios_especiais_loja
+                        FOREIGN KEY (id_loja) REFERENCES public.lojas(id_loja),
+                    CONSTRAINT ck_horarios_especiais_periodo
+                        CHECK (data_inicio <= data_fim),
+                    CONSTRAINT ck_horarios_especiais_horas
+                        CHECK (
+                            (hora_abertura IS NULL AND hora_fecho IS NULL)
+                            OR (hora_abertura IS NOT NULL AND hora_fecho IS NOT NULL AND hora_abertura < hora_fecho)
+                        ),
+                    CONSTRAINT ck_horarios_especiais_minimo
+                        CHECK (minimo_colaboradores_turno IS NULL OR minimo_colaboradores_turno > 0)
+                )
+                """
+        );
+
+        jdbcTemplate.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_horarios_especiais_loja_periodo
+                    ON public.horarios_especiais_loja (id_loja, data_inicio, data_fim)
+                """
+        );
+    }
+
     private String normalizarTexto(String texto) {
         if (texto == null) {
             return "";
@@ -456,6 +703,12 @@ abstract class FluxosCriticosTestSupport {
             LojaFixture lojaFixture,
             LocalDate referencia,
             List<Turno> turnos
+    ) {
+    }
+
+    private record SequenciaTabela(
+            String tabela,
+            String colunaId
     ) {
     }
 }

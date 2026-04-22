@@ -18,6 +18,37 @@ CREATE TABLE IF NOT EXISTS public.eventos_auditoria (
         FOREIGN KEY (id_utilizador) REFERENCES public.utilizadores(id_utilizador)
 );
 
+ALTER TABLE public.eventos_auditoria
+    ADD COLUMN IF NOT EXISTS origem varchar(80);
+
+ALTER TABLE public.eventos_auditoria
+    ADD COLUMN IF NOT EXISTS detalhes text;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'eventos_auditoria'
+          AND column_name = 'detalhe'
+    ) THEN
+        EXECUTE '
+            UPDATE public.eventos_auditoria
+            SET detalhes = COALESCE(detalhes, detalhe)
+        ';
+    END IF;
+END $$;
+
+UPDATE public.eventos_auditoria
+SET origem = COALESCE(NULLIF(origem, ''), 'sistema');
+
+ALTER TABLE public.eventos_auditoria
+    ALTER COLUMN origem SET DEFAULT 'sistema';
+
+ALTER TABLE public.eventos_auditoria
+    ALTER COLUMN origem SET NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_eventos_auditoria_data
     ON public.eventos_auditoria (data_evento DESC);
 
@@ -61,6 +92,22 @@ CREATE TABLE IF NOT EXISTS public.propostas_horario_mensal (
         FOREIGN KEY (id_utilizador_geracao) REFERENCES public.utilizadores(id_utilizador)
 );
 
+ALTER TABLE public.propostas_horario_mensal
+    ADD COLUMN IF NOT EXISTS id_utilizador_decisao integer;
+
+ALTER TABLE public.propostas_horario_mensal
+    ADD COLUMN IF NOT EXISTS data_decisao timestamp without time zone;
+
+ALTER TABLE public.propostas_horario_mensal
+    ADD COLUMN IF NOT EXISTS observacoes_supervisor text;
+
+ALTER TABLE public.propostas_horario_mensal
+    DROP CONSTRAINT IF EXISTS fk_proposta_horario_decisao_utilizador;
+
+ALTER TABLE public.propostas_horario_mensal
+    ADD CONSTRAINT fk_proposta_horario_decisao_utilizador
+        FOREIGN KEY (id_utilizador_decisao) REFERENCES public.utilizadores(id_utilizador);
+
 ALTER TABLE public.horarios
     ADD COLUMN IF NOT EXISTS id_proposta_horario integer;
 
@@ -71,10 +118,38 @@ ALTER TABLE public.horarios
     ADD CONSTRAINT fk_horarios_proposta_horario
         FOREIGN KEY (id_proposta_horario) REFERENCES public.propostas_horario_mensal(id_proposta_horario);
 
+CREATE TABLE IF NOT EXISTS public.horarios_especiais_loja (
+    id_horario_especial SERIAL PRIMARY KEY,
+    id_loja INTEGER NOT NULL,
+    descricao VARCHAR(160) NOT NULL,
+    data_inicio DATE NOT NULL,
+    data_fim DATE NOT NULL,
+    hora_abertura TIME NULL,
+    hora_fecho TIME NULL,
+    minimo_colaboradores_turno INTEGER NULL,
+    loja_encerrada BOOLEAN NOT NULL DEFAULT FALSE,
+    observacoes TEXT NULL,
+    CONSTRAINT fk_horarios_especiais_loja
+        FOREIGN KEY (id_loja) REFERENCES public.lojas(id_loja),
+    CONSTRAINT ck_horarios_especiais_periodo
+        CHECK (data_inicio <= data_fim),
+    CONSTRAINT ck_horarios_especiais_horas
+        CHECK (
+            (hora_abertura IS NULL AND hora_fecho IS NULL)
+            OR (hora_abertura IS NOT NULL AND hora_fecho IS NOT NULL AND hora_abertura < hora_fecho)
+        ),
+    CONSTRAINT ck_horarios_especiais_minimo
+        CHECK (minimo_colaboradores_turno IS NULL OR minimo_colaboradores_turno > 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_horarios_especiais_loja_periodo
+    ON public.horarios_especiais_loja (id_loja, data_inicio, data_fim);
+
 TRUNCATE TABLE
     public.eventos_auditoria,
     public.historico_horario_estados,
     public.permutas,
+    public.horarios_especiais_loja,
     public.horarios,
     public.propostas_horario_mensal,
     public.day_offs,
@@ -212,5 +287,23 @@ INSERT INTO public.eventos_auditoria (
     (4, 'colaborador_criado', 'sucesso', 'gestao_funcionarios', 1, 'francisco.gomes@levis.com', 'sess-demo-gestor', CURRENT_TIMESTAMP - INTERVAL '1 day', 'Colaborador beatriz@levis.com criado na loja Levi''s Braga Parque.'),
     (5, 'logout', 'sucesso', 'sessao', 7, 'francisco@levis.com', 'sess-demo-001', CURRENT_TIMESTAMP - INTERVAL '90 minutes', 'Sessao terminada manualmente.'),
     (6, 'sessao_expirada', 'sucesso', 'sessao', 3, 'henrique.siano@levis.com', 'sess-demo-004', CURRENT_TIMESTAMP - INTERVAL '30 minutes', 'Sessao terminada por inatividade.');
+
+DO $$
+BEGIN
+    PERFORM setval(pg_get_serial_sequence('public.cargos', 'id_cargo'), COALESCE((SELECT MAX(id_cargo) FROM public.cargos), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.lojas', 'id_loja'), COALESCE((SELECT MAX(id_loja) FROM public.lojas), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.regras', 'id_regra'), COALESCE((SELECT MAX(id_regra) FROM public.regras), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.turnos', 'id_turno'), COALESCE((SELECT MAX(id_turno) FROM public.turnos), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.utilizadores', 'id_utilizador'), COALESCE((SELECT MAX(id_utilizador) FROM public.utilizadores), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.lojautilizador', 'id_lojautilizador'), COALESCE((SELECT MAX(id_lojautilizador) FROM public.lojautilizador), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.regras_loja', 'id_regra_loja'), COALESCE((SELECT MAX(id_regra_loja) FROM public.regras_loja), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.horarios', 'id_horario'), COALESCE((SELECT MAX(id_horario) FROM public.horarios), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.day_offs', 'id_dayoff'), COALESCE((SELECT MAX(id_dayoff) FROM public.day_offs), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.preferencias', 'id_preferencia'), COALESCE((SELECT MAX(id_preferencia) FROM public.preferencias), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.horarios_especiais_loja', 'id_horario_especial'), COALESCE((SELECT MAX(id_horario_especial) FROM public.horarios_especiais_loja), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.permutas', 'id_permuta'), COALESCE((SELECT MAX(id_permuta) FROM public.permutas), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.propostas_horario_mensal', 'id_proposta_horario'), COALESCE((SELECT MAX(id_proposta_horario) FROM public.propostas_horario_mensal), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.eventos_auditoria', 'id_evento'), COALESCE((SELECT MAX(id_evento) FROM public.eventos_auditoria), 1), true);
+END $$;
 
 COMMIT;
