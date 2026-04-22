@@ -8,11 +8,10 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
-import javafx.scene.control.Spinner;
-import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -23,13 +22,16 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 @Scope("prototype")
 public class PreferenciasController {
 
     private static final DateTimeFormatter DATA_DECISAO_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @FXML
     private VBox painelFormulario;
@@ -41,13 +43,19 @@ public class PreferenciasController {
     private ComboBox<String> cbTipo;
 
     @FXML
+    private VBox painelColega;
+
+    @FXML
+    private ComboBox<String> cbColegaPreferido;
+
+    @FXML
     private DatePicker dpDataInicio;
 
     @FXML
     private DatePicker dpDataFim;
 
     @FXML
-    private Spinner<Integer> spPrioridade;
+    private CheckBox chkSemDataFim;
 
     @FXML
     private TextArea txtDescricao;
@@ -137,6 +145,7 @@ public class PreferenciasController {
 
     private Utilizador utilizadorLogado;
     private Preferencia preferenciaEmEdicao;
+    private List<String> colegasDaLoja = List.of();
 
     public PreferenciasController(PreferenciaBLL preferenciaBLL) {
         this.preferenciaBLL = preferenciaBLL;
@@ -145,8 +154,6 @@ public class PreferenciasController {
     @FXML
     public void initialize() {
         cbTipo.setItems(FXCollections.observableArrayList("Folgas", "Ferias", "Colegas", "Turnos"));
-        spPrioridade.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 5, 3));
-        spPrioridade.setEditable(false);
 
         configurarTabelaHistoricoProprio();
         configurarTabelaPendentes();
@@ -185,6 +192,7 @@ public class PreferenciasController {
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
         this.utilizadorLogado = utilizadorLogado;
+        carregarColegasDaLoja();
         carregarPreferencias();
         configurarPainelAprovacao();
     }
@@ -197,13 +205,14 @@ public class PreferenciasController {
             }
 
             Preferencia preferencia = preferenciaEmEdicao != null ? preferenciaEmEdicao : new Preferencia();
-            preferencia.setTipo(mapearTipoParaBaseDados(cbTipo.getValue()));
-            preferencia.setDataInicio(dpDataInicio.getValue());
-            preferencia.setDataFim(dpDataFim.getValue());
-            preferencia.setPrioridade(spPrioridade.getValue());
-            preferencia.setDescricao(txtDescricao.getText());
+            String tipoNormalizado = mapearTipoParaBaseDados(cbTipo.getValue());
+            preferencia.setTipo(tipoNormalizado);
+            preferencia.setDataInicio(resolverDataInicio(tipoNormalizado));
+            preferencia.setDataFim(resolverDataFim(tipoNormalizado));
+            preferencia.setPrioridade(null);
+            preferencia.setDescricao(construirDescricaoFinal(tipoNormalizado));
 
-            Preferencia guardada = preferenciaBLL.guardarPreferencia(utilizadorLogado.getId(), preferencia);
+            preferenciaBLL.guardarPreferencia(utilizadorLogado.getId(), preferencia);
             mostrarFeedback(
                     preferenciaEmEdicao == null
                             ? "Preferencia registada com sucesso."
@@ -267,10 +276,10 @@ public class PreferenciasController {
                 new SimpleStringProperty(formatarTipo(cellData.getValue().getTipo())));
 
         colPeriodo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarPeriodo(cellData.getValue().getDataInicio(), cellData.getValue().getDataFim())));
+                new SimpleStringProperty(formatarPeriodo(cellData.getValue())));
 
         colPrioridade.setCellValueFactory(cellData ->
-                new SimpleStringProperty(String.valueOf(cellData.getValue().getPrioridade())));
+                new SimpleStringProperty(formatarVigencia(cellData.getValue())));
 
         colEstado.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
@@ -287,10 +296,10 @@ public class PreferenciasController {
                 new SimpleStringProperty(formatarTipo(cellData.getValue().getTipo())));
 
         colPeriodoPendente.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarPeriodo(cellData.getValue().getDataInicio(), cellData.getValue().getDataFim())));
+                new SimpleStringProperty(formatarPeriodo(cellData.getValue())));
 
         colPrioridadePendente.setCellValueFactory(cellData ->
-                new SimpleStringProperty(String.valueOf(cellData.getValue().getPrioridade())));
+                new SimpleStringProperty(formatarVigencia(cellData.getValue())));
 
         colDescricaoPendente.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarDescricao(cellData.getValue().getDescricao())));
@@ -325,10 +334,13 @@ public class PreferenciasController {
             btnCancelarEdicao.setDisable(false);
 
             cbTipo.setValue(formatarTipo(nova.getTipo()));
+            configurarTipoSelecionado();
             dpDataInicio.setValue(nova.getDataInicio());
+            chkSemDataFim.setSelected(nova.getDataFim() == null && permitePreferenciaSemDataFim(nova.getTipo()));
             dpDataFim.setValue(nova.getDataFim());
-            spPrioridade.getValueFactory().setValue(nova.getPrioridade() != null ? nova.getPrioridade() : 3);
-            txtDescricao.setText(nova.getDescricao());
+            preencherFormularioColegas(nova);
+            txtDescricao.setText(obterNotaLivre(nova));
+            atualizarEstadoDatas();
 
             if (!preferenciaPodeSerEditada(nova)) {
                 mostrarFeedback(
@@ -341,10 +353,15 @@ public class PreferenciasController {
         });
 
         cbTipo.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
+        cbTipo.valueProperty().addListener((obs, antigo, novo) -> configurarTipoSelecionado());
         dpDataInicio.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
         dpDataFim.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
+        cbColegaPreferido.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
+        chkSemDataFim.selectedProperty().addListener((obs, antigo, novo) -> {
+            atualizarEstadoDatas();
+            esconderFeedback();
+        });
         txtDescricao.textProperty().addListener((obs, antigo, novo) -> esconderFeedback());
-        spPrioridade.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
 
         tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
             txtDecisaoGestor.clear();
@@ -411,10 +428,16 @@ public class PreferenciasController {
         btnCancelarEdicao.setDisable(true);
 
         cbTipo.setValue(null);
+        cbColegaPreferido.setValue(null);
         dpDataInicio.setValue(null);
         dpDataFim.setValue(null);
-        spPrioridade.getValueFactory().setValue(3);
+        chkSemDataFim.setSelected(false);
         txtDescricao.clear();
+        painelColega.setManaged(false);
+        painelColega.setVisible(false);
+        dpDataFim.setDisable(false);
+        dpDataFim.setPromptText("Opcional");
+        txtDescricao.setPromptText("Explica a tua preferencia com detalhe suficiente para ser analisada.");
     }
 
     private void tratarDecisaoPreferencia(boolean aprovar) {
@@ -533,16 +556,31 @@ public class PreferenciasController {
         return decisao;
     }
 
-    private String formatarPeriodo(LocalDate dataInicio, LocalDate dataFim) {
+    private String formatarPeriodo(Preferencia preferencia) {
+        if (preferencia == null) {
+            return "Sem periodo definido";
+        }
+
+        return formatarPeriodo(preferencia.getDataInicio(), preferencia.getDataFim(), preferencia.getTipo());
+    }
+
+    private String formatarPeriodo(LocalDate dataInicio, LocalDate dataFim, String tipo) {
         if (dataInicio == null && dataFim == null) {
             return "Sem periodo definido";
         }
 
-        if (dataInicio != null && dataFim != null) {
-            return dataInicio + " a " + dataFim;
+        if (dataInicio != null && dataFim == null) {
+            if (preferenciaPermiteSemDataFim(tipo)) {
+                return "Desde " + DATA_FORMATTER.format(dataInicio);
+            }
+            return DATA_FORMATTER.format(dataInicio);
         }
 
-        return String.valueOf(dataInicio);
+        if (dataInicio != null && dataFim != null) {
+            return DATA_FORMATTER.format(dataInicio) + " a " + DATA_FORMATTER.format(dataFim);
+        }
+
+        return DATA_FORMATTER.format(dataInicio);
     }
 
     private String formatarDataDecisao(LocalDateTime dataDecisao) {
@@ -566,10 +604,190 @@ public class PreferenciasController {
         return descricao;
     }
 
+    private String formatarVigencia(Preferencia preferencia) {
+        if (preferencia == null) {
+            return "-";
+        }
+
+        if (preferencia.getDataFim() == null && preferencia.getDataInicio() != null) {
+            if (!preferenciaPermiteSemDataFim(preferencia.getTipo())) {
+                return "Data unica";
+            }
+            return "Permanente";
+        }
+
+        if (preferencia.getDataInicio() != null || preferencia.getDataFim() != null) {
+            return "Temporaria";
+        }
+
+        return "Sem periodo";
+    }
+
     private boolean preferenciaPodeSerEditada(Preferencia preferencia) {
         return preferencia != null
                 && (preferencia.getEstado() == null
                 || preferencia.getEstado().isBlank()
                 || "pendente".equalsIgnoreCase(preferencia.getEstado()));
+    }
+
+    private void carregarColegasDaLoja() {
+        if (utilizadorLogado == null) {
+            colegasDaLoja = List.of();
+            cbColegaPreferido.setItems(FXCollections.observableArrayList());
+            cbColegaPreferido.setPromptText("Sem colegas disponiveis");
+            return;
+        }
+
+        colegasDaLoja = new ArrayList<>(preferenciaBLL.listarColegasDaLoja(utilizadorLogado.getId()));
+        cbColegaPreferido.setItems(FXCollections.observableArrayList(colegasDaLoja));
+        cbColegaPreferido.setPromptText(colegasDaLoja.isEmpty()
+                ? "Sem colegas disponiveis"
+                : "Seleciona um colega");
+    }
+
+    private void configurarTipoSelecionado() {
+        String tipoSelecionado = cbTipo.getValue();
+        boolean tipoColegas = "Colegas".equals(tipoSelecionado);
+        boolean permiteSemFim = permitePreferenciaSemDataFim(tipoSelecionado);
+
+        painelColega.setManaged(tipoColegas);
+        painelColega.setVisible(tipoColegas);
+
+        if (!tipoColegas) {
+            cbColegaPreferido.setValue(null);
+        }
+
+        chkSemDataFim.setDisable(!permiteSemFim);
+        if (!permiteSemFim) {
+            chkSemDataFim.setSelected(false);
+        }
+
+        if (tipoColegas) {
+            txtDescricao.setPromptText("Se quiseres, acrescenta contexto adicional para esta preferencia.");
+        } else if ("Turnos".equals(tipoSelecionado)) {
+            txtDescricao.setPromptText("Indica os turnos que preferes e algum contexto adicional.");
+        } else if ("Folgas".equals(tipoSelecionado) || "Ferias".equals(tipoSelecionado)) {
+            txtDescricao.setPromptText("Explica a tua preferencia com o contexto necessario para analise.");
+        } else {
+            txtDescricao.setPromptText("Explica a tua preferencia com detalhe suficiente para ser analisada.");
+        }
+
+        atualizarEstadoDatas();
+    }
+
+    private boolean permitePreferenciaSemDataFim(String tipoSelecionado) {
+        String tipoNormalizado = normalizarTipoInterface(tipoSelecionado);
+        return "colegas".equals(tipoNormalizado) || "turnos".equals(tipoNormalizado);
+    }
+
+    private void atualizarEstadoDatas() {
+        boolean semDataFim = chkSemDataFim.isSelected() && !chkSemDataFim.isDisable();
+        dpDataFim.setDisable(semDataFim);
+        if (semDataFim) {
+            dpDataFim.setValue(null);
+            dpDataFim.setPromptText("Sem data fim");
+            if (dpDataInicio.getValue() == null) {
+                dpDataInicio.setValue(LocalDate.now());
+            }
+        } else {
+            dpDataFim.setPromptText("Opcional");
+        }
+    }
+
+    private LocalDate resolverDataInicio(String tipoNormalizado) {
+        LocalDate dataInicioSelecionada = dpDataInicio.getValue();
+        if (dataInicioSelecionada != null) {
+            return dataInicioSelecionada;
+        }
+
+        if ("colegas".equals(tipoNormalizado) || "turnos".equals(tipoNormalizado)) {
+            return LocalDate.now();
+        }
+
+        return null;
+    }
+
+    private LocalDate resolverDataFim(String tipoNormalizado) {
+        if (chkSemDataFim.isSelected() && preferenciaPermiteSemDataFim(tipoNormalizado)) {
+            return null;
+        }
+        return dpDataFim.getValue();
+    }
+
+    private String construirDescricaoFinal(String tipoNormalizado) {
+        String textoLivre = limparTexto(txtDescricao.getText());
+
+        if ("colegas".equals(tipoNormalizado)) {
+            String colega = cbColegaPreferido.getValue();
+            if (colega == null || colega.isBlank()) {
+                throw new IllegalArgumentException("Seleciona o colega com quem queres trabalhar.");
+            }
+
+            if (textoLivre == null) {
+                return "Colega preferido: " + colega + ".";
+            }
+            return "Colega preferido: " + colega + ". Nota adicional: " + textoLivre;
+        }
+
+        if (textoLivre == null) {
+            throw new IllegalArgumentException("Indica uma descricao para a preferencia.");
+        }
+        return textoLivre;
+    }
+
+    private void preencherFormularioColegas(Preferencia preferencia) {
+        if (!"colegas".equalsIgnoreCase(preferencia.getTipo())) {
+            cbColegaPreferido.setValue(null);
+            return;
+        }
+
+        String descricao = preferencia.getDescricao();
+        if (descricao == null || descricao.isBlank()) {
+            cbColegaPreferido.setValue(null);
+            return;
+        }
+
+        String descricaoNormalizada = descricao.toLowerCase(Locale.ROOT);
+        for (String colega : colegasDaLoja) {
+            if (descricaoNormalizada.contains(colega.toLowerCase(Locale.ROOT))) {
+                cbColegaPreferido.setValue(colega);
+                return;
+            }
+        }
+        cbColegaPreferido.setValue(null);
+    }
+
+    private String obterNotaLivre(Preferencia preferencia) {
+        if (preferencia == null || preferencia.getDescricao() == null) {
+            return "";
+        }
+
+        String descricao = preferencia.getDescricao().trim();
+        if (!"colegas".equalsIgnoreCase(preferencia.getTipo())) {
+            return descricao;
+        }
+
+        int indiceNota = descricao.indexOf("Nota adicional:");
+        if (indiceNota >= 0) {
+            return descricao.substring(indiceNota + "Nota adicional:".length()).trim();
+        }
+        return "";
+    }
+
+    private String limparTexto(String texto) {
+        if (texto == null) {
+            return null;
+        }
+        String textoLimpo = texto.trim();
+        return textoLimpo.isEmpty() ? null : textoLimpo;
+    }
+
+    private String normalizarTipoInterface(String tipoSelecionado) {
+        return tipoSelecionado == null ? "" : tipoSelecionado.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean preferenciaPermiteSemDataFim(String tipo) {
+        String tipoNormalizado = normalizarTipoInterface(tipo);
+        return "colegas".equals(tipoNormalizado) || "turnos".equals(tipoNormalizado);
     }
 }
