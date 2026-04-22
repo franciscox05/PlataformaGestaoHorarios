@@ -47,6 +47,24 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
             "JOIN u.lojautilizadors lu " +
             "JOIN FETCH lu.idLoja l " +
             "LEFT JOIN FETCH p.idDecisor d " +
+            "WHERE l.id = :idLoja " +
+            "AND lu.dataFim IS NULL " +
+            "AND LOWER(p.estado) = 'pendente' " +
+            "AND u.id <> :idUtilizadorAprovador " +
+            "AND ((p.dataInicio IS NULL) OR p.dataInicio <= :dataFim) " +
+            "AND ((p.dataFim IS NULL) OR p.dataFim >= :dataInicio) " +
+            "ORDER BY CASE WHEN p.dataInicio IS NULL THEN 1 ELSE 0 END, p.dataInicio ASC, p.prioridade DESC, p.id DESC")
+    List<Preferencia> findPreferenciasPendentesRelevantesDaLoja(@Param("idLoja") Integer idLoja,
+                                                                @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador,
+                                                                @Param("dataInicio") LocalDate dataInicio,
+                                                                @Param("dataFim") LocalDate dataFim);
+
+    @Query("SELECT p " +
+            "FROM Preferencia p " +
+            "JOIN FETCH p.idUtilizador u " +
+            "JOIN u.lojautilizadors lu " +
+            "JOIN FETCH lu.idLoja l " +
+            "LEFT JOIN FETCH p.idDecisor d " +
             "WHERE p.id = :idPreferencia " +
             "AND l.id = :idLoja " +
             "AND lu.dataFim IS NULL")

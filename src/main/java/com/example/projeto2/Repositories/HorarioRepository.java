@@ -108,6 +108,21 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH h.idTurno t " +
             "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE l.id = :idLoja " +
+            "AND h.dataTurno = :data " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
+            "AND lu.dataFim IS NULL " +
+            "ORDER BY u.nome ASC, h.dataTurno ASC, t.horaInicio ASC")
+    List<Horario> findHorariosDaLojaNoDia(@Param("idLoja") Integer idLoja,
+                                          @Param("data") LocalDate data);
+
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
+            "WHERE l.id = :idLoja " +
             "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
             "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
             "AND lu.dataFim IS NULL " +

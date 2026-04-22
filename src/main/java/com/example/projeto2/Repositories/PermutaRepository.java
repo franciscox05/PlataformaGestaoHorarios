@@ -53,6 +53,27 @@ public interface PermutaRepository extends JpaRepository<Permuta, Integer> {
             "JOIN FETCH hd.idLojautilizador lud " +
             "JOIN FETCH lud.idUtilizador ud " +
             "JOIN FETCH lud.idLoja ld " +
+            "WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
+            "AND lo.id = :idLoja " +
+            "AND uo.id <> :idUtilizadorAprovador " +
+            "AND ho.dataTurno BETWEEN :dataInicio AND :dataFim " +
+            "ORDER BY ho.dataTurno ASC, p.dataPedido ASC, p.id ASC")
+    List<Permuta> findPedidosPendentesDaLojaEntreDatas(@Param("idLoja") Integer idLoja,
+                                                       @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador,
+                                                       @Param("dataInicio") java.time.LocalDate dataInicio,
+                                                       @Param("dataFim") java.time.LocalDate dataFim);
+
+    @Query("SELECT p FROM Permuta p " +
+            "JOIN FETCH p.idHorarioOrigem ho " +
+            "JOIN FETCH ho.idTurno hto " +
+            "JOIN FETCH ho.idLojautilizador luo " +
+            "JOIN FETCH luo.idUtilizador uo " +
+            "JOIN FETCH luo.idLoja lo " +
+            "JOIN FETCH p.idHorarioDestino hd " +
+            "JOIN FETCH hd.idTurno htd " +
+            "JOIN FETCH hd.idLojautilizador lud " +
+            "JOIN FETCH lud.idUtilizador ud " +
+            "JOIN FETCH lud.idLoja ld " +
             "WHERE p.id = :idPermuta")
     java.util.Optional<Permuta> findDetalhadaById(@Param("idPermuta") Integer idPermuta);
 
