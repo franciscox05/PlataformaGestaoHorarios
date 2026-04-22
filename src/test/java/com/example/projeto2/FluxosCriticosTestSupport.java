@@ -432,6 +432,8 @@ abstract class FluxosCriticosTestSupport {
         criarRegra("000 Carga contratual mensal full-time (horas)", 176, "contratual");
         criarRegra("000 Carga contratual mensal part-time (horas)", 96, "contratual");
         criarRegra("000 Carga contratual mensal reforco de fim de semana (horas)", 64, "contratual");
+        criarRegra("000 Descanso semanal minimo (dias)", 2, "descanso");
+        criarRegra("000 Janela de rotacao de fins de semana (semanas)", 2, "descanso");
     }
 
     private void aplicarOverridesGeracaoDeterministicos(Loja loja) {
@@ -481,6 +483,12 @@ abstract class FluxosCriticosTestSupport {
         }
         if (texto.contains("descanso") && (texto.contains("hora") || texto.contains("interval"))) {
             return 11;
+        }
+        if (texto.contains("descanso") && (texto.contains("seman") || texto.contains("folga")) && texto.contains("dia")) {
+            return 2;
+        }
+        if ((texto.contains("rotacao") || texto.contains("janela")) && (texto.contains("fim de semana") || texto.contains("weekend"))) {
+            return 2;
         }
         if (texto.contains("carga") && (texto.contains("contrat") || texto.contains("mensal"))) {
             if (texto.contains("gestao") || texto.contains("gerencia") || texto.contains("gestor") || texto.contains("supervisor")) {

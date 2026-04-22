@@ -184,7 +184,9 @@ INSERT INTO public.regras (id_regra, descricao, valor_padrao, tipo) VALUES
     (4, 'Carga contratual mensal gestao (horas)', 176, 'contratual'),
     (5, 'Carga contratual mensal full-time (horas)', 176, 'contratual'),
     (6, 'Carga contratual mensal part-time (horas)', 96, 'contratual'),
-    (7, 'Carga contratual mensal reforco de fim de semana (horas)', 64, 'contratual');
+    (7, 'Carga contratual mensal reforco de fim de semana (horas)', 64, 'contratual'),
+    (8, 'Descanso semanal minimo (dias)', 2, 'descanso'),
+    (9, 'Janela de rotacao de fins de semana (semanas)', 2, 'descanso');
 
 INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifico, observacoes) VALUES
     (1, 1, 1, 3, 'Loja principal da demonstracao com maior afluencia.'),
