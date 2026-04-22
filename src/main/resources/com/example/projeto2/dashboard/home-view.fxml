@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
@@ -20,6 +21,27 @@
             <children>
                 <Label fx:id="lblBemVindo" styleClass="titulo-dashboard" text="Bem-vindo ao Dashboard!" />
                 <Label styleClass="subtitulo" text="Os teus proximos turnos, a equipa da tua loja hoje e o contexto diario da operacao." wrapText="true" />
+
+                <VBox spacing="10.0" styleClass="info-card">
+                    <children>
+                        <Label styleClass="card-titulo" text="Acoes Rapidas" />
+                        <Label styleClass="texto-ajuda" text="Usa estes atalhos para saltares diretamente para a proxima acao util, sem andares a navegar pelo menu lateral." wrapText="true" />
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <children>
+                                <Button fx:id="btnAtalhoFolga" onAction="#onAtalhoFolgaClick" styleClass="botao-acao" text="Pedir folga" />
+                                <Button fx:id="btnAtalhoPreferencias" onAction="#onAtalhoPreferenciasClick" styleClass="botao-secundario" text="Preferencias" />
+                                <Button fx:id="btnAtalhoPerfil" onAction="#onAtalhoPerfilClick" styleClass="botao-secundario" text="Perfil" />
+                            </children>
+                        </HBox>
+                        <HBox fx:id="painelAcoesGestao" alignment="CENTER_LEFT" managed="false" spacing="10.0" visible="false">
+                            <children>
+                                <Button fx:id="btnAtalhoPainelGerente" onAction="#onAtalhoPainelGerenteClick" styleClass="botao-secundario" text="Pedidos pendentes" />
+                                <Button fx:id="btnAtalhoHorarios" onAction="#onAtalhoHorariosClick" styleClass="botao-secundario" text="Geracao de horarios" />
+                                <Button fx:id="btnAtalhoRelatorios" onAction="#onAtalhoRelatoriosClick" styleClass="botao-secundario" text="Relatorios" />
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
 
                 <HBox alignment="TOP_CENTER" spacing="20.0">
                     <children>

@@ -8,6 +8,7 @@ import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -31,6 +32,27 @@ public class HomeController {
 
     @FXML
     private Label lblBemVindo;
+
+    @FXML
+    private Button btnAtalhoFolga;
+
+    @FXML
+    private Button btnAtalhoPreferencias;
+
+    @FXML
+    private Button btnAtalhoPerfil;
+
+    @FXML
+    private VBox painelAcoesGestao;
+
+    @FXML
+    private Button btnAtalhoPainelGerente;
+
+    @FXML
+    private Button btnAtalhoHorarios;
+
+    @FXML
+    private Button btnAtalhoRelatorios;
 
     @FXML
     private TableView<Horario> tabelaTurnos;
@@ -105,6 +127,7 @@ public class HomeController {
     private final SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
     private final GestaoLojaBLL gestaoLojaBLL;
     private Utilizador utilizadorLogado;
+    private DashboardNavigator dashboardNavigation;
 
     public HomeController(HorarioBLL horarioBll,
                           SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL,
@@ -131,6 +154,52 @@ public class HomeController {
         configurarVisibilidadePainelOperacao();
     }
 
+    public void setDashboardNavigation(DashboardNavigator dashboardNavigation) {
+        this.dashboardNavigation = dashboardNavigation;
+    }
+
+    @FXML
+    public void onAtalhoFolgaClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirFolgas();
+        }
+    }
+
+    @FXML
+    public void onAtalhoPreferenciasClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirPreferencias();
+        }
+    }
+
+    @FXML
+    public void onAtalhoPerfilClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirPerfil();
+        }
+    }
+
+    @FXML
+    public void onAtalhoPainelGerenteClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirPainelGerente();
+        }
+    }
+
+    @FXML
+    public void onAtalhoHorariosClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirHorarios();
+        }
+    }
+
+    @FXML
+    public void onAtalhoRelatoriosClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirRelatorios();
+        }
+    }
+
     private void configurarTabelaTurnos() {
         colData.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarData(cellData.getValue().getDataTurno())));
@@ -146,7 +215,7 @@ public class HomeController {
         colEstado.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
 
-        tabelaTurnos.setPlaceholder(new Label("Ainda nao tens turnos futuros atribuidos."));
+        tabelaTurnos.setPlaceholder(new Label("Ainda nao tens turnos futuros atribuidos. Usa as preferencias ou o painel de folgas para te antecipares ao proximo horario."));
     }
 
     private void configurarTabelaEquipaHoje() {
@@ -161,7 +230,7 @@ public class HomeController {
         colEstadoHoje.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
 
-        tabelaEquipaHoje.setPlaceholder(new Label("Nao ha equipa escalada para hoje na tua loja."));
+        tabelaEquipaHoje.setPlaceholder(new Label("Nao ha equipa escalada para hoje na tua loja. O painel diario abaixo pode ajudar-te a validar outros dias."));
     }
 
     private void configurarTabelaOperacaoLoja() {
@@ -177,7 +246,7 @@ public class HomeController {
         colOperacaoEstado.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstadosOperacao(cellData.getValue().turnos())));
 
-        tabelaOperacaoLoja.setPlaceholder(new Label("Nao existe equipa escalada para o periodo selecionado."));
+        tabelaOperacaoLoja.setPlaceholder(new Label("Nao existe equipa escalada para o periodo selecionado. Usa o atalho de horarios para rever o planeamento."));
     }
 
     private void configurarPainelOperacao() {
@@ -223,6 +292,8 @@ public class HomeController {
 
         painelOperacaoLoja.setManaged(podeGerirLoja);
         painelOperacaoLoja.setVisible(podeGerirLoja);
+        painelAcoesGestao.setManaged(podeGerirLoja);
+        painelAcoesGestao.setVisible(podeGerirLoja);
 
         if (podeGerirLoja) {
             carregarOperacaoLoja();

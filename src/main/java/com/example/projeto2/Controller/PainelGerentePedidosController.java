@@ -183,11 +183,24 @@ public class PainelGerentePedidosController {
     @FXML
     private Button btnRejeitarPreferencia;
 
+    @FXML
+    private Button btnAtalhoFolgas;
+
+    @FXML
+    private Button btnAtalhoPermutas;
+
+    @FXML
+    private Button btnAtalhoPreferencias;
+
+    @FXML
+    private Button btnAtalhoHorarios;
+
     private final PainelGerenteBLL painelGerenteBLL;
     private final SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
     private Utilizador utilizadorLogado;
     private Map<Integer, String> nomesFolgasPendentes = Map.of();
     private boolean aSincronizarSelecao;
+    private DashboardNavigator dashboardNavigation;
 
     public PainelGerentePedidosController(PainelGerenteBLL painelGerenteBLL,
                                           SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL) {
@@ -234,6 +247,10 @@ public class PainelGerentePedidosController {
         carregarPainel();
     }
 
+    public void setDashboardNavigation(DashboardNavigator dashboardNavigation) {
+        this.dashboardNavigation = dashboardNavigation;
+    }
+
     @FXML
     public void onAprovarFolgaClick() {
         tratarFolga(true);
@@ -262,6 +279,34 @@ public class PainelGerentePedidosController {
     @FXML
     public void onRejeitarPreferenciaClick() {
         tratarPreferencia(false);
+    }
+
+    @FXML
+    public void onAtalhoFolgasClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirFolgas();
+        }
+    }
+
+    @FXML
+    public void onAtalhoPermutasClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirPermutas();
+        }
+    }
+
+    @FXML
+    public void onAtalhoPreferenciasClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirPreferencias();
+        }
+    }
+
+    @FXML
+    public void onAtalhoHorariosClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirHorarios();
+        }
     }
 
     private void configurarTabelaFolgas() {
