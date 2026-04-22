@@ -1,6 +1,7 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.PainelGerenteBLL;
+import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Permuta;
 import com.example.projeto2.Modules.Preferencia;
@@ -14,6 +15,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.VBox;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -59,6 +62,57 @@ public class PainelGerentePedidosController {
 
     @FXML
     private Label lblFeedbackPreferencias;
+
+    @FXML
+    private VBox painelContextoOperacional;
+
+    @FXML
+    private Label lblContextoPedidoSelecionado;
+
+    @FXML
+    private Label lblContextoPeriodo;
+
+    @FXML
+    private Label lblContextoResumo;
+
+    @FXML
+    private Label lblContextoColaboradoresEscalados;
+
+    @FXML
+    private Label lblContextoTurnosPlaneados;
+
+    @FXML
+    private Label lblContextoAusencias;
+
+    @FXML
+    private Label lblContextoPedidosPendentes;
+
+    @FXML
+    private TableView<SnapshotOperacionalLojaBLL.ColaboradorContexto> tabelaColaboradoresEnvolvidos;
+
+    @FXML
+    private TableColumn<SnapshotOperacionalLojaBLL.ColaboradorContexto, String> colContextoColaborador;
+
+    @FXML
+    private TableColumn<SnapshotOperacionalLojaBLL.ColaboradorContexto, String> colContextoCargo;
+
+    @FXML
+    private TableColumn<SnapshotOperacionalLojaBLL.ColaboradorContexto, String> colContextoTurnos;
+
+    @FXML
+    private TableColumn<SnapshotOperacionalLojaBLL.ColaboradorContexto, String> colContextoAusencias;
+
+    @FXML
+    private TableView<SnapshotOperacionalLojaBLL.ColaboradorEscala> tabelaEscalaLoja;
+
+    @FXML
+    private TableColumn<SnapshotOperacionalLojaBLL.ColaboradorEscala, String> colEscalaColaborador;
+
+    @FXML
+    private TableColumn<SnapshotOperacionalLojaBLL.ColaboradorEscala, String> colEscalaCargo;
+
+    @FXML
+    private TableColumn<SnapshotOperacionalLojaBLL.ColaboradorEscala, String> colEscalaTurnos;
 
     @FXML
     private TableView<DayOff> tabelaFolgasPendentes;
@@ -130,11 +184,15 @@ public class PainelGerentePedidosController {
     private Button btnRejeitarPreferencia;
 
     private final PainelGerenteBLL painelGerenteBLL;
+    private final SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
     private Utilizador utilizadorLogado;
     private Map<Integer, String> nomesFolgasPendentes = Map.of();
+    private boolean aSincronizarSelecao;
 
-    public PainelGerentePedidosController(PainelGerenteBLL painelGerenteBLL) {
+    public PainelGerentePedidosController(PainelGerenteBLL painelGerenteBLL,
+                                          SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL) {
         this.painelGerenteBLL = painelGerenteBLL;
+        this.snapshotOperacionalLojaBLL = snapshotOperacionalLojaBLL;
     }
 
     @FXML
@@ -142,14 +200,18 @@ public class PainelGerentePedidosController {
         configurarTabelaFolgas();
         configurarTabelaPermutas();
         configurarTabelaPreferencias();
+        configurarTabelasContexto();
 
         esconderFeedback(lblFeedbackFolgas);
         esconderFeedback(lblFeedbackPermutas);
         esconderFeedback(lblFeedbackPreferencias);
+        limparContextoOperacional();
 
         tabelaFolgasPendentes.setPlaceholder(new Label("Nao existem pedidos de folga pendentes nesta loja."));
         tabelaPermutasPendentes.setPlaceholder(new Label("Nao existem pedidos de permuta pendentes nesta loja."));
         tabelaPreferenciasPendentes.setPlaceholder(new Label("Nao existem preferencias pendentes nesta loja."));
+        tabelaColaboradoresEnvolvidos.setPlaceholder(new Label("Seleciona um pedido para ver os colaboradores envolvidos."));
+        tabelaEscalaLoja.setPlaceholder(new Label("Seleciona um pedido para ver a escala da loja no periodo relevante."));
 
         btnAprovarFolga.disableProperty().bind(Bindings.isNull(tabelaFolgasPendentes.getSelectionModel().selectedItemProperty()));
         btnRejeitarFolga.disableProperty().bind(Bindings.isNull(tabelaFolgasPendentes.getSelectionModel().selectedItemProperty()));
@@ -163,6 +225,8 @@ public class PainelGerentePedidosController {
             txtDecisaoPreferencia.clear();
             esconderFeedback(lblFeedbackPreferencias);
         });
+
+        configurarSelecaoContextual();
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -242,10 +306,69 @@ public class PainelGerentePedidosController {
                 new SimpleStringProperty(formatarPeriodo(cellData.getValue().getDataInicio(), cellData.getValue().getDataFim())));
 
         colPreferenciaPrioridade.setCellValueFactory(cellData ->
-                new SimpleStringProperty(String.valueOf(cellData.getValue().getPrioridade())));
+                new SimpleStringProperty(formatarVigencia(cellData.getValue())));
 
         colPreferenciaDescricao.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTexto(cellData.getValue().getDescricao())));
+    }
+
+    private void configurarTabelasContexto() {
+        colContextoColaborador.setCellValueFactory(cellData ->
+                new SimpleStringProperty(formatarTexto(cellData.getValue().nome())));
+        colContextoCargo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(formatarTexto(cellData.getValue().cargo())));
+        colContextoTurnos.setCellValueFactory(cellData ->
+                new SimpleStringProperty(formatarTurnosColaborador(cellData.getValue().turnosNoPeriodo())));
+        colContextoAusencias.setCellValueFactory(cellData ->
+                new SimpleStringProperty(formatarAusenciasColaborador(cellData.getValue().ausenciasNoPeriodo())));
+
+        colEscalaColaborador.setCellValueFactory(cellData ->
+                new SimpleStringProperty(formatarTexto(cellData.getValue().nome())));
+        colEscalaCargo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(formatarTexto(cellData.getValue().cargo())));
+        colEscalaTurnos.setCellValueFactory(cellData ->
+                new SimpleStringProperty(formatarTurnosEscala(cellData.getValue().turnos())));
+    }
+
+    private void configurarSelecaoContextual() {
+        tabelaFolgasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
+            if (aSincronizarSelecao) {
+                return;
+            }
+
+            if (nova != null) {
+                limparSelecoesExcepto(SnapshotOperacionalLojaBLL.TipoPedidoOperacional.FOLGA);
+                carregarContextoOperacional(SnapshotOperacionalLojaBLL.TipoPedidoOperacional.FOLGA, nova.getIdDayoff());
+            } else if (!haPedidoSelecionado()) {
+                limparContextoOperacional();
+            }
+        });
+
+        tabelaPermutasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
+            if (aSincronizarSelecao) {
+                return;
+            }
+
+            if (nova != null) {
+                limparSelecoesExcepto(SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PERMUTA);
+                carregarContextoOperacional(SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PERMUTA, nova.getId());
+            } else if (!haPedidoSelecionado()) {
+                limparContextoOperacional();
+            }
+        });
+
+        tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
+            if (aSincronizarSelecao) {
+                return;
+            }
+
+            if (nova != null) {
+                limparSelecoesExcepto(SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PREFERENCIA);
+                carregarContextoOperacional(SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PREFERENCIA, nova.getId());
+            } else if (!haPedidoSelecionado()) {
+                limparContextoOperacional();
+            }
+        });
     }
 
     private void carregarPainel() {
@@ -274,6 +397,9 @@ public class PainelGerentePedidosController {
 
             tabelaPreferenciasPendentes.setItems(FXCollections.observableArrayList(snapshot.preferenciasPendentes()));
             tabelaPreferenciasPendentes.refresh();
+            if (!haPedidoSelecionado()) {
+                limparContextoOperacional();
+            }
         } catch (IllegalArgumentException e) {
             mostrarFeedback(lblFeedbackFolgas, e.getMessage(), false);
         }
@@ -295,6 +421,7 @@ public class PainelGerentePedidosController {
             }
 
             tabelaFolgasPendentes.getSelectionModel().clearSelection();
+            limparContextoOperacional();
             carregarPainel();
         } catch (IllegalArgumentException e) {
             mostrarFeedback(lblFeedbackFolgas, e.getMessage(), false);
@@ -319,6 +446,7 @@ public class PainelGerentePedidosController {
             }
 
             tabelaPermutasPendentes.getSelectionModel().clearSelection();
+            limparContextoOperacional();
             carregarPainel();
         } catch (IllegalArgumentException e) {
             mostrarFeedback(lblFeedbackPermutas, e.getMessage(), false);
@@ -344,12 +472,80 @@ public class PainelGerentePedidosController {
 
             txtDecisaoPreferencia.clear();
             tabelaPreferenciasPendentes.getSelectionModel().clearSelection();
+            limparContextoOperacional();
             carregarPainel();
         } catch (IllegalArgumentException e) {
             mostrarFeedback(lblFeedbackPreferencias, e.getMessage(), false);
         } catch (Exception e) {
             mostrarFeedback(lblFeedbackPreferencias, "Nao foi possivel atualizar a preferencia.", false);
         }
+    }
+
+    private void carregarContextoOperacional(SnapshotOperacionalLojaBLL.TipoPedidoOperacional tipoPedido, Integer idPedido) {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+            }
+
+            SnapshotOperacionalLojaBLL.ContextoPedidoOperacional contexto = snapshotOperacionalLojaBLL.carregarContextoPedido(
+                    utilizadorLogado.getId(),
+                    tipoPedido,
+                    idPedido
+            );
+
+            lblContextoPedidoSelecionado.setText(descreverPedido(contexto));
+            lblContextoPeriodo.setText(descreverPeriodoContexto(contexto.snapshotRelacionada().intervalo()));
+            lblContextoResumo.setText(contexto.pedido().resumo());
+
+            lblContextoColaboradoresEscalados.setText(String.valueOf(contexto.snapshotRelacionada().resumo().colaboradoresEscalados()));
+            lblContextoTurnosPlaneados.setText(String.valueOf(contexto.snapshotRelacionada().resumo().turnosPlaneados()));
+            lblContextoAusencias.setText(String.valueOf(contexto.snapshotRelacionada().resumo().ausenciasAprovadas()));
+            lblContextoPedidosPendentes.setText(String.valueOf(contexto.snapshotRelacionada().resumo().totalPedidosPendentes()));
+
+            tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList(contexto.colaboradoresEnvolvidos()));
+            tabelaEscalaLoja.setItems(FXCollections.observableArrayList(contexto.snapshotRelacionada().equipaEscalada()));
+        } catch (IllegalArgumentException e) {
+            lblContextoPedidoSelecionado.setText("Nao foi possivel carregar o contexto operacional.");
+            lblContextoPeriodo.setText("-");
+            lblContextoResumo.setText(e.getMessage());
+            tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList());
+            tabelaEscalaLoja.setItems(FXCollections.observableArrayList());
+        }
+    }
+
+    private void limparContextoOperacional() {
+        lblContextoPedidoSelecionado.setText("Seleciona um pedido pendente para veres o contexto operacional.");
+        lblContextoPeriodo.setText("-");
+        lblContextoResumo.setText("Aqui vao aparecer os colaboradores envolvidos e a escala da loja no periodo relevante.");
+        lblContextoColaboradoresEscalados.setText("0");
+        lblContextoTurnosPlaneados.setText("0");
+        lblContextoAusencias.setText("0");
+        lblContextoPedidosPendentes.setText("0");
+        tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList());
+        tabelaEscalaLoja.setItems(FXCollections.observableArrayList());
+    }
+
+    private void limparSelecoesExcepto(SnapshotOperacionalLojaBLL.TipoPedidoOperacional tipoMantido) {
+        aSincronizarSelecao = true;
+        try {
+            if (tipoMantido != SnapshotOperacionalLojaBLL.TipoPedidoOperacional.FOLGA) {
+                tabelaFolgasPendentes.getSelectionModel().clearSelection();
+            }
+            if (tipoMantido != SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PERMUTA) {
+                tabelaPermutasPendentes.getSelectionModel().clearSelection();
+            }
+            if (tipoMantido != SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PREFERENCIA) {
+                tabelaPreferenciasPendentes.getSelectionModel().clearSelection();
+            }
+        } finally {
+            aSincronizarSelecao = false;
+        }
+    }
+
+    private boolean haPedidoSelecionado() {
+        return tabelaFolgasPendentes.getSelectionModel().getSelectedItem() != null
+                || tabelaPermutasPendentes.getSelectionModel().getSelectedItem() != null
+                || tabelaPreferenciasPendentes.getSelectionModel().getSelectedItem() != null;
     }
 
     private void mostrarFeedback(Label label, String mensagem, boolean sucesso) {
@@ -423,7 +619,25 @@ public class PainelGerentePedidosController {
             return DATA_FORMATTER.format(dataInicio) + " a " + DATA_FORMATTER.format(dataFim);
         }
 
-        return formatarData(dataInicio);
+        return dataInicio != null ? formatarData(dataInicio) : formatarData(dataFim);
+    }
+
+    private String formatarVigencia(Preferencia preferencia) {
+        if (preferencia == null) {
+            return "-";
+        }
+
+        if (preferencia.getDataFim() == null && preferencia.getDataInicio() != null) {
+            return ("colegas".equalsIgnoreCase(preferencia.getTipo()) || "turnos".equalsIgnoreCase(preferencia.getTipo()))
+                    ? "Permanente"
+                    : "Data unica";
+        }
+
+        if (preferencia.getDataInicio() != null || preferencia.getDataFim() != null) {
+            return "Temporaria";
+        }
+
+        return "Sem periodo";
     }
 
     private String formatarTexto(String texto) {
@@ -469,5 +683,65 @@ public class PainelGerentePedidosController {
         }
 
         return horario.getIdLojautilizador().getIdUtilizador().getNome() + " | " + base;
+    }
+
+    private String formatarTurnosColaborador(List<SnapshotOperacionalLojaBLL.TurnoPlaneado> turnos) {
+        if (turnos == null || turnos.isEmpty()) {
+            return "Sem turnos planeados no periodo";
+        }
+
+        return turnos.stream()
+                .map(turno -> formatarData(turno.data()) + " | " + turno.periodo())
+                .reduce((primeiro, segundo) -> primeiro + "; " + segundo)
+                .orElse("-");
+    }
+
+    private String formatarAusenciasColaborador(List<SnapshotOperacionalLojaBLL.AusenciaOperacional> ausencias) {
+        if (ausencias == null || ausencias.isEmpty()) {
+            return "Sem ausencias aprovadas no periodo";
+        }
+
+        return ausencias.stream()
+                .map(ausencia -> formatarData(ausencia.data()) + " | " + ausencia.tipo())
+                .reduce((primeiro, segundo) -> primeiro + "; " + segundo)
+                .orElse("-");
+    }
+
+    private String formatarTurnosEscala(List<SnapshotOperacionalLojaBLL.TurnoPlaneado> turnos) {
+        if (turnos == null || turnos.isEmpty()) {
+            return "Sem turnos planeados";
+        }
+
+        return turnos.stream()
+                .map(turno -> formatarData(turno.data()) + " | " + turno.periodo())
+                .reduce((primeiro, segundo) -> primeiro + "; " + segundo)
+                .orElse("-");
+    }
+
+    private String descreverPedido(SnapshotOperacionalLojaBLL.ContextoPedidoOperacional contexto) {
+        if (contexto == null || contexto.pedido() == null) {
+            return "Contexto operacional indisponivel";
+        }
+
+        return switch (contexto.pedido().tipo()) {
+            case FOLGA -> "Pedido de folga de " + contexto.pedido().colaboradorPrincipal();
+            case PERMUTA -> "Pedido de permuta de " + contexto.pedido().colaboradorPrincipal();
+            case PREFERENCIA -> "Preferencia de " + contexto.pedido().colaboradorPrincipal();
+        };
+    }
+
+    private String descreverPeriodoContexto(SnapshotOperacionalLojaBLL.IntervaloOperacional intervalo) {
+        if (intervalo == null) {
+            return "-";
+        }
+
+        if (intervalo.unicoDia()) {
+            return "Contexto de loja para " + formatarData(intervalo.dataInicio());
+        }
+
+        return "Contexto de loja de "
+                + formatarData(intervalo.dataInicio())
+                + " a "
+                + formatarData(intervalo.dataFim());
     }
 }
