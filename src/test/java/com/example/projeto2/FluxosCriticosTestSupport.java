@@ -2,10 +2,13 @@ package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
 import com.example.projeto2.BLL.GestaoLojaBLL;
+import com.example.projeto2.BLL.DayOffBLL;
+import com.example.projeto2.BLL.PermutaBLL;
 import com.example.projeto2.BLL.PerfilBLL;
 import com.example.projeto2.BLL.PreferenciaBLL;
 import com.example.projeto2.BLL.SegurancaBLL;
 import com.example.projeto2.BLL.SessaoBLL;
+import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
 import com.example.projeto2.BLL.UtilizadorBLL;
 import com.example.projeto2.Modules.Cargo;
 import com.example.projeto2.Modules.DayOff;
@@ -68,7 +71,16 @@ abstract class FluxosCriticosTestSupport {
     protected PreferenciaBLL preferenciaBLL;
 
     @Autowired
+    protected DayOffBLL dayOffBLL;
+
+    @Autowired
+    protected PermutaBLL permutaBLL;
+
+    @Autowired
     protected GeracaoHorariosBLL geracaoHorariosBLL;
+
+    @Autowired
+    protected SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
 
     @Autowired
     protected SegurancaBLL segurancaBLL;

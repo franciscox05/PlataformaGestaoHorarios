@@ -8,6 +8,7 @@ import com.example.projeto2.Repositories.LojautilizadorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,15 +22,18 @@ public class PainelGerenteBLL {
     private final DayOffBLL dayOffBLL;
     private final PermutaBLL permutaBLL;
     private final PreferenciaBLL preferenciaBLL;
+    private final SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
     private final LojautilizadorRepository lojautilizadorRepository;
 
     public PainelGerenteBLL(DayOffBLL dayOffBLL,
                             PermutaBLL permutaBLL,
                             PreferenciaBLL preferenciaBLL,
+                            SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL,
                             LojautilizadorRepository lojautilizadorRepository) {
         this.dayOffBLL = dayOffBLL;
         this.permutaBLL = permutaBLL;
         this.preferenciaBLL = preferenciaBLL;
+        this.snapshotOperacionalLojaBLL = snapshotOperacionalLojaBLL;
         this.lojautilizadorRepository = lojautilizadorRepository;
     }
 
@@ -83,6 +87,20 @@ public class PainelGerenteBLL {
                 permutasPendentes,
                 preferenciasPendentes
         );
+    }
+
+    @Transactional(readOnly = true)
+    public SnapshotOperacionalLojaBLL.SnapshotOperacionalLoja carregarSnapshotOperacionalHoje(Integer idUtilizadorGestor) {
+        validarAcesso(idUtilizadorGestor);
+        return snapshotOperacionalLojaBLL.carregarSnapshot(idUtilizadorGestor, LocalDate.now());
+    }
+
+    @Transactional(readOnly = true)
+    public SnapshotOperacionalLojaBLL.ContextoPedidoOperacional carregarContextoPedido(Integer idUtilizadorGestor,
+                                                                                       SnapshotOperacionalLojaBLL.TipoPedidoOperacional tipoPedido,
+                                                                                       Integer idPedido) {
+        validarAcesso(idUtilizadorGestor);
+        return snapshotOperacionalLojaBLL.carregarContextoPedido(idUtilizadorGestor, tipoPedido, idPedido);
     }
 
     @Transactional
