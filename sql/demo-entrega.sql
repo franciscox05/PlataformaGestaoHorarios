@@ -180,7 +180,11 @@ INSERT INTO public.lojas (id_loja, nome, localizacao, hora_abertura, hora_fecho)
 INSERT INTO public.regras (id_regra, descricao, valor_padrao, tipo) VALUES
     (1, 'Minimo de funcionarios por turno', 2, 'operacional'),
     (2, 'Dia limite de lancamento do horario mensal', 15, 'administrativo'),
-    (3, 'Maximo de horas consecutivas', 8, 'legal');
+    (3, 'Maximo de horas consecutivas', 8, 'legal'),
+    (4, 'Carga contratual mensal gestao (horas)', 176, 'contratual'),
+    (5, 'Carga contratual mensal full-time (horas)', 176, 'contratual'),
+    (6, 'Carga contratual mensal part-time (horas)', 96, 'contratual'),
+    (7, 'Carga contratual mensal reforco de fim de semana (horas)', 64, 'contratual');
 
 INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifico, observacoes) VALUES
     (1, 1, 1, 3, 'Loja principal da demonstracao com maior afluencia.'),
