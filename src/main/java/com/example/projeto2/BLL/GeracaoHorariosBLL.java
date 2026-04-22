@@ -127,6 +127,11 @@ public class GeracaoHorariosBLL {
 
     @Transactional(readOnly = true)
     public PropostaResultado obterProposta(Integer idUtilizador, Integer ano, Integer mes) {
+        return obterPlaneamento(idUtilizador, ano, mes);
+    }
+
+    @Transactional(readOnly = true)
+    public PropostaResultado obterPlaneamento(Integer idUtilizador, Integer ano, Integer mes) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComAcessoAoPainel(idUtilizador);
         int anoNormalizado = normalizarAno(ano);
         int mesNormalizado = normalizarMes(mes);
@@ -138,11 +143,22 @@ public class GeracaoHorariosBLL {
                         mesNormalizado
                 );
 
-        if (proposta.isEmpty()) {
+        if (proposta.isPresent()) {
+            return construirResultado(proposta.get(), horarioRepository.findByIdPropostaHorarioId(proposta.get().getId()));
+        }
+
+        LocalDate dataInicio = LocalDate.of(anoNormalizado, mesNormalizado, 1);
+        LocalDate dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
+        List<Horario> horariosPublicados = horarioRepository.findHorariosDaLojaEntreDatas(
+                ligacaoAtiva.getIdLoja().getId(),
+                dataInicio,
+                dataFim
+        );
+        if (horariosPublicados.isEmpty()) {
             return null;
         }
 
-        return construirResultado(proposta.get(), horarioRepository.findByIdPropostaHorarioId(proposta.get().getId()));
+        return construirResultadoHorariosPublicados(ligacaoAtiva.getIdLoja(), anoNormalizado, mesNormalizado, horariosPublicados);
     }
 
     @Transactional
@@ -1056,6 +1072,71 @@ public class GeracaoHorariosBLL {
     }
 
     private PropostaResultado construirResultado(PropostaHorarioMensal proposta, List<Horario> horarios) {
+        return construirResultado(
+                proposta.getId(),
+                valorOuTraco(proposta.getIdLoja().getNome()),
+                proposta.getAno(),
+                proposta.getMes(),
+                nomeMes(proposta.getMes()),
+                formatarEstado(proposta.getEstado()),
+                construirOrigemPlaneamento(proposta),
+                proposta.getResumoGeracao(),
+                valorOuTraco(proposta.getIdUtilizadorGeracao().getNome()),
+                proposta.getDataGeracao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataGeracao()) : "-",
+                proposta.getIdUtilizadorDecisao() != null ? valorOuTraco(proposta.getIdUtilizadorDecisao().getNome()) : "-",
+                proposta.getDataDecisao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataDecisao()) : "-",
+                valorOuTraco(proposta.getObservacoesSupervisor()),
+                "pendente".equals(normalizarTexto(proposta.getEstado())),
+                horarios
+        );
+    }
+
+    private PropostaResultado construirResultadoHorariosPublicados(Loja loja,
+                                                                   int ano,
+                                                                   int mes,
+                                                                   List<Horario> horarios) {
+        String resumoPublicacao = "Foram encontrados "
+                + horarios.size()
+                + " turnos ja publicados para "
+                + nomeMes(mes).toLowerCase(Locale.ROOT)
+                + " de "
+                + ano
+                + ". Podes consultar o planeamento atual, mesmo sem existir uma proposta mensal guardada.";
+
+        return construirResultado(
+                null,
+                valorOuTraco(loja.getNome()),
+                ano,
+                mes,
+                nomeMes(mes),
+                "Publicado",
+                "Horarios publicados",
+                resumoPublicacao,
+                "-",
+                "-",
+                "-",
+                "-",
+                "Estes horarios ja estao publicados na loja e podem ser analisados diretamente neste ecra.",
+                false,
+                horarios
+        );
+    }
+
+    private PropostaResultado construirResultado(Integer idProposta,
+                                                 String nomeLoja,
+                                                 Integer ano,
+                                                 Integer mes,
+                                                 String nomeMes,
+                                                 String estado,
+                                                 String origemPlaneamento,
+                                                 String resumoGeracao,
+                                                 String geradoPor,
+                                                 String dataGeracao,
+                                                 String decididoPor,
+                                                 String dataDecisao,
+                                                 String observacoesSupervisor,
+                                                 boolean podeSerDecidida,
+                                                 List<Horario> horarios) {
         List<HorarioLinha> linhas = horarios.stream()
                 .sorted(Comparator
                         .comparing(Horario::getDataTurno, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -1103,19 +1184,20 @@ public class GeracaoHorariosBLL {
         }
 
         return new PropostaResultado(
-                proposta.getId(),
-                valorOuTraco(proposta.getIdLoja().getNome()),
-                proposta.getAno(),
-                proposta.getMes(),
-                nomeMes(proposta.getMes()),
-                formatarEstado(proposta.getEstado()),
-                proposta.getResumoGeracao(),
-                valorOuTraco(proposta.getIdUtilizadorGeracao().getNome()),
-                proposta.getDataGeracao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataGeracao()) : "-",
-                proposta.getIdUtilizadorDecisao() != null ? valorOuTraco(proposta.getIdUtilizadorDecisao().getNome()) : "-",
-                proposta.getDataDecisao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataDecisao()) : "-",
-                valorOuTraco(proposta.getObservacoesSupervisor()),
-                "pendente".equals(normalizarTexto(proposta.getEstado())),
+                idProposta,
+                nomeLoja,
+                ano,
+                mes,
+                nomeMes,
+                estado,
+                origemPlaneamento,
+                resumoGeracao,
+                geradoPor,
+                dataGeracao,
+                decididoPor,
+                dataDecisao,
+                observacoesSupervisor,
+                podeSerDecidida,
                 linhas,
                 resumoColaboradores,
                 new ResumoGeral(
@@ -1127,6 +1209,9 @@ public class GeracaoHorariosBLL {
     }
 
     private HorarioLinha mapearLinhaHorario(Horario horario) {
+        Integer idColaborador = horario.getIdLojautilizador() != null && horario.getIdLojautilizador().getIdUtilizador() != null
+                ? horario.getIdLojautilizador().getIdUtilizador().getId()
+                : null;
         String colaborador = horario.getIdLojautilizador() != null && horario.getIdLojautilizador().getIdUtilizador() != null
                 ? valorOuTraco(horario.getIdLojautilizador().getIdUtilizador().getNome())
                 : "-";
@@ -1135,6 +1220,7 @@ public class GeracaoHorariosBLL {
                 : "-";
 
         return new HorarioLinha(
+                idColaborador,
                 horario.getDataTurno(),
                 horario.getDataTurno() != null ? nomeDiaSemana(horario.getDataTurno()) : "-",
                 formatarTurno(horario.getIdTurno()),
@@ -1143,6 +1229,15 @@ public class GeracaoHorariosBLL {
                 cargo,
                 formatarEstado(horario.getEstado())
         );
+    }
+
+    private String construirOrigemPlaneamento(PropostaHorarioMensal proposta) {
+        String estadoNormalizado = normalizarTexto(proposta.getEstado());
+        return switch (estadoNormalizado) {
+            case "aprovado" -> "Horarios publicados a partir de proposta aprovada";
+            case "rejeitado" -> "Proposta mensal rejeitada";
+            default -> "Proposta mensal";
+        };
     }
 
     private Optional<Lojautilizador> obterLigacaoAtiva(Integer idUtilizador) {
@@ -1376,6 +1471,7 @@ public class GeracaoHorariosBLL {
             Integer mes,
             String nomeMes,
             String estado,
+            String origemPlaneamento,
             String resumoGeracao,
             String geradoPor,
             String dataGeracao,
@@ -1390,6 +1486,7 @@ public class GeracaoHorariosBLL {
     }
 
     public record HorarioLinha(
+            Integer idColaborador,
             LocalDate data,
             String diaSemana,
             String turno,

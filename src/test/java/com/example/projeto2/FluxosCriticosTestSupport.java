@@ -13,6 +13,7 @@ import com.example.projeto2.BLL.UtilizadorBLL;
 import com.example.projeto2.Modules.Cargo;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.HistoricoHorarioEstado;
+import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.HorarioEspecialLoja;
 import com.example.projeto2.Modules.Loja;
 import com.example.projeto2.Modules.Lojautilizador;
@@ -290,6 +291,21 @@ abstract class FluxosCriticosTestSupport {
         preferencia.setIdDecisor(decisor);
         preferencia.setDataDecisao(LocalDateTime.now());
         return preferenciaRepository.save(preferencia);
+    }
+
+    protected Horario criarHorarioPublicadoSemProposta(Utilizador colaborador,
+                                                       LocalDate dataTurno,
+                                                       Turno turno) {
+        Lojautilizador ligacaoAtiva = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(colaborador.getId())
+                .orElseThrow();
+
+        Horario horario = new Horario();
+        horario.setIdLojautilizador(ligacaoAtiva);
+        horario.setIdTurno(turno);
+        horario.setDataTurno(dataTurno);
+        horario.setEstado("aprovado");
+        horario.setIdPropostaHorario(null);
+        return horarioRepository.save(horario);
     }
 
     protected long contarEventos(String tipoEvento, String resultado, String emailReferencia) {

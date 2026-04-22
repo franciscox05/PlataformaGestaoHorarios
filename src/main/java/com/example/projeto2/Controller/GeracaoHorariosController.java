@@ -63,6 +63,9 @@ public class GeracaoHorariosController {
     private Label lblEstadoProposta;
 
     @FXML
+    private Label lblOrigemPlaneamento;
+
+    @FXML
     private Label lblGeradoPor;
 
     @FXML
@@ -88,6 +91,9 @@ public class GeracaoHorariosController {
 
     @FXML
     private Label lblTotalDiasCobertos;
+
+    @FXML
+    private ComboBox<FiltroColaboradorOption> cbFiltroColaborador;
 
     @FXML
     private TableView<GeracaoHorariosBLL.ResumoColaborador> tabelaResumoColaboradores;
@@ -150,7 +156,7 @@ public class GeracaoHorariosController {
         painelValidacaoSupervisor.setVisible(false);
 
         tabelaResumoColaboradores.setPlaceholder(new Label("Ainda nao existe proposta gerada para apresentar o resumo da equipa."));
-        tabelaHorariosGerados.setPlaceholder(new Label("Ainda nao existe proposta gerada para o periodo selecionado."));
+        tabelaHorariosGerados.setPlaceholder(new Label("Ainda nao existe proposta nem horarios publicados para o periodo selecionado."));
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -181,7 +187,12 @@ public class GeracaoHorariosController {
             esconderFeedbackValidacao();
             mostrarSucesso("Proposta mensal gerada com sucesso.");
         } catch (IllegalArgumentException e) {
-            mostrarErro(e.getMessage());
+            if (tentarCarregarPlaneamentoExistente()) {
+                esconderFeedbackValidacao();
+                mostrarErro(e.getMessage() + " O planeamento atual foi carregado abaixo para te ajudar a analisar a situacao.");
+            } else {
+                mostrarErro(e.getMessage());
+            }
         } catch (Exception e) {
             mostrarErro("Nao foi possivel gerar a proposta mensal.");
         }
@@ -222,6 +233,10 @@ public class GeracaoHorariosController {
 
         cbMes.valueProperty().addListener((observavel, antigo, novo) -> invalidarPropostaAtual());
         spAno.valueProperty().addListener((observavel, antigo, novo) -> invalidarPropostaAtual());
+
+        cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
+        cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
+        cbFiltroColaborador.valueProperty().addListener((observavel, antigo, novo) -> aplicarFiltroColaborador());
     }
 
     private void configurarTabelas() {
@@ -289,7 +304,7 @@ public class GeracaoHorariosController {
             }
 
             MesOption mesSelecionado = obterMesSelecionado();
-            GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.obterProposta(
+            GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.obterPlaneamento(
                     utilizadorLogado.getId(),
                     spAno.getValue(),
                     mesSelecionado.numero()
@@ -297,12 +312,12 @@ public class GeracaoHorariosController {
 
             if (resultado == null) {
                 limparResultado();
-                mostrarInformacao("Ainda nao existe proposta gerada para o periodo selecionado.");
+                mostrarInformacao("Ainda nao existe proposta nem horarios publicados para o periodo selecionado.");
                 return;
             }
 
             preencherResultado(resultado);
-            mostrarInformacao("Proposta carregada com sucesso.");
+            mostrarInformacao("Planeamento do periodo carregado com sucesso.");
         } catch (IllegalArgumentException e) {
             limparResultado();
             mostrarErro(e.getMessage());
@@ -366,6 +381,7 @@ public class GeracaoHorariosController {
     private void preencherResultado(GeracaoHorariosBLL.PropostaResultado resultado) {
         propostaAtual = resultado;
         lblEstadoProposta.setText(resultado.estado());
+        lblOrigemPlaneamento.setText(resultado.origemPlaneamento());
         lblGeradoPor.setText(resultado.geradoPor());
         lblDataGeracao.setText(resultado.dataGeracao());
         lblDecididoPor.setText(resultado.decididoPor());
@@ -378,13 +394,15 @@ public class GeracaoHorariosController {
         lblTotalDiasCobertos.setText(String.valueOf(resultado.resumo().diasCobertos()));
 
         tabelaResumoColaboradores.setItems(FXCollections.observableArrayList(resultado.resumoColaboradores()));
-        tabelaHorariosGerados.setItems(FXCollections.observableArrayList(resultado.linhas()));
+        atualizarFiltroColaborador(resultado);
+        aplicarFiltroColaborador();
         atualizarPainelValidacao();
     }
 
     private void limparResultado() {
         propostaAtual = null;
         lblEstadoProposta.setText("-");
+        lblOrigemPlaneamento.setText("-");
         lblGeradoPor.setText("-");
         lblDataGeracao.setText("-");
         lblDecididoPor.setText("-");
@@ -399,6 +417,8 @@ public class GeracaoHorariosController {
 
         tabelaResumoColaboradores.setItems(FXCollections.observableArrayList());
         tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
+        cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
+        cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
         atualizarPainelValidacao();
     }
 
@@ -495,7 +515,85 @@ public class GeracaoHorariosController {
         lblFeedbackValidacao.setText("");
     }
 
+    private boolean tentarCarregarPlaneamentoExistente() {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                return false;
+            }
+
+            GeracaoHorariosBLL.PropostaResultado existente = geracaoHorariosBLL.obterPlaneamento(
+                    utilizadorLogado.getId(),
+                    spAno.getValue(),
+                    obterMesSelecionado().numero()
+            );
+            if (existente == null) {
+                return false;
+            }
+
+            preencherResultado(existente);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void atualizarFiltroColaborador(GeracaoHorariosBLL.PropostaResultado resultado) {
+        FiltroColaboradorOption selecionadoAnteriormente = cbFiltroColaborador.getValue();
+        Integer idAnterior = selecionadoAnteriormente != null ? selecionadoAnteriormente.idColaborador() : null;
+
+        var opcoes = FXCollections.<FiltroColaboradorOption>observableArrayList();
+        opcoes.add(FiltroColaboradorOption.todos());
+        resultado.resumoColaboradores().forEach(colaborador -> opcoes.add(
+                new FiltroColaboradorOption(colaborador.idColaborador(), colaborador.nome())
+        ));
+
+        cbFiltroColaborador.setItems(opcoes);
+        if (idAnterior != null) {
+            cbFiltroColaborador.getItems().stream()
+                    .filter(opcao -> idAnterior.equals(opcao.idColaborador()))
+                    .findFirst()
+                    .ifPresentOrElse(cbFiltroColaborador::setValue, () -> cbFiltroColaborador.setValue(FiltroColaboradorOption.todos()));
+        } else {
+            cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
+        }
+    }
+
+    private void aplicarFiltroColaborador() {
+        if (propostaAtual == null) {
+            tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
+            return;
+        }
+
+        FiltroColaboradorOption filtro = cbFiltroColaborador.getValue();
+        if (filtro == null || filtro.isTodos()) {
+            tabelaHorariosGerados.setItems(FXCollections.observableArrayList(propostaAtual.linhas()));
+            return;
+        }
+
+        tabelaHorariosGerados.setItems(FXCollections.observableArrayList(
+                propostaAtual.linhas().stream()
+                        .filter(linha -> filtro.idColaborador().equals(linha.idColaborador()))
+                        .toList()
+        ));
+    }
+
     private record MesOption(int numero, String nome) {
+        @Override
+        public String toString() {
+            return nome;
+        }
+    }
+
+    private record FiltroColaboradorOption(Integer idColaborador, String nome) {
+
+        private static FiltroColaboradorOption todos() {
+            return new FiltroColaboradorOption(null, "Toda a equipa");
+        }
+
+        private boolean isTodos() {
+            return idColaborador == null;
+        }
+
         @Override
         public String toString() {
             return nome;
