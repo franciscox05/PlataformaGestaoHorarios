@@ -475,7 +475,7 @@ public class GeracaoHorariosBLL {
             }
 
             LocalDate inicio = preferencia.getDataInicio() != null ? preferencia.getDataInicio() : dataInicio;
-            LocalDate fim = preferencia.getDataFim() != null ? preferencia.getDataFim() : inicio;
+            LocalDate fim = preferencia.getDataFim() != null ? preferencia.getDataFim() : dataFim;
             if (inicio == null) {
                 continue;
             }

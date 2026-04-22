@@ -570,10 +570,7 @@ public class PreferenciasController {
         }
 
         if (dataInicio != null && dataFim == null) {
-            if (preferenciaPermiteSemDataFim(tipo)) {
-                return "Desde " + DATA_FORMATTER.format(dataInicio);
-            }
-            return DATA_FORMATTER.format(dataInicio);
+            return "Desde " + DATA_FORMATTER.format(dataInicio);
         }
 
         if (dataInicio != null && dataFim != null) {
@@ -610,9 +607,6 @@ public class PreferenciasController {
         }
 
         if (preferencia.getDataFim() == null && preferencia.getDataInicio() != null) {
-            if (!preferenciaPermiteSemDataFim(preferencia.getTipo())) {
-                return "Data unica";
-            }
             return "Permanente";
         }
 
@@ -677,7 +671,10 @@ public class PreferenciasController {
 
     private boolean permitePreferenciaSemDataFim(String tipoSelecionado) {
         String tipoNormalizado = normalizarTipoInterface(tipoSelecionado);
-        return "colegas".equals(tipoNormalizado) || "turnos".equals(tipoNormalizado);
+        return "folgas".equals(tipoNormalizado)
+                || "ferias".equals(tipoNormalizado)
+                || "colegas".equals(tipoNormalizado)
+                || "turnos".equals(tipoNormalizado);
     }
 
     private void atualizarEstadoDatas() {
@@ -787,7 +784,6 @@ public class PreferenciasController {
     }
 
     private boolean preferenciaPermiteSemDataFim(String tipo) {
-        String tipoNormalizado = normalizarTipoInterface(tipo);
-        return "colegas".equals(tipoNormalizado) || "turnos".equals(tipoNormalizado);
+        return permitePreferenciaSemDataFim(tipo);
     }
 }
