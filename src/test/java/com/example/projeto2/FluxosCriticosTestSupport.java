@@ -180,7 +180,9 @@ abstract class FluxosCriticosTestSupport {
 
         Cargo cargoGerente = obterOuCriarCargo("gerente", "Gerente de Loja");
         Cargo cargoSupervisor = obterOuCriarCargo("supervisor", "Supervisor de Equipa");
-        Cargo cargoColaborador = obterOuCriarCargo("fulltime", "Assistente de Vendas FT");
+        Cargo cargoFullTime = obterOuCriarCargo("fulltime", "Assistente de Vendas FT");
+        Cargo cargoPartTime = obterOuCriarCargo("parttime", "Assistente de Vendas PT");
+        Cargo cargoReforco = obterOuCriarCargo("reforco_parttime", "Reforco Fim de Semana");
 
         Utilizador gerente = criarUtilizadorHashado("Gerente Teste " + sufixo, "gerente." + sufixo, "Gestor123");
         Utilizador supervisor = criarUtilizadorHashado("Supervisor Teste " + sufixo, "supervisor." + sufixo, "Supervisor123");
@@ -195,12 +197,31 @@ abstract class FluxosCriticosTestSupport {
                     )
             );
         }
+        for (char indice = 'F'; indice <= 'G'; indice++) {
+            colaboradores.add(
+                    criarUtilizadorHashado(
+                            "Colaborador " + indice + " " + sufixo,
+                            "colaborador" + Character.toLowerCase(indice) + "." + sufixo,
+                            "Colaborador123"
+                    )
+            );
+        }
+        colaboradores.add(
+                criarUtilizadorHashado(
+                        "Colaborador H " + sufixo,
+                        "colaboradorh." + sufixo,
+                        "Colaborador123"
+                )
+        );
 
         criarLigacaoAtiva(gerente, loja, cargoGerente);
         criarLigacaoAtiva(supervisor, loja, cargoSupervisor);
-        for (Utilizador colaborador : colaboradores) {
-            criarLigacaoAtiva(colaborador, loja, cargoColaborador);
+        for (int indice = 0; indice < 5; indice++) {
+            criarLigacaoAtiva(colaboradores.get(indice), loja, cargoFullTime);
         }
+        criarLigacaoAtiva(colaboradores.get(5), loja, cargoPartTime);
+        criarLigacaoAtiva(colaboradores.get(6), loja, cargoPartTime);
+        criarLigacaoAtiva(colaboradores.get(7), loja, cargoReforco);
 
         flushAndClear();
         return new LojaFixture(loja, gerente, supervisor, colaboradores);
@@ -350,17 +371,25 @@ abstract class FluxosCriticosTestSupport {
                 .collect(Collectors.joining(", "));
     }
 
-    private Lojautilizador criarLigacaoAtiva(Utilizador utilizador, Loja loja, Cargo cargo) {
+    protected Lojautilizador criarLigacao(Utilizador utilizador,
+                                          Loja loja,
+                                          Cargo cargo,
+                                          LocalDate dataInicio,
+                                          LocalDate dataFim) {
         Lojautilizador ligacao = new Lojautilizador();
         ligacao.setIdUtilizador(utilizador);
         ligacao.setIdLoja(loja);
         ligacao.setIdCargo(cargo);
-        ligacao.setDataInicio(LocalDate.now().minusDays(30));
-        ligacao.setDataFim(null);
+        ligacao.setDataInicio(dataInicio);
+        ligacao.setDataFim(dataFim);
         return lojautilizadorRepository.save(ligacao);
     }
 
-    private Cargo obterOuCriarCargo(String tipo, String nomePadrao) {
+    protected Lojautilizador criarLigacaoAtiva(Utilizador utilizador, Loja loja, Cargo cargo) {
+        return criarLigacao(utilizador, loja, cargo, LocalDate.now().minusDays(30), null);
+    }
+
+    protected Cargo obterOuCriarCargo(String tipo, String nomePadrao) {
         return cargoRepository.findAllByOrderByNomeAsc().stream()
                 .filter(cargo -> cargo.getTipo() != null)
                 .filter(cargo -> tipo.equalsIgnoreCase(cargo.getTipo()))
@@ -399,6 +428,10 @@ abstract class FluxosCriticosTestSupport {
         criarRegra("000 Descanso minimo entre turnos", 11, "legal");
         criarRegra("000 Maximo de dias consecutivos", 31, "legal");
         criarRegra("000 Minimo de colaboradores por turno", 1, "operacional");
+        criarRegra("000 Carga contratual mensal gestao (horas)", 176, "contratual");
+        criarRegra("000 Carga contratual mensal full-time (horas)", 176, "contratual");
+        criarRegra("000 Carga contratual mensal part-time (horas)", 96, "contratual");
+        criarRegra("000 Carga contratual mensal reforco de fim de semana (horas)", 64, "contratual");
     }
 
     private void aplicarOverridesGeracaoDeterministicos(Loja loja) {
@@ -420,6 +453,12 @@ abstract class FluxosCriticosTestSupport {
     }
 
     private void criarRegra(String descricao, Integer valorPadrao, String tipo) {
+        boolean regraJaExiste = regraRepository.findAllByOrderByDescricaoAsc().stream()
+                .anyMatch(regraExistente -> normalizarTexto(regraExistente.getDescricao()).equals(normalizarTexto(descricao)));
+        if (regraJaExiste) {
+            return;
+        }
+
         Regra regra = new Regra();
         regra.setDescricao(descricao);
         regra.setValorPadrao(valorPadrao);
@@ -442,6 +481,20 @@ abstract class FluxosCriticosTestSupport {
         }
         if (texto.contains("descanso") && (texto.contains("hora") || texto.contains("interval"))) {
             return 11;
+        }
+        if (texto.contains("carga") && (texto.contains("contrat") || texto.contains("mensal"))) {
+            if (texto.contains("gestao") || texto.contains("gerencia") || texto.contains("gestor") || texto.contains("supervisor")) {
+                return 176;
+            }
+            if (texto.contains("fulltime") || (texto.contains("full") && texto.contains("time")) || texto.contains("tempo inteiro")) {
+                return 176;
+            }
+            if (texto.contains("parttime") || (texto.contains("part") && texto.contains("time")) || texto.contains("tempo parcial")) {
+                return 96;
+            }
+            if (texto.contains("reforco") || texto.contains("fim de semana") || texto.contains("weekend")) {
+                return 64;
+            }
         }
         return null;
     }
