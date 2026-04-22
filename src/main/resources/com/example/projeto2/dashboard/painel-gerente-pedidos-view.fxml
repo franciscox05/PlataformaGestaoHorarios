@@ -136,15 +136,31 @@
                             </columns>
                         </TableView>
 
-                        <Label styleClass="campo-titulo" text="Escala da loja no mesmo periodo" />
-                        <TableView fx:id="tabelaEscalaLoja" prefHeight="200.0">
+                        <Label styleClass="campo-titulo" text="Horario detalhado do colaborador selecionado" />
+                        <Label fx:id="lblContextoColaboradorSelecionado" styleClass="texto-ajuda" text="Seleciona um colaborador envolvido para veres o horario detalhado." wrapText="true" />
+                        <TableView fx:id="tabelaHorarioColaborador" prefHeight="170.0">
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                             </columnResizePolicy>
                             <columns>
+                                <TableColumn fx:id="colHorarioColaboradorData" text="Data" />
+                                <TableColumn fx:id="colHorarioColaboradorTurno" text="Turno" />
+                                <TableColumn fx:id="colHorarioColaboradorPeriodo" text="Periodo" />
+                                <TableColumn fx:id="colHorarioColaboradorEstado" text="Estado" />
+                            </columns>
+                        </TableView>
+
+                        <Label styleClass="campo-titulo" text="Escala detalhada da loja no mesmo periodo" />
+                        <TableView fx:id="tabelaEscalaLoja" prefHeight="220.0">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                            <columns>
+                                <TableColumn fx:id="colEscalaData" text="Data" />
                                 <TableColumn fx:id="colEscalaColaborador" text="Colaborador" />
                                 <TableColumn fx:id="colEscalaCargo" text="Cargo" />
-                                <TableColumn fx:id="colEscalaTurnos" text="Turnos planeados" />
+                                <TableColumn fx:id="colEscalaTurno" text="Turno / periodo" />
+                                <TableColumn fx:id="colEscalaEstado" text="Estado" />
                             </columns>
                         </TableView>
                     </children>

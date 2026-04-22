@@ -68,7 +68,7 @@
 
                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                             <children>
-                                <Button fx:id="btnVerProposta" onAction="#onVerPropostaClick" styleClass="botao-secundario" text="Ver Proposta" />
+                                <Button fx:id="btnVerProposta" onAction="#onVerPropostaClick" styleClass="botao-secundario" text="Ver Planeamento" />
                                 <Button fx:id="btnGerarProposta" onAction="#onGerarPropostaClick" styleClass="botao-acao" text="Gerar Proposta" />
                             </children>
                         </HBox>
@@ -79,7 +79,7 @@
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Resumo da Proposta" />
+                        <Label styleClass="card-titulo" text="Resumo do Planeamento" />
 
                         <HBox spacing="20.0">
                             <children>
@@ -87,6 +87,13 @@
                                     <children>
                                         <Label styleClass="meta-etiqueta" text="Estado" />
                                         <Label fx:id="lblEstadoProposta" styleClass="meta-valor" text="-" />
+                                    </children>
+                                </VBox>
+
+                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="meta-etiqueta" text="Origem" />
+                                        <Label fx:id="lblOrigemPlaneamento" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
 
@@ -202,7 +209,17 @@
                     </columns>
                 </TableView>
 
-                <Label styleClass="subtitulo" text="Detalhe da proposta" />
+                <VBox spacing="8.0">
+                    <children>
+                        <Label styleClass="subtitulo" text="Detalhe do planeamento" />
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <children>
+                                <Label styleClass="campo-titulo" text="Filtrar por colaborador" />
+                                <ComboBox fx:id="cbFiltroColaborador" prefWidth="260.0" promptText="Toda a equipa" styleClass="campo-combo" />
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
 
                 <TableView fx:id="tabelaHorariosGerados" prefHeight="280.0" VBox.vgrow="ALWAYS">
                     <columnResizePolicy>

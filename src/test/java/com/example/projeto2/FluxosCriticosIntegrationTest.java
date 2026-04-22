@@ -193,4 +193,29 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 .count();
         assertEquals(horarios.size(), historicosAprovados);
     }
+
+    @Test
+    void painelDeHorariosConsegueCarregarHorariosPublicadosSemPropostaAssociada() {
+        GeracaoFixture fixture = criarContextoGeracao("publicados-sem-proposta");
+        LojaFixture lojaFixture = fixture.lojaFixture();
+        Utilizador gerente = lojaFixture.gerente();
+        LocalDate referencia = fixture.referencia();
+
+        criarHorarioPublicadoSemProposta(lojaFixture.colaboradores().get(0), referencia, fixture.turnos().get(0));
+        criarHorarioPublicadoSemProposta(lojaFixture.colaboradores().get(1), referencia.plusDays(1), fixture.turnos().get(1));
+        flushAndClear();
+
+        GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.obterPlaneamento(
+                gerente.getId(),
+                referencia.getYear(),
+                referencia.getMonthValue()
+        );
+
+        assertNotNull(resultado);
+        assertEquals(null, resultado.idProposta());
+        assertEquals("Publicado", resultado.estado());
+        assertEquals("Horarios publicados", resultado.origemPlaneamento());
+        assertEquals(2, resultado.linhas().size());
+        assertTrue(resultado.linhas().stream().allMatch(linha -> "Aprovado".equalsIgnoreCase(linha.estado())));
+    }
 }
