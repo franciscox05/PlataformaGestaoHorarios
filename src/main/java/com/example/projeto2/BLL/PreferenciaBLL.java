@@ -124,7 +124,11 @@ public class PreferenciaBLL {
         String tipoNormalizado = normalizarTipo(preferenciaRecebida.getTipo());
         String descricaoNormalizada = normalizarDescricao(preferenciaRecebida.getDescricao());
         Integer prioridadeNormalizada = normalizarPrioridade(preferenciaRecebida.getPrioridade(), tipoNormalizado);
-        LocalDate dataInicio = normalizarDataInicio(tipoNormalizado, preferenciaRecebida.getDataInicio());
+        LocalDate dataInicio = normalizarDataInicio(
+                tipoNormalizado,
+                preferenciaRecebida.getDataInicio(),
+                preferenciaRecebida.getDataFim()
+        );
         LocalDate dataFim = preferenciaRecebida.getDataFim();
 
         validarPeriodo(tipoNormalizado, dataInicio, dataFim);
@@ -312,12 +316,12 @@ public class PreferenciaBLL {
         };
     }
 
-    private LocalDate normalizarDataInicio(String tipo, LocalDate dataInicio) {
+    private LocalDate normalizarDataInicio(String tipo, LocalDate dataInicio, LocalDate dataFim) {
         if (dataInicio != null) {
             return dataInicio;
         }
 
-        if ("colegas".equals(tipo) || "turnos".equals(tipo)) {
+        if (dataFim == null) {
             return LocalDate.now();
         }
 
