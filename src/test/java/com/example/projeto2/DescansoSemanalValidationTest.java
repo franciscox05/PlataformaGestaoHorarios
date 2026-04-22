@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -116,6 +117,17 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
                 fixture.referencia().withDayOfMonth(1),
                 fixture.referencia().withDayOfMonth(fixture.referencia().lengthOfMonth())
         );
+        Map<Integer, String> tiposCargoPorColaborador = lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(fixture.lojaFixture().loja().getId()).stream()
+                .filter(ligacao -> ligacao.getDataFim() == null)
+                .filter(ligacao -> ligacao.getIdUtilizador() != null)
+                .filter(ligacao -> ligacao.getIdUtilizador().getId() != null)
+                .filter(ligacao -> ligacao.getIdCargo() != null)
+                .filter(ligacao -> ligacao.getIdCargo().getTipo() != null)
+                .collect(Collectors.toMap(
+                        ligacao -> ligacao.getIdUtilizador().getId(),
+                        ligacao -> ligacao.getIdCargo().getTipo().toLowerCase(),
+                        (atual, substituto) -> atual
+                ));
 
         Map<Integer, Set<LocalDate>> finsDeSemanaTrabalhadosPorColaborador = new HashMap<>();
         for (Horario horario : horariosGerados) {
@@ -132,7 +144,13 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
                     .add(inicioFimDeSemana(horario.getDataTurno()));
         }
 
-        for (Set<LocalDate> finsDeSemanaTrabalhados : finsDeSemanaTrabalhadosPorColaborador.values()) {
+        for (Map.Entry<Integer, Set<LocalDate>> entry : finsDeSemanaTrabalhadosPorColaborador.entrySet()) {
+            String tipoCargo = tiposCargoPorColaborador.get(entry.getKey());
+            if ("gerente".equals(tipoCargo) || "subgerente".equals(tipoCargo)) {
+                continue;
+            }
+
+            Set<LocalDate> finsDeSemanaTrabalhados = entry.getValue();
             for (int indice = 0; indice < finsDeSemanaNoPeriodo.size() - 1; indice++) {
                 LocalDate fimDeSemanaAtual = finsDeSemanaNoPeriodo.get(indice);
                 LocalDate fimDeSemanaSeguinte = finsDeSemanaNoPeriodo.get(indice + 1);

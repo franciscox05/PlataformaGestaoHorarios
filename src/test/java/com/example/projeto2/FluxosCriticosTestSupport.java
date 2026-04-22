@@ -229,6 +229,9 @@ abstract class FluxosCriticosTestSupport {
 
     protected GeracaoFixture criarContextoGeracao(String prefixo) {
         LojaFixture lojaFixture = criarLojaComEquipaCompleta(prefixo);
+        Cargo cargoSubgerente = obterOuCriarCargo("subgerente", "Sub-Gerente");
+        Utilizador subgerente = criarUtilizadorHashado("Subgerente Teste " + prefixo, "subgerente." + prefixo, "Subgerente123");
+        criarLigacaoAtiva(subgerente, lojaFixture.loja(), cargoSubgerente);
         garantirTurnosBase();
         criarRegrasGeracaoDeterministicas();
         aplicarOverridesGeracaoDeterministicos(lojaFixture.loja());
@@ -434,6 +437,8 @@ abstract class FluxosCriticosTestSupport {
         criarRegra("000 Carga contratual mensal reforco de fim de semana (horas)", 64, "contratual");
         criarRegra("000 Descanso semanal minimo (dias)", 2, "descanso");
         criarRegra("000 Janela de rotacao de fins de semana (semanas)", 2, "descanso");
+        criarRegra("000 Dia limite de lancamento do horario mensal", 15, "administrativo");
+        criarRegra("000 Presenca de gerente ou subgerente aos sabados", 1, "operacional");
     }
 
     private void aplicarOverridesGeracaoDeterministicos(Loja loja) {
@@ -489,6 +494,12 @@ abstract class FluxosCriticosTestSupport {
         }
         if ((texto.contains("rotacao") || texto.contains("janela")) && (texto.contains("fim de semana") || texto.contains("weekend"))) {
             return 2;
+        }
+        if (texto.contains("dia") && texto.contains("limite") && (texto.contains("lancamento") || texto.contains("publicacao") || texto.contains("publicar"))) {
+            return 15;
+        }
+        if (texto.contains("sabado") && (texto.contains("gerente") || texto.contains("subgerente") || texto.contains("chefia") || texto.contains("gestao"))) {
+            return 1;
         }
         if (texto.contains("carga") && (texto.contains("contrat") || texto.contains("mensal"))) {
             if (texto.contains("gestao") || texto.contains("gerencia") || texto.contains("gestor") || texto.contains("supervisor")) {

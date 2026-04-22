@@ -186,13 +186,15 @@ INSERT INTO public.regras (id_regra, descricao, valor_padrao, tipo) VALUES
     (6, 'Carga contratual mensal part-time (horas)', 96, 'contratual'),
     (7, 'Carga contratual mensal reforco de fim de semana (horas)', 64, 'contratual'),
     (8, 'Descanso semanal minimo (dias)', 2, 'descanso'),
-    (9, 'Janela de rotacao de fins de semana (semanas)', 2, 'descanso');
+    (9, 'Janela de rotacao de fins de semana (semanas)', 2, 'descanso'),
+    (10, 'Presenca de gerente ou subgerente aos sabados', 1, 'operacional');
 
 INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifico, observacoes) VALUES
     (1, 1, 1, 3, 'Loja principal da demonstracao com maior afluencia.'),
     (2, 1, 2, 12, 'Horario mensal deve ser fechado antes da segunda semana.'),
     (3, 1, 3, 8, 'Limite padrao para turnos longos.'),
-    (4, 2, 1, 2, 'Configuracao base para loja secundaria.');
+    (4, 2, 1, 2, 'Configuracao base para loja secundaria.'),
+    (5, 1, 10, 1, 'Garantir presenca de gerente ou subgerente aos sabados com loja aberta.');
 
 INSERT INTO public.turnos (id_turno, tipo, hora_inicio, hora_fim) VALUES
     (1, 'manha', '10:00', '19:00'),
