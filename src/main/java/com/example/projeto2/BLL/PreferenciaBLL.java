@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -81,6 +82,24 @@ public class PreferenciaBLL {
         return preferenciaRepository.findHistoricoDecisoesDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
+    @Transactional(readOnly = true)
+    public List<String> listarColegasDaLoja(Integer idUtilizador) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizador);
+
+        return lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(ligacaoAtiva.getIdLoja().getId()).stream()
+                .filter(ligacao -> ligacao.getIdUtilizador() != null && ligacao.getIdUtilizador().getId() != null)
+                .filter(ligacao -> !Objects.equals(ligacao.getIdUtilizador().getId(), idUtilizador))
+                .filter(ligacao -> ligacao.getDataFim() == null)
+                .filter(ligacao -> ligacao.getIdUtilizador().getEstado() != null
+                        && "ativo".equalsIgnoreCase(ligacao.getIdUtilizador().getEstado()))
+                .map(ligacao -> ligacao.getIdUtilizador().getNome())
+                .filter(nome -> nome != null && !nome.isBlank())
+                .map(String::trim)
+                .distinct()
+                .sorted(Comparator.comparing(nome -> nome.toLowerCase()))
+                .toList();
+    }
+
     @Transactional
     public Preferencia guardarPreferencia(Integer idUtilizador, Preferencia preferenciaRecebida) {
         Utilizador utilizador = obterUtilizador(idUtilizador);
@@ -104,8 +123,8 @@ public class PreferenciaBLL {
 
         String tipoNormalizado = normalizarTipo(preferenciaRecebida.getTipo());
         String descricaoNormalizada = normalizarDescricao(preferenciaRecebida.getDescricao());
-        Integer prioridadeNormalizada = normalizarPrioridade(preferenciaRecebida.getPrioridade());
-        LocalDate dataInicio = preferenciaRecebida.getDataInicio();
+        Integer prioridadeNormalizada = normalizarPrioridade(preferenciaRecebida.getPrioridade(), tipoNormalizado);
+        LocalDate dataInicio = normalizarDataInicio(tipoNormalizado, preferenciaRecebida.getDataInicio());
         LocalDate dataFim = preferenciaRecebida.getDataFim();
 
         validarPeriodo(tipoNormalizado, dataInicio, dataFim);
@@ -273,9 +292,9 @@ public class PreferenciaBLL {
         return decisaoNormalizada;
     }
 
-    private Integer normalizarPrioridade(Integer prioridade) {
+    private Integer normalizarPrioridade(Integer prioridade, String tipo) {
         if (prioridade == null) {
-            throw new IllegalArgumentException("A prioridade e obrigatoria.");
+            return prioridadePorOmissao(tipo);
         }
 
         if (prioridade < 1 || prioridade > 5) {
@@ -283,6 +302,26 @@ public class PreferenciaBLL {
         }
 
         return prioridade;
+    }
+
+    private Integer prioridadePorOmissao(String tipo) {
+        return switch (tipo) {
+            case "folgas", "ferias" -> 4;
+            case "colegas", "turnos" -> 3;
+            default -> 3;
+        };
+    }
+
+    private LocalDate normalizarDataInicio(String tipo, LocalDate dataInicio) {
+        if (dataInicio != null) {
+            return dataInicio;
+        }
+
+        if ("colegas".equals(tipo) || "turnos".equals(tipo)) {
+            return LocalDate.now();
+        }
+
+        return null;
     }
 
     private void validarPeriodo(String tipo, LocalDate dataInicio, LocalDate dataFim) {

@@ -2,11 +2,11 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
@@ -36,15 +36,15 @@
                                         <ComboBox fx:id="cbTipo" promptText="Seleciona o tipo" />
                                     </children>
                                 </VBox>
-
-                                <VBox spacing="5.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Prioridade" />
-                                        <Spinner fx:id="spPrioridade" prefWidth="110.0" />
-                                    </children>
-                                </VBox>
                             </children>
                         </HBox>
+
+                        <VBox fx:id="painelColega" managed="false" spacing="5.0" visible="false">
+                            <children>
+                                <Label styleClass="campo-titulo" text="Colega preferido" />
+                                <ComboBox fx:id="cbColegaPreferido" promptText="Seleciona um colega" />
+                            </children>
+                        </VBox>
 
                         <HBox spacing="12.0">
                             <children>
@@ -64,9 +64,11 @@
                             </children>
                         </HBox>
 
+                        <CheckBox fx:id="chkSemDataFim" mnemonicParsing="false" text="Aplica-se em permanencia" />
+
                         <VBox spacing="5.0">
                             <children>
-                                <Label styleClass="campo-titulo" text="Descricao" />
+                                <Label styleClass="campo-titulo" text="Contexto adicional" />
                                 <TextArea fx:id="txtDescricao" prefRowCount="4" promptText="Explica a tua preferencia com detalhe suficiente para ser analisada." wrapText="true" />
                             </children>
                         </VBox>
@@ -92,7 +94,7 @@
                     <columns>
                         <TableColumn fx:id="colTipo" prefWidth="120.0" text="Tipo" />
                         <TableColumn fx:id="colPeriodo" prefWidth="180.0" text="Periodo" />
-                        <TableColumn fx:id="colPrioridade" prefWidth="90.0" text="Prioridade" />
+                        <TableColumn fx:id="colPrioridade" prefWidth="90.0" text="Vigencia" />
                         <TableColumn fx:id="colEstado" prefWidth="120.0" text="Estado" />
                         <TableColumn fx:id="colDescricao" prefWidth="340.0" text="Descricao" />
                     </columns>
@@ -111,7 +113,7 @@
                                 <TableColumn fx:id="colColaboradorPendente" prefWidth="170.0" text="Colaborador" />
                                 <TableColumn fx:id="colTipoPendente" prefWidth="100.0" text="Tipo" />
                                 <TableColumn fx:id="colPeriodoPendente" prefWidth="170.0" text="Periodo" />
-                                <TableColumn fx:id="colPrioridadePendente" prefWidth="90.0" text="Prioridade" />
+                                <TableColumn fx:id="colPrioridadePendente" prefWidth="90.0" text="Vigencia" />
                                 <TableColumn fx:id="colDescricaoPendente" prefWidth="330.0" text="Descricao" />
                             </columns>
                         </TableView>
