@@ -53,7 +53,9 @@ public class GeracaoHorariosBLL {
 
     private static final Set<String> CARGOS_COM_GERACAO = Set.of("gerente", "subgerente");
     private static final Set<String> CARGOS_COM_VALIDACAO = Set.of("supervisor");
+    private static final Set<String> CARGOS_COM_PRESENCA_OBRIGATORIA_AO_SABADO = Set.of("gerente", "subgerente");
     private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final LojautilizadorRepository lojautilizadorRepository;
     private final HorarioRepository horarioRepository;
@@ -178,6 +180,7 @@ public class GeracaoHorariosBLL {
 
         List<RegraAplicada> regras = obterRegrasAplicadas(idLoja);
         ParametrosGeracao parametros = resolverParametrosGeracao(regras, turnos);
+        validarJanelaDeLancamento(dataInicio, parametros.diaLimiteLancamento());
         LocalDate inicioHistorico = resolverInicioHistoricoParaGeracao(dataInicio, parametros);
 
         List<DayOff> dayOffsAprovados = dayOffRepository.findPedidosAprovadosDaLojaEntreDatas(idLoja, dataInicio, dataFim);
@@ -337,6 +340,7 @@ public class GeracaoHorariosBLL {
 
         List<Horario> horarios = new ArrayList<>();
         Set<LocalDate> diasCobertos = new LinkedHashSet<>();
+        Set<LocalDate> sabadosComChefia = new LinkedHashSet<>();
 
         for (LocalDate data = dataInicio; !data.isAfter(dataFim); data = data.plusDays(1)) {
             LocalDate dataAtual = data;
@@ -382,13 +386,52 @@ public class GeracaoHorariosBLL {
                                 dataAtual,
                                 turno,
                                 minutosTurno,
+                                parametros.exigirChefiaAoSabado(),
                                 preferenciasTurnos,
                                 preferenciasColegas,
                                 horarios
                         ))
                         .toList();
 
-                if (candidatos.size() < minimoNecessario) {
+                boolean precisaChefiaAoSabado = parametros.exigirChefiaAoSabado()
+                        && dataAtual.getDayOfWeek() == DayOfWeek.SATURDAY
+                        && !sabadosComChefia.contains(dataAtual);
+
+                EstadoColaborador chefiaObrigatoria = null;
+                List<EstadoColaborador> candidatosDisponiveis = new ArrayList<>(candidatos);
+                if (precisaChefiaAoSabado) {
+                    chefiaObrigatoria = candidatos.stream()
+                            .filter(EstadoColaborador::cumpreChefiaObrigatoriaAoSabado)
+                            .findFirst()
+                            .orElseGet(() -> estadoPorColaborador.values().stream()
+                                    .filter(EstadoColaborador::cumpreChefiaObrigatoriaAoSabado)
+                                    .filter(estado -> estado.podeReceberComoChefiaAoSabado(
+                                            dataAtual,
+                                            turno,
+                                            minutosTurno,
+                                            bloqueiosPorUtilizador.getOrDefault(estado.idUtilizador(), Set.of()),
+                                            parametros.maxDiasConsecutivos(),
+                                            parametros.descansoMinimoHoras(),
+                                            parametros.descansoSemanalMinimoDias()
+                                    ))
+                                    .sorted(criarComparatorCandidatos(
+                                            dataAtual,
+                                            turno,
+                                            minutosTurno,
+                                            parametros.exigirChefiaAoSabado(),
+                                            preferenciasTurnos,
+                                            preferenciasColegas,
+                                            horarios
+                                    ))
+                                    .findFirst()
+                                    .orElse(null));
+
+                    if (chefiaObrigatoria != null && !candidatosDisponiveis.contains(chefiaObrigatoria)) {
+                        candidatosDisponiveis.add(0, chefiaObrigatoria);
+                    }
+                }
+
+                if (candidatosDisponiveis.size() < minimoNecessario) {
                     throw new IllegalArgumentException(
                             "Nao foi possivel cobrir o turno "
                                     + formatarTurno(turno)
@@ -399,9 +442,21 @@ public class GeracaoHorariosBLL {
                 }
 
                 List<EstadoColaborador> selecionados = new ArrayList<>();
-                for (EstadoColaborador candidato : candidatos) {
+                if (precisaChefiaAoSabado) {
+                    EstadoColaborador chefiaFinal = Optional.ofNullable(chefiaObrigatoria)
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Nao foi possivel garantir presenca de gerente ou subgerente no sabado "
+                                            + DATA_FORMATTER.format(dataAtual)
+                                            + "."
+                            ));
+                    selecionados.add(chefiaFinal);
+                }
+                for (EstadoColaborador candidato : candidatosDisponiveis) {
                     if (selecionados.size() >= minimoNecessario) {
                         break;
+                    }
+                    if (selecionados.contains(candidato)) {
+                        continue;
                     }
                     selecionados.add(candidato);
                 }
@@ -414,6 +469,9 @@ public class GeracaoHorariosBLL {
                     horarios.add(horario);
 
                     selecionado.registarAtribuicao(dataAtual, turno, minutosTurno);
+                    if (dataAtual.getDayOfWeek() == DayOfWeek.SATURDAY && selecionado.cumpreChefiaObrigatoriaAoSabado()) {
+                        sabadosComChefia.add(dataAtual);
+                    }
                     diasCobertos.add(dataAtual);
                 }
             }
@@ -425,11 +483,13 @@ public class GeracaoHorariosBLL {
     private Comparator<EstadoColaborador> criarComparatorCandidatos(LocalDate data,
                                                                     Turno turno,
                                                                     long minutosTurno,
+                                                                    boolean exigirChefiaAoSabado,
                                                                     Map<Integer, List<Preferencia>> preferenciasTurnos,
                                                                     Map<Integer, List<Preferencia>> preferenciasColegas,
                                                                     List<Horario> horariosGerados) {
         return Comparator
-                .comparingDouble((EstadoColaborador estado) -> estado.utilizacaoContratualProjetada(minutosTurno))
+                .comparingInt((EstadoColaborador estado) -> prioridadeChefiaNaDistribuicao(estado, data, exigirChefiaAoSabado))
+                .thenComparingDouble((EstadoColaborador estado) -> estado.utilizacaoContratualProjetada(minutosTurno))
                 .thenComparing((EstadoColaborador estado) -> !temPreferenciaTurnoFavoravel(
                         preferenciasTurnos.getOrDefault(estado.idUtilizador(), List.of()),
                         data,
@@ -444,6 +504,13 @@ public class GeracaoHorariosBLL {
                 .thenComparingLong(EstadoColaborador::minutosAtribuidos)
                 .thenComparingInt(estado -> estado.turnosDoTipo(normalizarTurno(turno)))
                 .thenComparing(estado -> valorOuTraco(estado.ligacao().getIdUtilizador().getNome()), String.CASE_INSENSITIVE_ORDER);
+    }
+
+    private int prioridadeChefiaNaDistribuicao(EstadoColaborador estado, LocalDate data, boolean exigirChefiaAoSabado) {
+        if (!exigirChefiaAoSabado || data == null || !estado.cumpreChefiaObrigatoriaAoSabado()) {
+            return 0;
+        }
+        return data.getDayOfWeek() == DayOfWeek.SATURDAY ? 0 : 1;
     }
 
     private boolean temPreferenciaTurnoFavoravel(List<Preferencia> preferencias, LocalDate data, Turno turno) {
@@ -698,6 +765,22 @@ public class GeracaoHorariosBLL {
                 .findFirst()
                 .orElse(2);
 
+        int diaLimiteLancamento = regras.stream()
+                .filter(this::ehRegraDiaLimiteLancamento)
+                .map(RegraAplicada::valor)
+                .filter(Objects::nonNull)
+                .filter(valor -> valor >= 1 && valor <= 31)
+                .findFirst()
+                .orElse(15);
+
+        boolean exigirChefiaAoSabado = regras.stream()
+                .filter(this::ehRegraChefiaAoSabado)
+                .map(RegraAplicada::valor)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(valor -> valor > 0)
+                .orElse(true);
+
         Map<PerfilContratual, Long> cargaMaximaMinutosPorPerfil = new EnumMap<>(PerfilContratual.class);
         for (PerfilContratual perfilContratual : PerfilContratual.values()) {
             Integer horasMensais = regras.stream()
@@ -722,6 +805,8 @@ public class GeracaoHorariosBLL {
                 descansoMinimoHoras,
                 descansoSemanalMinimoDias,
                 janelaRotacaoFinsDeSemanaSemanas,
+                diaLimiteLancamento,
+                exigirChefiaAoSabado,
                 cargaMaximaMinutosPorPerfil
         );
     }
@@ -753,6 +838,19 @@ public class GeracaoHorariosBLL {
         String texto = regra.textoNormalizado();
         return (texto.contains("rotacao") || texto.contains("janela"))
                 && (texto.contains("fim de semana") || texto.contains("weekend"));
+    }
+
+    private boolean ehRegraDiaLimiteLancamento(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return texto.contains("dia")
+                && texto.contains("limite")
+                && (texto.contains("lancamento") || texto.contains("publicacao") || texto.contains("publicar"));
+    }
+
+    private boolean ehRegraChefiaAoSabado(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return texto.contains("sabado")
+                && (texto.contains("gerente") || texto.contains("subgerente") || texto.contains("chefia") || texto.contains("gestao"));
     }
 
     private boolean ehRegraCargaContratual(RegraAplicada regra) {
@@ -860,6 +958,24 @@ public class GeracaoHorariosBLL {
             inicioHistorico = inicioRotacao;
         }
         return inicioHistorico;
+    }
+
+    private void validarJanelaDeLancamento(LocalDate dataInicioPeriodo, int diaLimiteLancamento) {
+        LocalDate mesAnterior = dataInicioPeriodo.minusMonths(1);
+        int diaNormalizado = Math.min(diaLimiteLancamento, mesAnterior.lengthOfMonth());
+        LocalDate dataLimite = mesAnterior.withDayOfMonth(diaNormalizado);
+
+        if (LocalDate.now().isAfter(dataLimite)) {
+            throw new IllegalArgumentException(
+                    "A proposta de "
+                            + nomeMes(dataInicioPeriodo.getMonthValue())
+                            + " de "
+                            + dataInicioPeriodo.getYear()
+                            + " tinha de ser lancada ate "
+                            + DATA_FORMATTER.format(dataLimite)
+                            + "."
+            );
+        }
     }
 
     private Lojautilizador preferirLigacaoMaisRecente(Lojautilizador ligacaoAtual, Lojautilizador novaLigacao) {
@@ -1315,6 +1431,8 @@ public class GeracaoHorariosBLL {
             int descansoMinimoHoras,
             int descansoSemanalMinimoDias,
             int janelaRotacaoFinsDeSemanaSemanas,
+            int diaLimiteLancamento,
+            boolean exigirChefiaAoSabado,
             Map<PerfilContratual, Long> cargaMaximaMinutosPorPerfil
     ) {
     }
@@ -1464,13 +1582,35 @@ public class GeracaoHorariosBLL {
                                     int descansoMinimoHoras,
                                     int descansoSemanalMinimoDias,
                                     int janelaRotacaoFinsDeSemanaSemanas) {
+            return podeReceber(
+                    data,
+                    turno,
+                    minutosTurno,
+                    bloqueios,
+                    maxDiasConsecutivos,
+                    descansoMinimoHoras,
+                    descansoSemanalMinimoDias,
+                    janelaRotacaoFinsDeSemanaSemanas,
+                    false
+            );
+        }
+
+        private boolean podeReceber(LocalDate data,
+                                    Turno turno,
+                                    long minutosTurno,
+                                    Set<LocalDate> bloqueios,
+                                    int maxDiasConsecutivos,
+                                    int descansoMinimoHoras,
+                                    int descansoSemanalMinimoDias,
+                                    int janelaRotacaoFinsDeSemanaSemanas,
+                                    boolean ignorarRotacaoFimDeSemana) {
             if (bloqueios.contains(data)
                     || atribuicoesConhecidas.containsKey(data)
                     || !temVinculoValidoNaData(data)
                     || !perfilContratual.permiteData(data)
                     || (minutosAtribuidos + minutosTurno) > cargaMaximaMensalMinutos
                     || excedeMaximoDiasTrabalhadosNaSemana(data, descansoSemanalMinimoDias)
-                    || violariaRotacaoDeFimDeSemana(data, janelaRotacaoFinsDeSemanaSemanas)) {
+                    || (!ignorarRotacaoFimDeSemana && violariaRotacaoDeFimDeSemana(data, janelaRotacaoFinsDeSemanaSemanas))) {
                 return false;
             }
 
@@ -1495,6 +1635,26 @@ public class GeracaoHorariosBLL {
             }
 
             return true;
+        }
+
+        private boolean podeReceberComoChefiaAoSabado(LocalDate data,
+                                                      Turno turno,
+                                                      long minutosTurno,
+                                                      Set<LocalDate> bloqueios,
+                                                      int maxDiasConsecutivos,
+                                                      int descansoMinimoHoras,
+                                                      int descansoSemanalMinimoDias) {
+            return podeReceber(
+                    data,
+                    turno,
+                    minutosTurno,
+                    bloqueios,
+                    maxDiasConsecutivos,
+                    descansoMinimoHoras,
+                    descansoSemanalMinimoDias,
+                    0,
+                    true
+            );
         }
 
         private void registarAtribuicao(LocalDate data, Turno turno, long minutosTurno) {
@@ -1539,6 +1699,11 @@ public class GeracaoHorariosBLL {
 
         private Integer idUtilizador() {
             return ligacao.getIdUtilizador().getId();
+        }
+
+        private boolean cumpreChefiaObrigatoriaAoSabado() {
+            String tipoCargo = ligacao.getIdCargo() != null ? ligacao.getIdCargo().getTipo() : null;
+            return tipoCargo != null && CARGOS_COM_PRESENCA_OBRIGATORIA_AO_SABADO.contains(normalizarTexto(tipoCargo));
         }
 
         private Lojautilizador ligacao() {
