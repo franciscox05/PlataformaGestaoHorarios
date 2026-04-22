@@ -25,7 +25,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DashboardController {
+public class DashboardController implements DashboardNavigator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DashboardController.class);
 
@@ -189,6 +189,7 @@ public class DashboardController {
             Object controller = loader.getController();
 
             if (controller instanceof HomeController homeController) {
+                homeController.setDashboardNavigation(this);
                 homeController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof GestaoLojaController gestaoLojaController) {
                 gestaoLojaController.setUtilizadorLogado(utilizadorLogado);
@@ -197,6 +198,7 @@ public class DashboardController {
             } else if (controller instanceof GeracaoHorariosController geracaoHorariosController) {
                 geracaoHorariosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PainelGerentePedidosController painelGerentePedidosController) {
+                painelGerentePedidosController.setDashboardNavigation(this);
                 painelGerentePedidosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PainelAuditoriaController painelAuditoriaController) {
                 painelAuditoriaController.setUtilizadorLogado(utilizadorLogado);
@@ -356,5 +358,45 @@ public class DashboardController {
         alert.setHeaderText(cabecalho);
         alert.setContentText(conteudo);
         alert.showAndWait();
+    }
+
+    @Override
+    public void abrirDashboard() {
+        onDashboardHomeClick();
+    }
+
+    @Override
+    public void abrirFolgas() {
+        onPedirFolgaClick();
+    }
+
+    @Override
+    public void abrirPermutas() {
+        onTrocarTurnoClick();
+    }
+
+    @Override
+    public void abrirPerfil() {
+        onPerfilClick();
+    }
+
+    @Override
+    public void abrirPreferencias() {
+        onPreferenciasClick();
+    }
+
+    @Override
+    public void abrirPainelGerente() {
+        onPainelGerentePedidosClick();
+    }
+
+    @Override
+    public void abrirHorarios() {
+        onHorariosClick();
+    }
+
+    @Override
+    public void abrirRelatorios() {
+        onRelatoriosHorasClick();
     }
 }
