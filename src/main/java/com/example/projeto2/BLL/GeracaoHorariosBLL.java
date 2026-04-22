@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -32,9 +33,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -50,7 +53,9 @@ public class GeracaoHorariosBLL {
 
     private static final Set<String> CARGOS_COM_GERACAO = Set.of("gerente", "subgerente");
     private static final Set<String> CARGOS_COM_VALIDACAO = Set.of("supervisor");
+    private static final Set<String> CARGOS_COM_PRESENCA_OBRIGATORIA_AO_SABADO = Set.of("gerente", "subgerente");
     private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final LojautilizadorRepository lojautilizadorRepository;
     private final HorarioRepository horarioRepository;
@@ -179,9 +184,9 @@ public class GeracaoHorariosBLL {
 
         validarEstadoAtualDaLoja(idLoja, anoNormalizado, mesNormalizado, dataInicio, dataFim);
 
-        List<Lojautilizador> colaboradoresAtivos = obterColaboradoresAtivos(idLoja);
+        List<Lojautilizador> colaboradoresAtivos = obterColaboradoresElegiveis(idLoja, dataInicio, dataFim);
         if (colaboradoresAtivos.isEmpty()) {
-            throw new IllegalArgumentException("Nao e possivel gerar horarios sem equipa ativa na loja.");
+            throw new IllegalArgumentException("Nao e possivel gerar horarios sem colaboradores elegiveis e com vinculo valido na loja.");
         }
 
         List<Turno> turnos = turnoRepository.findAllByOrderByHoraInicioAsc();
@@ -191,10 +196,15 @@ public class GeracaoHorariosBLL {
 
         List<RegraAplicada> regras = obterRegrasAplicadas(idLoja);
         ParametrosGeracao parametros = resolverParametrosGeracao(regras, turnos);
+        validarJanelaDeLancamento(dataInicio, parametros.diaLimiteLancamento());
+        LocalDate inicioHistorico = resolverInicioHistoricoParaGeracao(dataInicio, parametros);
 
         List<DayOff> dayOffsAprovados = dayOffRepository.findPedidosAprovadosDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<Preferencia> preferenciasAprovadas = preferenciaRepository.findPreferenciasAprovadasDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<HorarioEspecialLoja> horariosEspeciais = horarioEspecialLojaRepository.findAtivosNoPeriodo(idLoja, dataInicio, dataFim);
+        List<Horario> historicoHorarios = inicioHistorico.isBefore(dataInicio)
+                ? horarioRepository.findHorariosDaLojaEntreDatas(idLoja, inicioHistorico, dataInicio.minusDays(1))
+                : List.of();
 
         Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador = construirBloqueiosPorUtilizador(
                 dataInicio,
@@ -214,6 +224,7 @@ public class GeracaoHorariosBLL {
                 colaboradoresAtivos,
                 turnos,
                 parametros,
+                historicoHorarios,
                 bloqueiosPorUtilizador,
                 preferenciasTurnos,
                 preferenciasColegas,
@@ -299,6 +310,7 @@ public class GeracaoHorariosBLL {
     private PlaneamentoGerado gerarPlaneamento(List<Lojautilizador> colaboradoresAtivos,
                                                List<Turno> turnos,
                                                ParametrosGeracao parametros,
+                                               List<Horario> historicoHorarios,
                                                Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
                                                Map<Integer, List<Preferencia>> preferenciasTurnos,
                                                Map<Integer, List<Preferencia>> preferenciasColegas,
@@ -307,14 +319,44 @@ public class GeracaoHorariosBLL {
                                                LocalDate dataFim) {
         Map<Integer, EstadoColaborador> estadoPorColaborador = new LinkedHashMap<>();
         for (Lojautilizador ligacao : colaboradoresAtivos) {
+            PerfilContratual perfilContratual = resolverPerfilContratual(ligacao)
+                    .orElseThrow(() -> new IllegalArgumentException("Foi encontrado um colaborador sem perfil contratual valido para a geracao."));
+            Long cargaMaximaMinutos = parametros.cargaMaximaMinutosPorPerfil().get(perfilContratual);
+            if (cargaMaximaMinutos == null || cargaMaximaMinutos <= 0) {
+                throw new IllegalArgumentException("Nao existe uma carga contratual mensal valida para o perfil " + perfilContratual.descricaoCurta() + ".");
+            }
+
             estadoPorColaborador.put(
                     ligacao.getIdUtilizador().getId(),
-                    new EstadoColaborador(ligacao)
+                    new EstadoColaborador(ligacao, perfilContratual, cargaMaximaMinutos)
             );
+        }
+
+        Map<Integer, List<Horario>> historicoPorUtilizador = new HashMap<>();
+        for (Horario horario : historicoHorarios) {
+            if (horario.getIdLojautilizador() == null
+                    || horario.getIdLojautilizador().getIdUtilizador() == null
+                    || horario.getIdLojautilizador().getIdUtilizador().getId() == null
+                    || horario.getDataTurno() == null
+                    || horario.getIdTurno() == null) {
+                continue;
+            }
+            historicoPorUtilizador
+                    .computeIfAbsent(horario.getIdLojautilizador().getIdUtilizador().getId(), ignored -> new ArrayList<>())
+                    .add(horario);
+        }
+        for (List<Horario> historicoDoColaborador : historicoPorUtilizador.values()) {
+            historicoDoColaborador.sort(Comparator
+                    .comparing(Horario::getDataTurno)
+                    .thenComparing(horario -> horario.getIdTurno().getHoraInicio(), Comparator.nullsLast(Comparator.naturalOrder())));
+        }
+        for (EstadoColaborador estado : estadoPorColaborador.values()) {
+            estado.inicializarComHistorico(historicoPorUtilizador.getOrDefault(estado.idUtilizador(), List.of()));
         }
 
         List<Horario> horarios = new ArrayList<>();
         Set<LocalDate> diasCobertos = new LinkedHashSet<>();
+        Set<LocalDate> sabadosComChefia = new LinkedHashSet<>();
 
         for (LocalDate data = dataInicio; !data.isAfter(dataFim); data = data.plusDays(1)) {
             LocalDate dataAtual = data;
@@ -337,6 +379,7 @@ public class GeracaoHorariosBLL {
             }
 
             for (Turno turno : turnosDoDia) {
+                long minutosTurno = calcularDuracaoEmMinutos(turno);
                 Integer minimoNecessario = configuracaoDia != null && configuracaoDia.minimoColaboradoresTurno() != null
                         ? configuracaoDia.minimoColaboradoresTurno()
                         : parametros.minimosPorTurno().get(turno.getId());
@@ -348,33 +391,88 @@ public class GeracaoHorariosBLL {
                         .filter(estado -> estado.podeReceber(
                                 dataAtual,
                                 turno,
+                                minutosTurno,
                                 bloqueiosPorUtilizador.getOrDefault(estado.idUtilizador(), Set.of()),
                                 parametros.maxDiasConsecutivos(),
-                                parametros.descansoMinimoHoras()
+                                parametros.descansoMinimoHoras(),
+                                parametros.descansoSemanalMinimoDias(),
+                                parametros.janelaRotacaoFinsDeSemanaSemanas()
                         ))
                         .sorted(criarComparatorCandidatos(
                                 dataAtual,
                                 turno,
+                                minutosTurno,
+                                parametros.exigirChefiaAoSabado(),
                                 preferenciasTurnos,
                                 preferenciasColegas,
                                 horarios
                         ))
                         .toList();
 
-                if (candidatos.size() < minimoNecessario) {
+                boolean precisaChefiaAoSabado = parametros.exigirChefiaAoSabado()
+                        && dataAtual.getDayOfWeek() == DayOfWeek.SATURDAY
+                        && !sabadosComChefia.contains(dataAtual);
+
+                EstadoColaborador chefiaObrigatoria = null;
+                List<EstadoColaborador> candidatosDisponiveis = new ArrayList<>(candidatos);
+                if (precisaChefiaAoSabado) {
+                    chefiaObrigatoria = candidatos.stream()
+                            .filter(EstadoColaborador::cumpreChefiaObrigatoriaAoSabado)
+                            .findFirst()
+                            .orElseGet(() -> estadoPorColaborador.values().stream()
+                                    .filter(EstadoColaborador::cumpreChefiaObrigatoriaAoSabado)
+                                    .filter(estado -> estado.podeReceberComoChefiaAoSabado(
+                                            dataAtual,
+                                            turno,
+                                            minutosTurno,
+                                            bloqueiosPorUtilizador.getOrDefault(estado.idUtilizador(), Set.of()),
+                                            parametros.maxDiasConsecutivos(),
+                                            parametros.descansoMinimoHoras(),
+                                            parametros.descansoSemanalMinimoDias()
+                                    ))
+                                    .sorted(criarComparatorCandidatos(
+                                            dataAtual,
+                                            turno,
+                                            minutosTurno,
+                                            parametros.exigirChefiaAoSabado(),
+                                            preferenciasTurnos,
+                                            preferenciasColegas,
+                                            horarios
+                                    ))
+                                    .findFirst()
+                                    .orElse(null));
+
+                    if (chefiaObrigatoria != null && !candidatosDisponiveis.contains(chefiaObrigatoria)) {
+                        candidatosDisponiveis.add(0, chefiaObrigatoria);
+                    }
+                }
+
+                if (candidatosDisponiveis.size() < minimoNecessario) {
                     throw new IllegalArgumentException(
                             "Nao foi possivel cobrir o turno "
                                     + formatarTurno(turno)
                                     + " em "
                                     + dataAtual
-                                    + ". Verifica equipa ativa, descansos e regras minimas."
+                                    + ". Verifica equipa ativa, elegibilidade contratual, carga mensal, descanso semanal, rotacao de fins de semana, descansos entre turnos e regras minimas."
                     );
                 }
 
                 List<EstadoColaborador> selecionados = new ArrayList<>();
-                for (EstadoColaborador candidato : candidatos) {
+                if (precisaChefiaAoSabado) {
+                    EstadoColaborador chefiaFinal = Optional.ofNullable(chefiaObrigatoria)
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Nao foi possivel garantir presenca de gerente ou subgerente no sabado "
+                                            + DATA_FORMATTER.format(dataAtual)
+                                            + "."
+                            ));
+                    selecionados.add(chefiaFinal);
+                }
+                for (EstadoColaborador candidato : candidatosDisponiveis) {
                     if (selecionados.size() >= minimoNecessario) {
                         break;
+                    }
+                    if (selecionados.contains(candidato)) {
+                        continue;
                     }
                     selecionados.add(candidato);
                 }
@@ -386,7 +484,10 @@ public class GeracaoHorariosBLL {
                     horario.setDataTurno(dataAtual);
                     horarios.add(horario);
 
-                    selecionado.registarAtribuicao(dataAtual, turno, calcularDuracaoEmMinutos(turno));
+                    selecionado.registarAtribuicao(dataAtual, turno, minutosTurno);
+                    if (dataAtual.getDayOfWeek() == DayOfWeek.SATURDAY && selecionado.cumpreChefiaObrigatoriaAoSabado()) {
+                        sabadosComChefia.add(dataAtual);
+                    }
                     diasCobertos.add(dataAtual);
                 }
             }
@@ -397,11 +498,15 @@ public class GeracaoHorariosBLL {
 
     private Comparator<EstadoColaborador> criarComparatorCandidatos(LocalDate data,
                                                                     Turno turno,
+                                                                    long minutosTurno,
+                                                                    boolean exigirChefiaAoSabado,
                                                                     Map<Integer, List<Preferencia>> preferenciasTurnos,
                                                                     Map<Integer, List<Preferencia>> preferenciasColegas,
                                                                     List<Horario> horariosGerados) {
         return Comparator
-                .comparing((EstadoColaborador estado) -> !temPreferenciaTurnoFavoravel(
+                .comparingInt((EstadoColaborador estado) -> prioridadeChefiaNaDistribuicao(estado, data, exigirChefiaAoSabado))
+                .thenComparingDouble((EstadoColaborador estado) -> estado.utilizacaoContratualProjetada(minutosTurno))
+                .thenComparing((EstadoColaborador estado) -> !temPreferenciaTurnoFavoravel(
                         preferenciasTurnos.getOrDefault(estado.idUtilizador(), List.of()),
                         data,
                         turno
@@ -415,6 +520,13 @@ public class GeracaoHorariosBLL {
                 .thenComparingLong(EstadoColaborador::minutosAtribuidos)
                 .thenComparingInt(estado -> estado.turnosDoTipo(normalizarTurno(turno)))
                 .thenComparing(estado -> valorOuTraco(estado.ligacao().getIdUtilizador().getNome()), String.CASE_INSENSITIVE_ORDER);
+    }
+
+    private int prioridadeChefiaNaDistribuicao(EstadoColaborador estado, LocalDate data, boolean exigirChefiaAoSabado) {
+        if (!exigirChefiaAoSabado || data == null || !estado.cumpreChefiaObrigatoriaAoSabado()) {
+            return 0;
+        }
+        return data.getDayOfWeek() == DayOfWeek.SATURDAY ? 0 : 1;
     }
 
     private boolean temPreferenciaTurnoFavoravel(List<Preferencia> preferencias, LocalDate data, Turno turno) {
@@ -653,7 +765,66 @@ public class GeracaoHorariosBLL {
                 .findFirst()
                 .orElse(11);
 
-        return new ParametrosGeracao(minimosPorTurno, maxDiasConsecutivos, descansoMinimoHoras);
+        int descansoSemanalMinimoDias = regras.stream()
+                .filter(this::ehRegraDescansoSemanal)
+                .map(RegraAplicada::valor)
+                .filter(Objects::nonNull)
+                .filter(valor -> valor >= 1 && valor <= 6)
+                .findFirst()
+                .orElse(2);
+
+        int janelaRotacaoFinsDeSemanaSemanas = regras.stream()
+                .filter(this::ehRegraRotacaoFinsDeSemana)
+                .map(RegraAplicada::valor)
+                .filter(Objects::nonNull)
+                .filter(valor -> valor >= 2)
+                .findFirst()
+                .orElse(2);
+
+        int diaLimiteLancamento = regras.stream()
+                .filter(this::ehRegraDiaLimiteLancamento)
+                .map(RegraAplicada::valor)
+                .filter(Objects::nonNull)
+                .filter(valor -> valor >= 1 && valor <= 31)
+                .findFirst()
+                .orElse(15);
+
+        boolean exigirChefiaAoSabado = regras.stream()
+                .filter(this::ehRegraChefiaAoSabado)
+                .map(RegraAplicada::valor)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(valor -> valor > 0)
+                .orElse(true);
+
+        Map<PerfilContratual, Long> cargaMaximaMinutosPorPerfil = new EnumMap<>(PerfilContratual.class);
+        for (PerfilContratual perfilContratual : PerfilContratual.values()) {
+            Integer horasMensais = regras.stream()
+                    .filter(this::ehRegraCargaContratual)
+                    .filter(regra -> regraMencionaPerfilContratual(regra, perfilContratual))
+                    .map(RegraAplicada::valor)
+                    .filter(Objects::nonNull)
+                    .filter(valor -> valor > 0)
+                    .findFirst()
+                    .orElse(perfilContratual.cargaMensalHorasPadrao());
+
+            if (horasMensais == null || horasMensais <= 0) {
+                throw new IllegalArgumentException("Nao existe uma regra de carga contratual valida para o perfil " + perfilContratual.descricaoCurta() + ".");
+            }
+
+            cargaMaximaMinutosPorPerfil.put(perfilContratual, horasMensais * 60L);
+        }
+
+        return new ParametrosGeracao(
+                minimosPorTurno,
+                maxDiasConsecutivos,
+                descansoMinimoHoras,
+                descansoSemanalMinimoDias,
+                janelaRotacaoFinsDeSemanaSemanas,
+                diaLimiteLancamento,
+                exigirChefiaAoSabado,
+                cargaMaximaMinutosPorPerfil
+        );
     }
 
     private boolean ehRegraDeMinimos(RegraAplicada regra) {
@@ -672,6 +843,39 @@ public class GeracaoHorariosBLL {
         return texto.contains("descanso") && (texto.contains("hora") || texto.contains("interval"));
     }
 
+    private boolean ehRegraDescansoSemanal(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return texto.contains("descanso")
+                && (texto.contains("seman") || texto.contains("folga"))
+                && texto.contains("dia");
+    }
+
+    private boolean ehRegraRotacaoFinsDeSemana(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return (texto.contains("rotacao") || texto.contains("janela"))
+                && (texto.contains("fim de semana") || texto.contains("weekend"));
+    }
+
+    private boolean ehRegraDiaLimiteLancamento(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return texto.contains("dia")
+                && texto.contains("limite")
+                && (texto.contains("lancamento") || texto.contains("publicacao") || texto.contains("publicar"));
+    }
+
+    private boolean ehRegraChefiaAoSabado(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return texto.contains("sabado")
+                && (texto.contains("gerente") || texto.contains("subgerente") || texto.contains("chefia") || texto.contains("gestao"));
+    }
+
+    private boolean ehRegraCargaContratual(RegraAplicada regra) {
+        String texto = regra.textoNormalizado();
+        return texto.contains("carga")
+                && (texto.contains("contrat") || texto.contains("mensal"))
+                && (texto.contains("hora") || texto.contains("horas"));
+    }
+
     private boolean regraMencionaTurno(RegraAplicada regra, String tipoTurno) {
         for (String alias : aliasesTurno(tipoTurno)) {
             if (!alias.isBlank() && regra.textoNormalizado().contains(alias)) {
@@ -679,6 +883,10 @@ public class GeracaoHorariosBLL {
             }
         }
         return false;
+    }
+
+    private boolean regraMencionaPerfilContratual(RegraAplicada regra, PerfilContratual perfilContratual) {
+        return perfilContratual.correspondeRegra(regra.textoNormalizado());
     }
 
     private List<String> aliasesTurno(String tipoTurno) {
@@ -713,18 +921,109 @@ public class GeracaoHorariosBLL {
         return regras;
     }
 
-    private List<Lojautilizador> obterColaboradoresAtivos(Integer idLoja) {
+    private List<Lojautilizador> obterColaboradoresElegiveis(Integer idLoja, LocalDate dataInicio, LocalDate dataFim) {
         Map<Integer, Lojautilizador> ativos = new LinkedHashMap<>();
         for (Lojautilizador ligacao : lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(idLoja)) {
-            if (ligacao.getDataFim() != null || ligacao.getIdUtilizador() == null || ligacao.getIdUtilizador().getId() == null) {
+            if (!ligacaoTemRelevanciaNoPeriodo(ligacao, dataInicio, dataFim)) {
                 continue;
             }
-            if (!"ativo".equals(normalizarTexto(ligacao.getIdUtilizador().getEstado()))) {
+            if (!utilizadorEstaAtivo(ligacao)) {
                 continue;
             }
-            ativos.putIfAbsent(ligacao.getIdUtilizador().getId(), ligacao);
+            if (resolverPerfilContratual(ligacao).isEmpty()) {
+                continue;
+            }
+            ativos.merge(ligacao.getIdUtilizador().getId(), ligacao, this::preferirLigacaoMaisRecente);
         }
         return new ArrayList<>(ativos.values());
+    }
+
+    private boolean ligacaoTemRelevanciaNoPeriodo(Lojautilizador ligacao, LocalDate dataInicio, LocalDate dataFim) {
+        if (ligacao == null
+                || ligacao.getIdUtilizador() == null
+                || ligacao.getIdUtilizador().getId() == null
+                || ligacao.getIdCargo() == null
+                || ligacao.getIdLoja() == null
+                || ligacao.getIdLoja().getId() == null
+                || ligacao.getDataInicio() == null) {
+            return false;
+        }
+
+        if (ligacao.getDataInicio().isAfter(dataFim)) {
+            return false;
+        }
+
+        return ligacao.getDataFim() == null || !ligacao.getDataFim().isBefore(dataInicio);
+    }
+
+    private boolean utilizadorEstaAtivo(Lojautilizador ligacao) {
+        return ligacao.getIdUtilizador() != null
+                && "ativo".equals(normalizarTexto(ligacao.getIdUtilizador().getEstado()));
+    }
+
+    private LocalDate resolverInicioHistoricoParaGeracao(LocalDate dataInicio, ParametrosGeracao parametros) {
+        LocalDate inicioConsecutivos = dataInicio.minusDays(Math.max(1, parametros.maxDiasConsecutivos()));
+        LocalDate inicioSemanaAtual = inicioSemana(dataInicio);
+        LocalDate inicioRotacao = dataInicio.minusWeeks(Math.max(1, parametros.janelaRotacaoFinsDeSemanaSemanas()));
+
+        LocalDate inicioHistorico = inicioConsecutivos;
+        if (inicioSemanaAtual.isBefore(inicioHistorico)) {
+            inicioHistorico = inicioSemanaAtual;
+        }
+        if (inicioRotacao.isBefore(inicioHistorico)) {
+            inicioHistorico = inicioRotacao;
+        }
+        return inicioHistorico;
+    }
+
+    private void validarJanelaDeLancamento(LocalDate dataInicioPeriodo, int diaLimiteLancamento) {
+        LocalDate mesAnterior = dataInicioPeriodo.minusMonths(1);
+        int diaNormalizado = Math.min(diaLimiteLancamento, mesAnterior.lengthOfMonth());
+        LocalDate dataLimite = mesAnterior.withDayOfMonth(diaNormalizado);
+
+        if (LocalDate.now().isAfter(dataLimite)) {
+            throw new IllegalArgumentException(
+                    "A proposta de "
+                            + nomeMes(dataInicioPeriodo.getMonthValue())
+                            + " de "
+                            + dataInicioPeriodo.getYear()
+                            + " tinha de ser lancada ate "
+                            + DATA_FORMATTER.format(dataLimite)
+                            + "."
+            );
+        }
+    }
+
+    private Lojautilizador preferirLigacaoMaisRecente(Lojautilizador ligacaoAtual, Lojautilizador novaLigacao) {
+        if (ligacaoAtual == null) {
+            return novaLigacao;
+        }
+        if (novaLigacao == null) {
+            return ligacaoAtual;
+        }
+
+        LocalDate inicioAtual = ligacaoAtual.getDataInicio();
+        LocalDate inicioNovo = novaLigacao.getDataInicio();
+        if (inicioAtual == null) {
+            return novaLigacao;
+        }
+        if (inicioNovo == null) {
+            return ligacaoAtual;
+        }
+        if (inicioNovo.isAfter(inicioAtual)) {
+            return novaLigacao;
+        }
+        if (inicioAtual.isAfter(inicioNovo)) {
+            return ligacaoAtual;
+        }
+
+        if (ligacaoAtual.getDataFim() == null && novaLigacao.getDataFim() != null) {
+            return ligacaoAtual;
+        }
+        if (ligacaoAtual.getDataFim() != null && novaLigacao.getDataFim() == null) {
+            return novaLigacao;
+        }
+        return ligacaoAtual;
     }
 
     private void validarEstadoAtualDaLoja(Integer idLoja,
@@ -988,6 +1287,13 @@ public class GeracaoHorariosBLL {
         return tipoCargo != null && CARGOS_COM_VALIDACAO.contains(normalizarTexto(tipoCargo));
     }
 
+    private Optional<PerfilContratual> resolverPerfilContratual(Lojautilizador ligacao) {
+        if (ligacao == null || ligacao.getIdCargo() == null) {
+            return Optional.empty();
+        }
+        return PerfilContratual.fromCargoTipo(ligacao.getIdCargo().getTipo());
+    }
+
     private int normalizarAno(Integer ano) {
         int anoAtual = LocalDate.now().getYear();
         if (ano == null || ano < anoAtual || ano > anoAtual + 5) {
@@ -1043,6 +1349,19 @@ public class GeracaoHorariosBLL {
 
         LocalDateTime inicioAtual = dataAtual.atTime(turnoAtual.getHoraInicio());
         return Duration.between(fimAnterior, inicioAtual).toHours();
+    }
+
+    private LocalDate inicioSemana(LocalDate data) {
+        return data.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    }
+
+    private LocalDate inicioFimDeSemana(LocalDate data) {
+        return data.with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY));
+    }
+
+    private boolean ehFimDeSemana(LocalDate data) {
+        DayOfWeek diaSemana = data.getDayOfWeek();
+        return diaSemana == DayOfWeek.SATURDAY || diaSemana == DayOfWeek.SUNDAY;
     }
 
     private String normalizarTurno(Turno turno) {
@@ -1206,8 +1525,93 @@ public class GeracaoHorariosBLL {
     private record ParametrosGeracao(
             Map<Integer, Integer> minimosPorTurno,
             int maxDiasConsecutivos,
-            int descansoMinimoHoras
+            int descansoMinimoHoras,
+            int descansoSemanalMinimoDias,
+            int janelaRotacaoFinsDeSemanaSemanas,
+            int diaLimiteLancamento,
+            boolean exigirChefiaAoSabado,
+            Map<PerfilContratual, Long> cargaMaximaMinutosPorPerfil
     ) {
+    }
+
+    private enum PerfilContratual {
+        GESTAO(Set.of("gerente", "subgerente", "supervisor"), 176, false),
+        FULLTIME(Set.of("fulltime"), 176, false),
+        PARTTIME(Set.of("parttime"), 96, false),
+        REFORCO_FIM_DE_SEMANA(Set.of("reforco_parttime"), 64, true);
+
+        private final Set<String> tiposCargo;
+        private final int cargaMensalHorasPadrao;
+        private final boolean apenasFimDeSemana;
+
+        PerfilContratual(Set<String> tiposCargo, int cargaMensalHorasPadrao, boolean apenasFimDeSemana) {
+            this.tiposCargo = tiposCargo;
+            this.cargaMensalHorasPadrao = cargaMensalHorasPadrao;
+            this.apenasFimDeSemana = apenasFimDeSemana;
+        }
+
+        private static Optional<PerfilContratual> fromCargoTipo(String tipoCargo) {
+            String tipoNormalizado = normalizarTextoEstatico(tipoCargo);
+            if (tipoNormalizado.isBlank()) {
+                return Optional.empty();
+            }
+
+            for (PerfilContratual perfilContratual : values()) {
+                if (perfilContratual.tiposCargo.contains(tipoNormalizado)) {
+                    return Optional.of(perfilContratual);
+                }
+            }
+            return Optional.empty();
+        }
+
+        private int cargaMensalHorasPadrao() {
+            return cargaMensalHorasPadrao;
+        }
+
+        private boolean permiteData(LocalDate data) {
+            if (!apenasFimDeSemana || data == null) {
+                return true;
+            }
+            DayOfWeek dayOfWeek = data.getDayOfWeek();
+            return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY;
+        }
+
+        private boolean correspondeRegra(String textoNormalizado) {
+            return switch (this) {
+                case GESTAO -> textoNormalizado.contains("gestao")
+                        || textoNormalizado.contains("gerencia")
+                        || textoNormalizado.contains("gestor")
+                        || textoNormalizado.contains("supervisor");
+                case FULLTIME -> textoNormalizado.contains("fulltime")
+                        || (textoNormalizado.contains("full") && textoNormalizado.contains("time"))
+                        || textoNormalizado.contains("tempo inteiro");
+                case PARTTIME -> textoNormalizado.contains("parttime")
+                        || (textoNormalizado.contains("part") && textoNormalizado.contains("time"))
+                        || textoNormalizado.contains("tempo parcial");
+                case REFORCO_FIM_DE_SEMANA -> textoNormalizado.contains("reforco")
+                        || textoNormalizado.contains("fim de semana")
+                        || textoNormalizado.contains("weekend");
+            };
+        }
+
+        private String descricaoCurta() {
+            return switch (this) {
+                case GESTAO -> "gestao";
+                case FULLTIME -> "full-time";
+                case PARTTIME -> "part-time";
+                case REFORCO_FIM_DE_SEMANA -> "reforco de fim de semana";
+            };
+        }
+
+        private static String normalizarTextoEstatico(String valor) {
+            if (valor == null) {
+                return "";
+            }
+            return Normalizer.normalize(valor, Normalizer.Form.NFD)
+                    .replaceAll("\\p{M}+", "")
+                    .toLowerCase(Locale.ROOT)
+                    .trim();
+        }
     }
 
     private record RegraAplicada(
@@ -1248,23 +1652,62 @@ public class GeracaoHorariosBLL {
 
     private final class EstadoColaborador {
         private final Lojautilizador ligacao;
+        private final PerfilContratual perfilContratual;
+        private final long cargaMaximaMensalMinutos;
         private LocalDate ultimaDataAtribuida;
         private int diasConsecutivos;
         private int turnosAtribuidos;
         private long minutosAtribuidos;
-        private final Map<LocalDate, Turno> atribuicoes = new HashMap<>();
+        private final Map<LocalDate, Turno> atribuicoesConhecidas = new HashMap<>();
+        private final Map<LocalDate, Integer> diasTrabalhadosPorSemana = new HashMap<>();
+        private final Set<LocalDate> finsDeSemanaTrabalhados = new LinkedHashSet<>();
         private final Map<String, Integer> turnosPorTipo = new HashMap<>();
 
-        private EstadoColaborador(Lojautilizador ligacao) {
+        private EstadoColaborador(Lojautilizador ligacao,
+                                  PerfilContratual perfilContratual,
+                                  long cargaMaximaMensalMinutos) {
             this.ligacao = ligacao;
+            this.perfilContratual = perfilContratual;
+            this.cargaMaximaMensalMinutos = cargaMaximaMensalMinutos;
         }
 
         private boolean podeReceber(LocalDate data,
                                     Turno turno,
+                                    long minutosTurno,
                                     Set<LocalDate> bloqueios,
                                     int maxDiasConsecutivos,
-                                    int descansoMinimoHoras) {
-            if (bloqueios.contains(data) || atribuicoes.containsKey(data)) {
+                                    int descansoMinimoHoras,
+                                    int descansoSemanalMinimoDias,
+                                    int janelaRotacaoFinsDeSemanaSemanas) {
+            return podeReceber(
+                    data,
+                    turno,
+                    minutosTurno,
+                    bloqueios,
+                    maxDiasConsecutivos,
+                    descansoMinimoHoras,
+                    descansoSemanalMinimoDias,
+                    janelaRotacaoFinsDeSemanaSemanas,
+                    false
+            );
+        }
+
+        private boolean podeReceber(LocalDate data,
+                                    Turno turno,
+                                    long minutosTurno,
+                                    Set<LocalDate> bloqueios,
+                                    int maxDiasConsecutivos,
+                                    int descansoMinimoHoras,
+                                    int descansoSemanalMinimoDias,
+                                    int janelaRotacaoFinsDeSemanaSemanas,
+                                    boolean ignorarRotacaoFimDeSemana) {
+            if (bloqueios.contains(data)
+                    || atribuicoesConhecidas.containsKey(data)
+                    || !temVinculoValidoNaData(data)
+                    || !perfilContratual.permiteData(data)
+                    || (minutosAtribuidos + minutosTurno) > cargaMaximaMensalMinutos
+                    || excedeMaximoDiasTrabalhadosNaSemana(data, descansoSemanalMinimoDias)
+                    || (!ignorarRotacaoFimDeSemana && violariaRotacaoDeFimDeSemana(data, janelaRotacaoFinsDeSemanaSemanas))) {
                 return false;
             }
 
@@ -1279,7 +1722,7 @@ public class GeracaoHorariosBLL {
             if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
                 long horasDescanso = calcularHorasDescanso(
                         ultimaDataAtribuida,
-                        atribuicoes.get(ultimaDataAtribuida),
+                        atribuicoesConhecidas.get(ultimaDataAtribuida),
                         data,
                         turno
                 );
@@ -1291,21 +1734,73 @@ public class GeracaoHorariosBLL {
             return true;
         }
 
+        private boolean podeReceberComoChefiaAoSabado(LocalDate data,
+                                                      Turno turno,
+                                                      long minutosTurno,
+                                                      Set<LocalDate> bloqueios,
+                                                      int maxDiasConsecutivos,
+                                                      int descansoMinimoHoras,
+                                                      int descansoSemanalMinimoDias) {
+            return podeReceber(
+                    data,
+                    turno,
+                    minutosTurno,
+                    bloqueios,
+                    maxDiasConsecutivos,
+                    descansoMinimoHoras,
+                    descansoSemanalMinimoDias,
+                    0,
+                    true
+            );
+        }
+
         private void registarAtribuicao(LocalDate data, Turno turno, long minutosTurno) {
+            registarAtribuicaoConhecida(data, turno, minutosTurno, true);
+        }
+
+        private void inicializarComHistorico(List<Horario> historicoHorarios) {
+            for (Horario horario : historicoHorarios) {
+                if (horario.getDataTurno() == null || horario.getIdTurno() == null) {
+                    continue;
+                }
+                registarAtribuicaoConhecida(horario.getDataTurno(), horario.getIdTurno(), 0, false);
+            }
+        }
+
+        private void registarAtribuicaoConhecida(LocalDate data,
+                                                 Turno turno,
+                                                 long minutosTurno,
+                                                 boolean contarParaDistribuicaoAtual) {
+            if (data == null || turno == null || atribuicoesConhecidas.containsKey(data)) {
+                return;
+            }
+
             if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
                 diasConsecutivos++;
             } else {
                 diasConsecutivos = 1;
             }
             ultimaDataAtribuida = data;
-            turnosAtribuidos++;
-            minutosAtribuidos += minutosTurno;
-            atribuicoes.put(data, turno);
-            turnosPorTipo.merge(normalizarTurno(turno), 1, Integer::sum);
+            atribuicoesConhecidas.put(data, turno);
+            diasTrabalhadosPorSemana.merge(inicioSemana(data), 1, Integer::sum);
+            if (ehFimDeSemana(data)) {
+                finsDeSemanaTrabalhados.add(inicioFimDeSemana(data));
+            }
+
+            if (contarParaDistribuicaoAtual) {
+                turnosAtribuidos++;
+                minutosAtribuidos += minutosTurno;
+                turnosPorTipo.merge(normalizarTurno(turno), 1, Integer::sum);
+            }
         }
 
         private Integer idUtilizador() {
             return ligacao.getIdUtilizador().getId();
+        }
+
+        private boolean cumpreChefiaObrigatoriaAoSabado() {
+            String tipoCargo = ligacao.getIdCargo() != null ? ligacao.getIdCargo().getTipo() : null;
+            return tipoCargo != null && CARGOS_COM_PRESENCA_OBRIGATORIA_AO_SABADO.contains(normalizarTexto(tipoCargo));
         }
 
         private Lojautilizador ligacao() {
@@ -1318,6 +1813,55 @@ public class GeracaoHorariosBLL {
 
         private long minutosAtribuidos() {
             return minutosAtribuidos;
+        }
+
+        private double utilizacaoContratualProjetada(long minutosTurno) {
+            if (cargaMaximaMensalMinutos <= 0) {
+                return Double.MAX_VALUE;
+            }
+            return (minutosAtribuidos + minutosTurno) / (double) cargaMaximaMensalMinutos;
+        }
+
+        private boolean excedeMaximoDiasTrabalhadosNaSemana(LocalDate data, int descansoSemanalMinimoDias) {
+            int maxDiasTrabalhados = Math.max(0, 7 - descansoSemanalMinimoDias);
+            LocalDate inicioSemana = inicioSemana(data);
+            return diasTrabalhadosPorSemana.getOrDefault(inicioSemana, 0) + 1 > maxDiasTrabalhados;
+        }
+
+        private boolean violariaRotacaoDeFimDeSemana(LocalDate data, int janelaRotacaoFinsDeSemanaSemanas) {
+            if (!ehFimDeSemana(data) || janelaRotacaoFinsDeSemanaSemanas < 2) {
+                return false;
+            }
+
+            LocalDate fimDeSemanaAtual = inicioFimDeSemana(data);
+            if (finsDeSemanaTrabalhados.contains(fimDeSemanaAtual)) {
+                return false;
+            }
+
+            for (int deslocamento = janelaRotacaoFinsDeSemanaSemanas - 1; deslocamento >= 0; deslocamento--) {
+                LocalDate inicioJanela = fimDeSemanaAtual.minusWeeks(deslocamento);
+                int finsDeSemanaComTrabalho = 0;
+                for (int indice = 0; indice < janelaRotacaoFinsDeSemanaSemanas; indice++) {
+                    LocalDate fimDeSemanaNaJanela = inicioJanela.plusWeeks(indice);
+                    if (fimDeSemanaNaJanela.equals(fimDeSemanaAtual) || finsDeSemanaTrabalhados.contains(fimDeSemanaNaJanela)) {
+                        finsDeSemanaComTrabalho++;
+                    }
+                }
+                if (finsDeSemanaComTrabalho >= janelaRotacaoFinsDeSemanaSemanas) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean temVinculoValidoNaData(LocalDate data) {
+            if (data == null || ligacao.getDataInicio() == null) {
+                return false;
+            }
+            if (data.isBefore(ligacao.getDataInicio())) {
+                return false;
+            }
+            return ligacao.getDataFim() == null || !data.isAfter(ligacao.getDataFim());
         }
 
         private int turnosDoTipo(String tipo) {
