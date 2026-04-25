@@ -6,6 +6,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -43,10 +44,10 @@ public class GestaoLojaController {
     private Label lblCargoGestor;
 
     @FXML
-    private TextField txtHoraAbertura;
+    private ComboBox<String> cbHoraAbertura;
 
     @FXML
-    private TextField txtHoraFecho;
+    private ComboBox<String> cbHoraFecho;
 
     @FXML
     private Label lblMensagem;
@@ -67,10 +68,10 @@ public class GestaoLojaController {
     private CheckBox chkLojaEncerrada;
 
     @FXML
-    private TextField txtHoraAberturaExcecao;
+    private ComboBox<String> cbHoraAberturaExcecao;
 
     @FXML
-    private TextField txtHoraFechoExcecao;
+    private ComboBox<String> cbHoraFechoExcecao;
 
     @FXML
     private TextField txtMinimoExcecao;
@@ -116,6 +117,7 @@ public class GestaoLojaController {
     public void initialize() {
         esconderMensagem();
         esconderMensagemExcecao();
+        configurarSeletoresHora();
         configurarOcultacaoFeedback();
         configurarTabelaHorariosEspeciais();
         configurarFormularioEncerrada();
@@ -136,8 +138,8 @@ public class GestaoLojaController {
                 throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
             }
 
-            LocalTime horaAbertura = parseHora(txtHoraAbertura.getText(), "abertura");
-            LocalTime horaFecho = parseHora(txtHoraFecho.getText(), "fecho");
+            LocalTime horaAbertura = parseHora(cbHoraAbertura.getValue(), "abertura");
+            LocalTime horaFecho = parseHora(cbHoraFecho.getValue(), "fecho");
 
             List<GestaoLojaBLL.ConfiguracaoRegraRequest> regras = new ArrayList<>();
             for (Map.Entry<Integer, TextField> entry : camposValor.entrySet()) {
@@ -177,8 +179,8 @@ public class GestaoLojaController {
                             dpDataInicioExcecao.getValue(),
                             dpDataFimExcecao.getValue(),
                             chkLojaEncerrada.isSelected(),
-                            parseHoraOpcional(txtHoraAberturaExcecao.getText(), "abertura especial"),
-                            parseHoraOpcional(txtHoraFechoExcecao.getText(), "fecho especial"),
+                            parseHoraOpcional(cbHoraAberturaExcecao.getValue(), "abertura especial"),
+                            parseHoraOpcional(cbHoraFechoExcecao.getValue(), "fecho especial"),
                             parseInteiroPositivoOpcional(txtMinimoExcecao.getText(), "minimo especial por turno"),
                             txtObservacoesExcecao.getText()
                     )
@@ -237,8 +239,8 @@ public class GestaoLojaController {
             lblNomeLoja.setText(resumo.nomeLoja());
             lblLocalizacao.setText(resumo.localizacao());
             lblCargoGestor.setText(resumo.cargoGestor());
-            txtHoraAbertura.setText(resumo.horaAbertura());
-            txtHoraFecho.setText(resumo.horaFecho());
+            cbHoraAbertura.setValue(resumo.horaAbertura());
+            cbHoraFecho.setValue(resumo.horaFecho());
 
             preencherRegras(resumo.regras());
             preencherHorariosEspeciais(resumo.horariosEspeciais());
@@ -246,8 +248,8 @@ public class GestaoLojaController {
             lblNomeLoja.setText("-");
             lblLocalizacao.setText("-");
             lblCargoGestor.setText("-");
-            txtHoraAbertura.clear();
-            txtHoraFecho.clear();
+            cbHoraAbertura.setValue(null);
+            cbHoraFecho.setValue(null);
             preencherRegras(List.of());
             preencherHorariosEspeciais(List.of());
             mostrarMensagem(e.getMessage(), false);
@@ -354,8 +356,8 @@ public class GestaoLojaController {
         dpDataInicioExcecao.setValue(horarioEspecial.dataInicio());
         dpDataFimExcecao.setValue(horarioEspecial.dataFim());
         chkLojaEncerrada.setSelected(horarioEspecial.lojaEncerrada());
-        txtHoraAberturaExcecao.setText(horarioEspecial.horaAbertura() != null ? horarioEspecial.horaAbertura().format(HORA_FORMATTER) : "");
-        txtHoraFechoExcecao.setText(horarioEspecial.horaFecho() != null ? horarioEspecial.horaFecho().format(HORA_FORMATTER) : "");
+        cbHoraAberturaExcecao.setValue(horarioEspecial.horaAbertura() != null ? horarioEspecial.horaAbertura().format(HORA_FORMATTER) : null);
+        cbHoraFechoExcecao.setValue(horarioEspecial.horaFecho() != null ? horarioEspecial.horaFecho().format(HORA_FORMATTER) : null);
         txtMinimoExcecao.setText(horarioEspecial.minimoColaboradoresTurno() != null
                 ? String.valueOf(horarioEspecial.minimoColaboradoresTurno())
                 : "");
@@ -369,8 +371,8 @@ public class GestaoLojaController {
         dpDataInicioExcecao.setValue(null);
         dpDataFimExcecao.setValue(null);
         chkLojaEncerrada.setSelected(false);
-        txtHoraAberturaExcecao.clear();
-        txtHoraFechoExcecao.clear();
+        cbHoraAberturaExcecao.setValue(null);
+        cbHoraFechoExcecao.setValue(null);
         txtMinimoExcecao.clear();
         txtObservacoesExcecao.clear();
         tabelaHorariosEspeciais.getSelectionModel().clearSelection();
@@ -386,26 +388,40 @@ public class GestaoLojaController {
 
     private void aplicarModoEncerrada() {
         boolean encerrada = chkLojaEncerrada.isSelected();
-        txtHoraAberturaExcecao.setDisable(encerrada);
-        txtHoraFechoExcecao.setDisable(encerrada);
+        cbHoraAberturaExcecao.setDisable(encerrada);
+        cbHoraFechoExcecao.setDisable(encerrada);
         txtMinimoExcecao.setDisable(encerrada);
         if (encerrada) {
-            txtHoraAberturaExcecao.clear();
-            txtHoraFechoExcecao.clear();
+            cbHoraAberturaExcecao.setValue(null);
+            cbHoraFechoExcecao.setValue(null);
             txtMinimoExcecao.clear();
         }
     }
 
     private void configurarOcultacaoFeedback() {
-        txtHoraAbertura.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
-        txtHoraFecho.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+        cbHoraAbertura.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+        cbHoraFecho.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
         txtDescricaoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
-        txtHoraAberturaExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
-        txtHoraFechoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        cbHoraAberturaExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        cbHoraFechoExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         txtMinimoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         txtObservacoesExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         dpDataInicioExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         dpDataFimExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+    }
+
+    private void configurarSeletoresHora() {
+        List<String> opcoesHora = new ArrayList<>();
+        LocalTime hora = LocalTime.MIDNIGHT;
+        for (int i = 0; i < 48; i++) {
+            opcoesHora.add(hora.format(HORA_FORMATTER));
+            hora = hora.plusMinutes(30);
+        }
+
+        cbHoraAbertura.getItems().setAll(opcoesHora);
+        cbHoraFecho.getItems().setAll(opcoesHora);
+        cbHoraAberturaExcecao.getItems().setAll(opcoesHora);
+        cbHoraFechoExcecao.getItems().setAll(opcoesHora);
     }
 
     private LocalTime parseHora(String texto, String campo) {

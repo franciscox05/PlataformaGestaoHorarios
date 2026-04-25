@@ -211,16 +211,23 @@
 
                 <VBox spacing="8.0">
                     <children>
-                        <Label styleClass="subtitulo" text="Detalhe do planeamento" />
+                        <Label styleClass="subtitulo" text="Calendario semanal do planeamento" />
                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                             <children>
                                 <Label styleClass="campo-titulo" text="Filtrar por colaborador" />
                                 <ComboBox fx:id="cbFiltroColaborador" prefWidth="260.0" promptText="Toda a equipa" styleClass="campo-combo" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button onAction="#onSemanaPlaneamentoAnteriorClick" styleClass="botao-secundario" text="Semana anterior" />
+                                <Label fx:id="lblSemanaPlaneamento" styleClass="campo-titulo" text="Semana" />
+                                <Button onAction="#onSemanaPlaneamentoSeguinteClick" styleClass="botao-secundario" text="Semana seguinte" />
                             </children>
                         </HBox>
                     </children>
                 </VBox>
 
+                <HBox fx:id="boxSemanaPlaneamento" spacing="10.0" styleClass="calendario-semana" />
+
+                <Label styleClass="subtitulo" text="Lista detalhada da semana" />
                 <TableView fx:id="tabelaHorariosGerados" prefHeight="280.0" VBox.vgrow="ALWAYS">
                     <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

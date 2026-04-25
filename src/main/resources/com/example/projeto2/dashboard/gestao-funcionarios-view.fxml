@@ -155,6 +155,23 @@
                         </VBox>
                     </children>
                 </HBox>
+
+                <VBox spacing="14.0" styleClass="info-card">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                            <children>
+                                <Label styleClass="card-titulo" text="Horario Semanal do Colaborador" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button onAction="#onSemanaColaboradorAnteriorClick" styleClass="botao-secundario" text="Semana anterior" />
+                                <Label fx:id="lblSemanaColaborador" styleClass="campo-titulo" text="Semana" />
+                                <Button onAction="#onSemanaColaboradorSeguinteClick" styleClass="botao-secundario" text="Semana seguinte" />
+                            </children>
+                        </HBox>
+
+                        <Label fx:id="lblResumoHorarioColaborador" styleClass="texto-ajuda" text="Seleciona um colaborador para veres o horario publicado da semana." wrapText="true" />
+                        <HBox fx:id="boxSemanaColaborador" spacing="10.0" styleClass="calendario-semana" />
+                    </children>
+                </VBox>
             </children>
         </VBox>
     </content>

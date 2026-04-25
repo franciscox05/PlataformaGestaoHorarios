@@ -113,8 +113,8 @@ public class GestaoLojaBLL {
             throw new IllegalArgumentException("As horas de abertura e fecho sao obrigatorias.");
         }
 
-        if (!request.horaAbertura().isBefore(request.horaFecho())) {
-            throw new IllegalArgumentException("A hora de abertura deve ser anterior a hora de fecho.");
+        if (request.horaAbertura().equals(request.horaFecho())) {
+            throw new IllegalArgumentException("A hora de abertura e a hora de fecho nao podem ser iguais.");
         }
 
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
@@ -197,8 +197,8 @@ public class GestaoLojaBLL {
             if ((horaAbertura == null) != (horaFecho == null)) {
                 throw new IllegalArgumentException("Preenche as duas horas do horario especial ou deixa ambas em branco.");
             }
-            if (horaAbertura != null && !horaAbertura.isBefore(horaFecho)) {
-                throw new IllegalArgumentException("A hora de abertura especial deve ser anterior a hora de fecho especial.");
+            if (horaAbertura != null && horaAbertura.equals(horaFecho)) {
+                throw new IllegalArgumentException("A hora de abertura especial e a hora de fecho especial nao podem ser iguais.");
             }
             if (horaAbertura == null && minimoColaboradoresTurno == null) {
                 throw new IllegalArgumentException("Define um horario especial, um minimo por turno ou marca a loja como encerrada.");
@@ -206,7 +206,7 @@ public class GestaoLojaBLL {
 
             LocalTime aberturaEfetiva = horaAbertura != null ? horaAbertura : loja.getHoraAbertura();
             LocalTime fechoEfetivo = horaFecho != null ? horaFecho : loja.getHoraFecho();
-            if (aberturaEfetiva == null || fechoEfetivo == null || !aberturaEfetiva.isBefore(fechoEfetivo)) {
+            if (aberturaEfetiva == null || fechoEfetivo == null || aberturaEfetiva.equals(fechoEfetivo)) {
                 throw new IllegalArgumentException("O horario base da loja nao permite aplicar esta excecao.");
             }
 
@@ -338,7 +338,7 @@ public class GestaoLojaBLL {
         List<Turno> turnosComCorrespondenciaExata = turnosBase.stream()
                 .filter(turno -> turno != null)
                 .filter(turno -> abertura != null && fecho != null)
-                .filter(turno -> abertura.equals(turno.getHoraInicio()) && fecho.equals(turno.getHoraFim()))
+                .filter(turno -> intervaloCorrespondeExatamente(turno, abertura, fecho))
                 .sorted(Comparator.comparing(Turno::getHoraInicio, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
         if (!turnosComCorrespondenciaExata.isEmpty()) {
@@ -355,7 +355,31 @@ public class GestaoLojaBLL {
         if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null || abertura == null || fecho == null) {
             return false;
         }
-        return !turno.getHoraInicio().isBefore(abertura) && !turno.getHoraFim().isAfter(fecho);
+        int aberturaMinutos = abertura.toSecondOfDay() / 60;
+        int fechoMinutos = fecho.toSecondOfDay() / 60;
+        if (fechoMinutos <= aberturaMinutos) {
+            fechoMinutos += 24 * 60;
+        }
+
+        int inicioTurno = turno.getHoraInicio().toSecondOfDay() / 60;
+        if (inicioTurno < aberturaMinutos) {
+            inicioTurno += 24 * 60;
+        }
+
+        int fimTurno = turno.getHoraFim().toSecondOfDay() / 60;
+        if (fimTurno <= inicioTurno) {
+            fimTurno += 24 * 60;
+        }
+
+        return inicioTurno >= aberturaMinutos && fimTurno <= fechoMinutos;
+    }
+
+    private boolean intervaloCorrespondeExatamente(Turno turno, LocalTime abertura, LocalTime fecho) {
+        return turno != null
+                && turno.getHoraInicio() != null
+                && turno.getHoraFim() != null
+                && turno.getHoraInicio().equals(abertura)
+                && turno.getHoraFim().equals(fecho);
     }
 
     private String formatarTurno(Turno turno) {
@@ -382,7 +406,8 @@ public class GestaoLojaBLL {
             return "-";
         }
         String prefixo = usaHorarioBase ? "Base da loja: " : "";
-        return prefixo + formatarHora(horaAbertura) + " - " + formatarHora(horaFecho);
+        String sufixo = horaFecho.isAfter(horaAbertura) ? "" : " (dia seguinte)";
+        return prefixo + formatarHora(horaAbertura) + " - " + formatarHora(horaFecho) + sufixo;
     }
 
     private String limparTexto(String texto) {

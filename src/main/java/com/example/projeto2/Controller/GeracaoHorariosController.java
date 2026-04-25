@@ -1,6 +1,7 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -13,11 +14,15 @@ import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
 @Scope("prototype")
@@ -96,6 +101,12 @@ public class GeracaoHorariosController {
     private ComboBox<FiltroColaboradorOption> cbFiltroColaborador;
 
     @FXML
+    private Label lblSemanaPlaneamento;
+
+    @FXML
+    private HBox boxSemanaPlaneamento;
+
+    @FXML
     private TableView<GeracaoHorariosBLL.ResumoColaborador> tabelaResumoColaboradores;
 
     @FXML
@@ -140,6 +151,7 @@ public class GeracaoHorariosController {
     private GeracaoHorariosBLL.PropostaResultado propostaAtual;
     private boolean podeGerar;
     private boolean podeValidar;
+    private LocalDate semanaPlaneamentoInicio;
 
     public GeracaoHorariosController(GeracaoHorariosBLL geracaoHorariosBLL) {
         this.geracaoHorariosBLL = geracaoHorariosBLL;
@@ -208,6 +220,20 @@ public class GeracaoHorariosController {
         decidirProposta(false);
     }
 
+    @FXML
+    public void onSemanaPlaneamentoAnteriorClick() {
+        semanaPlaneamentoInicio = semanaPlaneamentoInicio.minusWeeks(1);
+        atualizarCabecalhoSemanaPlaneamento();
+        aplicarFiltroColaborador();
+    }
+
+    @FXML
+    public void onSemanaPlaneamentoSeguinteClick() {
+        semanaPlaneamentoInicio = semanaPlaneamentoInicio.plusWeeks(1);
+        atualizarCabecalhoSemanaPlaneamento();
+        aplicarFiltroColaborador();
+    }
+
     private void configurarFiltros() {
         cbMes.setItems(FXCollections.observableArrayList(
                 new MesOption(1, "Janeiro"),
@@ -237,6 +263,7 @@ public class GeracaoHorariosController {
         cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
         cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
         cbFiltroColaborador.valueProperty().addListener((observavel, antigo, novo) -> aplicarFiltroColaborador());
+        reposicionarSemanaPlaneamentoParaMesSelecionado();
     }
 
     private void configurarTabelas() {
@@ -380,6 +407,7 @@ public class GeracaoHorariosController {
 
     private void preencherResultado(GeracaoHorariosBLL.PropostaResultado resultado) {
         propostaAtual = resultado;
+        reposicionarSemanaPlaneamentoParaMesSelecionado();
         lblEstadoProposta.setText(resultado.estado());
         lblOrigemPlaneamento.setText(resultado.origemPlaneamento());
         lblGeradoPor.setText(resultado.geradoPor());
@@ -419,6 +447,8 @@ public class GeracaoHorariosController {
         tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
         cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
         cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
+        reposicionarSemanaPlaneamentoParaMesSelecionado();
+        renderizarCalendarioPlaneamento(List.of());
         atualizarPainelValidacao();
     }
 
@@ -428,6 +458,7 @@ public class GeracaoHorariosController {
         }
 
         limparResultado();
+        reposicionarSemanaPlaneamentoParaMesSelecionado();
         esconderFeedback();
     }
 
@@ -561,20 +592,65 @@ public class GeracaoHorariosController {
     private void aplicarFiltroColaborador() {
         if (propostaAtual == null) {
             tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
+            renderizarCalendarioPlaneamento(List.of());
             return;
         }
 
         FiltroColaboradorOption filtro = cbFiltroColaborador.getValue();
-        if (filtro == null || filtro.isTodos()) {
-            tabelaHorariosGerados.setItems(FXCollections.observableArrayList(propostaAtual.linhas()));
-            return;
+        List<GeracaoHorariosBLL.HorarioLinha> linhas = propostaAtual.linhas();
+        if (filtro != null && !filtro.isTodos()) {
+            linhas = linhas.stream()
+                    .filter(linha -> filtro.idColaborador().equals(linha.idColaborador()))
+                    .toList();
         }
 
-        tabelaHorariosGerados.setItems(FXCollections.observableArrayList(
-                propostaAtual.linhas().stream()
-                        .filter(linha -> filtro.idColaborador().equals(linha.idColaborador()))
-                        .toList()
-        ));
+        LocalDate dataInicioSemana = semanaPlaneamentoInicio != null
+                ? semanaPlaneamentoInicio
+                : CalendarioSemanalHelper.inicioSemana(LocalDate.of(spAno.getValue(), obterMesSelecionado().numero(), 1));
+        LocalDate dataFimSemana = dataInicioSemana.plusDays(6);
+
+        List<GeracaoHorariosBLL.HorarioLinha> linhasDaSemana = linhas.stream()
+                .filter(linha -> linha.data() != null
+                        && !linha.data().isBefore(dataInicioSemana)
+                        && !linha.data().isAfter(dataFimSemana))
+                .toList();
+
+        tabelaHorariosGerados.setItems(FXCollections.observableArrayList(linhasDaSemana));
+        renderizarCalendarioPlaneamento(linhasDaSemana);
+    }
+
+    private void reposicionarSemanaPlaneamentoParaMesSelecionado() {
+        try {
+            if (cbMes.getValue() == null || spAno.getValue() == null) {
+                semanaPlaneamentoInicio = CalendarioSemanalHelper.inicioSemana(LocalDate.now());
+            } else {
+                semanaPlaneamentoInicio = CalendarioSemanalHelper.inicioSemana(LocalDate.of(spAno.getValue(), cbMes.getValue().numero(), 1));
+            }
+        } catch (Exception e) {
+            semanaPlaneamentoInicio = CalendarioSemanalHelper.inicioSemana(LocalDate.now());
+        }
+        atualizarCabecalhoSemanaPlaneamento();
+    }
+
+    private void atualizarCabecalhoSemanaPlaneamento() {
+        if (lblSemanaPlaneamento != null) {
+            lblSemanaPlaneamento.setText(CalendarioSemanalHelper.formatarIntervaloSemana(semanaPlaneamentoInicio));
+        }
+    }
+
+    private void renderizarCalendarioPlaneamento(List<GeracaoHorariosBLL.HorarioLinha> linhas) {
+        Map<LocalDate, List<String>> eventos = new LinkedHashMap<>();
+        for (GeracaoHorariosBLL.HorarioLinha linha : linhas) {
+            String evento = linha.periodo() + " | " + linha.colaborador();
+            eventos.computeIfAbsent(linha.data(), chave -> new java.util.ArrayList<>()).add(evento);
+        }
+
+        CalendarioSemanalHelper.preencherCalendario(
+                boxSemanaPlaneamento,
+                semanaPlaneamentoInicio,
+                eventos,
+                "Sem turnos"
+        );
     }
 
     private record MesOption(int numero, String nome) {
