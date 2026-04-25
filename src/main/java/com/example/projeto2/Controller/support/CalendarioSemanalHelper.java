@@ -18,6 +18,7 @@ public final class CalendarioSemanalHelper {
 
     private static final DateTimeFormatter DATA_DIA = DateTimeFormatter.ofPattern("dd/MM");
     private static final DateTimeFormatter INTERVALO = DateTimeFormatter.ofPattern("dd MMM", Locale.forLanguageTag("pt-PT"));
+    private static final Locale LOCALE_PT = Locale.forLanguageTag("pt-PT");
 
     private CalendarioSemanalHelper() {
     }
@@ -53,7 +54,9 @@ public final class CalendarioSemanalHelper {
     }
 
     private static VBox criarCardDia(LocalDate dia, List<String> eventos, String mensagemVazia) {
-        Label lblDiaSemana = new Label(capitalizar(dia.getDayOfWeek().name()));
+        Label lblDiaSemana = new Label(
+                capitalizar(dia.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, LOCALE_PT))
+        );
         lblDiaSemana.getStyleClass().add("calendario-dia-semana");
 
         Label lblData = new Label(DATA_DIA.format(dia));
@@ -71,7 +74,7 @@ public final class CalendarioSemanalHelper {
                 .toList();
 
         if (eventosValidos.isEmpty()) {
-            Label vazio = new Label(mensagemVazia != null ? mensagemVazia : "Sem horario");
+            Label vazio = new Label(mensagemVazia != null ? mensagemVazia : "Sem horário");
             vazio.getStyleClass().add("calendario-evento-vazio");
             vazio.setWrapText(true);
             corpo.getChildren().add(vazio);
@@ -98,7 +101,7 @@ public final class CalendarioSemanalHelper {
             return "-";
         }
 
-        String valor = texto.toLowerCase(Locale.ROOT);
+        String valor = texto.toLowerCase(LOCALE_PT);
         return Character.toUpperCase(valor.charAt(0)) + valor.substring(1);
     }
 }

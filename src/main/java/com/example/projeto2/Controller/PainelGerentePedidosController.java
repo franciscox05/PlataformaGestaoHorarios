@@ -2,6 +2,8 @@ package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.PainelGerenteBLL;
 import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
+import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Permuta;
 import com.example.projeto2.Modules.Preferencia;
@@ -15,16 +17,19 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Component
@@ -33,6 +38,7 @@ public class PainelGerentePedidosController {
 
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final Locale LOCALE_PT = Locale.forLanguageTag("pt-PT");
 
     @FXML
     private Label lblLoja;
@@ -107,37 +113,10 @@ public class PainelGerentePedidosController {
     private Label lblContextoColaboradorSelecionado;
 
     @FXML
-    private TableView<SnapshotOperacionalLojaBLL.TurnoPlaneado> tabelaHorarioColaborador;
+    private HBox boxHorarioColaborador;
 
     @FXML
-    private TableColumn<SnapshotOperacionalLojaBLL.TurnoPlaneado, String> colHorarioColaboradorData;
-
-    @FXML
-    private TableColumn<SnapshotOperacionalLojaBLL.TurnoPlaneado, String> colHorarioColaboradorTurno;
-
-    @FXML
-    private TableColumn<SnapshotOperacionalLojaBLL.TurnoPlaneado, String> colHorarioColaboradorPeriodo;
-
-    @FXML
-    private TableColumn<SnapshotOperacionalLojaBLL.TurnoPlaneado, String> colHorarioColaboradorEstado;
-
-    @FXML
-    private TableView<LinhaEscalaDetalhe> tabelaEscalaLoja;
-
-    @FXML
-    private TableColumn<LinhaEscalaDetalhe, String> colEscalaData;
-
-    @FXML
-    private TableColumn<LinhaEscalaDetalhe, String> colEscalaColaborador;
-
-    @FXML
-    private TableColumn<LinhaEscalaDetalhe, String> colEscalaCargo;
-
-    @FXML
-    private TableColumn<LinhaEscalaDetalhe, String> colEscalaTurno;
-
-    @FXML
-    private TableColumn<LinhaEscalaDetalhe, String> colEscalaEstado;
+    private HBox boxEscalaLoja;
 
     @FXML
     private TableView<DayOff> tabelaFolgasPendentes;
@@ -226,6 +205,7 @@ public class PainelGerentePedidosController {
     private Map<Integer, String> nomesFolgasPendentes = Map.of();
     private boolean aSincronizarSelecao;
     private DashboardNavigator dashboardNavigation;
+    private LocalDate inicioSemanaContextoAtual = CalendarioSemanalHelper.inicioSemana(LocalDate.now());
 
     public PainelGerentePedidosController(PainelGerenteBLL painelGerenteBLL,
                                           SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL) {
@@ -238,19 +218,16 @@ public class PainelGerentePedidosController {
         configurarTabelaFolgas();
         configurarTabelaPermutas();
         configurarTabelaPreferencias();
-        configurarTabelasContexto();
+        configurarTabelaContexto();
 
         esconderFeedback(lblFeedbackFolgas);
         esconderFeedback(lblFeedbackPermutas);
         esconderFeedback(lblFeedbackPreferencias);
-        limparContextoOperacional();
 
-        tabelaFolgasPendentes.setPlaceholder(new Label("Nao existem pedidos de folga pendentes nesta loja."));
-        tabelaPermutasPendentes.setPlaceholder(new Label("Nao existem pedidos de permuta pendentes nesta loja."));
-        tabelaPreferenciasPendentes.setPlaceholder(new Label("Nao existem preferencias pendentes nesta loja."));
-        tabelaColaboradoresEnvolvidos.setPlaceholder(new Label("Seleciona um pedido para ver os colaboradores envolvidos."));
-        tabelaHorarioColaborador.setPlaceholder(new Label("Seleciona um colaborador envolvido para veres o horario detalhado neste periodo."));
-        tabelaEscalaLoja.setPlaceholder(new Label("Seleciona um pedido para ver o detalhe da escala da loja no periodo relevante."));
+        tabelaFolgasPendentes.setPlaceholder(new Label("Não existem pedidos de folga pendentes nesta loja."));
+        tabelaPermutasPendentes.setPlaceholder(new Label("Não existem pedidos de permuta pendentes nesta loja."));
+        tabelaPreferenciasPendentes.setPlaceholder(new Label("Não existem preferências pendentes nesta loja."));
+        tabelaColaboradoresEnvolvidos.setPlaceholder(new Label("Seleciona um pedido para veres os colaboradores envolvidos."));
 
         btnAprovarFolga.disableProperty().bind(Bindings.isNull(tabelaFolgasPendentes.getSelectionModel().selectedItemProperty()));
         btnRejeitarFolga.disableProperty().bind(Bindings.isNull(tabelaFolgasPendentes.getSelectionModel().selectedItemProperty()));
@@ -266,6 +243,7 @@ public class PainelGerentePedidosController {
         });
 
         configurarSelecaoContextual();
+        limparContextoOperacional();
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -383,7 +361,7 @@ public class PainelGerentePedidosController {
                 new SimpleStringProperty(formatarTexto(cellData.getValue().getDescricao())));
     }
 
-    private void configurarTabelasContexto() {
+    private void configurarTabelaContexto() {
         colContextoColaborador.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTexto(cellData.getValue().nome())));
         colContextoCargo.setCellValueFactory(cellData ->
@@ -392,26 +370,6 @@ public class PainelGerentePedidosController {
                 new SimpleStringProperty(formatarTurnosColaborador(cellData.getValue().turnosNoPeriodo())));
         colContextoAusencias.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarAusenciasColaborador(cellData.getValue().ausenciasNoPeriodo())));
-
-        colHorarioColaboradorData.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarData(cellData.getValue().data())));
-        colHorarioColaboradorTurno.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().turno())));
-        colHorarioColaboradorPeriodo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().periodo())));
-        colHorarioColaboradorEstado.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().estado())));
-
-        colEscalaData.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarData(cellData.getValue().data())));
-        colEscalaColaborador.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().colaborador())));
-        colEscalaCargo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().cargo())));
-        colEscalaTurno.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().turno()) + " | " + formatarTexto(cellData.getValue().periodo())));
-        colEscalaEstado.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().estado())));
     }
 
     private void configurarSelecaoContextual() {
@@ -455,13 +413,13 @@ public class PainelGerentePedidosController {
         });
 
         tabelaColaboradoresEnvolvidos.getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) ->
-                carregarHorarioColaboradorSelecionado(nova));
+                atualizarDetalheColaborador(nova));
     }
 
     private void carregarPainel() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             PainelGerenteBLL.PainelGerenteSnapshot snapshot = painelGerenteBLL.carregarPainel(utilizadorLogado.getId());
@@ -484,6 +442,7 @@ public class PainelGerentePedidosController {
 
             tabelaPreferenciasPendentes.setItems(FXCollections.observableArrayList(snapshot.preferenciasPendentes()));
             tabelaPreferenciasPendentes.refresh();
+
             if (!haPedidoSelecionado()) {
                 limparContextoOperacional();
             }
@@ -497,6 +456,17 @@ public class PainelGerentePedidosController {
             DayOff pedidoSelecionado = tabelaFolgasPendentes.getSelectionModel().getSelectedItem();
             if (pedidoSelecionado == null) {
                 throw new IllegalArgumentException("Seleciona um pedido de folga primeiro.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    aprovar ? "Aprovar folga" : "Rejeitar folga",
+                    aprovar ? "Deseja aprovar este pedido de folga?" : "Deseja rejeitar este pedido de folga?",
+                    aprovar
+                            ? "A decisão ficará registada no sistema."
+                            : "A rejeição ficará registada no sistema."
+            )) {
+                return;
             }
 
             if (aprovar) {
@@ -513,7 +483,7 @@ public class PainelGerentePedidosController {
         } catch (IllegalArgumentException e) {
             mostrarFeedback(lblFeedbackFolgas, e.getMessage(), false);
         } catch (Exception e) {
-            mostrarFeedback(lblFeedbackFolgas, "Nao foi possivel atualizar o pedido de folga.", false);
+            mostrarFeedback(lblFeedbackFolgas, "Não foi possível atualizar o pedido de folga.", false);
         }
     }
 
@@ -522,6 +492,17 @@ public class PainelGerentePedidosController {
             Permuta pedidoSelecionado = tabelaPermutasPendentes.getSelectionModel().getSelectedItem();
             if (pedidoSelecionado == null) {
                 throw new IllegalArgumentException("Seleciona um pedido de permuta primeiro.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    aprovar ? "Aprovar permuta" : "Rejeitar permuta",
+                    aprovar ? "Deseja aprovar esta permuta?" : "Deseja rejeitar esta permuta?",
+                    aprovar
+                            ? "A decisão ficará registada no sistema."
+                            : "A rejeição ficará registada no sistema."
+            )) {
+                return;
             }
 
             if (aprovar) {
@@ -538,7 +519,7 @@ public class PainelGerentePedidosController {
         } catch (IllegalArgumentException e) {
             mostrarFeedback(lblFeedbackPermutas, e.getMessage(), false);
         } catch (Exception e) {
-            mostrarFeedback(lblFeedbackPermutas, "Nao foi possivel atualizar o pedido de permuta.", false);
+            mostrarFeedback(lblFeedbackPermutas, "Não foi possível atualizar o pedido de permuta.", false);
         }
     }
 
@@ -546,15 +527,26 @@ public class PainelGerentePedidosController {
         try {
             Preferencia preferenciaSelecionada = tabelaPreferenciasPendentes.getSelectionModel().getSelectedItem();
             if (preferenciaSelecionada == null) {
-                throw new IllegalArgumentException("Seleciona uma preferencia primeiro.");
+                throw new IllegalArgumentException("Seleciona uma preferência primeiro.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    aprovar ? "Aprovar preferência" : "Rejeitar preferência",
+                    aprovar ? "Deseja aprovar esta preferência?" : "Deseja rejeitar esta preferência?",
+                    aprovar
+                            ? "A decisão ficará registada no sistema."
+                            : "A rejeição ficará registada no sistema."
+            )) {
+                return;
             }
 
             if (aprovar) {
                 painelGerenteBLL.aprovarPreferencia(preferenciaSelecionada.getId(), utilizadorLogado.getId(), txtDecisaoPreferencia.getText());
-                mostrarFeedback(lblFeedbackPreferencias, "Preferencia aprovada com sucesso.", true);
+                mostrarFeedback(lblFeedbackPreferencias, "Preferência aprovada com sucesso.", true);
             } else {
                 painelGerenteBLL.rejeitarPreferencia(preferenciaSelecionada.getId(), utilizadorLogado.getId(), txtDecisaoPreferencia.getText());
-                mostrarFeedback(lblFeedbackPreferencias, "Preferencia rejeitada com sucesso.", true);
+                mostrarFeedback(lblFeedbackPreferencias, "Preferência rejeitada com sucesso.", true);
             }
 
             txtDecisaoPreferencia.clear();
@@ -564,20 +556,26 @@ public class PainelGerentePedidosController {
         } catch (IllegalArgumentException e) {
             mostrarFeedback(lblFeedbackPreferencias, e.getMessage(), false);
         } catch (Exception e) {
-            mostrarFeedback(lblFeedbackPreferencias, "Nao foi possivel atualizar a preferencia.", false);
+            mostrarFeedback(lblFeedbackPreferencias, "Não foi possível atualizar a preferência.", false);
         }
     }
 
     private void carregarContextoOperacional(SnapshotOperacionalLojaBLL.TipoPedidoOperacional tipoPedido, Integer idPedido) {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             SnapshotOperacionalLojaBLL.ContextoPedidoOperacional contexto = snapshotOperacionalLojaBLL.carregarContextoPedido(
                     utilizadorLogado.getId(),
                     tipoPedido,
                     idPedido
+            );
+
+            inicioSemanaContextoAtual = CalendarioSemanalHelper.inicioSemana(
+                    contexto.snapshotRelacionada().intervalo() != null
+                            ? contexto.snapshotRelacionada().intervalo().dataInicio()
+                            : LocalDate.now()
             );
 
             lblContextoPedidoSelecionado.setText(descreverPedido(contexto));
@@ -590,33 +588,36 @@ public class PainelGerentePedidosController {
             lblContextoPedidosPendentes.setText(String.valueOf(contexto.snapshotRelacionada().resumo().totalPedidosPendentes()));
 
             tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList(contexto.colaboradoresEnvolvidos()));
-            tabelaEscalaLoja.setItems(FXCollections.observableArrayList(construirEscalaDetalhada(contexto.snapshotRelacionada())));
+            renderizarCalendarioEscalaLoja(construirEscalaDetalhada(contexto.snapshotRelacionada()), inicioSemanaContextoAtual);
+
             if (!contexto.colaboradoresEnvolvidos().isEmpty()) {
                 tabelaColaboradoresEnvolvidos.getSelectionModel().selectFirst();
             } else {
                 atualizarDetalheColaborador(null);
             }
         } catch (IllegalArgumentException e) {
-            lblContextoPedidoSelecionado.setText("Nao foi possivel carregar o contexto operacional.");
+            lblContextoPedidoSelecionado.setText("Não foi possível carregar o contexto operacional.");
             lblContextoPeriodo.setText("-");
             lblContextoResumo.setText(e.getMessage());
             tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList());
             atualizarDetalheColaborador(null);
-            tabelaEscalaLoja.setItems(FXCollections.observableArrayList());
+            renderizarCalendarioEscalaLoja(List.of(), CalendarioSemanalHelper.inicioSemana(LocalDate.now()));
         }
     }
 
     private void limparContextoOperacional() {
+        inicioSemanaContextoAtual = CalendarioSemanalHelper.inicioSemana(LocalDate.now());
         lblContextoPedidoSelecionado.setText("Seleciona um pedido pendente para veres o contexto operacional.");
         lblContextoPeriodo.setText("-");
-        lblContextoResumo.setText("Aqui vao aparecer os colaboradores envolvidos e a escala da loja no periodo relevante.");
+        lblContextoResumo.setText("Aqui vão aparecer os colaboradores envolvidos e a escala da loja no período relevante.");
         lblContextoColaboradoresEscalados.setText("0");
         lblContextoTurnosPlaneados.setText("0");
         lblContextoAusencias.setText("0");
         lblContextoPedidosPendentes.setText("0");
         tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList());
-        atualizarDetalheColaborador(null);
-        tabelaEscalaLoja.setItems(FXCollections.observableArrayList());
+        renderizarCalendarioColaborador(List.of(), inicioSemanaContextoAtual);
+        renderizarCalendarioEscalaLoja(List.of(), inicioSemanaContextoAtual);
+        lblContextoColaboradorSelecionado.setText("Seleciona um colaborador envolvido para veres o horário em formato de calendário.");
     }
 
     private void limparSelecoesExcepto(SnapshotOperacionalLojaBLL.TipoPedidoOperacional tipoMantido) {
@@ -664,17 +665,11 @@ public class PainelGerentePedidosController {
     }
 
     private String formatarData(LocalDate data) {
-        if (data == null) {
-            return "-";
-        }
-        return DATA_FORMATTER.format(data);
+        return data == null ? "-" : DATA_FORMATTER.format(data);
     }
 
     private String formatarDataHora(java.time.Instant dataPedido) {
-        if (dataPedido == null) {
-            return "-";
-        }
-        return DATA_HORA_FORMATTER.format(dataPedido.atZone(ZoneId.systemDefault()));
+        return dataPedido == null ? "-" : DATA_HORA_FORMATTER.format(dataPedido.atZone(ZoneId.systemDefault()));
     }
 
     private String formatarTipoFolga(String tipo) {
@@ -682,8 +677,8 @@ public class PainelGerentePedidosController {
             return "-";
         }
 
-        return switch (tipo.toLowerCase()) {
-            case "ferias" -> "Ferias";
+        return switch (tipo.toLowerCase(LOCALE_PT)) {
+            case "ferias" -> "Férias";
             case "folgas" -> "Folgas";
             case "baixa" -> "Baixa";
             default -> tipo;
@@ -695,9 +690,9 @@ public class PainelGerentePedidosController {
             return "-";
         }
 
-        return switch (tipo.toLowerCase()) {
+        return switch (tipo.toLowerCase(LOCALE_PT)) {
             case "folgas" -> "Folgas";
-            case "ferias" -> "Ferias";
+            case "ferias" -> "Férias";
             case "colegas" -> "Colegas";
             case "turnos" -> "Turnos";
             default -> tipo;
@@ -706,7 +701,7 @@ public class PainelGerentePedidosController {
 
     private String formatarPeriodo(LocalDate dataInicio, LocalDate dataFim) {
         if (dataInicio == null && dataFim == null) {
-            return "Sem periodo";
+            return "Sem período";
         }
 
         if (dataInicio != null && dataFim != null) {
@@ -724,25 +719,24 @@ public class PainelGerentePedidosController {
         if (preferencia.getDataFim() == null && preferencia.getDataInicio() != null) {
             return ("colegas".equalsIgnoreCase(preferencia.getTipo()) || "turnos".equalsIgnoreCase(preferencia.getTipo()))
                     ? "Permanente"
-                    : "Data unica";
+                    : "Data única";
         }
 
         if (preferencia.getDataInicio() != null || preferencia.getDataFim() != null) {
-            return "Temporaria";
+            return "Temporária";
         }
 
-        return "Sem periodo";
+        return "Sem período";
     }
 
     private String formatarTexto(String texto) {
-        if (texto == null || texto.isBlank()) {
-            return "-";
-        }
-        return texto;
+        return texto == null || texto.isBlank() ? "-" : texto;
     }
 
     private String obterNomePermuta(Permuta permuta) {
-        if (permuta == null || permuta.getIdHorarioOrigem() == null || permuta.getIdHorarioOrigem().getIdLojautilizador() == null
+        if (permuta == null
+                || permuta.getIdHorarioOrigem() == null
+                || permuta.getIdHorarioOrigem().getIdLojautilizador() == null
                 || permuta.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador() == null) {
             return "-";
         }
@@ -781,46 +775,35 @@ public class PainelGerentePedidosController {
 
     private String formatarTurnosColaborador(List<SnapshotOperacionalLojaBLL.TurnoPlaneado> turnos) {
         if (turnos == null || turnos.isEmpty()) {
-            return "Sem turnos planeados no periodo";
+            return "Sem turnos planeados no período";
         }
 
         return turnos.stream()
-                .map(turno -> formatarData(turno.data()) + " | " + turno.periodo())
+                .map(turno -> formatarData(turno.data()) + " | " + formatarTexto(turno.periodo()))
                 .reduce((primeiro, segundo) -> primeiro + "; " + segundo)
                 .orElse("-");
     }
 
     private String formatarAusenciasColaborador(List<SnapshotOperacionalLojaBLL.AusenciaOperacional> ausencias) {
         if (ausencias == null || ausencias.isEmpty()) {
-            return "Sem ausencias aprovadas no periodo";
+            return "Sem ausências aprovadas no período";
         }
 
         return ausencias.stream()
-                .map(ausencia -> formatarData(ausencia.data()) + " | " + ausencia.tipo())
-                .reduce((primeiro, segundo) -> primeiro + "; " + segundo)
-                .orElse("-");
-    }
-
-    private String formatarTurnosEscala(List<SnapshotOperacionalLojaBLL.TurnoPlaneado> turnos) {
-        if (turnos == null || turnos.isEmpty()) {
-            return "Sem turnos planeados";
-        }
-
-        return turnos.stream()
-                .map(turno -> formatarData(turno.data()) + " | " + turno.periodo())
+                .map(ausencia -> formatarData(ausencia.data()) + " | " + formatarTexto(ausencia.tipo()))
                 .reduce((primeiro, segundo) -> primeiro + "; " + segundo)
                 .orElse("-");
     }
 
     private String descreverPedido(SnapshotOperacionalLojaBLL.ContextoPedidoOperacional contexto) {
         if (contexto == null || contexto.pedido() == null) {
-            return "Contexto operacional indisponivel";
+            return "Contexto operacional indisponível";
         }
 
         return switch (contexto.pedido().tipo()) {
             case FOLGA -> "Pedido de folga de " + contexto.pedido().colaboradorPrincipal();
             case PERMUTA -> "Pedido de permuta de " + contexto.pedido().colaboradorPrincipal();
-            case PREFERENCIA -> "Preferencia de " + contexto.pedido().colaboradorPrincipal();
+            case PREFERENCIA -> "Preferência de " + contexto.pedido().colaboradorPrincipal();
         };
     }
 
@@ -839,21 +822,56 @@ public class PainelGerentePedidosController {
                 + formatarData(intervalo.dataFim());
     }
 
-    private void carregarHorarioColaboradorSelecionado(SnapshotOperacionalLojaBLL.ColaboradorContexto colaborador) {
-        atualizarDetalheColaborador(colaborador);
-    }
-
     private void atualizarDetalheColaborador(SnapshotOperacionalLojaBLL.ColaboradorContexto colaborador) {
         if (colaborador == null) {
-            lblContextoColaboradorSelecionado.setText("Seleciona um colaborador envolvido para veres o horario detalhado.");
-            tabelaHorarioColaborador.setItems(FXCollections.observableArrayList());
+            lblContextoColaboradorSelecionado.setText("Seleciona um colaborador envolvido para veres o horário em formato de calendário.");
+            renderizarCalendarioColaborador(List.of(), inicioSemanaContextoAtual);
             return;
         }
 
-        lblContextoColaboradorSelecionado.setText(
-                formatarTexto(colaborador.nome()) + " | " + formatarTexto(colaborador.cargo())
+        lblContextoColaboradorSelecionado.setText(formatarTexto(colaborador.nome()) + " | " + formatarTexto(colaborador.cargo()));
+        renderizarCalendarioColaborador(colaborador.turnosNoPeriodo(), inicioSemanaContextoAtual);
+    }
+
+    private void renderizarCalendarioColaborador(List<SnapshotOperacionalLojaBLL.TurnoPlaneado> turnos, LocalDate dataBase) {
+        Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
+
+        for (SnapshotOperacionalLojaBLL.TurnoPlaneado turno : turnos) {
+            String evento = formatarTexto(turno.periodo())
+                    + " | "
+                    + formatarTexto(turno.turno())
+                    + " | "
+                    + formatarTexto(turno.estado());
+            eventosPorDia.computeIfAbsent(turno.data(), chave -> new java.util.ArrayList<>()).add(evento);
+        }
+
+        CalendarioSemanalHelper.preencherCalendario(
+                boxHorarioColaborador,
+                CalendarioSemanalHelper.inicioSemana(dataBase != null ? dataBase : LocalDate.now()),
+                eventosPorDia,
+                "Sem horário"
         );
-        tabelaHorarioColaborador.setItems(FXCollections.observableArrayList(colaborador.turnosNoPeriodo()));
+    }
+
+    private void renderizarCalendarioEscalaLoja(List<LinhaEscalaDetalhe> linhas, LocalDate dataBase) {
+        Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
+
+        for (LinhaEscalaDetalhe linha : linhas) {
+            String evento = formatarTexto(linha.periodo())
+                    + " | "
+                    + formatarTexto(linha.colaborador())
+                    + " ("
+                    + formatarTexto(linha.cargo())
+                    + ")";
+            eventosPorDia.computeIfAbsent(linha.data(), chave -> new java.util.ArrayList<>()).add(evento);
+        }
+
+        CalendarioSemanalHelper.preencherCalendario(
+                boxEscalaLoja,
+                CalendarioSemanalHelper.inicioSemana(dataBase != null ? dataBase : LocalDate.now()),
+                eventosPorDia,
+                "Sem turnos"
+        );
     }
 
     private List<LinhaEscalaDetalhe> construirEscalaDetalhada(SnapshotOperacionalLojaBLL.SnapshotOperacionalLoja snapshot) {
@@ -888,5 +906,12 @@ public class PainelGerentePedidosController {
             String periodo,
             String estado
     ) {
+    }
+
+    private Window obterJanela() {
+        if (lblLoja == null || lblLoja.getScene() == null) {
+            return null;
+        }
+        return lblLoja.getScene().getWindow();
     }
 }

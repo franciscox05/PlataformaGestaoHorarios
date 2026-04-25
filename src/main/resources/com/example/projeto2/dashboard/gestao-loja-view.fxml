@@ -3,7 +3,6 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
@@ -23,12 +22,12 @@
             </padding>
 
             <children>
-                <Label styleClass="titulo-dashboard" text="Loja e Regras" />
-                <Label styleClass="subtitulo" text="Atualiza o horario da loja, ajusta as regras base do planeamento e define excecoes por data para feriados, campanhas ou operacao sazonal." wrapText="true" />
+                <Label styleClass="titulo-dashboard" text="Loja e regras" />
+                <Label styleClass="subtitulo" text="Atualiza o hor&#225;rio da loja, ajusta as regras base do planeamento e define exce&#231;&#245;es por data para feriados, campanhas ou opera&#231;&#227;o sazonal." wrapText="true" />
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Contexto da Loja" />
+                        <Label styleClass="card-titulo" text="Contexto da loja" />
 
                         <HBox spacing="20.0">
                             <children>
@@ -41,7 +40,7 @@
 
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Localizacao" />
+                                        <Label styleClass="meta-etiqueta" text="Localiza&#231;&#227;o" />
                                         <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
@@ -59,22 +58,22 @@
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Horario de Funcionamento" />
-                        <Label styleClass="subtitulo" text="Seleciona as horas num menu rapido. Se a loja fechar depois da meia-noite, escolhe uma hora de fecho inferior a abertura." wrapText="true" />
+                        <Label styleClass="card-titulo" text="Hor&#225;rio de funcionamento" />
+                        <Label styleClass="subtitulo" text="Indica manualmente as horas no formato HH:mm. Se a loja fechar depois da meia-noite, podes indicar uma hora de fecho inferior &#224; abertura." wrapText="true" />
 
                         <HBox spacing="20.0">
                             <children>
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
                                         <Label styleClass="campo-titulo" text="Hora de abertura" />
-                                        <ComboBox fx:id="cbHoraAbertura" maxWidth="1.7976931348623157E308" promptText="Seleciona a hora" styleClass="campo-combo" />
+                                        <TextField fx:id="txtHoraAbertura" promptText="HH:mm" styleClass="campo-input" />
                                     </children>
                                 </VBox>
 
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
                                         <Label styleClass="campo-titulo" text="Hora de fecho" />
-                                        <ComboBox fx:id="cbHoraFecho" maxWidth="1.7976931348623157E308" promptText="Seleciona a hora" styleClass="campo-combo" />
+                                        <TextField fx:id="txtHoraFecho" promptText="HH:mm" styleClass="campo-input" />
                                     </children>
                                 </VBox>
                             </children>
@@ -86,9 +85,9 @@
                     <children>
                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                             <children>
-                                <Label styleClass="card-titulo" text="Regras Especificas da Loja" />
+                                <Label styleClass="card-titulo" text="Regras espec&#237;ficas da loja" />
                                 <Region HBox.hgrow="ALWAYS" />
-                                <Button onAction="#onGuardarClick" styleClass="botao-acao" text="Guardar Configuracao" />
+                                <Button onAction="#onGuardarClick" styleClass="botao-acao" text="Guardar configura&#231;&#227;o" />
                             </children>
                         </HBox>
 
@@ -101,20 +100,20 @@
                     <children>
                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                             <children>
-                                <Label styleClass="card-titulo" text="Horarios Especiais e Excecoes por Data" />
+                                <Label styleClass="card-titulo" text="Hor&#225;rios especiais e exce&#231;&#245;es por data" />
                                 <Region HBox.hgrow="ALWAYS" />
-                                <Button onAction="#onLimparHorarioEspecialClick" styleClass="botao-secundario" text="Nova Excecao" />
-                                <Button onAction="#onGuardarHorarioEspecialClick" styleClass="botao-acao" text="Guardar Excecao" />
+                                <Button onAction="#onLimparHorarioEspecialClick" styleClass="botao-secundario" text="Nova exce&#231;&#227;o" />
+                                <Button onAction="#onGuardarHorarioEspecialClick" styleClass="botao-acao" text="Guardar exce&#231;&#227;o" />
                             </children>
                         </HBox>
 
-                        <Label styleClass="subtitulo" text="Cria excecoes especificas para um intervalo de datas. Podes encerrar a loja, reduzir ou alargar o horario do dia e ajustar o minimo por turno." wrapText="true" />
+                        <Label styleClass="subtitulo" text="Cria exce&#231;&#245;es espec&#237;ficas para um intervalo de datas. Podes encerrar a loja, reduzir ou alargar o hor&#225;rio do dia e ajustar o m&#237;nimo por turno." wrapText="true" />
 
                         <HBox spacing="20.0">
                             <children>
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="campo-titulo" text="Descricao" />
+                                        <Label styleClass="campo-titulo" text="Descri&#231;&#227;o" />
                                         <TextField fx:id="txtDescricaoExcecao" promptText="Ex.: Feriado local ou campanha de fim de semana" styleClass="campo-input" />
                                     </children>
                                 </VBox>
@@ -139,8 +138,8 @@
 
                                 <VBox alignment="BOTTOM_LEFT" spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="campo-titulo" text="Modo da excecao" />
-                                        <CheckBox fx:id="chkLojaEncerrada" text="Loja encerrada neste periodo" />
+                                        <Label styleClass="campo-titulo" text="Modo da exce&#231;&#227;o" />
+                                        <CheckBox fx:id="chkLojaEncerrada" text="Loja encerrada neste per&#237;odo" />
                                     </children>
                                 </VBox>
                             </children>
@@ -151,20 +150,20 @@
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
                                         <Label styleClass="campo-titulo" text="Hora de abertura especial" />
-                                        <ComboBox fx:id="cbHoraAberturaExcecao" maxWidth="1.7976931348623157E308" promptText="Opcional" styleClass="campo-combo" />
+                                        <TextField fx:id="txtHoraAberturaExcecao" promptText="HH:mm" styleClass="campo-input" />
                                     </children>
                                 </VBox>
 
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
                                         <Label styleClass="campo-titulo" text="Hora de fecho especial" />
-                                        <ComboBox fx:id="cbHoraFechoExcecao" maxWidth="1.7976931348623157E308" promptText="Opcional" styleClass="campo-combo" />
+                                        <TextField fx:id="txtHoraFechoExcecao" promptText="HH:mm" styleClass="campo-input" />
                                     </children>
                                 </VBox>
 
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="campo-titulo" text="Minimo especial por turno" />
+                                        <Label styleClass="campo-titulo" text="M&#237;nimo especial por turno" />
                                         <TextField fx:id="txtMinimoExcecao" promptText="Opcional: inteiro" styleClass="campo-input" />
                                     </children>
                                 </VBox>
@@ -173,15 +172,15 @@
 
                         <VBox spacing="6.0">
                             <children>
-                                <Label styleClass="campo-titulo" text="Observacoes internas" />
-                                <TextArea fx:id="txtObservacoesExcecao" prefRowCount="3" promptText="Notas para contextualizar a excecao configurada." styleClass="campo-textarea" wrapText="true" />
+                                <Label styleClass="campo-titulo" text="Observa&#231;&#245;es internas" />
+                                <TextArea fx:id="txtObservacoesExcecao" prefRowCount="3" promptText="Notas para contextualizar a exce&#231;&#227;o configurada." styleClass="campo-textarea" wrapText="true" />
                             </children>
                         </VBox>
 
                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                             <children>
-                                <Button onAction="#onRemoverHorarioEspecialClick" styleClass="botao-secundario" text="Remover Selecionada" />
-                                <Label styleClass="subtitulo" text="Seleciona uma linha da tabela para editar ou remover uma excecao existente." wrapText="true" />
+                                <Button onAction="#onRemoverHorarioEspecialClick" styleClass="botao-secundario" text="Remover selecionada" />
+                                <Label styleClass="subtitulo" text="Seleciona uma linha da tabela para editar ou remover uma exce&#231;&#227;o existente." wrapText="true" />
                             </children>
                         </HBox>
 
@@ -192,12 +191,12 @@
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                             </columnResizePolicy>
                             <columns>
-                                <TableColumn fx:id="colPeriodoExcecao" prefWidth="140.0" text="Periodo" />
-                                <TableColumn fx:id="colOperacaoExcecao" prefWidth="170.0" text="Operacao" />
-                                <TableColumn fx:id="colHorarioExcecao" prefWidth="170.0" text="Horario Aplicado" />
-                                <TableColumn fx:id="colMinimoExcecao" prefWidth="120.0" text="Minimo" />
-                                <TableColumn fx:id="colDescricaoExcecao" prefWidth="190.0" text="Descricao" />
-                                <TableColumn fx:id="colTurnosCompativeisExcecao" prefWidth="230.0" text="Turnos Compativeis" />
+                                <TableColumn fx:id="colPeriodoExcecao" prefWidth="140.0" text="Per&#237;odo" />
+                                <TableColumn fx:id="colOperacaoExcecao" prefWidth="170.0" text="Opera&#231;&#227;o" />
+                                <TableColumn fx:id="colHorarioExcecao" prefWidth="170.0" text="Hor&#225;rio aplicado" />
+                                <TableColumn fx:id="colMinimoExcecao" prefWidth="120.0" text="M&#237;nimo" />
+                                <TableColumn fx:id="colDescricaoExcecao" prefWidth="190.0" text="Descri&#231;&#227;o" />
+                                <TableColumn fx:id="colTurnosCompativeisExcecao" prefWidth="230.0" text="Turnos compat&#237;veis" />
                             </columns>
                         </TableView>
                     </children>

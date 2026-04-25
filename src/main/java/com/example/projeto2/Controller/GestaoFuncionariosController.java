@@ -3,6 +3,7 @@ package com.example.projeto2.Controller;
 import com.example.projeto2.BLL.GestaoFuncionariosBLL;
 import com.example.projeto2.BLL.HorarioBLL;
 import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
@@ -18,6 +19,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -134,7 +136,7 @@ public class GestaoFuncionariosController {
         configurarFormulario();
 
         tabelaColaboradores.setItems(colaboradoresFiltrados);
-        tabelaColaboradores.setPlaceholder(new Label("Ainda nao existem colaboradores associados a esta loja."));
+        tabelaColaboradores.setPlaceholder(new Label("Ainda não existem colaboradores associados a esta loja."));
         tabelaColaboradores.getSelectionModel().selectedItemProperty().addListener((observavel, anterior, selecionado) -> {
             if (selecionado != null) {
                 preencherFormulario(selecionado);
@@ -167,15 +169,26 @@ public class GestaoFuncionariosController {
     public void onGuardarClick() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             CargoOption cargoSelecionado = cbCargo.getValue();
             if (cargoSelecionado == null || cargoSelecionado.idCargo() == null) {
-                throw new IllegalArgumentException("Seleciona um cargo valido para o colaborador.");
+                throw new IllegalArgumentException("Seleciona um cargo válido para o colaborador.");
             }
 
             boolean novoColaborador = idColaboradorEmEdicao == null;
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    novoColaborador ? "Criar colaborador" : "Atualizar colaborador",
+                    novoColaborador ? "Deseja criar este colaborador?" : "Deseja guardar as alterações deste colaborador?",
+                    novoColaborador
+                            ? "O novo colaborador ficará associado à loja atual."
+                            : "Os dados do colaborador serão atualizados."
+            )) {
+                return;
+            }
+
             Integer idGuardado = gestaoFuncionariosBLL.guardarColaborador(
                     utilizadorLogado.getId(),
                     new GestaoFuncionariosBLL.ColaboradorRequest(
@@ -198,7 +211,7 @@ public class GestaoFuncionariosController {
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Nao foi possivel guardar o registo do colaborador.", false);
+            mostrarMensagem("Não foi possível guardar o registo do colaborador.", false);
         }
     }
 
@@ -206,12 +219,21 @@ public class GestaoFuncionariosController {
     public void onDesativarClick() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
             if (selecionado == null) {
                 throw new IllegalArgumentException("Seleciona um colaborador primeiro.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Desativar colaborador",
+                    "Deseja desativar este colaborador?",
+                    "O colaborador deixará de ficar ativo na loja atual."
+            )) {
+                return;
             }
 
             gestaoFuncionariosBLL.desativarColaborador(utilizadorLogado.getId(), selecionado.idUtilizador());
@@ -220,7 +242,7 @@ public class GestaoFuncionariosController {
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Nao foi possivel desativar o colaborador selecionado.", false);
+            mostrarMensagem("Não foi possível desativar o colaborador selecionado.", false);
         }
     }
 
@@ -303,7 +325,7 @@ public class GestaoFuncionariosController {
     private void carregarDados(Integer idPreferido) {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             GestaoFuncionariosBLL.GestaoFuncionariosResumo resumo = gestaoFuncionariosBLL.obterResumo(utilizadorLogado.getId());
@@ -523,7 +545,7 @@ public class GestaoFuncionariosController {
 
             if (horarios.isEmpty()) {
                 lblResumoHorarioColaborador.setText(
-                        nomeColaborador + " nao tem horario publicado nesta semana."
+                        nomeColaborador + " não tem horário publicado nesta semana."
                 );
             } else {
                 lblResumoHorarioColaborador.setText(
@@ -532,7 +554,7 @@ public class GestaoFuncionariosController {
             }
         } catch (Exception e) {
             limparHorarioSemanalColaborador();
-            lblResumoHorarioColaborador.setText("Nao foi possivel carregar o horario semanal deste colaborador.");
+            lblResumoHorarioColaborador.setText("Não foi possível carregar o horário semanal deste colaborador.");
         }
     }
 
@@ -543,7 +565,7 @@ public class GestaoFuncionariosController {
                 Map.of(),
                 "Seleciona um colaborador"
         );
-        lblResumoHorarioColaborador.setText("Seleciona um colaborador para veres o horario publicado da semana.");
+        lblResumoHorarioColaborador.setText("Seleciona um colaborador para veres o horário publicado da semana.");
     }
 
     private void esconderMensagem() {
@@ -558,6 +580,13 @@ public class GestaoFuncionariosController {
         lblMensagem.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
         lblMensagem.setManaged(true);
         lblMensagem.setVisible(true);
+    }
+
+    private Window obterJanela() {
+        if (lblNomeLoja == null || lblNomeLoja.getScene() == null) {
+            return null;
+        }
+        return lblNomeLoja.getScene().getWindow();
     }
 
     private record CargoOption(Integer idCargo, String nome, String tipo) {

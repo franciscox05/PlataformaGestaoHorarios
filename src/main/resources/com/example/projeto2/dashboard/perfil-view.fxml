@@ -3,102 +3,107 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox fx:id="raizPerfil" alignment="TOP_CENTER" prefHeight="600.0" prefWidth="730.0" spacing="20.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PerfilController">
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="dashboard-scroll" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PerfilController">
+    <content>
+        <VBox fx:id="raizPerfil" fillWidth="true" maxWidth="1280.0" spacing="24.0" styleClass="page-shell">
+            <padding>
+                <Insets bottom="34.0" left="36.0" right="36.0" top="30.0" />
+            </padding>
 
-    <padding>
-        <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
-    </padding>
-
-    <children>
-        <Label styleClass="titulo-dashboard" text="O Meu Perfil" />
-        <Label styleClass="subtitulo" text="Consulta os teus dados atuais, o teu vinculo ativo e um resumo rapido da tua atividade." />
-
-        <HBox alignment="TOP_CENTER" spacing="20.0">
             <children>
-                <VBox spacing="12.0" styleClass="info-card" HBox.hgrow="ALWAYS">
+                <VBox alignment="CENTER" spacing="12.0">
                     <children>
-                        <Label styleClass="card-titulo" text="Dados Pessoais" />
-                        <Label styleClass="meta-etiqueta" text="Nome" />
-                        <Label fx:id="lblNomePerfil" styleClass="meta-valor" text="-" />
-                        <Label styleClass="meta-etiqueta" text="Email" />
-                        <Label fx:id="lblEmailPerfil" styleClass="meta-valor" text="-" />
-                        <Label styleClass="meta-etiqueta" text="Telemovel" />
-                        <Label fx:id="lblTelemovelPerfil" styleClass="meta-valor" text="-" />
-                        <Label styleClass="meta-etiqueta" text="Estado" />
-                        <Label fx:id="lblEstadoPerfil" styleClass="meta-valor" text="-" />
+                        <Label styleClass="section-title" text="O Meu Perfil" />
+                        <Label maxWidth="860.0" styleClass="subtitulo" text="Consulta os teus dados atuais, o teu vínculo ativo e um resumo rápido da tua atividade." textAlignment="CENTER" wrapText="true" />
+                    </children>
+                </VBox>
 
-                        <VBox spacing="10.0">
-                            <padding>
-                                <Insets top="10.0" />
-                            </padding>
-                            <HBox spacing="10.0">
-                                <Button onAction="#onEditarNomeClick" styleClass="botao-acao" text="Editar Nome" />
-                                <Button onAction="#onEditarEmailClick" styleClass="botao-acao" text="Editar Email" />
-                            </HBox>
-                            <HBox spacing="10.0">
-                                <Button onAction="#onEditarTelemovelClick" styleClass="botao-acao" text="Editar Telemovel" />
-                                <Button onAction="#onAlterarPasswordClick" styleClass="botao-acao" text="Alterar Password" />
-                            </HBox>
+                <FlowPane alignment="TOP_CENTER" hgap="20.0" prefWrapLength="1100.0" vgap="20.0">
+                    <children>
+                        <VBox minWidth="360.0" prefWidth="520.0" spacing="12.0" styleClass="info-card">
+                            <children>
+                                <Label styleClass="card-titulo" text="Dados Pessoais" />
+                                <Label styleClass="meta-etiqueta" text="Nome" />
+                                <Label fx:id="lblNomePerfil" styleClass="meta-valor" text="-" wrapText="true" />
+                                <Label styleClass="meta-etiqueta" text="Email" />
+                                <Label fx:id="lblEmailPerfil" styleClass="meta-valor" text="-" wrapText="true" />
+                                <Label styleClass="meta-etiqueta" text="Telemóvel" />
+                                <Label fx:id="lblTelemovelPerfil" styleClass="meta-valor" text="-" />
+                                <Label styleClass="meta-etiqueta" text="Estado" />
+                                <Label fx:id="lblEstadoPerfil" styleClass="meta-valor" text="-" />
+
+                                <FlowPane hgap="12.0" prefWrapLength="420.0" vgap="12.0">
+                                    <children>
+                                        <Button onAction="#onEditarNomeClick" styleClass="botao-acao" text="Editar nome" />
+                                        <Button onAction="#onEditarEmailClick" styleClass="botao-acao" text="Editar email" />
+                                        <Button onAction="#onEditarTelemovelClick" styleClass="botao-acao" text="Editar telemóvel" />
+                                        <Button onAction="#onAlterarPasswordClick" styleClass="botao-acao" text="Alterar palavra-passe" />
+                                    </children>
+                                </FlowPane>
+                            </children>
+                        </VBox>
+
+                        <VBox minWidth="360.0" prefWidth="520.0" spacing="12.0" styleClass="info-card">
+                            <children>
+                                <Label styleClass="card-titulo" text="Vínculo Atual" />
+                                <Label styleClass="meta-etiqueta" text="Loja" />
+                                <Label fx:id="lblLojaAtual" styleClass="meta-valor" text="-" wrapText="true" />
+                                <Label styleClass="meta-etiqueta" text="Cargo" />
+                                <Label fx:id="lblCargoAtual" styleClass="meta-valor" text="-" wrapText="true" />
+                                <Label styleClass="meta-etiqueta" text="Data de entrada" />
+                                <Label fx:id="lblDataEntrada" styleClass="meta-valor" text="-" />
+                                <Label styleClass="meta-etiqueta" text="Próximo turno" />
+                                <Label fx:id="lblProximoTurno" styleClass="meta-valor" text="-" wrapText="true" />
+                                <Region minHeight="10.0" />
+                            </children>
                         </VBox>
                     </children>
-                </VBox>
+                </FlowPane>
 
-                <VBox spacing="12.0" styleClass="info-card" HBox.hgrow="ALWAYS">
+                <FlowPane alignment="CENTER" hgap="16.0" prefWrapLength="1120.0" vgap="16.0">
                     <children>
-                        <Label styleClass="card-titulo" text="Vinculo Atual" />
-                        <Label styleClass="meta-etiqueta" text="Loja" />
-                        <Label fx:id="lblLojaAtual" styleClass="meta-valor" text="-" />
-                        <Label styleClass="meta-etiqueta" text="Cargo" />
-                        <Label fx:id="lblCargoAtual" styleClass="meta-valor" text="-" />
-                        <Label styleClass="meta-etiqueta" text="Data de entrada" />
-                        <Label fx:id="lblDataEntrada" styleClass="meta-valor" text="-" />
-                        <Label styleClass="meta-etiqueta" text="Proximo turno" />
-                        <Label fx:id="lblProximoTurno" styleClass="meta-valor" text="-" wrapText="true" />
+                        <VBox alignment="CENTER" minWidth="220.0" prefWidth="250.0" spacing="8.0" styleClass="stat-card">
+                            <children>
+                                <Label fx:id="lblHorasMes" styleClass="stat-numero" text="0h 0m" />
+                                <Label styleClass="stat-titulo" text="Horas este mês" />
+                            </children>
+                        </VBox>
+
+                        <VBox alignment="CENTER" minWidth="220.0" prefWidth="250.0" spacing="8.0" styleClass="stat-card">
+                            <children>
+                                <Label fx:id="lblFolgasPendentes" styleClass="stat-numero" text="0" />
+                                <Label styleClass="stat-titulo" text="Folgas pendentes" />
+                            </children>
+                        </VBox>
+
+                        <VBox alignment="CENTER" minWidth="220.0" prefWidth="250.0" spacing="8.0" styleClass="stat-card">
+                            <children>
+                                <Label fx:id="lblFolgasAprovadas" styleClass="stat-numero" text="0" />
+                                <Label styleClass="stat-titulo" text="Folgas aprovadas" />
+                            </children>
+                        </VBox>
+
+                        <VBox alignment="CENTER" minWidth="220.0" prefWidth="250.0" spacing="8.0" styleClass="stat-card">
+                            <children>
+                                <Label fx:id="lblTurnosFuturos" styleClass="stat-numero" text="0" />
+                                <Label styleClass="stat-titulo" text="Turnos futuros" />
+                            </children>
+                        </VBox>
+                    </children>
+                </FlowPane>
+
+                <VBox spacing="10.0" styleClass="info-card">
+                    <children>
+                        <Label styleClass="card-titulo" text="Resumo" />
+                        <Label styleClass="subtitulo" text="Este painel junta a tua informação pessoal, a tua ligação ativa a uma loja e os principais indicadores do mês para te dar uma leitura rápida do teu estado atual na plataforma." wrapText="true" />
                     </children>
                 </VBox>
-            </children>
-        </HBox>
-
-        <HBox alignment="CENTER" spacing="15.0">
-            <children>
-                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                    <children>
-                        <Label fx:id="lblHorasMes" styleClass="stat-numero" text="0h 0m" />
-                        <Label styleClass="stat-titulo" text="Horas este mes" />
-                    </children>
-                </VBox>
-
-                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                    <children>
-                        <Label fx:id="lblFolgasPendentes" styleClass="stat-numero" text="0" />
-                        <Label styleClass="stat-titulo" text="Folgas pendentes" />
-                    </children>
-                </VBox>
-
-                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                    <children>
-                        <Label fx:id="lblFolgasAprovadas" styleClass="stat-numero" text="0" />
-                        <Label styleClass="stat-titulo" text="Folgas aprovadas" />
-                    </children>
-                </VBox>
-
-                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                    <children>
-                        <Label fx:id="lblTurnosFuturos" styleClass="stat-numero" text="0" />
-                        <Label styleClass="stat-titulo" text="Turnos futuros" />
-                    </children>
-                </VBox>
-            </children>
-        </HBox>
-
-        <VBox spacing="8.0" styleClass="info-card" VBox.vgrow="ALWAYS">
-            <children>
-                <Label styleClass="card-titulo" text="Resumo" />
-                <Label styleClass="subtitulo" text="Este painel junta a tua informacao pessoal, a tua ligacao ativa a uma loja e os principais indicadores do mes para te dar uma leitura rapida do teu estado atual na plataforma." wrapText="true" />
             </children>
         </VBox>
-    </children>
-</VBox>
+    </content>
+</ScrollPane>

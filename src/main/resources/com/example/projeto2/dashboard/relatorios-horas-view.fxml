@@ -17,12 +17,12 @@
     </padding>
 
     <children>
-        <Label styleClass="titulo-dashboard" text="Relatorios Mensais de Horas" />
+        <Label styleClass="titulo-dashboard" text="Relat&#243;rios mensais de horas" />
         <Label styleClass="subtitulo" text="Consulta o resumo mensal da equipa da tua loja e exporta os dados em CSV." />
 
         <VBox spacing="12.0" styleClass="info-card">
             <children>
-                <Label styleClass="card-titulo" text="Filtros do Relatorio" />
+                <Label styleClass="card-titulo" text="Filtros do relat&#243;rio" />
                 <Label styleClass="meta-etiqueta" text="Loja" />
                 <Label fx:id="lblLojaRelatorio" styleClass="meta-valor" text="-" />
 
@@ -30,8 +30,8 @@
                     <children>
                         <VBox spacing="5.0" HBox.hgrow="ALWAYS">
                             <children>
-                                <Label styleClass="campo-titulo" text="Mes" />
-                                <ComboBox fx:id="cbMes" promptText="Seleciona o mes" />
+                                <Label styleClass="campo-titulo" text="M&#234;s" />
+                                <ComboBox fx:id="cbMes" promptText="Seleciona o m&#234;s" />
                             </children>
                         </VBox>
 
@@ -53,7 +53,7 @@
 
                 <HBox alignment="CENTER_LEFT" spacing="12.0">
                     <children>
-                        <Button fx:id="btnGerarRelatorio" onAction="#onGerarRelatorioClick" styleClass="botao-acao" text="Gerar Relatorio" />
+                        <Button fx:id="btnGerarRelatorio" onAction="#onGerarRelatorioClick" styleClass="botao-acao" text="Gerar relat&#243;rio" />
                         <Button fx:id="btnExportarCsv" onAction="#onExportarCsvClick" styleClass="botao-secundario" text="Exportar CSV" />
                     </children>
                 </HBox>
@@ -74,7 +74,7 @@
                 <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                     <children>
                         <Label fx:id="lblTotalTurnos" styleClass="stat-numero" text="0" />
-                        <Label styleClass="stat-titulo" text="Turnos no mes" />
+                        <Label styleClass="stat-titulo" text="Turnos no m&#234;s" />
                     </children>
                 </VBox>
 

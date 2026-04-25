@@ -2,6 +2,7 @@ package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.HorarioBLL;
 import com.example.projeto2.BLL.PermutaBLL;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Permuta;
 import com.example.projeto2.Modules.Utilizador;
@@ -16,6 +17,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
+import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -96,8 +98,8 @@ public class PermutasController {
         lblMensagem.setManaged(false);
         lblMensagem.setVisible(false);
 
-        tabelaPedidosPermuta.setPlaceholder(new Label("Ainda nao submeteste pedidos de permuta."));
-        tabelaPedidosPendentes.setPlaceholder(new Label("Nao existem pedidos pendentes para aprovar."));
+        tabelaPedidosPermuta.setPlaceholder(new Label("Ainda não submeteste pedidos de permuta."));
+        tabelaPedidosPendentes.setPlaceholder(new Label("Não existem pedidos pendentes para aprovar."));
 
         btnAprovarPermuta.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
         btnRejeitarPermuta.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
@@ -117,7 +119,16 @@ public class PermutasController {
     public void onSubmeterTrocaClick() {
         try {
             if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Submeter permuta",
+                    "Deseja submeter este pedido de permuta?",
+                    "O pedido ficará pendente para aprovação."
+            )) {
+                return;
             }
 
             permutaBll.registarPedidoTroca(
@@ -134,7 +145,7 @@ public class PermutasController {
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Nao foi possivel submeter o pedido de permuta.", false);
+            mostrarMensagem("Não foi possível submeter o pedido de permuta.", false);
         }
     }
 
@@ -265,12 +276,23 @@ public class PermutasController {
     private void tratarPedidoSelecionado(boolean aprovar) {
         try {
             if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             Permuta pedidoSelecionado = tabelaPedidosPendentes.getSelectionModel().getSelectedItem();
             if (pedidoSelecionado == null) {
                 throw new IllegalArgumentException("Seleciona um pedido pendente primeiro.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    aprovar ? "Aprovar permuta" : "Rejeitar permuta",
+                    aprovar ? "Deseja aprovar esta permuta?" : "Deseja rejeitar esta permuta?",
+                    aprovar
+                            ? "A aprovação ficará registada no sistema."
+                            : "A rejeição ficará registada no sistema."
+            )) {
+                return;
             }
 
             if (aprovar) {
@@ -288,7 +310,7 @@ public class PermutasController {
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Nao foi possivel atualizar o pedido de permuta.", false);
+            mostrarMensagem("Não foi possível atualizar o pedido de permuta.", false);
         }
     }
 
@@ -351,5 +373,12 @@ public class PermutasController {
         }
 
         return permuta.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador().getNome();
+    }
+
+    private Window obterJanela() {
+        if (cbMeuTurno == null || cbMeuTurno.getScene() == null) {
+            return null;
+        }
+        return cbMeuTurno.getScene().getWindow();
     }
 }

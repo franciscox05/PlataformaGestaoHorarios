@@ -5,7 +5,6 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
@@ -13,14 +12,8 @@
 
 <StackPane styleClass="login-shell" stylesheets="@login.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.LoginController">
     <children>
-        <ImageView fx:id="imgLoginBackdrop" fitHeight="1600.0" fitWidth="2200.0" pickOnBounds="true" preserveRatio="false" />
+        <Region styleClass="login-backdrop-image" />
         <Region styleClass="login-backdrop-overlay" />
-
-        <Label maxWidth="220.0" styleClass="login-era" text="AUTENTICO DESDE&#10;1853" wrapText="true" StackPane.alignment="TOP_RIGHT">
-            <StackPane.margin>
-                <Insets right="38.0" top="26.0" />
-            </StackPane.margin>
-        </Label>
 
         <HBox alignment="CENTER" fillHeight="false" maxWidth="1500.0" prefHeight="860.0" spacing="56.0" styleClass="login-layout">
             <children>
@@ -28,7 +21,7 @@
                     <children>
                         <Region VBox.vgrow="ALWAYS" />
                         <Label styleClass="login-editorial-headline" text="RAW&#10;DENIM" />
-                        <Label maxWidth="520.0" styleClass="login-editorial-copy" text="A qualidade nunca passa de moda. O portal oficial da Levi Strauss &amp; Co. para operacao, equipa e planeamento editorial." wrapText="true" />
+                        <Label maxWidth="520.0" styleClass="login-editorial-copy" text="A qualidade nunca passa de moda. O portal oficial da Levi Strauss &amp; Co. para operação, equipa e planeamento editorial." wrapText="true" />
                     </children>
                 </VBox>
 
@@ -103,13 +96,13 @@
                                     </children>
                                 </HBox>
 
-                                <Button maxWidth="420.0" mnemonicParsing="false" styleClass="botao-secure-login" text="ACESSO BIOMETRICO" />
+                                <Button maxWidth="420.0" mnemonicParsing="false" styleClass="botao-secure-login" text="ACESSO BIOMÉTRICO" />
                             </children>
                         </VBox>
 
                         <Region VBox.vgrow="ALWAYS" />
 
-                        <Label maxWidth="420.0" styleClass="mensagem-info-autenticacao" text="© 2024 Levi Strauss &amp; Co. Informacao confidencial e proprietaria.&#10;Apenas para pessoal autorizado." textAlignment="CENTER" wrapText="true" />
+                        <Label maxWidth="420.0" styleClass="mensagem-info-autenticacao" text="© 2024 Levi Strauss &amp; Co. Informação confidencial e proprietária.&#10;Apenas para pessoal autorizado." textAlignment="CENTER" wrapText="true" />
                     </children>
                 </VBox>
             </children>
@@ -119,6 +112,16 @@
             </padding>
         </HBox>
 
-        <Region styleClass="login-bottom-accent" StackPane.alignment="BOTTOM_CENTER" />
+        <Label styleClass="login-era" text="AUTÊNTICO DESDE 1853" StackPane.alignment="TOP_LEFT">
+            <StackPane.margin>
+                <Insets left="38.0" top="26.0" />
+            </StackPane.margin>
+        </Label>
+
+        <Button onAction="#onFecharAplicacaoClick" styleClass="login-close-button" text="Fechar aplicação" StackPane.alignment="TOP_RIGHT">
+            <StackPane.margin>
+                <Insets right="38.0" top="26.0" />
+            </StackPane.margin>
+        </Button>
     </children>
 </StackPane>

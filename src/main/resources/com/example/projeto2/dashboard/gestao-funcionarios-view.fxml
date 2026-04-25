@@ -22,12 +22,12 @@
             </padding>
 
             <children>
-                <Label styleClass="titulo-dashboard" text="Gestao de Funcionarios" />
+                <Label styleClass="titulo-dashboard" text="Gestão de funcionários" />
                 <Label styleClass="subtitulo" text="Adiciona, atualiza e desativa colaboradores da tua loja sem sair do backoffice." wrapText="true" />
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Contexto da Loja" />
+                        <Label styleClass="card-titulo" text="Contexto da loja" />
                         <HBox spacing="20.0">
                             <children>
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
@@ -39,7 +39,7 @@
 
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Localizacao" />
+                                        <Label styleClass="meta-etiqueta" text="Localização" />
                                         <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
@@ -69,7 +69,7 @@
 
                                 <HBox spacing="12.0">
                                     <children>
-                                        <TextField fx:id="txtPesquisa" promptText="Pesquisar por nome, email, telemovel ou cargo" styleClass="campo-input" HBox.hgrow="ALWAYS" />
+                                        <TextField fx:id="txtPesquisa" promptText="Pesquisar por nome, email, telemóvel ou cargo" styleClass="campo-input" HBox.hgrow="ALWAYS" />
                                         <ComboBox fx:id="cbFiltroEstado" prefWidth="140.0" styleClass="campo-combo" />
                                         <ComboBox fx:id="cbFiltroCargo" prefWidth="170.0" styleClass="campo-combo" />
                                     </children>
@@ -82,7 +82,7 @@
                                     <columns>
                                         <TableColumn fx:id="colNome" prefWidth="150.0" text="Nome" />
                                         <TableColumn fx:id="colEmail" prefWidth="180.0" text="Email" />
-                                        <TableColumn fx:id="colTelemovel" prefWidth="120.0" text="Telemovel" />
+                                        <TableColumn fx:id="colTelemovel" prefWidth="120.0" text="Telemóvel" />
                                         <TableColumn fx:id="colCargo" prefWidth="120.0" text="Cargo" />
                                         <TableColumn fx:id="colEstado" prefWidth="90.0" text="Estado" />
                                     </columns>
@@ -116,16 +116,16 @@
 
                                 <VBox spacing="6.0">
                                     <children>
-                                        <Label styleClass="campo-titulo" text="Telemovel" />
-                                        <TextField fx:id="txtTelemovel" promptText="9 digitos" styleClass="campo-input" />
+                                        <Label styleClass="campo-titulo" text="Telemóvel" />
+                                        <TextField fx:id="txtTelemovel" promptText="9 dígitos" styleClass="campo-input" />
                                     </children>
                                 </VBox>
 
                                 <VBox spacing="6.0">
                                     <children>
                                         <Label styleClass="campo-titulo" text="Password inicial / nova password" />
-                                        <PasswordField fx:id="txtPassword" promptText="Obrigatoria ao criar; opcional na edicao" styleClass="campo-input" />
-                                        <Label styleClass="texto-ajuda" text="Novos colaboradores sao criados ativos. Na edicao, deixa a password vazia para a manter." wrapText="true" />
+                                        <PasswordField fx:id="txtPassword" promptText="Obrigatória ao criar; opcional na edição" styleClass="campo-input" />
+                                        <Label styleClass="texto-ajuda" text="Novos colaboradores são criados ativos. Na edição, deixa a password vazia para a manter." wrapText="true" />
                                     </children>
                                 </VBox>
 
@@ -160,7 +160,7 @@
                     <children>
                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                             <children>
-                                <Label styleClass="card-titulo" text="Horario Semanal do Colaborador" />
+                                <Label styleClass="card-titulo" text="Horário semanal do colaborador" />
                                 <Region HBox.hgrow="ALWAYS" />
                                 <Button onAction="#onSemanaColaboradorAnteriorClick" styleClass="botao-secundario" text="Semana anterior" />
                                 <Label fx:id="lblSemanaColaborador" styleClass="campo-titulo" text="Semana" />
@@ -168,7 +168,7 @@
                             </children>
                         </HBox>
 
-                        <Label fx:id="lblResumoHorarioColaborador" styleClass="texto-ajuda" text="Seleciona um colaborador para veres o horario publicado da semana." wrapText="true" />
+                        <Label fx:id="lblResumoHorarioColaborador" styleClass="texto-ajuda" text="Seleciona um colaborador para veres o horário publicado da semana." wrapText="true" />
                         <HBox fx:id="boxSemanaColaborador" spacing="10.0" styleClass="calendario-semana" />
                     </children>
                 </VBox>

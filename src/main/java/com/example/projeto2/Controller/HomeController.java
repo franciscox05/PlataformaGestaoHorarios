@@ -3,20 +3,22 @@ package com.example.projeto2.Controller;
 import com.example.projeto2.BLL.GestaoLojaBLL;
 import com.example.projeto2.BLL.HorarioBLL;
 import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
+import com.example.projeto2.Controller.support.CalendarioMensalHelper;
+import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Utilizador;
-import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.springframework.context.annotation.Scope;
@@ -24,8 +26,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.format.TextStyle;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -70,25 +72,13 @@ public class HomeController {
     private Label lblSemanaHorarioPublicadoIntervalo;
 
     @FXML
+    private ComboBox<SemanaOption> cbSemanaHorarioPublicado;
+
+    @FXML
     private Label lblResumoHorarioPublicado;
 
     @FXML
     private HBox boxSemanaHorarioPublicado;
-
-    @FXML
-    private TableView<Horario> tabelaTurnos;
-
-    @FXML
-    private TableColumn<Horario, String> colData;
-
-    @FXML
-    private TableColumn<Horario, String> colHorario;
-
-    @FXML
-    private TableColumn<Horario, String> colLoja;
-
-    @FXML
-    private TableColumn<Horario, String> colEstado;
 
     @FXML
     private TableView<Horario> tabelaEquipaHoje;
@@ -106,7 +96,7 @@ public class HomeController {
     private VBox painelOperacaoLoja;
 
     @FXML
-    private javafx.scene.control.DatePicker dpDataOperacao;
+    private DatePicker dpDataOperacao;
 
     @FXML
     private ComboBox<String> cbIntervaloOperacao;
@@ -151,22 +141,7 @@ public class HomeController {
     private TableColumn<SnapshotOperacionalLojaBLL.ColaboradorEscala, String> colOperacaoEstado;
 
     @FXML
-    private TableView<Horario> tabelaEscalaDetalhada;
-
-    @FXML
-    private TableColumn<Horario, String> colEscalaData;
-
-    @FXML
-    private TableColumn<Horario, String> colEscalaColaborador;
-
-    @FXML
-    private TableColumn<Horario, String> colEscalaCargo;
-
-    @FXML
-    private TableColumn<Horario, String> colEscalaHorario;
-
-    @FXML
-    private TableColumn<Horario, String> colEscalaEstado;
+    private HBox boxEscalaDetalhadaLoja;
 
     @FXML
     private ComboBox<MesOption> cbMesHorarioMensal;
@@ -178,7 +153,7 @@ public class HomeController {
     private Label lblResumoHorarioMensal;
 
     @FXML
-    private TableView<LinhaHorarioMensal> tabelaHorarioMensalLoja;
+    private GridPane gridHorarioMensalLoja;
 
     private final HorarioBLL horarioBll;
     private final SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
@@ -186,6 +161,7 @@ public class HomeController {
     private Utilizador utilizadorLogado;
     private DashboardNavigator dashboardNavigation;
     private LocalDate semanaHorarioPublicadoInicio;
+    private boolean aAtualizarSeletorSemana;
 
     public HomeController(HorarioBLL horarioBll,
                           SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL,
@@ -197,10 +173,8 @@ public class HomeController {
 
     @FXML
     public void initialize() {
-        configurarTabelaTurnos();
         configurarTabelaEquipaHoje();
         configurarTabelaOperacaoLoja();
-        configurarTabelaEscalaDetalhada();
         configurarPainelHorarioPublicado();
         configurarPainelOperacao();
         configurarPainelHorarioMensal();
@@ -212,7 +186,7 @@ public class HomeController {
         }
 
         this.utilizadorLogado = utilizador;
-        lblBemVindo.setText("Ola, " + utilizador.getNome() + "!");
+        lblBemVindo.setText("Olá, " + utilizador.getNome() + "!");
 
         carregarHorarioPublicado();
         carregarEquipaHoje();
@@ -268,35 +242,15 @@ public class HomeController {
     @FXML
     public void onSemanaHorarioAnteriorClick() {
         semanaHorarioPublicadoInicio = semanaHorarioPublicadoInicio.minusWeeks(1);
+        atualizarCabecalhoSemanaHorarioPublicado();
         carregarHorarioPublicado();
     }
 
     @FXML
     public void onSemanaHorarioSeguinteClick() {
         semanaHorarioPublicadoInicio = semanaHorarioPublicadoInicio.plusWeeks(1);
+        atualizarCabecalhoSemanaHorarioPublicado();
         carregarHorarioPublicado();
-    }
-
-    private void configurarTabelaTurnos() {
-        colData.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarData(cellData.getValue().getDataTurno())));
-
-        colHorario.setCellValueFactory(cellData -> {
-            Horario horario = cellData.getValue();
-            return new SimpleStringProperty(horario.getIdTurno().getHoraInicio() + " - " + horario.getIdTurno().getHoraFim());
-        });
-
-        colLoja.setCellValueFactory(cellData ->
-                new SimpleStringProperty(
-                        cellData.getValue().getIdLojautilizador().getIdLoja().getNome()
-                                + " | "
-                                + capitalizar(textoOuTraco(cellData.getValue().getIdTurno().getTipo()))
-                ));
-
-        colEstado.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
-
-        tabelaTurnos.setPlaceholder(new Label("Nao existe horario publicado no intervalo selecionado. Ajusta as datas para veres mais dias publicados."));
     }
 
     private void configurarTabelaEquipaHoje() {
@@ -305,13 +259,13 @@ public class HomeController {
 
         colHorarioHoje.setCellValueFactory(cellData -> {
             Horario horario = cellData.getValue();
-            return new SimpleStringProperty(horario.getIdTurno().getHoraInicio() + " - " + horario.getIdTurno().getHoraFim());
+            return new SimpleStringProperty(formatarPeriodo(horario));
         });
 
         colEstadoHoje.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
 
-        tabelaEquipaHoje.setPlaceholder(new Label("Nao ha equipa escalada para hoje na tua loja. O painel operacional abaixo pode ajudar-te a validar outros dias."));
+        tabelaEquipaHoje.setPlaceholder(new Label("Não há equipa escalada para hoje na tua loja."));
     }
 
     private void configurarTabelaOperacaoLoja() {
@@ -327,7 +281,7 @@ public class HomeController {
         colOperacaoEstado.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstadosOperacao(cellData.getValue().turnos())));
 
-        tabelaOperacaoLoja.setPlaceholder(new Label("Nao existe equipa escalada para o periodo selecionado. Usa o atalho de horarios para rever o planeamento."));
+        tabelaOperacaoLoja.setPlaceholder(new Label("Não existe equipa escalada para o período selecionado."));
         tabelaOperacaoLoja.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
             if (novo != null && cbColaboradorOperacao != null) {
                 cbColaboradorOperacao.getItems().stream()
@@ -338,32 +292,23 @@ public class HomeController {
         });
     }
 
-    private void configurarTabelaEscalaDetalhada() {
-        colEscalaData.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarData(cellData.getValue().getDataTurno())));
-
-        colEscalaColaborador.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().getIdLojautilizador().getIdUtilizador().getNome()));
-
-        colEscalaCargo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().getIdLojautilizador().getIdCargo() != null
-                        ? cellData.getValue().getIdLojautilizador().getIdCargo().getNome()
-                        : "-"));
-
-        colEscalaHorario.setCellValueFactory(cellData -> {
-            Horario horario = cellData.getValue();
-            return new SimpleStringProperty(horario.getIdTurno().getHoraInicio() + " - " + horario.getIdTurno().getHoraFim());
-        });
-
-        colEscalaEstado.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
-
-        tabelaEscalaDetalhada.setPlaceholder(new Label("Nao existem turnos publicados para este colaborador ou periodo."));
-    }
-
     private void configurarPainelHorarioPublicado() {
         semanaHorarioPublicadoInicio = CalendarioSemanalHelper.inicioSemana(LocalDate.now());
-        lblSemanaHorarioPublicadoIntervalo.setText(CalendarioSemanalHelper.formatarIntervaloSemana(semanaHorarioPublicadoInicio));
+        atualizarCabecalhoSemanaHorarioPublicado();
+        renderizarCalendarioHorarioPublicado(semanaHorarioPublicadoInicio, List.of());
+
+        if (cbSemanaHorarioPublicado != null) {
+            atualizarOpcoesSemanaReferencia();
+            cbSemanaHorarioPublicado.valueProperty().addListener((obs, antiga, nova) -> {
+                if (aAtualizarSeletorSemana || nova == null || Objects.equals(semanaHorarioPublicadoInicio, nova.inicio())) {
+                    return;
+                }
+
+                semanaHorarioPublicadoInicio = nova.inicio();
+                atualizarCabecalhoSemanaHorarioPublicado();
+                carregarHorarioPublicado();
+            });
+        }
     }
 
     private void configurarPainelOperacao() {
@@ -376,6 +321,7 @@ public class HomeController {
         painelOperacaoLoja.setManaged(false);
         painelOperacaoLoja.setVisible(false);
         esconderFeedbackOperacao();
+        renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
 
         dpDataOperacao.valueProperty().addListener((obs, antiga, nova) -> {
             esconderFeedbackOperacao();
@@ -402,7 +348,7 @@ public class HomeController {
         cbMesHorarioMensal.setItems(FXCollections.observableArrayList(
                 new MesOption(1, "Janeiro"),
                 new MesOption(2, "Fevereiro"),
-                new MesOption(3, "Marco"),
+                new MesOption(3, "Março"),
                 new MesOption(4, "Abril"),
                 new MesOption(5, "Maio"),
                 new MesOption(6, "Junho"),
@@ -425,7 +371,7 @@ public class HomeController {
         ));
         spAnoHorarioMensal.setEditable(true);
 
-        tabelaHorarioMensalLoja.setPlaceholder(new Label("Nao existem horarios publicados para o mes selecionado."));
+        renderizarCalendarioMensalLoja(YearMonth.now(), List.of());
 
         cbMesHorarioMensal.valueProperty().addListener((obs, antigo, novo) -> {
             if (painelOperacaoLoja.isVisible()) {
@@ -449,15 +395,14 @@ public class HomeController {
                     ? semanaHorarioPublicadoInicio
                     : CalendarioSemanalHelper.inicioSemana(LocalDate.now());
             LocalDate dataFim = dataInicio.plusDays(6);
-            lblSemanaHorarioPublicadoIntervalo.setText(CalendarioSemanalHelper.formatarIntervaloSemana(dataInicio));
+            atualizarCabecalhoSemanaHorarioPublicado();
 
             List<Horario> turnos = horarioBll.listarHorarioPublicadoDoUtilizador(utilizadorLogado.getId(), dataInicio, dataFim);
-            tabelaTurnos.setItems(FXCollections.observableArrayList(turnos));
             renderizarCalendarioHorarioPublicado(dataInicio, turnos);
 
             if (turnos.isEmpty()) {
                 lblResumoHorarioPublicado.setText(
-                        "Nao existe nenhum turno publicado para ti entre "
+                        "Não existe nenhum turno publicado para ti entre "
                                 + formatarData(dataInicio)
                                 + " e "
                                 + formatarData(dataFim)
@@ -469,21 +414,18 @@ public class HomeController {
             Horario proximoTurno = turnos.getFirst();
             lblResumoHorarioPublicado.setText(
                     turnos.size()
-                            + " turnos publicados entre "
+                            + " turno(s) publicados entre "
                             + formatarData(dataInicio)
                             + " e "
                             + formatarData(dataFim)
-                            + ". Proximo turno: "
+                            + ". Próximo turno: "
                             + formatarData(proximoTurno.getDataTurno())
                             + " | "
-                            + proximoTurno.getIdTurno().getHoraInicio()
-                            + " - "
-                            + proximoTurno.getIdTurno().getHoraFim()
+                            + formatarPeriodo(proximoTurno)
                             + "."
             );
         } catch (Exception e) {
-            tabelaTurnos.setItems(FXCollections.observableArrayList());
-            lblResumoHorarioPublicado.setText("Nao foi possivel carregar o horario publicado. Tenta novamente dentro de instantes.");
+            lblResumoHorarioPublicado.setText("Não foi possível carregar o horário publicado. Tenta novamente dentro de instantes.");
             renderizarCalendarioHorarioPublicado(
                     semanaHorarioPublicadoInicio != null ? semanaHorarioPublicadoInicio : CalendarioSemanalHelper.inicioSemana(LocalDate.now()),
                     List.of()
@@ -492,13 +434,15 @@ public class HomeController {
     }
 
     private void carregarEquipaHoje() {
-        if (utilizadorLogado != null) {
-            try {
-                List<Horario> equipaHoje = horarioBll.listarEquipaDeHoje(utilizadorLogado.getId());
-                tabelaEquipaHoje.setItems(FXCollections.observableArrayList(equipaHoje));
-            } catch (Exception e) {
-                tabelaEquipaHoje.setItems(FXCollections.observableArrayList());
-            }
+        if (utilizadorLogado == null) {
+            return;
+        }
+
+        try {
+            List<Horario> equipaHoje = horarioBll.listarEquipaDeHoje(utilizadorLogado.getId());
+            tabelaEquipaHoje.setItems(FXCollections.observableArrayList(equipaHoje));
+        } catch (Exception e) {
+            tabelaEquipaHoje.setItems(FXCollections.observableArrayList());
         }
     }
 
@@ -516,17 +460,16 @@ public class HomeController {
             carregarHorarioMensalLoja();
         } else {
             tabelaOperacaoLoja.setItems(FXCollections.observableArrayList());
-            tabelaEscalaDetalhada.setItems(FXCollections.observableArrayList());
-            tabelaHorarioMensalLoja.setItems(FXCollections.observableArrayList());
-            tabelaHorarioMensalLoja.getColumns().clear();
-            lblResumoHorarioMensal.setText("A vista mensal da loja esta disponivel apenas para perfis de gestao.");
+            renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
+            renderizarCalendarioMensalLoja(YearMonth.now(), List.of());
+            lblResumoHorarioMensal.setText("A vista mensal da loja está disponível apenas para perfis de gestão.");
         }
     }
 
     private void carregarOperacaoLoja() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             LocalDate dataInicio = dpDataOperacao.getValue() != null ? dpDataOperacao.getValue() : LocalDate.now();
@@ -550,13 +493,13 @@ public class HomeController {
         } catch (IllegalArgumentException e) {
             mostrarFeedbackOperacao(e.getMessage());
             tabelaOperacaoLoja.setItems(FXCollections.observableArrayList());
-            tabelaEscalaDetalhada.setItems(FXCollections.observableArrayList());
-            lblResumoEscalaPublicada.setText("Escala publicada indisponivel para o periodo atual.");
+            renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
+            lblResumoEscalaPublicada.setText("Escala publicada indisponível para o período atual.");
         } catch (Exception e) {
-            mostrarFeedbackOperacao("Nao foi possivel carregar o painel diario da loja.");
+            mostrarFeedbackOperacao("Não foi possível carregar o painel diário da loja.");
             tabelaOperacaoLoja.setItems(FXCollections.observableArrayList());
-            tabelaEscalaDetalhada.setItems(FXCollections.observableArrayList());
-            lblResumoEscalaPublicada.setText("Escala publicada indisponivel para o periodo atual.");
+            renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
+            lblResumoEscalaPublicada.setText("Escala publicada indisponível para o período atual.");
         }
     }
 
@@ -610,7 +553,7 @@ public class HomeController {
                     idColaborador
             );
 
-            tabelaEscalaDetalhada.setItems(FXCollections.observableArrayList(horarios));
+            renderizarCalendarioEscalaLoja(dataInicio, horarios);
 
             String etiquetaColaborador = cbColaboradorOperacao.getValue() != null
                     ? cbColaboradorOperacao.getValue().label()
@@ -618,16 +561,16 @@ public class HomeController {
 
             if (horarios.isEmpty()) {
                 lblResumoEscalaPublicada.setText(
-                        "Nao ha horarios publicados para "
+                        "Não há horários publicados para "
                                 + etiquetaColaborador.toLowerCase(Locale.ROOT)
-                                + " no periodo selecionado."
+                                + " no período selecionado."
                 );
                 return;
             }
 
             lblResumoEscalaPublicada.setText(
                     horarios.size()
-                            + " turnos publicados para "
+                            + " turno(s) publicados para "
                             + etiquetaColaborador
                             + " entre "
                             + formatarData(dataInicio)
@@ -636,8 +579,8 @@ public class HomeController {
                             + "."
             );
         } catch (Exception e) {
-            tabelaEscalaDetalhada.setItems(FXCollections.observableArrayList());
-            lblResumoEscalaPublicada.setText("Nao foi possivel carregar a escala publicada da loja neste momento.");
+            renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
+            lblResumoEscalaPublicada.setText("Não foi possível carregar a escala publicada da loja neste momento.");
         }
     }
 
@@ -650,9 +593,8 @@ public class HomeController {
             MesOption mesSelecionado = cbMesHorarioMensal.getValue();
             Integer anoSelecionado = spAnoHorarioMensal.getValue();
             if (mesSelecionado == null || anoSelecionado == null) {
-                tabelaHorarioMensalLoja.getColumns().clear();
-                tabelaHorarioMensalLoja.setItems(FXCollections.observableArrayList());
-                lblResumoHorarioMensal.setText("Seleciona um mes e um ano para veres o horario mensal da loja.");
+                lblResumoHorarioMensal.setText("Seleciona um mês e um ano para veres o horário mensal da loja.");
+                renderizarCalendarioMensalLoja(YearMonth.now(), List.of());
                 return;
             }
 
@@ -663,11 +605,11 @@ public class HomeController {
             );
 
             YearMonth periodo = YearMonth.of(anoSelecionado, mesSelecionado.numero());
-            reconstruirTabelaHorarioMensal(periodo, horarios);
+            renderizarCalendarioMensalLoja(periodo, horarios);
 
             if (horarios.isEmpty()) {
                 lblResumoHorarioMensal.setText(
-                        "Ainda nao existem horarios publicados para "
+                        "Ainda não existem horários publicados para "
                                 + mesSelecionado.nome().toLowerCase(LOCALE_PT)
                                 + " de "
                                 + anoSelecionado
@@ -676,98 +618,31 @@ public class HomeController {
                 return;
             }
 
+            long totalColaboradores = horarios.stream()
+                    .map(Horario::getIdLojautilizador)
+                    .filter(Objects::nonNull)
+                    .map(relacao -> relacao.getIdUtilizador())
+                    .filter(Objects::nonNull)
+                    .map(Utilizador::getId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .count();
+
             lblResumoHorarioMensal.setText(
-                    "Vista mensal publicada da loja para "
+                    "Calendário mensal publicado da loja para "
                             + mesSelecionado.nome().toLowerCase(LOCALE_PT)
                             + " de "
                             + anoSelecionado
                             + ", com "
-                            + tabelaHorarioMensalLoja.getItems().size()
+                            + totalColaboradores
                             + " colaborador(es) e "
                             + horarios.size()
                             + " turno(s)."
             );
         } catch (Exception e) {
-            tabelaHorarioMensalLoja.getColumns().clear();
-            tabelaHorarioMensalLoja.setItems(FXCollections.observableArrayList());
-            lblResumoHorarioMensal.setText("Nao foi possivel carregar o horario mensal da loja neste momento.");
+            renderizarCalendarioMensalLoja(YearMonth.now(), List.of());
+            lblResumoHorarioMensal.setText("Não foi possível carregar o horário mensal da loja neste momento.");
         }
-    }
-
-    private void reconstruirTabelaHorarioMensal(YearMonth periodo, List<Horario> horarios) {
-        tabelaHorarioMensalLoja.getColumns().clear();
-
-        TableColumn<LinhaHorarioMensal, String> colColaborador = new TableColumn<>("Colaborador");
-        colColaborador.setPrefWidth(220.0);
-        colColaborador.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().nome()));
-
-        TableColumn<LinhaHorarioMensal, String> colCargo = new TableColumn<>("Cargo");
-        colCargo.setPrefWidth(150.0);
-        colCargo.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().cargo()));
-
-        tabelaHorarioMensalLoja.getColumns().add(colColaborador);
-        tabelaHorarioMensalLoja.getColumns().add(colCargo);
-
-        for (int dia = 1; dia <= periodo.lengthOfMonth(); dia++) {
-            final int diaAtual = dia;
-            LocalDate data = periodo.atDay(diaAtual);
-            String cabecalho = String.format("%02d %s", diaAtual, abreviarDia(data));
-
-            TableColumn<LinhaHorarioMensal, String> colunaDia = new TableColumn<>(cabecalho);
-            colunaDia.setPrefWidth(108.0);
-            colunaDia.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().valorNoDia(diaAtual)));
-            colunaDia.setCellFactory(coluna -> criarCelulaHorarioMensal());
-            tabelaHorarioMensalLoja.getColumns().add(colunaDia);
-        }
-
-        Map<Integer, LinhaHorarioMensalBuilder> porColaborador = new LinkedHashMap<>();
-        for (Horario horario : horarios) {
-            if (horario.getIdLojautilizador() == null
-                    || horario.getIdLojautilizador().getIdUtilizador() == null
-                    || horario.getIdLojautilizador().getIdUtilizador().getId() == null
-                    || horario.getDataTurno() == null) {
-                continue;
-            }
-
-            Integer idColaborador = horario.getIdLojautilizador().getIdUtilizador().getId();
-            LinhaHorarioMensalBuilder builder = porColaborador.computeIfAbsent(
-                    idColaborador,
-                    chave -> new LinhaHorarioMensalBuilder(
-                            horario.getIdLojautilizador().getIdUtilizador().getNome(),
-                            horario.getIdLojautilizador().getIdCargo() != null
-                                    ? horario.getIdLojautilizador().getIdCargo().getNome()
-                                    : "-"
-                    )
-            );
-            builder.adicionar(horario.getDataTurno().getDayOfMonth(), formatarTurnoMensal(horario));
-        }
-
-        List<LinhaHorarioMensal> linhas = porColaborador.values().stream()
-                .map(LinhaHorarioMensalBuilder::build)
-                .sorted(Comparator.comparing(LinhaHorarioMensal::nome, String.CASE_INSENSITIVE_ORDER))
-                .toList();
-
-        tabelaHorarioMensalLoja.setItems(FXCollections.observableArrayList(linhas));
-    }
-
-    private TableCell<LinhaHorarioMensal, String> criarCelulaHorarioMensal() {
-        return new TableCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-
-                getStyleClass().removeAll("mensal-dia-com-turno", "mensal-dia-vazio");
-
-                if (empty || item == null) {
-                    setText(null);
-                    return;
-                }
-
-                setText(item);
-                setWrapText(true);
-                getStyleClass().add("-".equals(item) ? "mensal-dia-vazio" : "mensal-dia-com-turno");
-            }
-        };
     }
 
     private LocalDate resolverDataFimOperacao(LocalDate dataInicio) {
@@ -786,15 +661,15 @@ public class HomeController {
                 : "de " + formatarData(snapshot.intervalo().dataInicio()) + " a " + formatarData(snapshot.intervalo().dataFim());
 
         String alertas = snapshot.resumo().totalPedidosPendentes() > 0
-                ? snapshot.resumo().totalPedidosPendentes() + " pedidos pendentes precisam de acompanhamento."
-                : "Sem pedidos pendentes no periodo selecionado.";
+                ? snapshot.resumo().totalPedidosPendentes() + " pedido(s) pendente(s) precisam de acompanhamento."
+                : "Sem pedidos pendentes no período selecionado.";
 
-        return "Operacao da loja " + snapshot.contexto().nomeLoja() + " " + periodo + ". " + alertas;
+        return "Operação da loja " + snapshot.contexto().nomeLoja() + " " + periodo + ". " + alertas;
     }
 
     private String formatarTurnosOperacao(List<SnapshotOperacionalLojaBLL.TurnoPlaneado> turnos) {
         if (turnos == null || turnos.isEmpty()) {
-            return "Sem turnos no periodo";
+            return "Sem turnos no período";
         }
 
         return turnos.stream()
@@ -810,8 +685,7 @@ public class HomeController {
         return turnos.stream()
                 .map(SnapshotOperacionalLojaBLL.TurnoPlaneado::estado)
                 .filter(estado -> estado != null && !estado.isBlank())
-                .map(estado -> Character.toUpperCase(estado.toLowerCase(Locale.ROOT).charAt(0))
-                        + estado.toLowerCase(Locale.ROOT).substring(1))
+                .map(this::formatarEstado)
                 .distinct()
                 .collect(Collectors.joining(", "));
     }
@@ -850,7 +724,7 @@ public class HomeController {
         return Character.toUpperCase(valor.charAt(0)) + valor.substring(1);
     }
 
-    private String formatarTurnoMensal(Horario horario) {
+    private String formatarPeriodo(Horario horario) {
         if (horario == null || horario.getIdTurno() == null) {
             return "-";
         }
@@ -862,7 +736,38 @@ public class HomeController {
                 ? horario.getIdTurno().getHoraFim().format(HORARIO_COMPACTO)
                 : "--:--";
 
-        return inicio + "-" + fim;
+        return inicio + " - " + fim;
+    }
+
+    private void atualizarCabecalhoSemanaHorarioPublicado() {
+        if (lblSemanaHorarioPublicadoIntervalo != null && semanaHorarioPublicadoInicio != null) {
+            lblSemanaHorarioPublicadoIntervalo.setText(CalendarioSemanalHelper.formatarIntervaloSemana(semanaHorarioPublicadoInicio));
+        }
+
+        atualizarOpcoesSemanaReferencia();
+    }
+
+    private void atualizarOpcoesSemanaReferencia() {
+        if (cbSemanaHorarioPublicado == null || semanaHorarioPublicadoInicio == null) {
+            return;
+        }
+
+        aAtualizarSeletorSemana = true;
+        try {
+            List<SemanaOption> semanas = java.util.stream.IntStream.rangeClosed(-12, 24)
+                    .mapToObj(indice -> new SemanaOption(semanaHorarioPublicadoInicio.plusWeeks(indice)))
+                    .toList();
+
+            cbSemanaHorarioPublicado.setItems(FXCollections.observableArrayList(semanas));
+            cbSemanaHorarioPublicado.getSelectionModel().select(
+                    semanas.stream()
+                            .filter(semana -> Objects.equals(semana.inicio(), semanaHorarioPublicadoInicio))
+                            .findFirst()
+                            .orElseGet(() -> new SemanaOption(semanaHorarioPublicadoInicio))
+            );
+        } finally {
+            aAtualizarSeletorSemana = false;
+        }
     }
 
     private String abreviarDia(LocalDate data) {
@@ -889,9 +794,7 @@ public class HomeController {
         Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
 
         for (Horario horario : horarios) {
-            String evento = horario.getIdTurno().getHoraInicio()
-                    + " - "
-                    + horario.getIdTurno().getHoraFim()
+            String evento = formatarPeriodo(horario)
                     + " | "
                     + horario.getIdLojautilizador().getIdLoja().getNome();
             eventosPorDia.computeIfAbsent(horario.getDataTurno(), chave -> new java.util.ArrayList<>()).add(evento);
@@ -902,6 +805,55 @@ public class HomeController {
                 inicioSemana,
                 eventosPorDia,
                 "Sem turno publicado"
+        );
+    }
+
+    private void renderizarCalendarioEscalaLoja(LocalDate dataBase, List<Horario> horarios) {
+        LocalDate inicioSemana = CalendarioSemanalHelper.inicioSemana(dataBase != null ? dataBase : LocalDate.now());
+        Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
+
+        for (Horario horario : horarios) {
+            String cargo = horario.getIdLojautilizador().getIdCargo() != null
+                    ? horario.getIdLojautilizador().getIdCargo().getNome()
+                    : "-";
+
+            String evento = formatarPeriodo(horario)
+                    + " | "
+                    + horario.getIdLojautilizador().getIdUtilizador().getNome()
+                    + " (" + cargo + ")";
+
+            eventosPorDia.computeIfAbsent(horario.getDataTurno(), chave -> new java.util.ArrayList<>()).add(evento);
+        }
+
+        CalendarioSemanalHelper.preencherCalendario(
+                boxEscalaDetalhadaLoja,
+                inicioSemana,
+                eventosPorDia,
+                "Sem turnos publicados"
+        );
+    }
+
+    private void renderizarCalendarioMensalLoja(YearMonth periodo, List<Horario> horarios) {
+        Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
+
+        for (Horario horario : horarios) {
+            String cargo = horario.getIdLojautilizador().getIdCargo() != null
+                    ? horario.getIdLojautilizador().getIdCargo().getNome()
+                    : "-";
+
+            String evento = formatarPeriodo(horario)
+                    + " | "
+                    + horario.getIdLojautilizador().getIdUtilizador().getNome()
+                    + " (" + cargo + ")";
+
+            eventosPorDia.computeIfAbsent(horario.getDataTurno(), chave -> new java.util.ArrayList<>()).add(evento);
+        }
+
+        CalendarioMensalHelper.preencherCalendario(
+                gridHorarioMensalLoja,
+                periodo,
+                eventosPorDia,
+                "Sem turnos"
         );
     }
 
@@ -923,28 +875,10 @@ public class HomeController {
         }
     }
 
-    private record LinhaHorarioMensal(String nome, String cargo, Map<Integer, String> turnosPorDia) {
-        private String valorNoDia(int dia) {
-            return turnosPorDia.getOrDefault(dia, "-");
-        }
-    }
-
-    private static final class LinhaHorarioMensalBuilder {
-        private final String nome;
-        private final String cargo;
-        private final Map<Integer, String> turnosPorDia = new LinkedHashMap<>();
-
-        private LinhaHorarioMensalBuilder(String nome, String cargo) {
-            this.nome = nome;
-            this.cargo = cargo;
-        }
-
-        private void adicionar(int dia, String valor) {
-            turnosPorDia.merge(dia, valor, (anterior, novo) -> anterior + " / " + novo);
-        }
-
-        private LinhaHorarioMensal build() {
-            return new LinhaHorarioMensal(nome, cargo, turnosPorDia);
+    private record SemanaOption(LocalDate inicio) {
+        @Override
+        public String toString() {
+            return CalendarioSemanalHelper.formatarIntervaloSemana(inicio);
         }
     }
 }

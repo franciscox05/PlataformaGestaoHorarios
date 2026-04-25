@@ -12,7 +12,9 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -45,9 +47,6 @@ public class LoginController {
     @FXML
     private Label lblErro;
 
-    @FXML
-    private ImageView imgLoginBackdrop;
-
     private final UtilizadorBLL userBll;
     private final ApplicationContext applicationContext;
 
@@ -58,8 +57,6 @@ public class LoginController {
 
     @FXML
     public void initialize() {
-        carregarImagemFundo();
-
         if (txtPasswordVisible != null && txtPassword != null) {
             txtPasswordVisible.textProperty().bindBidirectional(txtPassword.textProperty());
         }
@@ -111,10 +108,18 @@ public class LoginController {
         }
     }
 
+    @FXML
+    public void onFecharAplicacaoClick() {
+        Stage stage = (Stage) txtEmail.getScene().getWindow();
+        if (stage != null) {
+            stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+        }
+    }
+
     private void mudarIconeBotao(String nomeImagem) {
         try (InputStream imageStream = getClass().getResourceAsStream("/com/example/projeto2/imagens/login/" + nomeImagem)) {
             if (imageStream == null) {
-                LOGGER.warn("Imagem de autenticacao nao encontrada: {}", nomeImagem);
+                LOGGER.warn("Imagem de autenticação não encontrada: {}", nomeImagem);
                 return;
             }
 
@@ -124,24 +129,7 @@ public class LoginController {
             view.setFitWidth(18);
             btnMostrarSenha.setGraphic(view);
         } catch (IOException e) {
-            LOGGER.warn("Nao foi possivel carregar o icone de autenticacao.", e);
-        }
-    }
-
-    private void carregarImagemFundo() {
-        if (imgLoginBackdrop == null) {
-            return;
-        }
-
-        try (InputStream imageStream = getClass().getResourceAsStream("/com/example/projeto2/imagens/login/fundologin.png")) {
-            if (imageStream == null) {
-                LOGGER.warn("Imagem de fundo do login nao encontrada.");
-                return;
-            }
-
-            imgLoginBackdrop.setImage(new Image(imageStream));
-        } catch (IOException e) {
-            LOGGER.warn("Nao foi possivel carregar a imagem de fundo do login.", e);
+            LOGGER.warn("Não foi possível carregar o ícone de autenticação.", e);
         }
     }
 
@@ -159,9 +147,13 @@ public class LoginController {
             stage.setTitle("Levi's Staff Portal - Painel");
             stage.setMinWidth(APP_MIN_WIDTH);
             stage.setMinHeight(APP_MIN_HEIGHT);
+            stage.setResizable(false);
+            stage.setFullScreenExitHint("");
+            stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+            stage.setFullScreen(true);
         } catch (Exception e) {
             LOGGER.error("Erro ao abrir o dashboard.", e);
-            mostrarErro("Nao foi possivel abrir o painel em seguranca. Mantivemos-te no login para evitares entrar numa pagina vazia.");
+            mostrarErro("Não foi possível abrir o painel em segurança. Mantivemos-te no login para evitares entrar numa página vazia.");
         }
     }
 
@@ -174,7 +166,6 @@ public class LoginController {
     private void esconderErro() {
         lblErro.setText("");
         lblErro.setVisible(false);
-        lblErro.setManaged(false);
         lblErro.setManaged(false);
     }
 }

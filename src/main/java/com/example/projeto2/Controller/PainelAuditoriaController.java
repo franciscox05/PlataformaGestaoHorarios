@@ -161,7 +161,7 @@ public class PainelAuditoriaController {
     private void carregarPainel(boolean mostrarMensagemSucesso) {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             String tipoSelecionado = obterTipoSelecionado();
@@ -185,7 +185,7 @@ public class PainelAuditoriaController {
                 tabelaEventos.getSelectionModel().clearSelection();
                 limparDetalheEvento();
                 if (mostrarMensagemSucesso) {
-                    mostrarFeedback("Filtros aplicados. Nao foram encontrados eventos para esse criterio.", true);
+                    mostrarFeedback("Filtros aplicados. Não foram encontrados eventos para esse critério.", true);
                 } else {
                     esconderFeedback();
                 }
@@ -215,7 +215,7 @@ public class PainelAuditoriaController {
             tabelaEventos.setItems(FXCollections.observableArrayList());
             limparResumo();
             limparDetalheEvento();
-            mostrarFeedback("Nao foi possivel carregar o historico de auditoria.", false);
+            mostrarFeedback("Não foi possível carregar o histórico de auditoria.", false);
         }
     }
 

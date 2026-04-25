@@ -1,13 +1,13 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.DayOffBLL;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
@@ -16,6 +16,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.VBox;
+import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -87,7 +88,7 @@ public class PedirFolgaController {
     @FXML
     public void initialize() {
         cbTipo.setItems(FXCollections.observableArrayList(
-                "F\u00e9rias",
+                "Férias",
                 "Folgas",
                 "Baixa"
         ));
@@ -95,8 +96,8 @@ public class PedirFolgaController {
         configurarTabelaHistorico();
         configurarTabelaAprovacao();
 
-        tabelaPedidos.setPlaceholder(new Label("Ainda nao tens pedidos de folga registados."));
-        tabelaPedidosPendentes.setPlaceholder(new Label("Nao existem pedidos pendentes para aprovar."));
+        tabelaPedidos.setPlaceholder(new Label("Ainda não tens pedidos de folga registados."));
+        tabelaPedidosPendentes.setPlaceholder(new Label("Não existem pedidos pendentes para aprovar."));
 
         btnAprovarPedido.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
         btnRejeitarPedido.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
@@ -115,7 +116,16 @@ public class PedirFolgaController {
     public void onSubmitClick() {
         try {
             if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Registar pedido de folga",
+                    "Deseja submeter este pedido?",
+                    "O pedido ficará pendente para análise."
+            )) {
+                return;
             }
 
             String tipoSelecionado = mapearTipoParaBaseDados(cbTipo.getValue());
@@ -128,14 +138,14 @@ public class PedirFolgaController {
 
             dayOffBLL.registarPedidoFolga(pedido);
 
-            mostrarAlerta(Alert.AlertType.INFORMATION, "Sucesso", "Pedido de folga registado com sucesso.");
+            mostrarInformacao("Sucesso", "Pedido de folga registado com sucesso.");
             limparFormulario();
             carregarHistoricoPedidos();
             carregarPedidosPendentes();
         } catch (IllegalArgumentException e) {
-            mostrarAlerta(Alert.AlertType.ERROR, "Erro", e.getMessage());
+            mostrarErro("Erro", e.getMessage());
         } catch (Exception e) {
-            mostrarAlerta(Alert.AlertType.ERROR, "Erro", "Nao foi possivel guardar o pedido de folga.");
+            mostrarErro("Erro", "Não foi possível guardar o pedido de folga.");
         }
     }
 
@@ -220,7 +230,7 @@ public class PedirFolgaController {
     private void tratarPedidoSelecionado(boolean aprovar) {
         try {
             if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             DayOff pedidoSelecionado = tabelaPedidosPendentes.getSelectionModel().getSelectedItem();
@@ -228,33 +238,44 @@ public class PedirFolgaController {
                 throw new IllegalArgumentException("Seleciona um pedido pendente primeiro.");
             }
 
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    aprovar ? "Aprovar pedido de folga" : "Rejeitar pedido de folga",
+                    aprovar ? "Deseja aprovar este pedido?" : "Deseja rejeitar este pedido?",
+                    aprovar
+                            ? "A aprovação ficará registada no sistema."
+                            : "A rejeição ficará registada no sistema."
+            )) {
+                return;
+            }
+
             if (aprovar) {
                 dayOffBLL.aprovarPedidoFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                mostrarAlerta(Alert.AlertType.INFORMATION, "Sucesso", "Pedido aprovado com sucesso.");
+                mostrarInformacao("Sucesso", "Pedido aprovado com sucesso.");
             } else {
                 dayOffBLL.rejeitarPedidoFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                mostrarAlerta(Alert.AlertType.INFORMATION, "Sucesso", "Pedido rejeitado com sucesso.");
+                mostrarInformacao("Sucesso", "Pedido rejeitado com sucesso.");
             }
 
             carregarPedidosPendentes();
             carregarHistoricoPedidos();
         } catch (IllegalArgumentException e) {
-            mostrarAlerta(Alert.AlertType.ERROR, "Erro", e.getMessage());
+            mostrarErro("Erro", e.getMessage());
         } catch (Exception e) {
-            mostrarAlerta(Alert.AlertType.ERROR, "Erro", "Nao foi possivel atualizar o estado do pedido.");
+            mostrarErro("Erro", "Não foi possível atualizar o estado do pedido.");
         }
     }
 
     private String mapearTipoParaBaseDados(String tipoSelecionado) {
         if (tipoSelecionado == null || tipoSelecionado.isBlank()) {
-            throw new IllegalArgumentException("Selecione um tipo de ausencia.");
+            throw new IllegalArgumentException("Seleciona um tipo de ausência.");
         }
 
         return switch (tipoSelecionado) {
-            case "F\u00e9rias" -> "ferias";
+            case "Férias" -> "ferias";
             case "Folgas" -> "folgas";
             case "Baixa" -> "baixa";
-            default -> throw new IllegalArgumentException("Tipo de ausencia invalido.");
+            default -> throw new IllegalArgumentException("Tipo de ausência inválido.");
         };
     }
 
@@ -264,7 +285,7 @@ public class PedirFolgaController {
         }
 
         return switch (tipo.toLowerCase()) {
-            case "ferias" -> "F\u00e9rias";
+            case "ferias" -> "Férias";
             case "folgas" -> "Folgas";
             case "baixa" -> "Baixa";
             default -> tipo;
@@ -297,11 +318,18 @@ public class PedirFolgaController {
         txtMotivo.clear();
     }
 
-    private void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensagem) {
-        Alert alert = new Alert(tipo);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensagem);
-        alert.showAndWait();
+    private void mostrarInformacao(String cabecalho, String mensagem) {
+        DialogosHelper.mostrarInformacao(obterJanela(), "Informação", cabecalho, mensagem);
+    }
+
+    private void mostrarErro(String cabecalho, String mensagem) {
+        DialogosHelper.mostrarErro(obterJanela(), "Erro", cabecalho, mensagem);
+    }
+
+    private Window obterJanela() {
+        if (dpData == null || dpData.getScene() == null) {
+            return null;
+        }
+        return dpData.getScene().getWindow();
     }
 }

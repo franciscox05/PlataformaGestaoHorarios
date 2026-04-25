@@ -1,17 +1,20 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.PerfilBLL;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.effect.GaussianBlur;
+import javafx.scene.paint.Color;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -98,7 +101,7 @@ public class PerfilController {
         } catch (IllegalArgumentException e) {
             preencherValoresEmFalta();
             lblNomePerfil.setText(utilizadorLogado.getNome());
-            lblEstadoPerfil.setText("Dados indisponiveis");
+            lblEstadoPerfil.setText("Dados indisponíveis");
             lblProximoTurno.setText(e.getMessage());
         }
     }
@@ -115,12 +118,12 @@ public class PerfilController {
 
     @FXML
     public void onEditarTelemovelClick() {
-        abrirModalComBlur("/com/example/projeto2/dashboard/editar-telemovel-view.fxml", "Editar Telemovel");
+        abrirModalComBlur("/com/example/projeto2/dashboard/editar-telemovel-view.fxml", "Editar Telemóvel");
     }
 
     @FXML
     public void onAlterarPasswordClick() {
-        abrirModalComBlur("/com/example/projeto2/dashboard/alterar-password-view.fxml", "Alterar Password");
+        abrirModalComBlur("/com/example/projeto2/dashboard/alterar-password-view.fxml", "Alterar Palavra-passe");
     }
 
     private void abrirModalComBlur(String caminhoFxml, String titulo) {
@@ -144,8 +147,17 @@ public class PerfilController {
 
             Stage modalStage = new Stage();
             modalStage.setTitle(titulo);
-            modalStage.setScene(new Scene(root));
-            modalStage.initModality(Modality.APPLICATION_MODAL);
+            Scene scene = new Scene(root);
+            scene.setFill(Color.TRANSPARENT);
+            modalStage.setScene(scene);
+            Window owner = obterJanelaAtual();
+            if (owner != null) {
+                modalStage.initOwner(owner);
+                modalStage.initModality(Modality.WINDOW_MODAL);
+            } else {
+                modalStage.initModality(Modality.APPLICATION_MODAL);
+            }
+            modalStage.initStyle(StageStyle.TRANSPARENT);
             modalStage.setResizable(false);
             modalStage.showAndWait();
 
@@ -156,7 +168,7 @@ public class PerfilController {
         } catch (Exception e) {
             LOGGER.error("Erro ao abrir o modal {}.", caminhoFxml, e);
             mostrarErro(
-                    "Nao foi possivel abrir esta janela.",
+                    "Não foi possível abrir esta janela.",
                     "Tenta novamente. Se o problema persistir, volta a abrir o perfil."
             );
         } finally {
@@ -180,10 +192,13 @@ public class PerfilController {
     }
 
     private void mostrarErro(String titulo, String mensagem) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Erro");
-        alert.setHeaderText(titulo);
-        alert.setContentText(mensagem);
-        alert.showAndWait();
+        DialogosHelper.mostrarErro(obterJanelaAtual(), "Erro", titulo, mensagem);
+    }
+
+    private Window obterJanelaAtual() {
+        if (raizPerfil == null || raizPerfil.getScene() == null) {
+            return null;
+        }
+        return raizPerfil.getScene().getWindow();
     }
 }

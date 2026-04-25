@@ -1,8 +1,10 @@
 package com.example.projeto2;
 
+import com.example.projeto2.Controller.support.DialogosHelper;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -33,10 +35,25 @@ public class Projeto2Application extends Application {
 
         Scene scene = new Scene(fxmlLoader.load(), APP_WIDTH, APP_HEIGHT);
 
-        primaryStage.setTitle("Levi's Staff Portal - Autenticacao");
+        primaryStage.setTitle("Levi's Staff Portal - Autenticação");
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(APP_MIN_WIDTH);
         primaryStage.setMinHeight(APP_MIN_HEIGHT);
+        primaryStage.setResizable(false);
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+        primaryStage.setFullScreen(true);
+        primaryStage.setOnCloseRequest(event -> {
+            boolean confirmado = DialogosHelper.confirmarAcao(
+                    primaryStage,
+                    "Fechar aplicação",
+                    "Deseja fechar a aplicação?",
+                    "A aplicação será encerrada neste dispositivo."
+            );
+            if (!confirmado) {
+                event.consume();
+            }
+        });
         primaryStage.show();
     }
 
