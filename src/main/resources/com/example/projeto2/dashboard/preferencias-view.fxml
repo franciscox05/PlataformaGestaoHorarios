@@ -21,18 +21,18 @@
             </padding>
 
             <children>
-                <Label styleClass="titulo-dashboard" text="Preferencias" />
-                <Label styleClass="subtitulo" text="Regista as tuas preferencias e, se tiveres perfil de gestao, decide tambem as preferencias pendentes da tua loja." wrapText="true" />
+                <Label styleClass="titulo-dashboard" text="Preferências" />
+                <Label styleClass="subtitulo" text="Regista as tuas preferências e, se tiveres perfil de gestão, decide também as preferências pendentes da tua loja." wrapText="true" />
 
                 <VBox fx:id="painelFormulario" spacing="12.0" styleClass="info-card">
                     <children>
-                        <Label fx:id="lblTituloFormulario" styleClass="card-titulo" text="Nova Preferencia" />
+                        <Label fx:id="lblTituloFormulario" styleClass="card-titulo" text="Nova Preferência" />
 
                         <HBox spacing="12.0">
                             <children>
                                 <VBox spacing="5.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="campo-titulo" text="Tipo de preferencia" />
+                                        <Label styleClass="campo-titulo" text="Tipo de preferência" />
                                         <ComboBox fx:id="cbTipo" promptText="Seleciona o tipo" />
                                     </children>
                                 </VBox>
@@ -64,12 +64,12 @@
                             </children>
                         </HBox>
 
-                        <CheckBox fx:id="chkSemDataFim" mnemonicParsing="false" text="Aplica-se em permanencia" />
+                        <CheckBox fx:id="chkSemDataFim" mnemonicParsing="false" text="Aplica-se em permanência" />
 
                         <VBox spacing="5.0">
                             <children>
                                 <Label styleClass="campo-titulo" text="Contexto adicional" />
-                                <TextArea fx:id="txtDescricao" prefRowCount="4" promptText="Explica a tua preferencia com detalhe suficiente para ser analisada." wrapText="true" />
+                                <TextArea fx:id="txtDescricao" prefRowCount="4" promptText="Explica a tua preferência com detalhe suficiente para ser analisada." wrapText="true" />
                             </children>
                         </VBox>
 
@@ -77,15 +77,15 @@
 
                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                             <children>
-                                <Button fx:id="btnGuardarPreferencia" onAction="#onGuardarPreferenciaClick" styleClass="botao-acao" text="Guardar Preferencia" />
-                                <Button fx:id="btnCancelarEdicao" disable="true" onAction="#onCancelarEdicaoClick" styleClass="botao-secundario" text="Cancelar Edicao" />
-                                <Button fx:id="btnRemoverPreferencia" onAction="#onRemoverPreferenciaClick" styleClass="botao-secundario" text="Remover Selecionada" />
+                                <Button fx:id="btnGuardarPreferencia" onAction="#onGuardarPreferenciaClick" styleClass="botao-acao" text="Guardar preferência" />
+                                <Button fx:id="btnCancelarEdicao" disable="true" onAction="#onCancelarEdicaoClick" styleClass="botao-secundario" text="Cancelar edição" />
+                                <Button fx:id="btnRemoverPreferencia" onAction="#onRemoverPreferenciaClick" styleClass="botao-secundario" text="Remover selecionada" />
                             </children>
                         </HBox>
                     </children>
                 </VBox>
 
-                <Label styleClass="subtitulo" text="Historico das tuas preferencias" />
+                <Label styleClass="subtitulo" text="Histórico das tuas preferências" />
 
                 <TableView fx:id="tabelaPreferencias" prefHeight="220.0">
                     <columnResizePolicy>
@@ -93,17 +93,17 @@
                     </columnResizePolicy>
                     <columns>
                         <TableColumn fx:id="colTipo" prefWidth="120.0" text="Tipo" />
-                        <TableColumn fx:id="colPeriodo" prefWidth="180.0" text="Periodo" />
-                        <TableColumn fx:id="colPrioridade" prefWidth="90.0" text="Vigencia" />
+                        <TableColumn fx:id="colPeriodo" prefWidth="180.0" text="Período" />
+                        <TableColumn fx:id="colPrioridade" prefWidth="90.0" text="Vigência" />
                         <TableColumn fx:id="colEstado" prefWidth="120.0" text="Estado" />
-                        <TableColumn fx:id="colDescricao" prefWidth="340.0" text="Descricao" />
+                        <TableColumn fx:id="colDescricao" prefWidth="340.0" text="Descrição" />
                     </columns>
                 </TableView>
 
                 <VBox fx:id="painelAprovacao" spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Painel de Aprovacao" />
-                        <Label styleClass="subtitulo" text="Analisa as preferencias pendentes da tua loja e regista a decisao antes da geracao do horario." wrapText="true" />
+                        <Label styleClass="card-titulo" text="Painel de Aprovação" />
+                        <Label styleClass="subtitulo" text="Analisa as preferências pendentes da tua loja e regista a decisão antes da geração do horário." wrapText="true" />
 
                         <TableView fx:id="tabelaPreferenciasPendentes" prefHeight="220.0">
                             <columnResizePolicy>
@@ -112,16 +112,16 @@
                             <columns>
                                 <TableColumn fx:id="colColaboradorPendente" prefWidth="170.0" text="Colaborador" />
                                 <TableColumn fx:id="colTipoPendente" prefWidth="100.0" text="Tipo" />
-                                <TableColumn fx:id="colPeriodoPendente" prefWidth="170.0" text="Periodo" />
-                                <TableColumn fx:id="colPrioridadePendente" prefWidth="90.0" text="Vigencia" />
-                                <TableColumn fx:id="colDescricaoPendente" prefWidth="330.0" text="Descricao" />
+                                <TableColumn fx:id="colPeriodoPendente" prefWidth="170.0" text="Período" />
+                                <TableColumn fx:id="colPrioridadePendente" prefWidth="90.0" text="Vigência" />
+                                <TableColumn fx:id="colDescricaoPendente" prefWidth="330.0" text="Descrição" />
                             </columns>
                         </TableView>
 
                         <VBox spacing="5.0">
                             <children>
-                                <Label styleClass="campo-titulo" text="Observacao da decisao" />
-                                <TextArea fx:id="txtDecisaoGestor" prefRowCount="3" promptText="Opcional: acrescenta uma observacao para o historico da decisao." wrapText="true" />
+                                <Label styleClass="campo-titulo" text="Observação da decisão" />
+                                <TextArea fx:id="txtDecisaoGestor" prefRowCount="3" promptText="Opcional: acrescenta uma observação para o histórico da decisão." wrapText="true" />
                             </children>
                         </VBox>
 
@@ -134,7 +134,7 @@
                             </children>
                         </HBox>
 
-                        <Label styleClass="subtitulo" text="Historico de decisoes da loja" />
+                        <Label styleClass="subtitulo" text="Histórico de decisões da loja" />
 
                         <TableView fx:id="tabelaHistoricoDecisoes" prefHeight="220.0">
                             <columnResizePolicy>
@@ -143,9 +143,9 @@
                             <columns>
                                 <TableColumn fx:id="colColaboradorHistorico" prefWidth="160.0" text="Colaborador" />
                                 <TableColumn fx:id="colEstadoHistorico" prefWidth="110.0" text="Estado" />
-                                <TableColumn fx:id="colDecisaoHistorico" prefWidth="270.0" text="Observacao" />
+                                <TableColumn fx:id="colDecisaoHistorico" prefWidth="270.0" text="Observação" />
                                 <TableColumn fx:id="colDecisorHistorico" prefWidth="150.0" text="Decisor" />
-                                <TableColumn fx:id="colDataDecisaoHistorico" prefWidth="150.0" text="Data da Decisao" />
+                                <TableColumn fx:id="colDataDecisaoHistorico" prefWidth="150.0" text="Data da decisão" />
                             </columns>
                         </TableView>
                     </children>

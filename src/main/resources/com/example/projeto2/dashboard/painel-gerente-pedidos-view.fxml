@@ -8,6 +8,7 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <ScrollPane fitToWidth="true" prefHeight="600.0" prefWidth="730.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PainelGerentePedidosController">
@@ -18,8 +19,8 @@
             </padding>
 
             <children>
-                <Label styleClass="titulo-dashboard" text="Painel de Gestao de Pedidos" />
-                <Label styleClass="subtitulo" text="Decide num unico ecra os pedidos pendentes de folgas, permutas e preferencias da tua loja." wrapText="true" />
+                <Label styleClass="titulo-dashboard" text="Painel de Gestão de Pedidos" />
+                <Label styleClass="subtitulo" text="Decide num único ecrã os pedidos pendentes de folgas, permutas e preferências da tua loja." wrapText="true" />
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
@@ -34,13 +35,13 @@
                                 </VBox>
                                 <VBox spacing="4.0">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Localizacao" />
+                                        <Label styleClass="meta-etiqueta" text="Localização" />
                                         <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
                                 <VBox spacing="4.0">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Perfil de gestao" />
+                                        <Label styleClass="meta-etiqueta" text="Perfil de gestão" />
                                         <Label fx:id="lblCargo" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
@@ -72,7 +73,7 @@
                         <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                             <children>
                                 <Label fx:id="lblTotalPreferencias" styleClass="stat-numero" text="0" />
-                                <Label styleClass="stat-titulo" text="Preferencias" />
+                                <Label styleClass="stat-titulo" text="Preferências" />
                             </children>
                         </VBox>
                     </children>
@@ -80,17 +81,17 @@
 
                 <VBox fx:id="painelContextoOperacional" spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Contexto Operacional da Decisao" />
+                        <Label styleClass="card-titulo" text="Contexto Operacional da Decisão" />
                         <Label fx:id="lblContextoPedidoSelecionado" styleClass="subtitulo" text="Seleciona um pedido pendente para veres o contexto operacional." wrapText="true" />
                         <Label fx:id="lblContextoPeriodo" styleClass="texto-ajuda" text="-" wrapText="true" />
-                        <Label fx:id="lblContextoResumo" styleClass="texto-ajuda" text="Aqui vao aparecer os colaboradores envolvidos e a escala da loja no periodo relevante." wrapText="true" />
+                        <Label fx:id="lblContextoResumo" styleClass="texto-ajuda" text="Aqui vão aparecer os colaboradores envolvidos e a escala da loja no período relevante." wrapText="true" />
 
                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                             <children>
                                 <Button fx:id="btnAtalhoFolgas" onAction="#onAtalhoFolgasClick" styleClass="botao-secundario" text="Abrir folgas" />
                                 <Button fx:id="btnAtalhoPermutas" onAction="#onAtalhoPermutasClick" styleClass="botao-secundario" text="Abrir permutas" />
-                                <Button fx:id="btnAtalhoPreferencias" onAction="#onAtalhoPreferenciasClick" styleClass="botao-secundario" text="Abrir preferencias" />
-                                <Button fx:id="btnAtalhoHorarios" onAction="#onAtalhoHorariosClick" styleClass="botao-secundario" text="Abrir horarios" />
+                                <Button fx:id="btnAtalhoPreferencias" onAction="#onAtalhoPreferenciasClick" styleClass="botao-secundario" text="Abrir preferências" />
+                                <Button fx:id="btnAtalhoHorarios" onAction="#onAtalhoHorariosClick" styleClass="botao-secundario" text="Abrir horários" />
                             </children>
                         </HBox>
 
@@ -111,7 +112,7 @@
                                 <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                                     <children>
                                         <Label fx:id="lblContextoAusencias" styleClass="stat-numero" text="0" />
-                                        <Label styleClass="stat-titulo" text="Ausencias aprovadas" wrapText="true" />
+                                        <Label styleClass="stat-titulo" text="Ausências aprovadas" wrapText="true" />
                                     </children>
                                 </VBox>
                                 <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
@@ -131,45 +132,24 @@
                             <columns>
                                 <TableColumn fx:id="colContextoColaborador" text="Colaborador" />
                                 <TableColumn fx:id="colContextoCargo" text="Cargo" />
-                                <TableColumn fx:id="colContextoTurnos" text="Turnos no periodo" />
-                                <TableColumn fx:id="colContextoAusencias" text="Ausencias no periodo" />
+                                <TableColumn fx:id="colContextoTurnos" text="Turnos no período" />
+                                <TableColumn fx:id="colContextoAusencias" text="Ausências no período" />
                             </columns>
                         </TableView>
 
-                        <Label styleClass="campo-titulo" text="Horario detalhado do colaborador selecionado" />
-                        <Label fx:id="lblContextoColaboradorSelecionado" styleClass="texto-ajuda" text="Seleciona um colaborador envolvido para veres o horario detalhado." wrapText="true" />
-                        <TableView fx:id="tabelaHorarioColaborador" prefHeight="170.0">
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                            <columns>
-                                <TableColumn fx:id="colHorarioColaboradorData" text="Data" />
-                                <TableColumn fx:id="colHorarioColaboradorTurno" text="Turno" />
-                                <TableColumn fx:id="colHorarioColaboradorPeriodo" text="Periodo" />
-                                <TableColumn fx:id="colHorarioColaboradorEstado" text="Estado" />
-                            </columns>
-                        </TableView>
+                        <Label styleClass="campo-titulo" text="Horário detalhado do colaborador selecionado" />
+                        <Label fx:id="lblContextoColaboradorSelecionado" styleClass="texto-ajuda" text="Seleciona um colaborador envolvido para veres o horário em formato de calendário." wrapText="true" />
+                        <HBox fx:id="boxHorarioColaborador" spacing="10.0" styleClass="calendario-semana" />
 
-                        <Label styleClass="campo-titulo" text="Escala detalhada da loja no mesmo periodo" />
-                        <TableView fx:id="tabelaEscalaLoja" prefHeight="220.0">
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                            <columns>
-                                <TableColumn fx:id="colEscalaData" text="Data" />
-                                <TableColumn fx:id="colEscalaColaborador" text="Colaborador" />
-                                <TableColumn fx:id="colEscalaCargo" text="Cargo" />
-                                <TableColumn fx:id="colEscalaTurno" text="Turno / periodo" />
-                                <TableColumn fx:id="colEscalaEstado" text="Estado" />
-                            </columns>
-                        </TableView>
+                        <Label styleClass="campo-titulo" text="Escala detalhada da loja no mesmo período" />
+                        <HBox fx:id="boxEscalaLoja" spacing="10.0" styleClass="calendario-semana" />
                     </children>
                 </VBox>
 
                 <VBox spacing="12.0" styleClass="info-card">
                     <children>
                         <Label styleClass="card-titulo" text="Folgas Pendentes" />
-                        <Label styleClass="texto-ajuda" text="Analisa os pedidos de ausencia da loja e decide de imediato os casos pendentes." wrapText="true" />
+                        <Label styleClass="texto-ajuda" text="Analisa os pedidos de ausência da loja e decide de imediato os casos pendentes." wrapText="true" />
                         <TableView fx:id="tabelaFolgasPendentes" prefHeight="180.0">
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
@@ -194,7 +174,7 @@
                 <VBox spacing="12.0" styleClass="info-card">
                     <children>
                         <Label styleClass="card-titulo" text="Permutas Pendentes" />
-                        <Label styleClass="texto-ajuda" text="Reve as trocas de turno entre colaboradores e decide a aprovacao diretamente neste painel." wrapText="true" />
+                        <Label styleClass="texto-ajuda" text="Revê as trocas de turno entre colaboradores e decide a aprovação diretamente neste painel." wrapText="true" />
                         <TableView fx:id="tabelaPermutasPendentes" prefHeight="200.0">
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
@@ -202,8 +182,8 @@
                             <columns>
                                 <TableColumn fx:id="colPermutaColaborador" text="Solicitante" />
                                 <TableColumn fx:id="colPermutaPedido" text="Pedido" />
-                                <TableColumn fx:id="colPermutaOrigem" text="Turno origem" />
-                                <TableColumn fx:id="colPermutaDestino" text="Turno destino" />
+                                <TableColumn fx:id="colPermutaOrigem" text="Turno de origem" />
+                                <TableColumn fx:id="colPermutaDestino" text="Turno pretendido" />
                             </columns>
                         </TableView>
                         <Label fx:id="lblFeedbackPermutas" managed="false" styleClass="mensagem-feedback" text="Mensagem" visible="false" wrapText="true" />
@@ -218,8 +198,8 @@
 
                 <VBox spacing="12.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Preferencias Pendentes" />
-                        <Label styleClass="texto-ajuda" text="Fecha a decisao das preferencias da loja antes da geracao e validacao do horario." wrapText="true" />
+                        <Label styleClass="card-titulo" text="Preferências Pendentes" />
+                        <Label styleClass="texto-ajuda" text="Fecha a decisão das preferências da loja antes da geração e validação do horário." wrapText="true" />
                         <TableView fx:id="tabelaPreferenciasPendentes" prefHeight="220.0">
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
@@ -227,15 +207,15 @@
                             <columns>
                                 <TableColumn fx:id="colPreferenciaColaborador" text="Colaborador" />
                                 <TableColumn fx:id="colPreferenciaTipo" text="Tipo" />
-                                <TableColumn fx:id="colPreferenciaPeriodo" text="Periodo" />
-                                <TableColumn fx:id="colPreferenciaPrioridade" text="Vigencia" />
-                                <TableColumn fx:id="colPreferenciaDescricao" text="Descricao" />
+                                <TableColumn fx:id="colPreferenciaPeriodo" text="Período" />
+                                <TableColumn fx:id="colPreferenciaPrioridade" text="Vigência" />
+                                <TableColumn fx:id="colPreferenciaDescricao" text="Descrição" />
                             </columns>
                         </TableView>
                         <VBox spacing="6.0">
                             <children>
-                                <Label styleClass="campo-titulo" text="Observacao da decisao" />
-                                <TextArea fx:id="txtDecisaoPreferencia" promptText="Opcional: indica o contexto da aprovacao ou rejeicao." styleClass="campo-textarea" wrapText="true" />
+                                <Label styleClass="campo-titulo" text="Observação da decisão" />
+                                <TextArea fx:id="txtDecisaoPreferencia" promptText="Opcional: indica o contexto da aprovação ou rejeição." styleClass="campo-textarea" wrapText="true" />
                             </children>
                         </VBox>
                         <Label fx:id="lblFeedbackPreferencias" managed="false" styleClass="mensagem-feedback" text="Mensagem" visible="false" wrapText="true" />

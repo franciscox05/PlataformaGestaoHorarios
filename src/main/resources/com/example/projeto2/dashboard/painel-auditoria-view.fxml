@@ -20,12 +20,12 @@
             </padding>
 
             <children>
-                <Label styleClass="titulo-dashboard" text="Painel de Auditoria e Seguranca" />
-                <Label styleClass="subtitulo" text="Consulta os eventos relevantes da plataforma, filtra por colaborador e periodo e acompanha o historico de autenticacao e alteracoes sensiveis." wrapText="true" />
+                <Label styleClass="titulo-dashboard" text="Painel de auditoria e segurança" />
+                <Label styleClass="subtitulo" text="Consulta os eventos relevantes da plataforma, filtra por colaborador e período e acompanha o histórico de autenticação e alterações sensíveis." wrapText="true" />
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Contexto da Loja" />
+                        <Label styleClass="card-titulo" text="Contexto da loja" />
                         <HBox spacing="30.0">
                             <children>
                                 <VBox spacing="4.0">
@@ -36,7 +36,7 @@
                                 </VBox>
                                 <VBox spacing="4.0">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Localizacao" />
+                                        <Label styleClass="meta-etiqueta" text="Localização" />
                                         <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
@@ -68,13 +68,13 @@
                         <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                             <children>
                                 <Label fx:id="lblTotalAutenticacoes" styleClass="stat-numero" text="0" />
-                                <Label styleClass="stat-titulo" text="Autenticacao" />
+                                <Label styleClass="stat-titulo" text="Autenticação" />
                             </children>
                         </VBox>
                         <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                             <children>
                                 <Label fx:id="lblTotalAlteracoes" styleClass="stat-numero" text="0" />
-                                <Label styleClass="stat-titulo" text="Alteracoes" />
+                                <Label styleClass="stat-titulo" text="Alterações" />
                             </children>
                         </VBox>
                     </children>
@@ -83,7 +83,7 @@
                 <VBox spacing="12.0" styleClass="info-card">
                     <children>
                         <Label styleClass="card-titulo" text="Filtros" />
-                        <Label styleClass="texto-ajuda" text="Sem datas definidas, o painel mostra os eventos mais recentes associados a tua loja." wrapText="true" />
+                        <Label styleClass="texto-ajuda" text="Sem datas definidas, o painel mostra os eventos mais recentes associados à tua loja." wrapText="true" />
                         <HBox spacing="15.0">
                             <children>
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
@@ -100,8 +100,8 @@
                                 </VBox>
                                 <VBox spacing="6.0">
                                     <children>
-                                        <Label styleClass="campo-titulo" text="Data inicio" />
-                                        <DatePicker fx:id="dpDataInicio" promptText="Inicio" />
+                                        <Label styleClass="campo-titulo" text="Data início" />
+                                        <DatePicker fx:id="dpDataInicio" promptText="Início" />
                                     </children>
                                 </VBox>
                                 <VBox spacing="6.0">
@@ -124,7 +124,7 @@
 
                 <VBox spacing="12.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Historico de Eventos" />
+                        <Label styleClass="card-titulo" text="Histórico de eventos" />
                         <TableView fx:id="tabelaEventos" prefHeight="280.0">
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
@@ -143,7 +143,7 @@
 
                 <VBox spacing="12.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Detalhe do Evento Selecionado" />
+                        <Label styleClass="card-titulo" text="Detalhe do evento selecionado" />
                         <HBox spacing="30.0">
                             <children>
                                 <VBox spacing="4.0">
@@ -160,7 +160,7 @@
                                 </VBox>
                                 <VBox spacing="4.0">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Sessao" />
+                                        <Label styleClass="meta-etiqueta" text="Sessão" />
                                         <Label fx:id="lblSessaoSelecionada" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>

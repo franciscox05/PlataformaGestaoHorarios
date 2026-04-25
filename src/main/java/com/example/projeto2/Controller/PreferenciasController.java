@@ -3,6 +3,7 @@ package com.example.projeto2.Controller;
 import com.example.projeto2.BLL.PreferenciaBLL;
 import com.example.projeto2.Modules.Preferencia;
 import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -16,6 +17,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.VBox;
+import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -153,7 +155,7 @@ public class PreferenciasController {
 
     @FXML
     public void initialize() {
-        cbTipo.setItems(FXCollections.observableArrayList("Folgas", "Ferias", "Colegas", "Turnos"));
+        cbTipo.setItems(FXCollections.observableArrayList("Folgas", "Férias", "Colegas", "Turnos"));
 
         configurarTabelaHistoricoProprio();
         configurarTabelaPendentes();
@@ -163,9 +165,9 @@ public class PreferenciasController {
         esconderFeedback();
         esconderFeedbackGestao();
 
-        tabelaPreferencias.setPlaceholder(new Label("Ainda nao tens preferencias registadas."));
-        tabelaPreferenciasPendentes.setPlaceholder(new Label("Nao existem preferencias pendentes para decidir nesta loja."));
-        tabelaHistoricoDecisoes.setPlaceholder(new Label("Ainda nao existem decisoes registadas nesta loja."));
+        tabelaPreferencias.setPlaceholder(new Label("Ainda não tens preferências registadas."));
+        tabelaPreferenciasPendentes.setPlaceholder(new Label("Não existem preferências pendentes para decidir nesta loja."));
+        tabelaHistoricoDecisoes.setPlaceholder(new Label("Ainda não existem decisões registadas nesta loja."));
 
         btnGuardarPreferencia.disableProperty().bind(Bindings.createBooleanBinding(
                 () -> {
@@ -201,7 +203,19 @@ public class PreferenciasController {
     public void onGuardarPreferenciaClick() {
         try {
             if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+
+            boolean novaPreferencia = preferenciaEmEdicao == null;
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    novaPreferencia ? "Guardar preferência" : "Atualizar preferência",
+                    novaPreferencia ? "Deseja guardar esta preferência?" : "Deseja guardar as alterações desta preferência?",
+                    novaPreferencia
+                            ? "A preferência ficará registada para análise."
+                            : "A preferência atual será atualizada."
+            )) {
+                return;
             }
 
             Preferencia preferencia = preferenciaEmEdicao != null ? preferenciaEmEdicao : new Preferencia();
@@ -215,8 +229,8 @@ public class PreferenciasController {
             preferenciaBLL.guardarPreferencia(utilizadorLogado.getId(), preferencia);
             mostrarFeedback(
                     preferenciaEmEdicao == null
-                            ? "Preferencia registada com sucesso."
-                            : "Preferencia atualizada com sucesso.",
+                            ? "Preferência registada com sucesso."
+                            : "Preferência atualizada com sucesso.",
                     true
             );
 
@@ -226,7 +240,7 @@ public class PreferenciasController {
         } catch (IllegalArgumentException e) {
             mostrarFeedback(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarFeedback("Nao foi possivel guardar a preferencia.", false);
+            mostrarFeedback("Não foi possível guardar a preferência.", false);
         }
     }
 
@@ -234,30 +248,39 @@ public class PreferenciasController {
     public void onCancelarEdicaoClick() {
         tabelaPreferencias.getSelectionModel().clearSelection();
         limparFormulario();
-        mostrarFeedback("Edicao cancelada.", true);
+        mostrarFeedback("Edição cancelada.", true);
     }
 
     @FXML
     public void onRemoverPreferenciaClick() {
         try {
             if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             Preferencia selecionada = tabelaPreferencias.getSelectionModel().getSelectedItem();
             if (selecionada == null) {
-                throw new IllegalArgumentException("Seleciona uma preferencia para remover.");
+                throw new IllegalArgumentException("Seleciona uma preferência para remover.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Remover preferência",
+                    "Deseja remover esta preferência?",
+                    "A preferência selecionada será removida do teu registo."
+            )) {
+                return;
             }
 
             preferenciaBLL.removerPreferencia(utilizadorLogado.getId(), selecionada.getId());
             carregarPreferencias();
             tabelaPreferencias.getSelectionModel().clearSelection();
             limparFormulario();
-            mostrarFeedback("Preferencia removida com sucesso.", true);
+            mostrarFeedback("Preferência removida com sucesso.", true);
         } catch (IllegalArgumentException e) {
             mostrarFeedback(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarFeedback("Nao foi possivel remover a preferencia.", false);
+            mostrarFeedback("Não foi possível remover a preferência.", false);
         }
     }
 
@@ -329,8 +352,8 @@ public class PreferenciasController {
             }
 
             preferenciaEmEdicao = nova;
-            lblTituloFormulario.setText("Editar Preferencia");
-            btnGuardarPreferencia.setText("Atualizar Preferencia");
+            lblTituloFormulario.setText("Editar Preferência");
+            btnGuardarPreferencia.setText("Atualizar Preferência");
             btnCancelarEdicao.setDisable(false);
 
             cbTipo.setValue(formatarTipo(nova.getTipo()));
@@ -344,7 +367,7 @@ public class PreferenciasController {
 
             if (!preferenciaPodeSerEditada(nova)) {
                 mostrarFeedback(
-                        "Esta preferencia ja foi decidida. Regista uma nova preferencia se precisares de alterar o pedido.",
+                        "Esta preferência já foi decidida. Regista uma nova preferência se precisares de alterar o pedido.",
                         false
                 );
             } else {
@@ -423,8 +446,8 @@ public class PreferenciasController {
 
     private void limparFormulario() {
         preferenciaEmEdicao = null;
-        lblTituloFormulario.setText("Nova Preferencia");
-        btnGuardarPreferencia.setText("Guardar Preferencia");
+        lblTituloFormulario.setText("Nova Preferência");
+        btnGuardarPreferencia.setText("Guardar Preferência");
         btnCancelarEdicao.setDisable(true);
 
         cbTipo.setValue(null);
@@ -437,18 +460,29 @@ public class PreferenciasController {
         painelColega.setVisible(false);
         dpDataFim.setDisable(false);
         dpDataFim.setPromptText("Opcional");
-        txtDescricao.setPromptText("Explica a tua preferencia com detalhe suficiente para ser analisada.");
+        txtDescricao.setPromptText("Explica a tua preferência com detalhe suficiente para ser analisada.");
     }
 
     private void tratarDecisaoPreferencia(boolean aprovar) {
         try {
             if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             Preferencia preferenciaSelecionada = tabelaPreferenciasPendentes.getSelectionModel().getSelectedItem();
             if (preferenciaSelecionada == null) {
-                throw new IllegalArgumentException("Seleciona uma preferencia pendente primeiro.");
+                throw new IllegalArgumentException("Seleciona uma preferência pendente primeiro.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    aprovar ? "Aprovar preferência" : "Rejeitar preferência",
+                    aprovar ? "Deseja aprovar esta preferência?" : "Deseja rejeitar esta preferência?",
+                    aprovar
+                            ? "A decisão ficará registada para a loja."
+                            : "A rejeição ficará registada para a loja."
+            )) {
+                return;
             }
 
             if (aprovar) {
@@ -457,14 +491,14 @@ public class PreferenciasController {
                         utilizadorLogado.getId(),
                         txtDecisaoGestor.getText()
                 );
-                mostrarFeedbackGestao("Preferencia aprovada com sucesso.", true);
+                mostrarFeedbackGestao("Preferência aprovada com sucesso.", true);
             } else {
                 preferenciaBLL.rejeitarPreferencia(
                         preferenciaSelecionada.getId(),
                         utilizadorLogado.getId(),
                         txtDecisaoGestor.getText()
                 );
-                mostrarFeedbackGestao("Preferencia rejeitada com sucesso.", true);
+                mostrarFeedbackGestao("Preferência rejeitada com sucesso.", true);
             }
 
             txtDecisaoGestor.clear();
@@ -474,7 +508,7 @@ public class PreferenciasController {
         } catch (IllegalArgumentException e) {
             mostrarFeedbackGestao(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarFeedbackGestao("Nao foi possivel atualizar a decisao da preferencia.", false);
+            mostrarFeedbackGestao("Não foi possível atualizar a decisão da preferência.", false);
         }
     }
 
@@ -510,15 +544,15 @@ public class PreferenciasController {
 
     private String mapearTipoParaBaseDados(String tipoSelecionado) {
         if (tipoSelecionado == null || tipoSelecionado.isBlank()) {
-            throw new IllegalArgumentException("Seleciona um tipo de preferencia.");
+            throw new IllegalArgumentException("Seleciona um tipo de preferência.");
         }
 
         return switch (tipoSelecionado) {
             case "Folgas" -> "folgas";
-            case "Ferias" -> "ferias";
+            case "Férias" -> "ferias";
             case "Colegas" -> "colegas";
             case "Turnos" -> "turnos";
-            default -> throw new IllegalArgumentException("O tipo de preferencia selecionado e invalido.");
+            default -> throw new IllegalArgumentException("O tipo de preferência selecionado é inválido.");
         };
     }
 
@@ -529,7 +563,7 @@ public class PreferenciasController {
 
         return switch (tipo.toLowerCase()) {
             case "folgas" -> "Folgas";
-            case "ferias" -> "Ferias";
+            case "ferias" -> "Férias";
             case "colegas" -> "Colegas";
             case "turnos" -> "Turnos";
             default -> tipo;
@@ -558,7 +592,7 @@ public class PreferenciasController {
 
     private String formatarPeriodo(Preferencia preferencia) {
         if (preferencia == null) {
-            return "Sem periodo definido";
+            return "Sem período definido";
         }
 
         return formatarPeriodo(preferencia.getDataInicio(), preferencia.getDataFim(), preferencia.getTipo());
@@ -566,7 +600,7 @@ public class PreferenciasController {
 
     private String formatarPeriodo(LocalDate dataInicio, LocalDate dataFim, String tipo) {
         if (dataInicio == null && dataFim == null) {
-            return "Sem periodo definido";
+            return "Sem período definido";
         }
 
         if (dataInicio != null && dataFim == null) {
@@ -611,10 +645,10 @@ public class PreferenciasController {
         }
 
         if (preferencia.getDataInicio() != null || preferencia.getDataFim() != null) {
-            return "Temporaria";
+            return "Temporária";
         }
 
-        return "Sem periodo";
+        return "Sem período";
     }
 
     private boolean preferenciaPodeSerEditada(Preferencia preferencia) {
@@ -628,14 +662,14 @@ public class PreferenciasController {
         if (utilizadorLogado == null) {
             colegasDaLoja = List.of();
             cbColegaPreferido.setItems(FXCollections.observableArrayList());
-            cbColegaPreferido.setPromptText("Sem colegas disponiveis");
+            cbColegaPreferido.setPromptText("Sem colegas disponíveis");
             return;
         }
 
         colegasDaLoja = new ArrayList<>(preferenciaBLL.listarColegasDaLoja(utilizadorLogado.getId()));
         cbColegaPreferido.setItems(FXCollections.observableArrayList(colegasDaLoja));
         cbColegaPreferido.setPromptText(colegasDaLoja.isEmpty()
-                ? "Sem colegas disponiveis"
+                ? "Sem colegas disponíveis"
                 : "Seleciona um colega");
     }
 
@@ -657,13 +691,13 @@ public class PreferenciasController {
         }
 
         if (tipoColegas) {
-            txtDescricao.setPromptText("Se quiseres, acrescenta contexto adicional para esta preferencia.");
+            txtDescricao.setPromptText("Se quiseres, acrescenta contexto adicional para esta preferência.");
         } else if ("Turnos".equals(tipoSelecionado)) {
             txtDescricao.setPromptText("Indica os turnos que preferes e algum contexto adicional.");
-        } else if ("Folgas".equals(tipoSelecionado) || "Ferias".equals(tipoSelecionado)) {
-            txtDescricao.setPromptText("Explica a tua preferencia com o contexto necessario para analise.");
+        } else if ("Folgas".equals(tipoSelecionado) || "Férias".equals(tipoSelecionado)) {
+            txtDescricao.setPromptText("Explica a tua preferência com o contexto necessário para análise.");
         } else {
-            txtDescricao.setPromptText("Explica a tua preferencia com detalhe suficiente para ser analisada.");
+            txtDescricao.setPromptText("Explica a tua preferência com detalhe suficiente para ser analisada.");
         }
 
         atualizarEstadoDatas();
@@ -727,7 +761,7 @@ public class PreferenciasController {
         }
 
         if (textoLivre == null) {
-            throw new IllegalArgumentException("Indica uma descricao para a preferencia.");
+            throw new IllegalArgumentException("Indica uma descrição para a preferência.");
         }
         return textoLivre;
     }
@@ -785,5 +819,12 @@ public class PreferenciasController {
 
     private boolean preferenciaPermiteSemDataFim(String tipo) {
         return permitePreferenciaSemDataFim(tipo);
+    }
+
+    private Window obterJanela() {
+        if (painelFormulario == null || painelFormulario.getScene() == null) {
+            return null;
+        }
+        return painelFormulario.getScene().getWindow();
     }
 }

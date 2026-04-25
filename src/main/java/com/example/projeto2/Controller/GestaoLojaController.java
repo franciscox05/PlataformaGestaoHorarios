@@ -1,12 +1,12 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.GestaoLojaBLL;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -16,14 +16,13 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,10 +43,10 @@ public class GestaoLojaController {
     private Label lblCargoGestor;
 
     @FXML
-    private ComboBox<String> cbHoraAbertura;
+    private TextField txtHoraAbertura;
 
     @FXML
-    private ComboBox<String> cbHoraFecho;
+    private TextField txtHoraFecho;
 
     @FXML
     private Label lblMensagem;
@@ -68,10 +67,10 @@ public class GestaoLojaController {
     private CheckBox chkLojaEncerrada;
 
     @FXML
-    private ComboBox<String> cbHoraAberturaExcecao;
+    private TextField txtHoraAberturaExcecao;
 
     @FXML
-    private ComboBox<String> cbHoraFechoExcecao;
+    private TextField txtHoraFechoExcecao;
 
     @FXML
     private TextField txtMinimoExcecao;
@@ -117,13 +116,13 @@ public class GestaoLojaController {
     public void initialize() {
         esconderMensagem();
         esconderMensagemExcecao();
-        configurarSeletoresHora();
+        configurarCamposHora();
         configurarOcultacaoFeedback();
         configurarTabelaHorariosEspeciais();
         configurarFormularioEncerrada();
         limparFormularioHorarioEspecial();
 
-        tabelaHorariosEspeciais.setPlaceholder(new Label("Ainda nao existem excecoes de horario configuradas para esta loja."));
+        tabelaHorariosEspeciais.setPlaceholder(new Label("Ainda não existem exceções de horário configuradas para esta loja."));
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -135,32 +134,42 @@ public class GestaoLojaController {
     public void onGuardarClick() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
-            LocalTime horaAbertura = parseHora(cbHoraAbertura.getValue(), "abertura");
-            LocalTime horaFecho = parseHora(cbHoraFecho.getValue(), "fecho");
-
-            List<GestaoLojaBLL.ConfiguracaoRegraRequest> regras = new ArrayList<>();
-            for (Map.Entry<Integer, TextField> entry : camposValor.entrySet()) {
-                Integer idRegra = entry.getKey();
-                Integer valorEspecifico = parseInteiroOpcional(entry.getValue().getText(), idRegra);
-                TextArea campoObservacoes = camposObservacoes.get(idRegra);
-                String observacoes = campoObservacoes != null ? campoObservacoes.getText() : null;
-                regras.add(new GestaoLojaBLL.ConfiguracaoRegraRequest(idRegra, valorEspecifico, observacoes));
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Guardar configuração",
+                    "Deseja guardar a configuração da loja?",
+                    "As regras base e o horário de funcionamento serão atualizados."
+            )) {
+                return;
             }
+
+            LocalTime horaAbertura = parseHora(txtHoraAbertura.getText(), "abertura");
+            LocalTime horaFecho = parseHora(txtHoraFecho.getText(), "fecho");
+
+            List<GestaoLojaBLL.ConfiguracaoRegraRequest> regras = camposValor.entrySet().stream()
+                    .map(entry -> {
+                        Integer idRegra = entry.getKey();
+                        Integer valorEspecifico = parseInteiroOpcional(entry.getValue().getText(), idRegra);
+                        TextArea campoObservacoes = camposObservacoes.get(idRegra);
+                        String observacoes = campoObservacoes != null ? campoObservacoes.getText() : null;
+                        return new GestaoLojaBLL.ConfiguracaoRegraRequest(idRegra, valorEspecifico, observacoes);
+                    })
+                    .toList();
 
             gestaoLojaBLL.guardarConfiguracao(
                     utilizadorLogado.getId(),
                     new GestaoLojaBLL.ConfiguracaoLojaRequest(horaAbertura, horaFecho, regras)
             );
 
-            mostrarMensagem("Configuracao da loja guardada com sucesso.", true);
+            mostrarMensagem("Configuração da loja guardada com sucesso.", true);
             carregarDados();
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Nao foi possivel guardar a configuracao da loja.", false);
+            mostrarMensagem("Não foi possível guardar a configuração da loja.", false);
         }
     }
 
@@ -168,7 +177,22 @@ public class GestaoLojaController {
     public void onGuardarHorarioEspecialClick() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+
+            boolean novaExcecao = idHorarioEspecialEmEdicao == null;
+            String cabecalho = novaExcecao ? "Deseja guardar esta exceção?" : "Deseja atualizar esta exceção?";
+            String conteudo = novaExcecao
+                    ? "A exceção ficará disponível para o planeamento da loja."
+                    : "As alterações ficarão disponíveis para o planeamento da loja.";
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    novaExcecao ? "Guardar exceção" : "Atualizar exceção",
+                    cabecalho,
+                    conteudo
+            )) {
+                return;
             }
 
             gestaoLojaBLL.guardarHorarioEspecial(
@@ -179,17 +203,17 @@ public class GestaoLojaController {
                             dpDataInicioExcecao.getValue(),
                             dpDataFimExcecao.getValue(),
                             chkLojaEncerrada.isSelected(),
-                            parseHoraOpcional(cbHoraAberturaExcecao.getValue(), "abertura especial"),
-                            parseHoraOpcional(cbHoraFechoExcecao.getValue(), "fecho especial"),
-                            parseInteiroPositivoOpcional(txtMinimoExcecao.getText(), "minimo especial por turno"),
+                            parseHoraOpcional(txtHoraAberturaExcecao.getText(), "abertura especial"),
+                            parseHoraOpcional(txtHoraFechoExcecao.getText(), "fecho especial"),
+                            parseInteiroPositivoOpcional(txtMinimoExcecao.getText(), "mínimo especial por turno"),
                             txtObservacoesExcecao.getText()
                     )
             );
 
             mostrarMensagemExcecao(
-                    idHorarioEspecialEmEdicao == null
-                            ? "Excecao guardada com sucesso."
-                            : "Excecao atualizada com sucesso.",
+                    novaExcecao
+                            ? "Exceção guardada com sucesso."
+                            : "Exceção atualizada com sucesso.",
                     true
             );
             carregarDados();
@@ -197,7 +221,7 @@ public class GestaoLojaController {
         } catch (IllegalArgumentException e) {
             mostrarMensagemExcecao(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagemExcecao("Nao foi possivel guardar a excecao de horario.", false);
+            mostrarMensagemExcecao("Não foi possível guardar a exceção de horário.", false);
         }
     }
 
@@ -211,27 +235,36 @@ public class GestaoLojaController {
     public void onRemoverHorarioEspecialClick() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
             if (idHorarioEspecialEmEdicao == null) {
-                throw new IllegalArgumentException("Seleciona uma excecao antes de a remover.");
+                throw new IllegalArgumentException("Seleciona uma exceção antes de a remover.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Remover exceção",
+                    "Deseja remover este horário especial?",
+                    "Esta ação vai retirar a exceção selecionada do planeamento da loja."
+            )) {
+                return;
             }
 
             gestaoLojaBLL.removerHorarioEspecial(utilizadorLogado.getId(), idHorarioEspecialEmEdicao);
-            mostrarMensagemExcecao("Excecao removida com sucesso.", true);
+            mostrarMensagemExcecao("Exceção removida com sucesso.", true);
             carregarDados();
             limparFormularioHorarioEspecial();
         } catch (IllegalArgumentException e) {
             mostrarMensagemExcecao(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagemExcecao("Nao foi possivel remover a excecao selecionada.", false);
+            mostrarMensagemExcecao("Não foi possível remover a exceção selecionada.", false);
         }
     }
 
     private void carregarDados() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             GestaoLojaBLL.GestaoLojaResumo resumo = gestaoLojaBLL.obterResumo(utilizadorLogado.getId());
@@ -239,8 +272,8 @@ public class GestaoLojaController {
             lblNomeLoja.setText(resumo.nomeLoja());
             lblLocalizacao.setText(resumo.localizacao());
             lblCargoGestor.setText(resumo.cargoGestor());
-            cbHoraAbertura.setValue(resumo.horaAbertura());
-            cbHoraFecho.setValue(resumo.horaFecho());
+            txtHoraAbertura.setText(resumo.horaAbertura());
+            txtHoraFecho.setText(resumo.horaFecho());
 
             preencherRegras(resumo.regras());
             preencherHorariosEspeciais(resumo.horariosEspeciais());
@@ -248,8 +281,8 @@ public class GestaoLojaController {
             lblNomeLoja.setText("-");
             lblLocalizacao.setText("-");
             lblCargoGestor.setText("-");
-            cbHoraAbertura.setValue(null);
-            cbHoraFecho.setValue(null);
+            txtHoraAbertura.clear();
+            txtHoraFecho.clear();
             preencherRegras(List.of());
             preencherHorariosEspeciais(List.of());
             mostrarMensagem(e.getMessage(), false);
@@ -262,7 +295,7 @@ public class GestaoLojaController {
         camposObservacoes.clear();
 
         if (regras == null || regras.isEmpty()) {
-            Label semRegras = new Label("Nao existem regras base configuradas para apresentar nesta loja.");
+            Label semRegras = new Label("Não existem regras base configuradas para apresentar nesta loja.");
             semRegras.getStyleClass().add("subtitulo");
             regrasContainer.getChildren().add(semRegras);
             return;
@@ -287,7 +320,7 @@ public class GestaoLojaController {
         lblDetalhe.getStyleClass().add("subtitulo");
         lblDetalhe.setWrapText(true);
 
-        Label lblValor = new Label("Valor especifico da loja");
+        Label lblValor = new Label("Valor específico da loja");
         lblValor.getStyleClass().add("campo-titulo");
 
         TextField txtValor = new TextField();
@@ -297,7 +330,7 @@ public class GestaoLojaController {
             txtValor.setText(String.valueOf(regra.valorEspecifico()));
         }
 
-        Label lblObs = new Label("Observacoes");
+        Label lblObs = new Label("Observações");
         lblObs.getStyleClass().add("campo-titulo");
 
         TextArea txtObs = new TextArea();
@@ -356,8 +389,8 @@ public class GestaoLojaController {
         dpDataInicioExcecao.setValue(horarioEspecial.dataInicio());
         dpDataFimExcecao.setValue(horarioEspecial.dataFim());
         chkLojaEncerrada.setSelected(horarioEspecial.lojaEncerrada());
-        cbHoraAberturaExcecao.setValue(horarioEspecial.horaAbertura() != null ? horarioEspecial.horaAbertura().format(HORA_FORMATTER) : null);
-        cbHoraFechoExcecao.setValue(horarioEspecial.horaFecho() != null ? horarioEspecial.horaFecho().format(HORA_FORMATTER) : null);
+        txtHoraAberturaExcecao.setText(horarioEspecial.horaAbertura() != null ? horarioEspecial.horaAbertura().format(HORA_FORMATTER) : "");
+        txtHoraFechoExcecao.setText(horarioEspecial.horaFecho() != null ? horarioEspecial.horaFecho().format(HORA_FORMATTER) : "");
         txtMinimoExcecao.setText(horarioEspecial.minimoColaboradoresTurno() != null
                 ? String.valueOf(horarioEspecial.minimoColaboradoresTurno())
                 : "");
@@ -371,8 +404,8 @@ public class GestaoLojaController {
         dpDataInicioExcecao.setValue(null);
         dpDataFimExcecao.setValue(null);
         chkLojaEncerrada.setSelected(false);
-        cbHoraAberturaExcecao.setValue(null);
-        cbHoraFechoExcecao.setValue(null);
+        txtHoraAberturaExcecao.clear();
+        txtHoraFechoExcecao.clear();
         txtMinimoExcecao.clear();
         txtObservacoesExcecao.clear();
         tabelaHorariosEspeciais.getSelectionModel().clearSelection();
@@ -388,40 +421,46 @@ public class GestaoLojaController {
 
     private void aplicarModoEncerrada() {
         boolean encerrada = chkLojaEncerrada.isSelected();
-        cbHoraAberturaExcecao.setDisable(encerrada);
-        cbHoraFechoExcecao.setDisable(encerrada);
+        txtHoraAberturaExcecao.setDisable(encerrada);
+        txtHoraFechoExcecao.setDisable(encerrada);
         txtMinimoExcecao.setDisable(encerrada);
         if (encerrada) {
-            cbHoraAberturaExcecao.setValue(null);
-            cbHoraFechoExcecao.setValue(null);
+            txtHoraAberturaExcecao.clear();
+            txtHoraFechoExcecao.clear();
             txtMinimoExcecao.clear();
         }
     }
 
     private void configurarOcultacaoFeedback() {
-        cbHoraAbertura.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
-        cbHoraFecho.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+        txtHoraAbertura.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+        txtHoraFecho.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
         txtDescricaoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
-        cbHoraAberturaExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
-        cbHoraFechoExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        txtHoraAberturaExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        txtHoraFechoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         txtMinimoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         txtObservacoesExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         dpDataInicioExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         dpDataFimExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
     }
 
-    private void configurarSeletoresHora() {
-        List<String> opcoesHora = new ArrayList<>();
-        LocalTime hora = LocalTime.MIDNIGHT;
-        for (int i = 0; i < 48; i++) {
-            opcoesHora.add(hora.format(HORA_FORMATTER));
-            hora = hora.plusMinutes(30);
-        }
+    private void configurarCamposHora() {
+        configurarCampoHora(txtHoraAbertura, "HH:mm");
+        configurarCampoHora(txtHoraFecho, "HH:mm");
+        configurarCampoHora(txtHoraAberturaExcecao, "HH:mm");
+        configurarCampoHora(txtHoraFechoExcecao, "HH:mm");
+    }
 
-        cbHoraAbertura.getItems().setAll(opcoesHora);
-        cbHoraFecho.getItems().setAll(opcoesHora);
-        cbHoraAberturaExcecao.getItems().setAll(opcoesHora);
-        cbHoraFechoExcecao.getItems().setAll(opcoesHora);
+    private void configurarCampoHora(TextField campo, String prompt) {
+        campo.setPromptText(prompt);
+        campo.focusedProperty().addListener((observavel, estavaFocado, estaFocado) -> {
+            if (!estaFocado && campo.getText() != null && !campo.getText().isBlank()) {
+                try {
+                    campo.setText(LocalTime.parse(campo.getText().trim(), HORA_FORMATTER).format(HORA_FORMATTER));
+                } catch (DateTimeParseException ignored) {
+                    // Mantém o valor original para a validação formal no guardar.
+                }
+            }
+        });
     }
 
     private LocalTime parseHora(String texto, String campo) {
@@ -455,7 +494,7 @@ public class GestaoLojaController {
         try {
             return Integer.valueOf(texto.trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("O valor especifico da regra " + idRegra + " deve ser um numero inteiro.");
+            throw new IllegalArgumentException("O valor específico da regra " + idRegra + " deve ser um número inteiro.");
         }
     }
 
@@ -471,7 +510,7 @@ public class GestaoLojaController {
             }
             return valor;
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("O campo " + campo + " deve ser um numero inteiro.");
+            throw new IllegalArgumentException("O campo " + campo + " deve ser um número inteiro.");
         }
     }
 
@@ -509,5 +548,12 @@ public class GestaoLojaController {
         lblMensagemExcecao.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
         lblMensagemExcecao.setManaged(true);
         lblMensagemExcecao.setVisible(true);
+    }
+
+    private Window obterJanela() {
+        if (lblNomeLoja == null || lblNomeLoja.getScene() == null) {
+            return null;
+        }
+        return lblNomeLoja.getScene().getWindow();
     }
 }

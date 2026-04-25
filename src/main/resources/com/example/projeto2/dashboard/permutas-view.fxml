@@ -19,14 +19,14 @@
             </padding>
 
             <children>
-                <Label styleClass="titulo-dashboard" text="Trocar Turno" />
-                <Label styleClass="subtitulo" text="Escolhe um dos teus turnos, seleciona uma opcao elegivel e acompanha o historico dos teus pedidos." />
+                <Label styleClass="titulo-dashboard" text="Trocar turno" />
+                <Label styleClass="subtitulo" text="Escolhe um dos teus turnos, seleciona uma opção elegível e acompanha o histórico dos teus pedidos." />
 
                 <HBox alignment="TOP_CENTER" spacing="20.0">
                     <children>
                         <VBox prefWidth="420.0" spacing="15.0" styleClass="info-card">
                             <children>
-                                <Label styleClass="card-titulo" text="Novo Pedido de Permuta" />
+                                <Label styleClass="card-titulo" text="Novo pedido de permuta" />
 
                                 <VBox alignment="CENTER_LEFT" spacing="8.0">
                                     <children>
@@ -38,22 +38,22 @@
                                 <VBox alignment="CENTER_LEFT" spacing="8.0">
                                     <children>
                                         <Label styleClass="campo-titulo" text="2. Turno do colega" />
-                                        <ComboBox fx:id="cbTurnoColega" maxWidth="1.7976931348623157E308" promptText="Escolhe um turno elegivel para troca" />
+                                        <ComboBox fx:id="cbTurnoColega" maxWidth="1.7976931348623157E308" promptText="Escolhe um turno elegível para troca" />
                                     </children>
                                 </VBox>
 
                                 <Label fx:id="lblMensagem" styleClass="mensagem-feedback" text="Mensagem" visible="false" wrapText="true" />
 
-                                <Button maxWidth="1.7976931348623157E308" onAction="#onSubmeterTrocaClick" styleClass="botao-acao" text="Submeter Pedido de Troca" />
+                                <Button maxWidth="1.7976931348623157E308" onAction="#onSubmeterTrocaClick" styleClass="botao-acao" text="Submeter pedido de troca" />
                             </children>
                         </VBox>
 
                         <VBox prefWidth="280.0" spacing="10.0" styleClass="info-card">
                             <children>
-                                <Label styleClass="card-titulo" text="Regras Rapidas" />
-                                <Label styleClass="subtitulo" wrapText="true" text="Os turnos elegiveis sao filtrados para a mesma data e loja do teu turno selecionado." />
+                                <Label styleClass="card-titulo" text="Regras rápidas" />
+                                <Label styleClass="subtitulo" wrapText="true" text="Os turnos elegíveis são filtrados para a mesma data e loja do teu turno selecionado." />
                                 <Label styleClass="subtitulo" wrapText="true" text="Turnos envolvidos numa permuta pendente deixam de aparecer noutras trocas para evitar conflitos." />
-                                <Label styleClass="subtitulo" wrapText="true" text="Gestores podem aprovar ou rejeitar pedidos pendentes da sua loja diretamente neste ecra." />
+                                <Label styleClass="subtitulo" wrapText="true" text="Gestores podem aprovar ou rejeitar pedidos pendentes da sua loja diretamente neste ecrã." />
                             </children>
                         </VBox>
                     </children>
@@ -61,7 +61,7 @@
 
                 <VBox spacing="10.0" VBox.vgrow="ALWAYS">
                     <children>
-                        <Label styleClass="subtitulo" text="Historico de pedidos enviados" />
+                        <Label styleClass="subtitulo" text="Histórico de pedidos enviados" />
                         <TableView fx:id="tabelaPedidosPermuta" prefHeight="220.0" VBox.vgrow="ALWAYS">
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
@@ -78,8 +78,8 @@
 
                 <VBox fx:id="painelAprovacao" managed="false" spacing="12.0" styleClass="info-card" visible="false" VBox.vgrow="ALWAYS">
                     <children>
-                        <Label styleClass="card-titulo" text="Aprovar Pedidos de Permuta" />
-                        <Label styleClass="subtitulo" text="Pedidos pendentes da tua loja que podem ser tratados por um responsavel." wrapText="true" />
+                        <Label styleClass="card-titulo" text="Aprovar pedidos de permuta" />
+                        <Label styleClass="subtitulo" text="Pedidos pendentes da tua loja que podem ser tratados por um responsável." wrapText="true" />
 
                         <TableView fx:id="tabelaPedidosPendentes" prefHeight="240.0" VBox.vgrow="ALWAYS">
                             <columnResizePolicy>

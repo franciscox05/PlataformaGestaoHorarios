@@ -92,7 +92,7 @@ public class RelatoriosHorasController {
     public void initialize() {
         configurarTabela();
         configurarFiltrosBase();
-        tabelaRelatorio.setPlaceholder(new Label("Ainda nao existem dados para os filtros selecionados."));
+        tabelaRelatorio.setPlaceholder(new Label("Ainda não existem dados para os filtros selecionados."));
         btnExportarCsv.setDisable(true);
         esconderFeedback();
     }
@@ -122,12 +122,12 @@ public class RelatoriosHorasController {
     @FXML
     public void onExportarCsvClick() {
         if (ultimoResultado == null || ultimoResultado.linhas().isEmpty()) {
-            mostrarFeedback("Gera primeiro um relatorio com dados para exportar.", false);
+            mostrarFeedback("Gera primeiro um relatório com dados para exportar.", false);
             return;
         }
 
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Exportar relatorio mensal");
+        fileChooser.setTitle("Exportar relatório mensal");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV", "*.csv"));
         fileChooser.setInitialFileName("relatorio-horas-" + ultimoResultado.ano() + "-" + ultimoResultado.nomeMes().toLowerCase() + ".csv");
 
@@ -166,9 +166,9 @@ public class RelatoriosHorasController {
             writer.newLine();
             writer.write("Horas totais;" + sanitizarCsv(ultimoResultado.resumo().horasFormatadas()));
 
-            mostrarFeedback("Relatorio exportado com sucesso.", true);
+            mostrarFeedback("Relatório exportado com sucesso.", true);
         } catch (IOException e) {
-            mostrarFeedback("Nao foi possivel exportar o ficheiro CSV.", false);
+            mostrarFeedback("Não foi possível exportar o ficheiro CSV.", false);
         }
     }
 
@@ -193,7 +193,7 @@ public class RelatoriosHorasController {
         cbMes.setItems(FXCollections.observableArrayList(
                 new MesOption(1, "Janeiro"),
                 new MesOption(2, "Fevereiro"),
-                new MesOption(3, "Marco"),
+                new MesOption(3, "Março"),
                 new MesOption(4, "Abril"),
                 new MesOption(5, "Maio"),
                 new MesOption(6, "Junho"),
@@ -231,12 +231,12 @@ public class RelatoriosHorasController {
     private void gerarRelatorio() {
         try {
             if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             MesOption mesSelecionado = cbMes.getValue();
             if (mesSelecionado == null) {
-                throw new IllegalArgumentException("Seleciona um mes para gerar o relatorio.");
+                throw new IllegalArgumentException("Seleciona um mês para gerar o relatório.");
             }
 
             RelatorioHorasBLL.FiltroColaborador colaboradorSelecionado = cbColaborador.getValue();
@@ -252,7 +252,7 @@ public class RelatoriosHorasController {
             tabelaRelatorio.setItems(FXCollections.observableArrayList(ultimoResultado.linhas()));
             atualizarResumo(ultimoResultado);
             btnExportarCsv.setDisable(ultimoResultado.linhas().isEmpty());
-            mostrarFeedback("Relatorio gerado com sucesso.", true);
+            mostrarFeedback("Relatório gerado com sucesso.", true);
         } catch (IllegalArgumentException e) {
             tabelaRelatorio.setItems(FXCollections.observableArrayList());
             limparResumo();
@@ -262,7 +262,7 @@ public class RelatoriosHorasController {
             tabelaRelatorio.setItems(FXCollections.observableArrayList());
             limparResumo();
             btnExportarCsv.setDisable(true);
-            mostrarFeedback("Nao foi possivel gerar o relatorio.", false);
+            mostrarFeedback("Não foi possível gerar o relatório.", false);
         }
     }
 

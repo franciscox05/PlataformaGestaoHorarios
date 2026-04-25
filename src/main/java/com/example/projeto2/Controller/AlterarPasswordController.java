@@ -1,17 +1,13 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.PerfilBLL;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
@@ -23,8 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 @Component
 @Scope("prototype")
@@ -138,32 +132,13 @@ public class AlterarPasswordController {
 
     @FXML
     public void onGuardarClick(ActionEvent event) {
-        Alert confirmacao = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmacao.setTitle("Confirmar Alteracao");
-        confirmacao.setHeaderText(null);
-        confirmacao.setGraphic(null);
-        confirmacao.setContentText("Tens a certeza que queres alterar a tua password?");
-
-        ButtonType btnGuardar = new ButtonType("Guardar", ButtonBar.ButtonData.OK_DONE);
-        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        confirmacao.getButtonTypes().setAll(btnGuardar, btnCancelar);
-
-        try {
-            DialogPane dialogPane = confirmacao.getDialogPane();
-            dialogPane.getStylesheets().add(getClass().getResource("/com/example/projeto2/dashboard/dashboard.css").toExternalForm());
-            dialogPane.getStyleClass().add("alerta-personalizado");
-
-            Button nodeGuardar = (Button) dialogPane.lookupButton(btnGuardar);
-            nodeGuardar.getStyleClass().add("botao-acao");
-
-            Button nodeCancelar = (Button) dialogPane.lookupButton(btnCancelar);
-            nodeCancelar.getStyleClass().add("botao-secundario");
-        } catch (Exception e) {
-            LOGGER.warn("Nao foi possivel aplicar o estilo ao alerta de alteracao de password.", e);
-        }
-
-        Optional<ButtonType> resultado = confirmacao.showAndWait();
-        if (resultado.isEmpty() || resultado.get() != btnGuardar) {
+        if (!DialogosHelper.confirmarAcao(
+                ((Node) event.getSource()).getScene().getWindow(),
+                "Confirmar alteração",
+                "Deseja guardar a nova palavra-passe?",
+                "A palavra-passe atual será substituída e usada nos próximos acessos.",
+                "Guardar"
+        )) {
             return;
         }
 
@@ -179,8 +154,8 @@ public class AlterarPasswordController {
             lblErro.setText(e.getMessage());
             lblErro.setVisible(true);
         } catch (Exception e) {
-            LOGGER.error("Erro inesperado ao atualizar a password.", e);
-            lblErro.setText("Nao foi possivel atualizar a password. Tenta novamente.");
+            LOGGER.error("Erro inesperado ao atualizar a palavra-passe.", e);
+            lblErro.setText("Não foi possível atualizar a palavra-passe. Tenta novamente.");
             lblErro.setVisible(true);
         }
     }

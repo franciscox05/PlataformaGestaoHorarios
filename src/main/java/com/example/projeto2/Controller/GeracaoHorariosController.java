@@ -2,6 +2,7 @@ package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
 import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
+import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -16,6 +17,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -121,30 +123,6 @@ public class GeracaoHorariosController {
     @FXML
     private TableColumn<GeracaoHorariosBLL.ResumoColaborador, String> colResumoHoras;
 
-    @FXML
-    private TableView<GeracaoHorariosBLL.HorarioLinha> tabelaHorariosGerados;
-
-    @FXML
-    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colData;
-
-    @FXML
-    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colDiaSemana;
-
-    @FXML
-    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colTurno;
-
-    @FXML
-    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colPeriodo;
-
-    @FXML
-    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colColaborador;
-
-    @FXML
-    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colCargo;
-
-    @FXML
-    private TableColumn<GeracaoHorariosBLL.HorarioLinha, String> colEstado;
-
     private final GeracaoHorariosBLL geracaoHorariosBLL;
 
     private Utilizador utilizadorLogado;
@@ -167,8 +145,7 @@ public class GeracaoHorariosController {
         painelValidacaoSupervisor.setManaged(false);
         painelValidacaoSupervisor.setVisible(false);
 
-        tabelaResumoColaboradores.setPlaceholder(new Label("Ainda nao existe proposta gerada para apresentar o resumo da equipa."));
-        tabelaHorariosGerados.setPlaceholder(new Label("Ainda nao existe proposta nem horarios publicados para o periodo selecionado."));
+        tabelaResumoColaboradores.setPlaceholder(new Label("Ainda não existe proposta gerada para apresentar o resumo da equipa."));
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -185,7 +162,16 @@ public class GeracaoHorariosController {
     public void onGerarPropostaClick() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Gerar proposta",
+                    "Deseja gerar a proposta mensal?",
+                    "A proposta será recalculada para o período selecionado."
+            )) {
+                return;
             }
 
             MesOption mesSelecionado = obterMesSelecionado();
@@ -201,12 +187,12 @@ public class GeracaoHorariosController {
         } catch (IllegalArgumentException e) {
             if (tentarCarregarPlaneamentoExistente()) {
                 esconderFeedbackValidacao();
-                mostrarErro(e.getMessage() + " O planeamento atual foi carregado abaixo para te ajudar a analisar a situacao.");
+                mostrarErro(e.getMessage() + " O planeamento atual foi carregado abaixo para te ajudar a analisar a situação.");
             } else {
                 mostrarErro(e.getMessage());
             }
         } catch (Exception e) {
-            mostrarErro("Nao foi possivel gerar a proposta mensal.");
+            mostrarErro("Não foi possível gerar a proposta mensal.");
         }
     }
 
@@ -238,7 +224,7 @@ public class GeracaoHorariosController {
         cbMes.setItems(FXCollections.observableArrayList(
                 new MesOption(1, "Janeiro"),
                 new MesOption(2, "Fevereiro"),
-                new MesOption(3, "Marco"),
+                new MesOption(3, "Março"),
                 new MesOption(4, "Abril"),
                 new MesOption(5, "Maio"),
                 new MesOption(6, "Junho"),
@@ -278,33 +264,12 @@ public class GeracaoHorariosController {
 
         colResumoHoras.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().horasFormatadas()));
-
-        colData.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().data() != null ? cellData.getValue().data().toString() : "-"));
-
-        colDiaSemana.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().diaSemana()));
-
-        colTurno.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().turno()));
-
-        colPeriodo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().periodo()));
-
-        colColaborador.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().colaborador()));
-
-        colCargo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().cargo()));
-
-        colEstado.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().estado()));
     }
 
     private void carregarContextoInicial() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             GeracaoHorariosBLL.GeracaoContexto contexto = geracaoHorariosBLL.obterContexto(utilizadorLogado.getId());
@@ -320,14 +285,14 @@ public class GeracaoHorariosController {
         } catch (IllegalArgumentException e) {
             bloquearEcraSemPermissao(e.getMessage());
         } catch (Exception e) {
-            bloquearEcraSemPermissao("Nao foi possivel carregar o contexto da geracao de horarios.");
+            bloquearEcraSemPermissao("Não foi possível carregar o contexto da geração de horários.");
         }
     }
 
     private void carregarPropostaSelecionada() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             MesOption mesSelecionado = obterMesSelecionado();
@@ -339,29 +304,40 @@ public class GeracaoHorariosController {
 
             if (resultado == null) {
                 limparResultado();
-                mostrarInformacao("Ainda nao existe proposta nem horarios publicados para o periodo selecionado.");
+                mostrarInformacao("Ainda não existe proposta nem horários publicados para o período selecionado.");
                 return;
             }
 
             preencherResultado(resultado);
-            mostrarInformacao("Planeamento do periodo carregado com sucesso.");
+            mostrarInformacao("Planeamento do período carregado com sucesso.");
         } catch (IllegalArgumentException e) {
             limparResultado();
             mostrarErro(e.getMessage());
         } catch (Exception e) {
             limparResultado();
-            mostrarErro("Nao foi possivel carregar a proposta selecionada.");
+            mostrarErro("Não foi possível carregar a proposta selecionada.");
         }
     }
 
     private void decidirProposta(boolean aprovar) {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
             if (propostaAtual == null || propostaAtual.idProposta() == null) {
                 throw new IllegalArgumentException("Seleciona primeiro uma proposta para validar.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    aprovar ? "Aprovar proposta" : "Rejeitar proposta",
+                    aprovar ? "Deseja aprovar e publicar esta proposta?" : "Deseja rejeitar esta proposta?",
+                    aprovar
+                            ? "Os horários serão publicados para a loja."
+                            : "A proposta ficará rejeitada e não será publicada."
+            )) {
+                return;
             }
 
             GeracaoHorariosBLL.PropostaResultado resultado = aprovar
@@ -379,21 +355,21 @@ public class GeracaoHorariosController {
             preencherResultado(resultado);
             mostrarFeedbackValidacao(
                     aprovar
-                            ? "Proposta aprovada e horarios publicados com sucesso."
+                            ? "Proposta aprovada e horários publicados com sucesso."
                             : "Proposta rejeitada com sucesso.",
                     true
             );
         } catch (IllegalArgumentException e) {
             mostrarFeedbackValidacao(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarFeedbackValidacao("Nao foi possivel atualizar a decisao da proposta.", false);
+            mostrarFeedbackValidacao("Não foi possível atualizar a decisão da proposta.", false);
         }
     }
 
     private MesOption obterMesSelecionado() {
         MesOption mesSelecionado = cbMes.getValue();
         if (mesSelecionado == null) {
-            throw new IllegalArgumentException("Seleciona um mes para consultar ou gerar a proposta.");
+            throw new IllegalArgumentException("Seleciona um mês para consultar ou gerar a proposta.");
         }
         return mesSelecionado;
     }
@@ -436,7 +412,7 @@ public class GeracaoHorariosController {
         lblDecididoPor.setText("-");
         lblDataDecisao.setText("-");
         lblObservacoesSupervisor.setText("-");
-        lblResumoGeracao.setText("Ainda nao existe uma proposta carregada.");
+        lblResumoGeracao.setText("Ainda não existe uma proposta carregada.");
         txtObservacoesSupervisor.clear();
 
         lblTotalColaboradores.setText("0");
@@ -444,7 +420,6 @@ public class GeracaoHorariosController {
         lblTotalDiasCobertos.setText("0");
 
         tabelaResumoColaboradores.setItems(FXCollections.observableArrayList());
-        tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
         cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
         cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
         reposicionarSemanaPlaneamentoParaMesSelecionado();
@@ -591,7 +566,6 @@ public class GeracaoHorariosController {
 
     private void aplicarFiltroColaborador() {
         if (propostaAtual == null) {
-            tabelaHorariosGerados.setItems(FXCollections.observableArrayList());
             renderizarCalendarioPlaneamento(List.of());
             return;
         }
@@ -615,7 +589,6 @@ public class GeracaoHorariosController {
                         && !linha.data().isAfter(dataFimSemana))
                 .toList();
 
-        tabelaHorariosGerados.setItems(FXCollections.observableArrayList(linhasDaSemana));
         renderizarCalendarioPlaneamento(linhasDaSemana);
     }
 
@@ -641,7 +614,7 @@ public class GeracaoHorariosController {
     private void renderizarCalendarioPlaneamento(List<GeracaoHorariosBLL.HorarioLinha> linhas) {
         Map<LocalDate, List<String>> eventos = new LinkedHashMap<>();
         for (GeracaoHorariosBLL.HorarioLinha linha : linhas) {
-            String evento = linha.periodo() + " | " + linha.colaborador();
+            String evento = linha.periodo() + " | " + linha.colaborador() + " (" + linha.cargo() + ")";
             eventos.computeIfAbsent(linha.data(), chave -> new java.util.ArrayList<>()).add(evento);
         }
 
@@ -651,6 +624,13 @@ public class GeracaoHorariosController {
                 eventos,
                 "Sem turnos"
         );
+    }
+
+    private Window obterJanela() {
+        if (lblLoja == null || lblLoja.getScene() == null) {
+            return null;
+        }
+        return lblLoja.getScene().getWindow();
     }
 
     private record MesOption(int numero, String nome) {

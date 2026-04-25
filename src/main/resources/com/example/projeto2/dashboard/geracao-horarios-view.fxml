@@ -21,12 +21,12 @@
             </padding>
 
             <children>
-                <Label styleClass="titulo-dashboard" text="Horarios da Loja" />
-                <Label styleClass="subtitulo" text="Gera, consulta e valida a proposta mensal da tua loja com base nas regras configuradas, na equipa ativa e nas ausencias ou preferencias ja aprovadas." wrapText="true" />
+                <Label styleClass="titulo-dashboard" text="Horários da loja" />
+                <Label styleClass="subtitulo" text="Gera, consulta e valida a proposta mensal da tua loja com base nas regras configuradas, na equipa ativa e nas ausências ou preferências já aprovadas." wrapText="true" />
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Periodo de Planeamento" />
+                        <Label styleClass="card-titulo" text="Período de planeamento" />
 
                         <HBox spacing="20.0">
                             <children>
@@ -39,7 +39,7 @@
 
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Localizacao" />
+                                        <Label styleClass="meta-etiqueta" text="Localização" />
                                         <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
@@ -50,8 +50,8 @@
                             <children>
                                 <VBox spacing="5.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="campo-titulo" text="Mes" />
-                                        <ComboBox fx:id="cbMes" promptText="Seleciona o mes" styleClass="campo-combo" />
+                                        <Label styleClass="campo-titulo" text="Mês" />
+                                        <ComboBox fx:id="cbMes" promptText="Seleciona o mês" styleClass="campo-combo" />
                                     </children>
                                 </VBox>
 
@@ -68,8 +68,8 @@
 
                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                             <children>
-                                <Button fx:id="btnVerProposta" onAction="#onVerPropostaClick" styleClass="botao-secundario" text="Ver Planeamento" />
-                                <Button fx:id="btnGerarProposta" onAction="#onGerarPropostaClick" styleClass="botao-acao" text="Gerar Proposta" />
+                                <Button fx:id="btnVerProposta" onAction="#onVerPropostaClick" styleClass="botao-secundario" text="Ver planeamento" />
+                                <Button fx:id="btnGerarProposta" onAction="#onGerarPropostaClick" styleClass="botao-acao" text="Gerar proposta" />
                             </children>
                         </HBox>
 
@@ -79,7 +79,7 @@
 
                 <VBox spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Resumo do Planeamento" />
+                        <Label styleClass="card-titulo" text="Resumo do planeamento" />
 
                         <HBox spacing="20.0">
                             <children>
@@ -106,7 +106,7 @@
 
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Data de geracao" />
+                                        <Label styleClass="meta-etiqueta" text="Data de geração" />
                                         <Label fx:id="lblDataGeracao" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
@@ -124,14 +124,14 @@
                             <children>
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Data da decisao" />
+                                        <Label styleClass="meta-etiqueta" text="Data da decisão" />
                                         <Label fx:id="lblDataDecisao" styleClass="meta-valor" text="-" />
                                     </children>
                                 </VBox>
 
                                 <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                     <children>
-                                        <Label styleClass="meta-etiqueta" text="Observacoes do supervisor" />
+                                        <Label styleClass="meta-etiqueta" text="Observações do supervisor" />
                                         <Label fx:id="lblObservacoesSupervisor" styleClass="meta-valor" text="-" wrapText="true" />
                                     </children>
                                 </VBox>
@@ -140,8 +140,8 @@
 
                         <VBox spacing="6.0">
                             <children>
-                                <Label styleClass="campo-titulo" text="Observacoes da geracao" />
-                                <Label fx:id="lblResumoGeracao" styleClass="subtitulo" text="Ainda nao existe uma proposta carregada." wrapText="true" />
+                                <Label styleClass="campo-titulo" text="Observações da geração" />
+                                <Label fx:id="lblResumoGeracao" styleClass="subtitulo" text="Ainda não existe uma proposta carregada." wrapText="true" />
                             </children>
                         </VBox>
                     </children>
@@ -174,13 +174,13 @@
 
                 <VBox fx:id="painelValidacaoSupervisor" spacing="14.0" styleClass="info-card">
                     <children>
-                        <Label styleClass="card-titulo" text="Validacao do Supervisor" />
-                        <Label styleClass="subtitulo" text="Revê a proposta mensal selecionada e decide se os horarios devem ser publicados ou rejeitados." wrapText="true" />
+                        <Label styleClass="card-titulo" text="Validação do supervisor" />
+                        <Label styleClass="subtitulo" text="Revê a proposta mensal selecionada e decide se os horários devem ser publicados ou rejeitados." wrapText="true" />
 
                         <VBox spacing="6.0">
                             <children>
-                                <Label styleClass="campo-titulo" text="Observacoes da decisao" />
-                                <TextArea fx:id="txtObservacoesSupervisor" prefRowCount="3" promptText="Opcional: acrescenta observacoes para o historico da decisao." styleClass="campo-textarea" wrapText="true" />
+                                <Label styleClass="campo-titulo" text="Observações da decisão" />
+                                <TextArea fx:id="txtObservacoesSupervisor" prefRowCount="3" promptText="Opcional: acrescenta observações para o histórico da decisão." styleClass="campo-textarea" wrapText="true" />
                             </children>
                         </VBox>
 
@@ -188,14 +188,14 @@
 
                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                             <children>
-                                <Button fx:id="btnRejeitarProposta" onAction="#onRejeitarPropostaClick" styleClass="botao-secundario" text="Rejeitar Proposta" />
-                                <Button fx:id="btnAprovarProposta" onAction="#onAprovarPropostaClick" styleClass="botao-acao" text="Aprovar e Publicar" />
+                                <Button fx:id="btnRejeitarProposta" onAction="#onRejeitarPropostaClick" styleClass="botao-secundario" text="Rejeitar proposta" />
+                                <Button fx:id="btnAprovarProposta" onAction="#onAprovarPropostaClick" styleClass="botao-acao" text="Aprovar e publicar" />
                             </children>
                         </HBox>
                     </children>
                 </VBox>
 
-                <Label styleClass="subtitulo" text="Distribuicao por colaborador" />
+                <Label styleClass="subtitulo" text="Distribuição por colaborador" />
 
                 <TableView fx:id="tabelaResumoColaboradores" prefHeight="200.0">
                     <columnResizePolicy>
@@ -211,7 +211,7 @@
 
                 <VBox spacing="8.0">
                     <children>
-                        <Label styleClass="subtitulo" text="Calendario semanal do planeamento" />
+                        <Label styleClass="subtitulo" text="Calendário semanal do planeamento" />
                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                             <children>
                                 <Label styleClass="campo-titulo" text="Filtrar por colaborador" />
@@ -226,22 +226,6 @@
                 </VBox>
 
                 <HBox fx:id="boxSemanaPlaneamento" spacing="10.0" styleClass="calendario-semana" />
-
-                <Label styleClass="subtitulo" text="Lista detalhada da semana" />
-                <TableView fx:id="tabelaHorariosGerados" prefHeight="280.0" VBox.vgrow="ALWAYS">
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                    </columnResizePolicy>
-                    <columns>
-                        <TableColumn fx:id="colData" prefWidth="110.0" text="Data" />
-                        <TableColumn fx:id="colDiaSemana" prefWidth="110.0" text="Dia" />
-                        <TableColumn fx:id="colTurno" prefWidth="100.0" text="Turno" />
-                        <TableColumn fx:id="colPeriodo" prefWidth="130.0" text="Periodo" />
-                        <TableColumn fx:id="colColaborador" prefWidth="180.0" text="Colaborador" />
-                        <TableColumn fx:id="colCargo" prefWidth="120.0" text="Cargo" />
-                        <TableColumn fx:id="colEstado" prefWidth="100.0" text="Estado" />
-                    </columns>
-                </TableView>
             </children>
         </VBox>
     </content>
