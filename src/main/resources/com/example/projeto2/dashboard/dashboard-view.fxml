@@ -6,18 +6,30 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="mainContainer" prefHeight="650.0" prefWidth="1000.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.DashboardController">
+<BorderPane fx:id="mainContainer" prefHeight="920.0" prefWidth="1480.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.DashboardController">
 
     <top>
-        <HBox alignment="CENTER_RIGHT" styleClass="top-header" BorderPane.alignment="CENTER">
+        <HBox alignment="CENTER_LEFT" styleClass="top-header" BorderPane.alignment="CENTER">
             <padding>
-                <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
+                <Insets bottom="20.0" left="36.0" right="36.0" top="22.0" />
             </padding>
             <children>
+                <Label fx:id="lblTopPageTitle" styleClass="top-header-page-title" text="OS MEUS PROXIMOS TURNOS" />
                 <Region HBox.hgrow="ALWAYS" />
-                <Button onAction="#onLogoutClick" styleClass="botao-logout" text="Terminar Sessao" />
+                <HBox alignment="CENTER" spacing="26.0">
+                    <children>
+                        <Button fx:id="btnTopoVisaoGeral" mnemonicParsing="false" onAction="#onTopVisaoGeralClick" styleClass="top-nav-button top-nav-button-ativo" text="Visao geral" />
+                        <Button fx:id="btnTopoPedidos" mnemonicParsing="false" onAction="#onTopPedidosClick" styleClass="top-nav-button" text="Pedidos" />
+                        <Button fx:id="btnTopoPerfil" mnemonicParsing="false" onAction="#onTopPerfilClick" styleClass="top-nav-button" text="Perfil" />
+                    </children>
+                </HBox>
+                <Region minWidth="24.0" />
+                <Button mnemonicParsing="false" styleClass="botao-secundario topo-botao-curto" text="Pesquisar" />
+                <Region minWidth="16.0" />
+                <Button onAction="#onLogoutClick" styleClass="botao-logout" text="Terminar sessao" />
             </children>
         </HBox>
     </top>
@@ -25,21 +37,48 @@
     <left>
         <VBox styleClass="sidebar" BorderPane.alignment="CENTER">
             <children>
-                <Label styleClass="sidebar-titulo" text="Levi's Portal" />
+                <VBox spacing="6.0" styleClass="sidebar-brand">
+                    <children>
+                        <Label styleClass="sidebar-titulo" text="LEVI'S" />
+                        <Label styleClass="sidebar-subtitulo" text="Portal interno" />
+                    </children>
+                </VBox>
 
-                <Button fx:id="btnDashboard" onAction="#onDashboardHomeClick" styleClass="sidebar-btn sidebar-btn-ativo" text="Dashboard" />
-                <Button fx:id="btnGestaoLoja" managed="false" onAction="#onGestaoLojaClick" styleClass="sidebar-btn" text="Loja e Regras" visible="false" />
-                <Button fx:id="btnGestaoFuncionarios" managed="false" onAction="#onGestaoFuncionariosClick" styleClass="sidebar-btn" text="Funcionarios" visible="false" />
-                <Button fx:id="btnHorarios" managed="false" onAction="#onHorariosClick" styleClass="sidebar-btn" text="Horarios" visible="false" />
-                <Button fx:id="btnPainelGerente" managed="false" onAction="#onPainelGerentePedidosClick" styleClass="sidebar-btn" text="Painel do Gerente" visible="false" />
-                <Button fx:id="btnAuditoria" managed="false" onAction="#onPainelAuditoriaClick" styleClass="sidebar-btn" text="Auditoria" visible="false" />
-                <Button fx:id="btnFolgas" onAction="#onPedirFolgaClick" styleClass="sidebar-btn" text="Pedir Folga" />
-                <Button fx:id="btnPermutas" onAction="#onTrocarTurnoClick" styleClass="sidebar-btn" text="Trocar Turno" />
-                <Button fx:id="btnPerfil" onAction="#onPerfilClick" styleClass="sidebar-btn" text="Perfil" />
-                <Button fx:id="btnPreferencias" onAction="#onPreferenciasClick" styleClass="sidebar-btn" text="Preferencias" />
-                <Button fx:id="btnRelatorios" managed="false" onAction="#onRelatoriosHorasClick" styleClass="sidebar-btn" text="Relatorios" visible="false" />
+                <HBox alignment="CENTER_LEFT" onMouseClicked="#onTopPerfilClick" spacing="12.0" styleClass="sidebar-user-row sidebar-user-row-clickable">
+                    <children>
+                        <StackPane styleClass="sidebar-avatar">
+                            <children>
+                                <Label fx:id="lblAvatarInicial" styleClass="sidebar-avatar-text" text="L" />
+                            </children>
+                        </StackPane>
+                        <Label fx:id="lblUtilizadorSidebar" styleClass="sidebar-user-greeting" text="Ola, Staff!" />
+                    </children>
+                </HBox>
+
+                <VBox spacing="2.0" styleClass="sidebar-menu">
+                    <children>
+                        <Button fx:id="btnDashboard" onAction="#onDashboardHomeClick" styleClass="sidebar-btn sidebar-btn-ativo" text="Painel" />
+                        <Button fx:id="btnGestaoLoja" managed="false" onAction="#onGestaoLojaClick" styleClass="sidebar-btn" text="Loja e regras" visible="false" />
+                        <Button fx:id="btnGestaoFuncionarios" managed="false" onAction="#onGestaoFuncionariosClick" styleClass="sidebar-btn" text="Funcionarios" visible="false" />
+                        <Button fx:id="btnHorarios" managed="false" onAction="#onHorariosClick" styleClass="sidebar-btn" text="Horarios" visible="false" />
+                        <Button fx:id="btnPainelGerente" managed="false" onAction="#onPainelGerentePedidosClick" styleClass="sidebar-btn" text="Painel do gerente" visible="false" />
+                        <Button fx:id="btnAuditoria" managed="false" onAction="#onPainelAuditoriaClick" styleClass="sidebar-btn" text="Auditoria" visible="false" />
+                        <Button fx:id="btnFolgas" onAction="#onPedirFolgaClick" styleClass="sidebar-btn" text="Pedir folga" />
+                        <Button fx:id="btnPermutas" onAction="#onTrocarTurnoClick" styleClass="sidebar-btn" text="Trocar turno" />
+                        <Button fx:id="btnPerfil" onAction="#onPerfilClick" styleClass="sidebar-btn" text="Perfil" />
+                        <Button fx:id="btnPreferencias" onAction="#onPreferenciasClick" styleClass="sidebar-btn" text="Preferencias" />
+                        <Button fx:id="btnRelatorios" managed="false" onAction="#onRelatoriosHorasClick" styleClass="sidebar-btn" text="Relatorios" visible="false" />
+                    </children>
+                </VBox>
 
                 <Region VBox.vgrow="ALWAYS" />
+
+                <VBox spacing="14.0" styleClass="sidebar-footer">
+                    <children>
+                        <Label styleClass="sidebar-footer-title" text="Fluxo editorial" />
+                        <Label styleClass="sidebar-footer-copy" text="Centraliza horarios, equipa, pedidos e auditoria num unico espaco de operacao." wrapText="true" />
+                    </children>
+                </VBox>
             </children>
         </VBox>
     </left>

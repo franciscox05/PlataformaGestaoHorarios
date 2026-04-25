@@ -13,10 +13,12 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.slf4j.Logger;
@@ -28,6 +30,10 @@ import org.springframework.stereotype.Component;
 public class DashboardController implements DashboardNavigator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DashboardController.class);
+    private static final double APP_WIDTH = 1480;
+    private static final double APP_HEIGHT = 920;
+    private static final double APP_MIN_WIDTH = 1280;
+    private static final double APP_MIN_HEIGHT = 780;
 
     @FXML
     private BorderPane mainContainer;
@@ -65,6 +71,24 @@ public class DashboardController implements DashboardNavigator {
     @FXML
     private Button btnRelatorios;
 
+    @FXML
+    private Label lblTopPageTitle;
+
+    @FXML
+    private Label lblUtilizadorSidebar;
+
+    @FXML
+    private Label lblAvatarInicial;
+
+    @FXML
+    private Button btnTopoVisaoGeral;
+
+    @FXML
+    private Button btnTopoPedidos;
+
+    @FXML
+    private Button btnTopoPerfil;
+
     private final ApplicationContext applicationContext;
     private final GestaoLojaBLL gestaoLojaBLL;
     private final GeracaoHorariosBLL geracaoHorariosBLL;
@@ -90,20 +114,34 @@ public class DashboardController implements DashboardNavigator {
     public void setUtilizadorLogado(Utilizador utilizador) {
         this.utilizadorLogado = utilizador;
         sessaoBLL.iniciarSessao(utilizador);
+        atualizarIdentidadeUtilizador();
         configurarPermissoesMenu();
         configurarMonitorizacaoSessao();
-        onDashboardHomeClick();
+
+        if (!abrirDashboardHome()) {
+            sessaoBLL.terminarSessaoManual();
+            utilizadorLogado = null;
+            throw new IllegalStateException("Nao foi possivel carregar a pagina inicial do painel.");
+        }
     }
 
     @FXML
     public void onDashboardHomeClick() {
+        abrirDashboardHome();
+    }
+
+    private boolean abrirDashboardHome() {
+        atualizarTituloTopo("OS MEUS PROXIMOS TURNOS");
+        atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnDashboard.getStyleClass().add("sidebar-btn-ativo");
-        mudarEcraCentro("/com/example/projeto2/dashboard/home-view.fxml");
+        return mudarEcraCentro("/com/example/projeto2/dashboard/home-view.fxml");
     }
 
     @FXML
     public void onPedirFolgaClick() {
+        atualizarTituloTopo("PEDIR FOLGA");
+        atualizarAtalhosTopo(btnTopoPedidos);
         limparBotoesAtivos();
         btnFolgas.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/pedir-folga-view.fxml");
@@ -111,6 +149,8 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onGestaoLojaClick() {
+        atualizarTituloTopo("LOJA E REGRAS");
+        atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnGestaoLoja.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/gestao-loja-view.fxml");
@@ -118,6 +158,8 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onGestaoFuncionariosClick() {
+        atualizarTituloTopo("GESTAO DE FUNCIONARIOS");
+        atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnGestaoFuncionarios.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/gestao-funcionarios-view.fxml");
@@ -125,6 +167,8 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onHorariosClick() {
+        atualizarTituloTopo("HORARIOS DA LOJA");
+        atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnHorarios.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/geracao-horarios-view.fxml");
@@ -132,6 +176,8 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPainelGerentePedidosClick() {
+        atualizarTituloTopo("PAINEL DO GERENTE");
+        atualizarAtalhosTopo(btnTopoPedidos);
         limparBotoesAtivos();
         btnPainelGerente.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/painel-gerente-pedidos-view.fxml");
@@ -139,6 +185,8 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPainelAuditoriaClick() {
+        atualizarTituloTopo("AUDITORIA");
+        atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnAuditoria.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/painel-auditoria-view.fxml");
@@ -146,6 +194,8 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onTrocarTurnoClick() {
+        atualizarTituloTopo("TROCAR TURNO");
+        atualizarAtalhosTopo(btnTopoPedidos);
         limparBotoesAtivos();
         btnPermutas.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/permutas-view.fxml");
@@ -153,6 +203,8 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPerfilClick() {
+        atualizarTituloTopo("PERFIL");
+        atualizarAtalhosTopo(btnTopoPerfil);
         limparBotoesAtivos();
         btnPerfil.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/perfil-view.fxml");
@@ -160,6 +212,8 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPreferenciasClick() {
+        atualizarTituloTopo("PREFERENCIAS");
+        atualizarAtalhosTopo(btnTopoPedidos);
         limparBotoesAtivos();
         btnPreferencias.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/preferencias-view.fxml");
@@ -167,9 +221,31 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onRelatoriosHorasClick() {
+        atualizarTituloTopo("RELATORIOS");
+        atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnRelatorios.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/relatorios-horas-view.fxml");
+    }
+
+    @FXML
+    public void onTopVisaoGeralClick() {
+        abrirDashboardHome();
+    }
+
+    @FXML
+    public void onTopPedidosClick() {
+        if (btnPainelGerente != null && btnPainelGerente.isVisible()) {
+            onPainelGerentePedidosClick();
+            return;
+        }
+
+        onPedirFolgaClick();
+    }
+
+    @FXML
+    public void onTopPerfilClick() {
+        onPerfilClick();
     }
 
     @FXML
@@ -180,7 +256,7 @@ public class DashboardController implements DashboardNavigator {
         abrirLogin(false);
     }
 
-    private void mudarEcraCentro(String caminhoFxml) {
+    private boolean mudarEcraCentro(String caminhoFxml) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(caminhoFxml));
             loader.setControllerFactory(applicationContext::getBean);
@@ -216,10 +292,38 @@ public class DashboardController implements DashboardNavigator {
 
             mainContainer.setCenter(novoConteudo);
             registarAtividadeSessao();
+            return true;
         } catch (Exception e) {
             LOGGER.error("Erro ao carregar o ecra {}", caminhoFxml, e);
-            mostrarErro("Nao foi possivel abrir este ecra.", "Tenta novamente dentro de instantes.");
+            if (mainContainer != null) {
+                mainContainer.setCenter(criarConteudoErroCentro(caminhoFxml));
+            }
+            return false;
         }
+    }
+
+    private Parent criarConteudoErroCentro(String caminhoFxml) {
+        Label titulo = new Label("Nao foi possivel abrir este ecra");
+        titulo.getStyleClass().add("titulo-dashboard");
+
+        Label descricao = new Label("O painel encontrou um erro ao carregar esta pagina. Podes tentar novamente agora ou voltar a abrir o painel.");
+        descricao.getStyleClass().add("texto-ajuda");
+        descricao.setWrapText(true);
+
+        Button btnTentarNovamente = new Button("Tentar novamente");
+        btnTentarNovamente.getStyleClass().add("botao-acao");
+        btnTentarNovamente.setOnAction(event -> mudarEcraCentro(caminhoFxml));
+
+        Button btnVoltarDashboard = new Button("Voltar ao painel");
+        btnVoltarDashboard.getStyleClass().add("botao-secundario");
+        btnVoltarDashboard.setOnAction(event -> abrirDashboardHome());
+
+        VBox conteudo = new VBox(16.0, titulo, descricao, btnTentarNovamente, btnVoltarDashboard);
+        conteudo.getStyleClass().add("info-card");
+        conteudo.setFillWidth(false);
+        conteudo.setMaxWidth(560.0);
+        conteudo.setTranslateY(20.0);
+        return conteudo;
     }
 
     private void limparBotoesAtivos() {
@@ -252,6 +356,30 @@ public class DashboardController implements DashboardNavigator {
         btnPainelGerente.setManaged(podeGerirLoja);
         btnAuditoria.setVisible(podeGerirLoja);
         btnAuditoria.setManaged(podeGerirLoja);
+    }
+
+    private void atualizarTituloTopo(String titulo) {
+        if (lblTopPageTitle != null) {
+            lblTopPageTitle.setText(titulo);
+        }
+    }
+
+    private void atualizarIdentidadeUtilizador() {
+        if (utilizadorLogado == null) {
+            return;
+        }
+
+        String nome = utilizadorLogado.getNome() != null ? utilizadorLogado.getNome().trim() : "";
+        String primeiroNome = nome.isBlank() ? "Staff" : nome.split("\\s+")[0];
+
+        if (lblUtilizadorSidebar != null) {
+            lblUtilizadorSidebar.setText("Ola, " + primeiroNome + "!");
+        }
+
+        if (lblAvatarInicial != null) {
+            String inicial = primeiroNome.isBlank() ? "S" : primeiroNome.substring(0, 1).toUpperCase();
+            lblAvatarInicial.setText(inicial);
+        }
     }
 
     private void configurarMonitorizacaoSessao() {
@@ -326,8 +454,10 @@ public class DashboardController implements DashboardNavigator {
             Parent root = loader.load();
 
             Stage stage = (Stage) mainContainer.getScene().getWindow();
-            stage.setScene(new Scene(root, 800, 600));
+            stage.setScene(new Scene(root, APP_WIDTH, APP_HEIGHT));
             stage.setTitle("Levi's Staff Portal - Autenticacao");
+            stage.setMinWidth(APP_MIN_WIDTH);
+            stage.setMinHeight(APP_MIN_HEIGHT);
 
             if (sessaoExpirada) {
                 Platform.runLater(() -> mostrarInformacao(
@@ -358,6 +488,20 @@ public class DashboardController implements DashboardNavigator {
         alert.setHeaderText(cabecalho);
         alert.setContentText(conteudo);
         alert.showAndWait();
+    }
+
+    private void atualizarAtalhosTopo(Button botaoAtivo) {
+        if (btnTopoVisaoGeral == null || btnTopoPedidos == null || btnTopoPerfil == null) {
+            return;
+        }
+
+        btnTopoVisaoGeral.getStyleClass().remove("top-nav-button-ativo");
+        btnTopoPedidos.getStyleClass().remove("top-nav-button-ativo");
+        btnTopoPerfil.getStyleClass().remove("top-nav-button-ativo");
+
+        if (botaoAtivo != null && !botaoAtivo.getStyleClass().contains("top-nav-button-ativo")) {
+            botaoAtivo.getStyleClass().add("top-nav-button-ativo");
+        }
     }
 
     @Override

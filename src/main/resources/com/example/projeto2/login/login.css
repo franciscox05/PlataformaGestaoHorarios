@@ -1,76 +1,195 @@
 .root {
-    -fx-background-color: linear-gradient(to bottom right, #f8f8f8, #ececec);
-    -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
 }
 
-.painel-login {
-    -fx-background-color: #ffffff;
-    -fx-background-radius: 14px;
-    -fx-border-color: #e3e3e3;
-    -fx-border-radius: 14px;
-    -fx-max-width: 420px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 20, 0.18, 0, 6);
-}
-.titulo-levis {
-    -fx-font-size: 28px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #c41230;
+.login-shell {
+    -fx-background-color: #111111;
 }
 
-.subtitulo-login {
-    -fx-font-size: 13px;
-    -fx-text-fill: #666666;
-    -fx-text-alignment: center;
+.login-backdrop-overlay {
+    -fx-background-color:
+        linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.58) 100%);
+    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.28), 18, 0.1, 0, 0);
+}
+
+.login-layout {
     -fx-alignment: center;
 }
 
-.campo-login {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #d0d0d0;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
-    -fx-padding: 11px 12px;
+.login-editorial-panel {
+    -fx-padding: 10 0 16 0;
+}
+
+.login-editorial-headline {
+    -fx-text-fill: #f8f2ee;
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 136px;
+    -fx-line-spacing: -26px;
+    -fx-font-weight: 900;
+    -fx-letter-spacing: -4px;
+}
+
+.login-editorial-copy {
+    -fx-text-fill: rgba(250, 245, 241, 0.88);
+    -fx-font-size: 23px;
+    -fx-line-spacing: 8px;
+}
+
+.login-era {
+    -fx-text-fill: rgba(255,255,255,0.88);
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
+}
+
+.login-card {
+    -fx-background-color: rgba(247, 242, 239, 0.96);
+    -fx-border-color: rgba(255,255,255,0.20);
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 26, 0.14, 0, 10);
+}
+
+.titulo-levis {
+    -fx-text-fill: #171515;
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 30px;
+    -fx-font-weight: 900;
+}
+
+.titulo-registado {
+    -fx-text-fill: #c41230;
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 19px;
+    -fx-font-weight: 900;
+    -fx-padding: -6 0 0 3;
+}
+
+.login-card-tag {
+    -fx-text-fill: #5d3836;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-letter-spacing: 3px;
+}
+
+.login-card-title {
+    -fx-text-fill: #181616;
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 32px;
+    -fx-font-weight: 900;
+}
+
+.subtitulo-login {
+    -fx-text-fill: #684847;
     -fx-font-size: 14px;
+    -fx-line-spacing: 4px;
+}
+
+.login-field-label {
+    -fx-text-fill: #4b302f;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-letter-spacing: 2.4px;
+}
+
+.login-link {
+    -fx-text-fill: #c41230;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-letter-spacing: 2px;
+    -fx-cursor: hand;
+}
+
+.campo-login {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent transparent #e5bfc1 transparent;
+    -fx-border-width: 0 0 2px 0;
+    -fx-padding: 11px 42px 13px 0;
+    -fx-font-size: 17px;
+    -fx-text-fill: #1f1d1d;
+    -fx-prompt-text-fill: #b2a1a1;
 }
 
 .campo-login:focused {
-    -fx-border-color: #c41230;
-    -fx-border-width: 2px;
+    -fx-border-color: transparent transparent #c41230 transparent;
+    -fx-effect: none;
 }
 
 .botao-mostrar-senha {
     -fx-background-color: transparent;
+    -fx-background-radius: 100;
+    -fx-border-radius: 100;
     -fx-cursor: hand;
+}
+
+.botao-mostrar-senha:hover {
+    -fx-background-color: rgba(196, 18, 48, 0.08);
 }
 
 .botao-login {
     -fx-background-color: #c41230;
-    -fx-text-fill: #ffffff;
-    -fx-font-size: 15px;
-    -fx-font-weight: bold;
-    -fx-background-radius: 8px;
-    -fx-padding: 11px 18px;
+    -fx-text-fill: white;
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 16px;
+    -fx-font-weight: 900;
+    -fx-letter-spacing: 3px;
+    -fx-padding: 16px 28px;
     -fx-cursor: hand;
 }
 
 .botao-login:hover {
-    -fx-background-color: #a00f25;
+    -fx-background-color: #aa1029;
+}
+
+.botao-secure-login {
+    -fx-background-color: #2b2727;
+    -fx-text-fill: white;
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+    -fx-letter-spacing: 2px;
+    -fx-padding: 16px 24px;
+    -fx-cursor: hand;
+}
+
+.botao-secure-login:hover {
+    -fx-background-color: #181616;
+}
+
+.login-divider {
+    -fx-background-color: rgba(145, 111, 109, 0.25);
+    -fx-pref-height: 1px;
+}
+
+.login-or-label {
+    -fx-text-fill: #7a6664;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-letter-spacing: 2px;
 }
 
 .erro-login {
-    -fx-text-fill: #c41230;
+    -fx-text-fill: #93001d;
     -fx-font-size: 13px;
-    -fx-font-weight: bold;
-    -fx-background-color: #fdecef;
-    -fx-border-color: #f4bec7;
-    -fx-background-radius: 8px;
-    -fx-border-radius: 8px;
-    -fx-padding: 10px 12px;
+    -fx-font-weight: 700;
+    -fx-background-color: rgba(255, 226, 230, 0.88);
+    -fx-border-color: #efbcc3;
+    -fx-border-width: 1px;
+    -fx-padding: 12px 14px;
 }
 
 .mensagem-info-autenticacao {
-    -fx-text-fill: #475467;
+    -fx-text-fill: #877675;
     -fx-font-size: 12px;
-    -fx-text-alignment: center;
+    -fx-line-spacing: 3px;
     -fx-alignment: center;
+}
+
+.login-bottom-accent {
+    -fx-background-color: #c41230;
+    -fx-pref-height: 6px;
+    -fx-max-height: 6px;
 }

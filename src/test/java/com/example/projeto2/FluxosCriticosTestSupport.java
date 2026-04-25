@@ -495,18 +495,25 @@ abstract class FluxosCriticosTestSupport {
                         + (regra.getTipo() == null ? "" : regra.getTipo())
         );
 
-        if ((texto.contains("min") || texto.contains("minim"))
-                && (texto.contains("turno") || texto.contains("colaborador") || texto.contains("equipa") || texto.contains("pessoas"))) {
-            return 1;
-        }
-        if (texto.contains("consecut") || (texto.contains("dias") && texto.contains("seguid"))) {
-            return 31;
-        }
         if (texto.contains("descanso") && (texto.contains("hora") || texto.contains("interval"))) {
+            return 11;
+        }
+        if (texto.contains("entre") && texto.contains("turno")) {
             return 11;
         }
         if (texto.contains("descanso") && (texto.contains("seman") || texto.contains("folga")) && texto.contains("dia")) {
             return 2;
+        }
+        if ((texto.contains("dias") || texto.contains("dia"))
+                && (texto.contains("consecut") || texto.contains("seguid"))
+                && !texto.contains("hora")) {
+            return 31;
+        }
+        if ((texto.contains("min") || texto.contains("minim"))
+                && (texto.contains("colaborador") || texto.contains("equipa") || texto.contains("pessoas")
+                || texto.contains("funcionario")
+                || (texto.contains("turno") && (texto.contains("por") || texto.contains("cobertura") || texto.contains("loja"))))) {
+            return 1;
         }
         if ((texto.contains("rotacao") || texto.contains("janela")) && (texto.contains("fim de semana") || texto.contains("weekend"))) {
             return 2;

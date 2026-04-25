@@ -36,6 +36,21 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH h.idLojautilizador lu " +
             "JOIN FETCH lu.idUtilizador u " +
             "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
+            "WHERE u.id = :idUtilizador " +
+            "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
+            "ORDER BY h.dataTurno ASC, t.horaInicio ASC")
+    List<Horario> findHorariosPublicadosPorUtilizadorEntreDatas(@Param("idUtilizador") Integer idUtilizador,
+                                                                @Param("dataInicio") LocalDate dataInicio,
+                                                                @Param("dataFim") LocalDate dataFim);
+
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idLoja l " +
             "JOIN FETCH h.idTurno t " +
             "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE u.id = :idUtilizador " +
@@ -130,6 +145,24 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
     List<Horario> findHorariosDaLojaEntreDatas(@Param("idLoja") Integer idLoja,
                                                @Param("dataInicio") LocalDate dataInicio,
                                                @Param("dataFim") LocalDate dataFim);
+
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
+            "WHERE l.id = :idLoja " +
+            "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
+            "AND (:idColaborador IS NULL OR u.id = :idColaborador) " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
+            "AND lu.dataFim IS NULL " +
+            "ORDER BY h.dataTurno ASC, t.horaInicio ASC, u.nome ASC")
+    List<Horario> findHorariosPublicadosDaLojaEntreDatas(@Param("idLoja") Integer idLoja,
+                                                         @Param("dataInicio") LocalDate dataInicio,
+                                                         @Param("dataFim") LocalDate dataFim,
+                                                         @Param("idColaborador") Integer idColaborador);
 
     @Query("SELECT h FROM Horario h " +
             "JOIN FETCH h.idLojautilizador lu " +

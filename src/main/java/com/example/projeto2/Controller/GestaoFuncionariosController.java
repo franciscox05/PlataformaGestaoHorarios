@@ -1,6 +1,9 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.GestaoFuncionariosBLL;
+import com.example.projeto2.BLL.HorarioBLL;
+import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
+import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -14,10 +17,14 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @Component
@@ -97,14 +104,27 @@ public class GestaoFuncionariosController {
     @FXML
     private Button btnDesativar;
 
+    @FXML
+    private Label lblSemanaColaborador;
+
+    @FXML
+    private Label lblResumoHorarioColaborador;
+
+    @FXML
+    private HBox boxSemanaColaborador;
+
     private final GestaoFuncionariosBLL gestaoFuncionariosBLL;
+    private final HorarioBLL horarioBLL;
     private final ObservableList<ColaboradorLinha> colaboradores = FXCollections.observableArrayList();
     private final FilteredList<ColaboradorLinha> colaboradoresFiltrados = new FilteredList<>(colaboradores, colaborador -> true);
     private Utilizador utilizadorLogado;
     private Integer idColaboradorEmEdicao;
+    private LocalDate semanaColaboradorInicio;
 
-    public GestaoFuncionariosController(GestaoFuncionariosBLL gestaoFuncionariosBLL) {
+    public GestaoFuncionariosController(GestaoFuncionariosBLL gestaoFuncionariosBLL,
+                                        HorarioBLL horarioBLL) {
         this.gestaoFuncionariosBLL = gestaoFuncionariosBLL;
+        this.horarioBLL = horarioBLL;
     }
 
     @FXML
@@ -118,11 +138,17 @@ public class GestaoFuncionariosController {
         tabelaColaboradores.getSelectionModel().selectedItemProperty().addListener((observavel, anterior, selecionado) -> {
             if (selecionado != null) {
                 preencherFormulario(selecionado);
+                carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+            } else {
+                limparHorarioSemanalColaborador();
             }
         });
 
         esconderMensagem();
         limparFormularioParaNovo();
+        semanaColaboradorInicio = CalendarioSemanalHelper.inicioSemana(LocalDate.now());
+        atualizarCabecalhoSemanaColaborador();
+        limparHorarioSemanalColaborador();
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -198,6 +224,30 @@ public class GestaoFuncionariosController {
         }
     }
 
+    @FXML
+    public void onSemanaColaboradorAnteriorClick() {
+        semanaColaboradorInicio = semanaColaboradorInicio.minusWeeks(1);
+        atualizarCabecalhoSemanaColaborador();
+        ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
+        if (selecionado != null) {
+            carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+        } else {
+            limparHorarioSemanalColaborador();
+        }
+    }
+
+    @FXML
+    public void onSemanaColaboradorSeguinteClick() {
+        semanaColaboradorInicio = semanaColaboradorInicio.plusWeeks(1);
+        atualizarCabecalhoSemanaColaborador();
+        ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
+        if (selecionado != null) {
+            carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+        } else {
+            limparHorarioSemanalColaborador();
+        }
+    }
+
     private void configurarTabela() {
         colNome.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().nome()));
         colEmail.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().email()));
@@ -269,11 +319,12 @@ public class GestaoFuncionariosController {
 
             atualizarFiltros();
 
-            if (idPreferido != null && selecionarColaborador(idPreferido)) {
-                return;
-            }
+        if (idPreferido != null && selecionarColaborador(idPreferido)) {
+            return;
+        }
 
-            limparFormularioParaNovo();
+        limparFormularioParaNovo();
+        limparHorarioSemanalColaborador();
         } catch (IllegalArgumentException e) {
             colaboradores.clear();
             preencherCargos(List.of());
@@ -442,6 +493,57 @@ public class GestaoFuncionariosController {
 
     private String valorOuVazio(String valor) {
         return valor == null || "-".equals(valor) ? "" : valor;
+    }
+
+    private void atualizarCabecalhoSemanaColaborador() {
+        lblSemanaColaborador.setText(CalendarioSemanalHelper.formatarIntervaloSemana(semanaColaboradorInicio));
+    }
+
+    private void carregarHorarioSemanalColaborador(Integer idColaborador, String nomeColaborador) {
+        try {
+            LocalDate dataFim = semanaColaboradorInicio.plusDays(6);
+            List<Horario> horarios = horarioBLL.listarHorarioPublicadoDoUtilizador(idColaborador, semanaColaboradorInicio, dataFim);
+            Map<LocalDate, List<String>> eventos = new LinkedHashMap<>();
+
+            for (Horario horario : horarios) {
+                String evento = horario.getIdTurno().getHoraInicio()
+                        + " - "
+                        + horario.getIdTurno().getHoraFim()
+                        + " | "
+                        + horario.getIdLojautilizador().getIdLoja().getNome();
+                eventos.computeIfAbsent(horario.getDataTurno(), chave -> new java.util.ArrayList<>()).add(evento);
+            }
+
+            CalendarioSemanalHelper.preencherCalendario(
+                    boxSemanaColaborador,
+                    semanaColaboradorInicio,
+                    eventos,
+                    "Sem turno"
+            );
+
+            if (horarios.isEmpty()) {
+                lblResumoHorarioColaborador.setText(
+                        nomeColaborador + " nao tem horario publicado nesta semana."
+                );
+            } else {
+                lblResumoHorarioColaborador.setText(
+                        nomeColaborador + " tem " + horarios.size() + " turno(s) publicados nesta semana."
+                );
+            }
+        } catch (Exception e) {
+            limparHorarioSemanalColaborador();
+            lblResumoHorarioColaborador.setText("Nao foi possivel carregar o horario semanal deste colaborador.");
+        }
+    }
+
+    private void limparHorarioSemanalColaborador() {
+        CalendarioSemanalHelper.preencherCalendario(
+                boxSemanaColaborador,
+                semanaColaboradorInicio,
+                Map.of(),
+                "Seleciona um colaborador"
+        );
+        lblResumoHorarioColaborador.setText("Seleciona um colaborador para veres o horario publicado da semana.");
     }
 
     private void esconderMensagem() {
