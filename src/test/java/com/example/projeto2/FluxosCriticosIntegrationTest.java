@@ -1,6 +1,7 @@
 package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Preferencia;
 import com.example.projeto2.Modules.Utilizador;
@@ -11,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -217,5 +219,72 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         assertEquals("Horarios publicados", resultado.origemPlaneamento());
         assertEquals(2, resultado.linhas().size());
         assertTrue(resultado.linhas().stream().allMatch(linha -> "Aprovado".equalsIgnoreCase(linha.estado())));
+    }
+
+    @Test
+    void folgaAprovadaRemoveTurnoPublicadoEImpedePedidoComMenosDe24Horas() {
+        GeracaoFixture fixture = criarContextoGeracao("folgas-operacionais");
+        LojaFixture lojaFixture = fixture.lojaFixture();
+        Utilizador gerente = lojaFixture.gerente();
+        Utilizador colaborador = lojaFixture.colaboradores().get(0);
+        LocalDate dataFolga = fixture.referencia().plusDays(10);
+
+        criarHorarioPublicadoSemProposta(colaborador, dataFolga, fixture.turnos().get(0));
+
+        DayOff pedido = new DayOff();
+        pedido.setIdUtilizador(colaborador.getId());
+        pedido.setDataAusencia(dataFolga);
+        pedido.setTipo("folgas");
+        pedido.setMotivo("Teste de remocao do turno publicado.");
+
+        DayOff guardado = dayOffBLL.registarPedidoFolga(pedido);
+        DayOff aprovado = dayOffBLL.aprovarPedidoFolga(guardado.getIdDayoff(), gerente.getId());
+        assertEquals("aprovado", aprovado.getEstado());
+
+        flushAndClear();
+
+        assertTrue(horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                colaborador.getId(),
+                dataFolga,
+                dataFolga
+        ).isEmpty());
+
+        criarHorarioPublicadoSemProposta(colaborador, LocalDate.now(), fixture.turnos().get(0));
+
+        DayOff pedidoTardio = new DayOff();
+        pedidoTardio.setIdUtilizador(colaborador.getId());
+        pedidoTardio.setDataAusencia(LocalDate.now());
+        pedidoTardio.setTipo("folgas");
+        pedidoTardio.setMotivo("Pedido tardio.");
+
+        IllegalArgumentException erro = assertThrows(
+                IllegalArgumentException.class,
+                () -> dayOffBLL.registarPedidoFolga(pedidoTardio)
+        );
+        assertTrue(erro.getMessage().contains("24 horas"));
+    }
+
+    @Test
+    void permutasSoMostramTurnosElegiveisDaMesmaLojaDiaEComAntecedencia() {
+        GeracaoFixture fixture = criarContextoGeracao("permutas-elegiveis");
+        LojaFixture lojaFixture = fixture.lojaFixture();
+        Utilizador colaboradorOrigem = lojaFixture.colaboradores().get(0);
+        Utilizador colegaElegivel = lojaFixture.colaboradores().get(1);
+        Utilizador colegaOutroDia = lojaFixture.colaboradores().get(2);
+        LocalDate diaTroca = fixture.referencia().plusDays(12);
+
+        Horario origem = criarHorarioPublicadoSemProposta(colaboradorOrigem, diaTroca, fixture.turnos().get(0));
+        Horario destino = criarHorarioPublicadoSemProposta(colegaElegivel, diaTroca, fixture.turnos().get(1));
+        criarHorarioPublicadoSemProposta(colegaOutroDia, diaTroca.plusDays(1), fixture.turnos().get(2));
+
+        List<Horario> elegiveis = horarioBLL.listarTurnosElegiveisParaPermuta(
+                colaboradorOrigem.getId(),
+                origem.getId()
+        );
+
+        assertEquals(1, elegiveis.size());
+        assertEquals(destino.getId(), elegiveis.get(0).getId());
+
+        assertNotNull(permutaBLL.registarPedidoTroca(colaboradorOrigem.getId(), origem, destino).getId());
     }
 }

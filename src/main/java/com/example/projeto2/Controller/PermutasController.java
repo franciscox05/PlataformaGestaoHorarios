@@ -23,7 +23,10 @@ import org.springframework.stereotype.Component;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Component
 @Scope("prototype")
@@ -36,10 +39,19 @@ public class PermutasController {
     private ComboBox<Horario> cbMeuTurno;
 
     @FXML
+    private ComboBox<ColegaElegivel> cbColegaElegivel;
+
+    @FXML
     private ComboBox<Horario> cbTurnoColega;
 
     @FXML
     private Label lblMensagem;
+
+    @FXML
+    private Label lblTurnosElegiveis;
+
+    @FXML
+    private Button btnSubmeterTroca;
 
     @FXML
     private TableView<Permuta> tabelaPedidosPermuta;
@@ -83,6 +95,7 @@ public class PermutasController {
     private final HorarioBLL horarioBll;
     private final PermutaBLL permutaBll;
     private Utilizador utilizadorLogado;
+    private List<Horario> turnosElegiveisAtuais = List.of();
 
     public PermutasController(HorarioBLL horarioBll, PermutaBLL permutaBll) {
         this.horarioBll = horarioBll;
@@ -97,10 +110,16 @@ public class PermutasController {
 
         lblMensagem.setManaged(false);
         lblMensagem.setVisible(false);
+        atualizarResumoElegiveis(0);
 
         tabelaPedidosPermuta.setPlaceholder(new Label("Ainda não submeteste pedidos de permuta."));
         tabelaPedidosPendentes.setPlaceholder(new Label("Não existem pedidos pendentes para aprovar."));
 
+        btnSubmeterTroca.disableProperty().bind(
+                cbMeuTurno.getSelectionModel().selectedItemProperty().isNull()
+                        .or(cbColegaElegivel.getSelectionModel().selectedItemProperty().isNull())
+                        .or(cbTurnoColega.getSelectionModel().selectedItemProperty().isNull())
+        );
         btnAprovarPermuta.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
         btnRejeitarPermuta.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
 
@@ -184,7 +203,20 @@ public class PermutasController {
             }
         });
 
-        cbMeuTurno.setOnAction(event -> carregarTurnosElegiveis());
+        cbColegaElegivel.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(ColegaElegivel colega) {
+                return colega == null ? "" : colega.nome();
+            }
+
+            @Override
+            public ColegaElegivel fromString(String string) {
+                return null;
+            }
+        });
+
+        cbMeuTurno.setOnAction(event -> carregarColegasElegiveis());
+        cbColegaElegivel.setOnAction(event -> filtrarTurnosDoColega());
     }
 
     private void configurarTabelaHistorico() {
@@ -225,20 +257,73 @@ public class PermutasController {
         cbMeuTurno.setItems(FXCollections.observableArrayList(meusTurnos));
     }
 
-    private void carregarTurnosElegiveis() {
+    private void carregarColegasElegiveis() {
+        cbColegaElegivel.setValue(null);
+        cbColegaElegivel.setItems(FXCollections.observableArrayList());
         cbTurnoColega.setValue(null);
+        cbTurnoColega.setItems(FXCollections.observableArrayList());
+        turnosElegiveisAtuais = List.of();
 
         Horario meuTurno = cbMeuTurno.getValue();
         if (utilizadorLogado == null || meuTurno == null || meuTurno.getId() == null) {
+            atualizarResumoElegiveis(0);
+            return;
+        }
+
+        turnosElegiveisAtuais = horarioBll.listarTurnosElegiveisParaPermuta(
+                utilizadorLogado.getId(),
+                meuTurno.getId()
+        );
+
+        Map<Integer, ColegaElegivel> colegasPorId = new LinkedHashMap<>();
+        for (Horario horario : turnosElegiveisAtuais) {
+            if (horario.getIdLojautilizador() == null || horario.getIdLojautilizador().getIdUtilizador() == null) {
+                continue;
+            }
+            Integer idColega = horario.getIdLojautilizador().getIdUtilizador().getId();
+            String nomeColega = horario.getIdLojautilizador().getIdUtilizador().getNome();
+            colegasPorId.putIfAbsent(idColega, new ColegaElegivel(idColega, nomeColega));
+        }
+
+        cbColegaElegivel.setItems(FXCollections.observableArrayList(colegasPorId.values()));
+        atualizarResumoElegiveis(turnosElegiveisAtuais.size());
+
+        if (colegasPorId.size() == 1) {
+            cbColegaElegivel.getSelectionModel().selectFirst();
+        }
+    }
+
+    private void filtrarTurnosDoColega() {
+        cbTurnoColega.setValue(null);
+
+        ColegaElegivel colega = cbColegaElegivel.getValue();
+        if (colega == null) {
             cbTurnoColega.setItems(FXCollections.observableArrayList());
             return;
         }
 
-        List<Horario> turnosElegiveis = horarioBll.listarTurnosElegiveisParaPermuta(
-                utilizadorLogado.getId(),
-                meuTurno.getId()
-        );
-        cbTurnoColega.setItems(FXCollections.observableArrayList(turnosElegiveis));
+        List<Horario> turnosDoColega = turnosElegiveisAtuais.stream()
+                .filter(horario -> horario.getIdLojautilizador() != null)
+                .filter(horario -> horario.getIdLojautilizador().getIdUtilizador() != null)
+                .filter(horario -> Objects.equals(horario.getIdLojautilizador().getIdUtilizador().getId(), colega.idUtilizador()))
+                .toList();
+        cbTurnoColega.setItems(FXCollections.observableArrayList(turnosDoColega));
+
+        if (turnosDoColega.size() == 1) {
+            cbTurnoColega.getSelectionModel().selectFirst();
+        }
+    }
+
+    private void atualizarResumoElegiveis(int totalTurnos) {
+        if (lblTurnosElegiveis == null) {
+            return;
+        }
+
+        if (totalTurnos == 0) {
+            lblTurnosElegiveis.setText("Nao existem colegas elegiveis para o turno selecionado.");
+        } else {
+            lblTurnosElegiveis.setText(totalTurnos + " turno(s) elegiveis encontrados para este dia.");
+        }
     }
 
     private void carregarHistorico() {
@@ -316,8 +401,12 @@ public class PermutasController {
 
     private void limparFormulario() {
         cbMeuTurno.setValue(null);
+        cbColegaElegivel.setValue(null);
+        cbColegaElegivel.setItems(FXCollections.observableArrayList());
         cbTurnoColega.setValue(null);
         cbTurnoColega.setItems(FXCollections.observableArrayList());
+        turnosElegiveisAtuais = List.of();
+        atualizarResumoElegiveis(0);
     }
 
     private void mostrarMensagem(String mensagem, boolean sucesso) {
@@ -380,5 +469,8 @@ public class PermutasController {
             return null;
         }
         return cbMeuTurno.getScene().getWindow();
+    }
+
+    public record ColegaElegivel(Integer idUtilizador, String nome) {
     }
 }

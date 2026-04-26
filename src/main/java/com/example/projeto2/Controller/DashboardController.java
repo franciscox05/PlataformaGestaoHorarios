@@ -34,6 +34,7 @@ import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Component
+@Scope("prototype")
 public class DashboardController implements DashboardNavigator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DashboardController.class);
@@ -121,7 +123,7 @@ public class DashboardController implements DashboardNavigator {
     private final EventHandler<MouseEvent> handlerMouse = event -> registarAtividadeSessao();
     private final EventHandler<KeyEvent> handlerTeclado = event -> registarAtividadeSessao();
     private final EventHandler<ScrollEvent> handlerScroll = event -> registarAtividadeSessao();
-    private final ContextMenu menuSugestoesPesquisa = new ContextMenu();
+    private ContextMenu menuSugestoesPesquisa;
 
     private Utilizador utilizadorLogado;
     private PauseTransition temporizadorSessao;
@@ -553,6 +555,7 @@ public class DashboardController implements DashboardNavigator {
         if (txtPesquisa == null) {
             return;
         }
+        ContextMenu menuPesquisa = obterMenuSugestoesPesquisa();
 
         txtPesquisa.setOnAction(event -> abrirPrimeiraSugestaoPesquisa());
         txtPesquisa.focusedProperty().addListener((observavel, estavaFocado, estaFocado) -> {
@@ -569,7 +572,7 @@ public class DashboardController implements DashboardNavigator {
         txtPesquisa.textProperty().addListener((observavel, valorAntigo, valorNovo) -> atualizarSugestoesPesquisa(valorNovo));
         txtPesquisa.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ESCAPE) {
-                menuSugestoesPesquisa.hide();
+                obterMenuSugestoesPesquisa().hide();
             }
         });
         txtPesquisa.setOnMouseClicked(event -> {
@@ -578,11 +581,11 @@ public class DashboardController implements DashboardNavigator {
             }
         });
 
-        if (!menuSugestoesPesquisa.getStyleClass().contains("pesquisa-sugestoes")) {
-            menuSugestoesPesquisa.getStyleClass().add("pesquisa-sugestoes");
+        if (!menuPesquisa.getStyleClass().contains("pesquisa-sugestoes")) {
+            menuPesquisa.getStyleClass().add("pesquisa-sugestoes");
         }
-        menuSugestoesPesquisa.setAutoHide(true);
-        menuSugestoesPesquisa.setHideOnEscape(true);
+        menuPesquisa.setAutoHide(true);
+        menuPesquisa.setHideOnEscape(true);
     }
 
     private void atualizarSugestoesPesquisa(String pesquisa) {
@@ -592,7 +595,7 @@ public class DashboardController implements DashboardNavigator {
 
         String termoNormalizado = normalizarTexto(pesquisa);
         if (termoNormalizado.isBlank()) {
-            menuSugestoesPesquisa.hide();
+            obterMenuSugestoesPesquisa().hide();
             return;
         }
 
@@ -607,9 +610,10 @@ public class DashboardController implements DashboardNavigator {
             }
         }
 
-        menuSugestoesPesquisa.getItems().setAll(itens);
-        if (!menuSugestoesPesquisa.isShowing()) {
-            menuSugestoesPesquisa.show(txtPesquisa, Side.BOTTOM, 0, 8);
+        ContextMenu menuPesquisa = obterMenuSugestoesPesquisa();
+        menuPesquisa.getItems().setAll(itens);
+        if (!menuPesquisa.isShowing()) {
+            menuPesquisa.show(txtPesquisa, Side.BOTTOM, 0, 8);
         }
     }
 
@@ -664,7 +668,7 @@ public class DashboardController implements DashboardNavigator {
 
         String termoNormalizado = normalizarTexto(txtPesquisa.getText());
         if (termoNormalizado.isBlank()) {
-            menuSugestoesPesquisa.hide();
+            obterMenuSugestoesPesquisa().hide();
             return;
         }
 
@@ -677,11 +681,18 @@ public class DashboardController implements DashboardNavigator {
     }
 
     private void abrirDestinoPesquisa(DestinoPesquisa destino) {
-        menuSugestoesPesquisa.hide();
+        obterMenuSugestoesPesquisa().hide();
         if (txtPesquisa != null) {
             txtPesquisa.clear();
         }
         destino.abrir();
+    }
+
+    private ContextMenu obterMenuSugestoesPesquisa() {
+        if (menuSugestoesPesquisa == null) {
+            menuSugestoesPesquisa = new ContextMenu();
+        }
+        return menuSugestoesPesquisa;
     }
 
     private Window obterJanelaAtual() {

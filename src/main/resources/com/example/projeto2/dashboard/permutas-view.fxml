@@ -37,14 +37,22 @@
 
                                 <VBox alignment="CENTER_LEFT" spacing="8.0">
                                     <children>
-                                        <Label styleClass="campo-titulo" text="2. Turno do colega" />
-                                        <ComboBox fx:id="cbTurnoColega" maxWidth="1.7976931348623157E308" promptText="Escolhe um turno elegível para troca" />
+                                        <Label styleClass="campo-titulo" text="2. Colega eleg&#237;vel" />
+                                        <ComboBox fx:id="cbColegaElegivel" maxWidth="1.7976931348623157E308" promptText="Escolhe um colega eleg&#237;vel" />
+                                    </children>
+                                </VBox>
+
+                                <VBox alignment="CENTER_LEFT" spacing="8.0">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="3. Hor&#225;rio pretendido" />
+                                        <ComboBox fx:id="cbTurnoColega" maxWidth="1.7976931348623157E308" promptText="Escolhe um turno eleg&#237;vel para troca" />
+                                        <Label fx:id="lblTurnosElegiveis" styleClass="texto-apoio" text="Seleciona primeiro um dos teus turnos." wrapText="true" />
                                     </children>
                                 </VBox>
 
                                 <Label fx:id="lblMensagem" styleClass="mensagem-feedback" text="Mensagem" visible="false" wrapText="true" />
 
-                                <Button maxWidth="1.7976931348623157E308" onAction="#onSubmeterTrocaClick" styleClass="botao-acao" text="Submeter pedido de troca" />
+                                <Button fx:id="btnSubmeterTroca" maxWidth="1.7976931348623157E308" onAction="#onSubmeterTrocaClick" styleClass="botao-acao" text="Submeter pedido de troca" />
                             </children>
                         </VBox>
 
