@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -143,6 +144,8 @@ public class PermutaBLL {
             throw new IllegalArgumentException("A permuta so pode ser feita com turnos do mesmo dia.");
         }
 
+        validarAntecedenciaMinima(meuTurno, turnoColega);
+
         Integer idLojaOrigem = meuTurno.getIdLojautilizador().getIdLoja().getId();
         Integer idLojaDestino = turnoColega.getIdLojautilizador().getIdLoja().getId();
 
@@ -158,6 +161,26 @@ public class PermutaBLL {
                 || permutaRepository.existsPedidoPendentePorHorario(turnoColega.getId())) {
             throw new IllegalArgumentException("Um dos turnos selecionados ja esta envolvido num pedido pendente.");
         }
+    }
+
+    private void validarAntecedenciaMinima(Horario meuTurno, Horario turnoColega) {
+        LocalDateTime limiteMinimo = LocalDateTime.now().plusHours(24);
+
+        boolean origemSemAntecedencia = inicioDoTurno(meuTurno).isBefore(limiteMinimo);
+        boolean destinoSemAntecedencia = inicioDoTurno(turnoColega).isBefore(limiteMinimo);
+
+        if (origemSemAntecedencia || destinoSemAntecedencia) {
+            throw new IllegalArgumentException("As permutas precisam de ser pedidas com pelo menos 24 horas de antecedencia.");
+        }
+    }
+
+    private LocalDateTime inicioDoTurno(Horario horario) {
+        if (horario == null || horario.getDataTurno() == null || horario.getIdTurno() == null
+                || horario.getIdTurno().getHoraInicio() == null) {
+            throw new IllegalArgumentException("Nao foi possivel identificar a hora de inicio dos turnos selecionados.");
+        }
+
+        return LocalDateTime.of(horario.getDataTurno(), horario.getIdTurno().getHoraInicio());
     }
 
     private Permuta obterPedidoPendenteGerivel(Integer idPermuta, Integer idUtilizadorAprovador) {

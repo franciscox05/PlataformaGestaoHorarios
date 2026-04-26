@@ -1,15 +1,22 @@
 package com.example.projeto2.BLL;
 
+import com.example.projeto2.Modules.HistoricoHorarioEstado;
+import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Lojautilizador;
 import com.example.projeto2.Modules.Utilizador;
 import com.example.projeto2.Repositories.DayOffRepository;
+import com.example.projeto2.Repositories.HistoricoHorarioEstadoRepository;
+import com.example.projeto2.Repositories.HorarioRepository;
 import com.example.projeto2.Repositories.LojautilizadorRepository;
+import com.example.projeto2.Repositories.PermutaRepository;
 import com.example.projeto2.Repositories.UtilizadorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -25,13 +32,22 @@ public class DayOffBLL {
     private final DayOffRepository dayOffRepository;
     private final LojautilizadorRepository lojautilizadorRepository;
     private final UtilizadorRepository utilizadorRepository;
+    private final HorarioRepository horarioRepository;
+    private final PermutaRepository permutaRepository;
+    private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
 
     public DayOffBLL(DayOffRepository dayOffRepository,
                      LojautilizadorRepository lojautilizadorRepository,
-                     UtilizadorRepository utilizadorRepository) {
+                     UtilizadorRepository utilizadorRepository,
+                     HorarioRepository horarioRepository,
+                     PermutaRepository permutaRepository,
+                     HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository) {
         this.dayOffRepository = dayOffRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.utilizadorRepository = utilizadorRepository;
+        this.horarioRepository = horarioRepository;
+        this.permutaRepository = permutaRepository;
+        this.historicoHorarioEstadoRepository = historicoHorarioEstadoRepository;
     }
 
     @Transactional
@@ -59,6 +75,8 @@ public class DayOffBLL {
         if (pedido.getMotivo() != null && pedido.getMotivo().isBlank()) {
             pedido.setMotivo(null);
         }
+
+        validarAntecedenciaMinimaDoTurno(pedido.getIdUtilizador(), pedido.getDataAusencia());
 
         pedido.setEstado("pendente");
 
@@ -143,7 +161,77 @@ public class DayOffBLL {
         }
 
         pedido.setEstado(novoEstado);
-        return dayOffRepository.save(pedido);
+        DayOff pedidoAtualizado = dayOffRepository.save(pedido);
+
+        if ("aprovado".equalsIgnoreCase(novoEstado)) {
+            retirarTurnosDoColaboradorNoDia(pedidoAtualizado, ligacaoAtiva);
+        }
+
+        return pedidoAtualizado;
+    }
+
+    private void validarAntecedenciaMinimaDoTurno(Integer idUtilizador, LocalDate dataAusencia) {
+        List<Horario> turnosDoDia = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                idUtilizador,
+                dataAusencia,
+                dataAusencia
+        );
+
+        if (turnosDoDia.isEmpty()) {
+            return;
+        }
+
+        LocalDateTime limiteMinimo = LocalDateTime.now().plusHours(24);
+        boolean existeTurnoComMenosDe24Horas = turnosDoDia.stream()
+                .filter(horario -> horario.getIdTurno() != null && horario.getIdTurno().getHoraInicio() != null)
+                .map(horario -> LocalDateTime.of(horario.getDataTurno(), horario.getIdTurno().getHoraInicio()))
+                .anyMatch(inicioTurno -> inicioTurno.isBefore(limiteMinimo));
+
+        if (existeTurnoComMenosDe24Horas) {
+            throw new IllegalArgumentException("Os pedidos de folga precisam de ser feitos com pelo menos 24 horas de antecedencia em relacao ao turno.");
+        }
+    }
+
+    private void retirarTurnosDoColaboradorNoDia(DayOff pedido, Lojautilizador ligacaoAprovador) {
+        List<Horario> horariosAfetados = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                pedido.getIdUtilizador(),
+                pedido.getDataAusencia(),
+                pedido.getDataAusencia()
+        ).stream()
+                .filter(horario -> horario.getIdLojautilizador() != null)
+                .filter(horario -> horario.getIdLojautilizador().getIdLoja() != null)
+                .filter(horario -> ligacaoAprovador.getIdLoja().getId().equals(horario.getIdLojautilizador().getIdLoja().getId()))
+                .toList();
+
+        if (horariosAfetados.isEmpty()) {
+            return;
+        }
+
+        Set<Integer> idsHorariosAfetados = horariosAfetados.stream()
+                .map(Horario::getId)
+                .collect(Collectors.toSet());
+
+        var permutasConflitantes = permutaRepository.findPedidosPendentesConflitantes(
+                -1,
+                idsHorariosAfetados
+        );
+        permutasConflitantes.forEach(permuta -> permuta.setEstado("rejeitado"));
+        permutaRepository.saveAll(permutasConflitantes);
+
+        horariosAfetados.forEach(horario -> horario.setEstado("recusado"));
+        horarioRepository.saveAll(horariosAfetados);
+
+        List<HistoricoHorarioEstado> historicos = horariosAfetados.stream()
+                .map(horario -> {
+                    HistoricoHorarioEstado historico = new HistoricoHorarioEstado();
+                    historico.setIdHorario(horario);
+                    historico.setEstadoNovo("recusado");
+                    historico.setDataRegisto(Instant.now());
+                    historico.setObservacoes("Turno removido automaticamente apos aprovacao de folga.");
+                    return historico;
+                })
+                .toList();
+        historicoHorarioEstadoRepository.saveAll(historicos);
     }
 
     private Lojautilizador obterLigacaoAtiva(Integer idUtilizador) {
