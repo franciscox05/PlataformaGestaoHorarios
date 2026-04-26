@@ -3,6 +3,7 @@ package com.example.projeto2;
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
 import com.example.projeto2.BLL.GestaoLojaBLL;
 import com.example.projeto2.BLL.DayOffBLL;
+import com.example.projeto2.BLL.HorarioBLL;
 import com.example.projeto2.BLL.PermutaBLL;
 import com.example.projeto2.BLL.PerfilBLL;
 import com.example.projeto2.BLL.PreferenciaBLL;
@@ -92,6 +93,9 @@ abstract class FluxosCriticosTestSupport {
 
     @Autowired
     protected DayOffBLL dayOffBLL;
+
+    @Autowired
+    protected HorarioBLL horarioBLL;
 
     @Autowired
     protected PermutaBLL permutaBLL;
