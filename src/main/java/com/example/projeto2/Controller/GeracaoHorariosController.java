@@ -49,6 +49,12 @@ public class GeracaoHorariosController {
     private Button btnGerarProposta;
 
     @FXML
+    private Button btnGerarAlternativas;
+
+    @FXML
+    private Spinner<Integer> spQuantidadeAlternativas;
+
+    @FXML
     private Label lblFeedback;
 
     @FXML
@@ -91,6 +97,18 @@ public class GeracaoHorariosController {
     private Label lblResumoGeracao;
 
     @FXML
+    private Label lblPoliticaOtimizacao;
+
+    @FXML
+    private Label lblPontuacaoOtimizacao;
+
+    @FXML
+    private Label lblDesvioCarga;
+
+    @FXML
+    private Label lblAmplitudeCarga;
+
+    @FXML
     private Label lblTotalColaboradores;
 
     @FXML
@@ -98,6 +116,51 @@ public class GeracaoHorariosController {
 
     @FXML
     private Label lblTotalDiasCobertos;
+
+    @FXML
+    private TableView<GeracaoHorariosBLL.PropostaResumo> tabelaPropostas;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.PropostaResumo, String> colPropostaRotulo;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.PropostaResumo, String> colPropostaEstado;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.PropostaResumo, String> colPropostaData;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.PropostaResumo, String> colPropostaScore;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.PropostaResumo, String> colPropostaQualidade;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.PropostaResumo, String> colPropostaTurnos;
+
+    @FXML
+    private ComboBox<GeracaoHorariosBLL.PropostaResumo> cbComparacaoBase;
+
+    @FXML
+    private ComboBox<GeracaoHorariosBLL.PropostaResumo> cbComparacaoAlvo;
+
+    @FXML
+    private Label lblResumoComparacao;
+
+    @FXML
+    private TableView<GeracaoHorariosBLL.DiferencaColaborador> tabelaComparacao;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.DiferencaColaborador, String> colComparacaoColaborador;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.DiferencaColaborador, String> colComparacaoBase;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.DiferencaColaborador, String> colComparacaoAlvo;
+
+    @FXML
+    private TableColumn<GeracaoHorariosBLL.DiferencaColaborador, String> colComparacaoDiferenca;
 
     @FXML
     private ComboBox<FiltroColaboradorOption> cbFiltroColaborador;
@@ -139,6 +202,8 @@ public class GeracaoHorariosController {
     public void initialize() {
         configurarFiltros();
         configurarTabelas();
+        configurarTabelaPropostas();
+        configurarComparacao();
         limparResultado();
         esconderFeedback();
         esconderFeedbackValidacao();
@@ -146,6 +211,8 @@ public class GeracaoHorariosController {
         painelValidacaoSupervisor.setVisible(false);
 
         tabelaResumoColaboradores.setPlaceholder(new Label("Ainda não existe proposta gerada para apresentar o resumo da equipa."));
+        tabelaPropostas.setPlaceholder(new Label("Gera alternativas para as comparar antes da validação."));
+        tabelaComparacao.setPlaceholder(new Label("Seleciona duas propostas para comparar a distribuição por colaborador."));
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -160,39 +227,39 @@ public class GeracaoHorariosController {
 
     @FXML
     public void onGerarPropostaClick() {
+        gerarAlternativas(1);
+    }
+
+    @FXML
+    public void onGerarAlternativasClick() {
+        gerarAlternativas(spQuantidadeAlternativas.getValue());
+    }
+
+    @FXML
+    public void onCompararPropostasClick() {
         try {
-            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            GeracaoHorariosBLL.PropostaResumo base = cbComparacaoBase.getValue();
+            GeracaoHorariosBLL.PropostaResumo alvo = cbComparacaoAlvo.getValue();
+            if (base == null || alvo == null) {
+                throw new IllegalArgumentException("Seleciona duas alternativas para comparar.");
+            }
+            if (base.idProposta().equals(alvo.idProposta())) {
+                throw new IllegalArgumentException("Seleciona alternativas diferentes para a comparação.");
             }
 
-            if (!DialogosHelper.confirmarAcao(
-                    obterJanela(),
-                    "Gerar proposta",
-                    "Deseja gerar a proposta mensal?",
-                    "A proposta será recalculada para o período selecionado."
-            )) {
-                return;
-            }
-
-            MesOption mesSelecionado = obterMesSelecionado();
-            GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.gerarProposta(
+            GeracaoHorariosBLL.ComparacaoPropostas comparacao = geracaoHorariosBLL.compararPropostas(
                     utilizadorLogado.getId(),
-                    spAno.getValue(),
-                    mesSelecionado.numero()
+                    base.idProposta(),
+                    alvo.idProposta()
             );
-
-            preencherResultado(resultado);
-            esconderFeedbackValidacao();
-            mostrarSucesso("Proposta mensal gerada com sucesso.");
+            lblResumoComparacao.setText(comparacao.resumo());
+            tabelaComparacao.setItems(FXCollections.observableArrayList(comparacao.diferencas()));
         } catch (IllegalArgumentException e) {
-            if (tentarCarregarPlaneamentoExistente()) {
-                esconderFeedbackValidacao();
-                mostrarErro(e.getMessage() + " O planeamento atual foi carregado abaixo para te ajudar a analisar a situação.");
-            } else {
-                mostrarErro(e.getMessage());
-            }
+            lblResumoComparacao.setText(e.getMessage());
+            tabelaComparacao.setItems(FXCollections.observableArrayList());
         } catch (Exception e) {
-            mostrarErro("Não foi possível gerar a proposta mensal.");
+            lblResumoComparacao.setText("Não foi possível comparar as alternativas selecionadas.");
+            tabelaComparacao.setItems(FXCollections.observableArrayList());
         }
     }
 
@@ -243,6 +310,9 @@ public class GeracaoHorariosController {
         ));
         spAno.setEditable(true);
 
+        spQuantidadeAlternativas.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 3));
+        spQuantidadeAlternativas.setEditable(true);
+
         cbMes.valueProperty().addListener((observavel, antigo, novo) -> invalidarPropostaAtual());
         spAno.valueProperty().addListener((observavel, antigo, novo) -> invalidarPropostaAtual());
 
@@ -264,6 +334,43 @@ public class GeracaoHorariosController {
 
         colResumoHoras.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().horasFormatadas()));
+    }
+
+    private void configurarTabelaPropostas() {
+        colPropostaRotulo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().rotulo()));
+        colPropostaEstado.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().estado()));
+        colPropostaData.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().dataGeracao()));
+        colPropostaScore.setCellValueFactory(cellData ->
+                new SimpleStringProperty(String.valueOf(cellData.getValue().pontuacao())));
+        colPropostaQualidade.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().qualidade()));
+        colPropostaTurnos.setCellValueFactory(cellData ->
+                new SimpleStringProperty(String.valueOf(cellData.getValue().turnos())));
+
+        tabelaPropostas.getSelectionModel().selectedItemProperty().addListener((observavel, anterior, selecionada) -> {
+            if (selecionada != null) {
+                carregarPropostaPorId(selecionada.idProposta(), false);
+            }
+        });
+    }
+
+    private void configurarComparacao() {
+        colComparacaoColaborador.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().colaborador()));
+        colComparacaoBase.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().turnosBase() + " turnos - " + cellData.getValue().horasBase()));
+        colComparacaoAlvo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().turnosComparada() + " turnos - " + cellData.getValue().horasComparada()));
+        colComparacaoDiferenca.setCellValueFactory(cellData ->
+                new SimpleStringProperty(
+                        (cellData.getValue().diferencaTurnos() > 0 ? "+" : "")
+                                + cellData.getValue().diferencaTurnos()
+                                + " turnos - "
+                                + cellData.getValue().diferencaHoras()
+                ));
     }
 
     private void carregarContextoInicial() {
@@ -295,6 +402,7 @@ public class GeracaoHorariosController {
                 throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
+            carregarListaPropostas(null);
             MesOption mesSelecionado = obterMesSelecionado();
             GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.obterPlaneamento(
                     utilizadorLogado.getId(),
@@ -309,6 +417,7 @@ public class GeracaoHorariosController {
             }
 
             preencherResultado(resultado);
+            selecionarPropostaNaTabela(resultado.idProposta());
             mostrarInformacao("Planeamento do período carregado com sucesso.");
         } catch (IllegalArgumentException e) {
             limparResultado();
@@ -317,6 +426,121 @@ public class GeracaoHorariosController {
             limparResultado();
             mostrarErro("Não foi possível carregar a proposta selecionada.");
         }
+    }
+
+    private void carregarPropostaPorId(Integer idProposta, boolean atualizarSelecaoTabela) {
+        try {
+            if (idProposta == null) {
+                return;
+            }
+            GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.obterPropostaPorId(
+                    utilizadorLogado.getId(),
+                    idProposta
+            );
+            preencherResultado(resultado);
+            esconderFeedback();
+            if (atualizarSelecaoTabela) {
+                selecionarPropostaNaTabela(idProposta);
+            }
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Não foi possível carregar a alternativa selecionada.");
+        }
+    }
+
+    private void gerarAlternativas(int quantidade) {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    quantidade == 1 ? "Gerar alternativa" : "Gerar alternativas",
+                    quantidade == 1 ? "Deseja gerar uma nova alternativa?" : "Deseja gerar " + quantidade + " alternativas?",
+                    "As alternativas ficam pendentes para comparação e só uma será publicada depois da validação."
+            )) {
+                return;
+            }
+
+            MesOption mesSelecionado = obterMesSelecionado();
+            List<GeracaoHorariosBLL.PropostaResultado> resultados = geracaoHorariosBLL.gerarPropostas(
+                    utilizadorLogado.getId(),
+                    spAno.getValue(),
+                    mesSelecionado.numero(),
+                    quantidade
+            );
+
+            GeracaoHorariosBLL.PropostaResultado melhorResultado = resultados.stream()
+                    .min(java.util.Comparator.comparingInt(resultado -> resultado.metricas().pontuacao()))
+                    .orElse(resultados.getFirst());
+            carregarListaPropostas(melhorResultado.idProposta());
+            preencherResultado(melhorResultado);
+            selecionarPropostaNaTabela(melhorResultado.idProposta());
+            esconderFeedbackValidacao();
+            mostrarSucesso(resultados.size() == 1
+                    ? "Alternativa gerada com sucesso."
+                    : resultados.size() + " alternativas geradas. A melhor pontuação ficou selecionada.");
+        } catch (IllegalArgumentException e) {
+            if (tentarCarregarPlaneamentoExistente()) {
+                esconderFeedbackValidacao();
+                mostrarErro(e.getMessage() + " O planeamento atual foi carregado abaixo para te ajudar a analisar a situação.");
+            } else {
+                mostrarErro(e.getMessage());
+            }
+        } catch (Exception e) {
+            mostrarErro("Não foi possível gerar alternativas para o período selecionado.");
+        }
+    }
+
+    private void carregarListaPropostas(Integer idSelecionar) {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null || cbMes.getValue() == null || spAno.getValue() == null) {
+                tabelaPropostas.setItems(FXCollections.observableArrayList());
+                cbComparacaoBase.setItems(FXCollections.observableArrayList());
+                cbComparacaoAlvo.setItems(FXCollections.observableArrayList());
+                return;
+            }
+
+            List<GeracaoHorariosBLL.PropostaResumo> propostas = geracaoHorariosBLL.listarPropostas(
+                    utilizadorLogado.getId(),
+                    spAno.getValue(),
+                    cbMes.getValue().numero()
+            );
+            tabelaPropostas.setItems(FXCollections.observableArrayList(propostas));
+            cbComparacaoBase.setItems(FXCollections.observableArrayList(propostas));
+            cbComparacaoAlvo.setItems(FXCollections.observableArrayList(propostas));
+
+            if (propostas.size() >= 2) {
+                cbComparacaoBase.setValue(propostas.get(0));
+                cbComparacaoAlvo.setValue(propostas.get(1));
+            } else if (propostas.size() == 1) {
+                cbComparacaoBase.setValue(propostas.get(0));
+                cbComparacaoAlvo.setValue(null);
+            } else {
+                cbComparacaoBase.setValue(null);
+                cbComparacaoAlvo.setValue(null);
+            }
+
+            if (idSelecionar != null) {
+                selecionarPropostaNaTabela(idSelecionar);
+            }
+        } catch (Exception e) {
+            tabelaPropostas.setItems(FXCollections.observableArrayList());
+            cbComparacaoBase.setItems(FXCollections.observableArrayList());
+            cbComparacaoAlvo.setItems(FXCollections.observableArrayList());
+        }
+    }
+
+    private void selecionarPropostaNaTabela(Integer idProposta) {
+        if (idProposta == null || tabelaPropostas.getItems() == null) {
+            return;
+        }
+        tabelaPropostas.getItems().stream()
+                .filter(proposta -> idProposta.equals(proposta.idProposta()))
+                .findFirst()
+                .ifPresent(proposta -> tabelaPropostas.getSelectionModel().select(proposta));
     }
 
     private void decidirProposta(boolean aprovar) {
@@ -353,6 +577,7 @@ public class GeracaoHorariosController {
             );
 
             preencherResultado(resultado);
+            carregarListaPropostas(resultado.idProposta());
             mostrarFeedbackValidacao(
                     aprovar
                             ? "Proposta aprovada e horários publicados com sucesso."
@@ -392,6 +617,10 @@ public class GeracaoHorariosController {
         lblDataDecisao.setText(resultado.dataDecisao());
         lblObservacoesSupervisor.setText(resultado.observacoesSupervisor());
         lblResumoGeracao.setText(resultado.resumoGeracao() != null ? resultado.resumoGeracao() : "-");
+        lblPoliticaOtimizacao.setText(resultado.metricas().politicaOtimizacao());
+        lblPontuacaoOtimizacao.setText(String.valueOf(resultado.metricas().pontuacao()));
+        lblDesvioCarga.setText(resultado.metricas().desvioMedioHoras());
+        lblAmplitudeCarga.setText(resultado.metricas().amplitudeHoras());
 
         lblTotalColaboradores.setText(String.valueOf(resultado.resumo().colaboradores()));
         lblTotalTurnos.setText(String.valueOf(resultado.resumo().turnos()));
@@ -413,6 +642,10 @@ public class GeracaoHorariosController {
         lblDataDecisao.setText("-");
         lblObservacoesSupervisor.setText("-");
         lblResumoGeracao.setText("Ainda não existe uma proposta carregada.");
+        lblPoliticaOtimizacao.setText("-");
+        lblPontuacaoOtimizacao.setText("-");
+        lblDesvioCarga.setText("-");
+        lblAmplitudeCarga.setText("-");
         txtObservacoesSupervisor.clear();
 
         lblTotalColaboradores.setText("0");
@@ -420,6 +653,8 @@ public class GeracaoHorariosController {
         lblTotalDiasCobertos.setText("0");
 
         tabelaResumoColaboradores.setItems(FXCollections.observableArrayList());
+        tabelaComparacao.setItems(FXCollections.observableArrayList());
+        lblResumoComparacao.setText("Seleciona duas alternativas para comparar distribuição, carga horária e impacto por colaborador.");
         cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
         cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
         reposicionarSemanaPlaneamentoParaMesSelecionado();
@@ -433,6 +668,7 @@ public class GeracaoHorariosController {
         }
 
         limparResultado();
+        carregarListaPropostas(null);
         reposicionarSemanaPlaneamentoParaMesSelecionado();
         esconderFeedback();
     }
@@ -446,6 +682,8 @@ public class GeracaoHorariosController {
         spAno.setDisable(true);
         btnVerProposta.setDisable(true);
         btnGerarProposta.setDisable(true);
+        btnGerarAlternativas.setDisable(true);
+        spQuantidadeAlternativas.setDisable(true);
         painelValidacaoSupervisor.setManaged(false);
         painelValidacaoSupervisor.setVisible(false);
         mostrarErro(mensagem);
@@ -454,6 +692,9 @@ public class GeracaoHorariosController {
     private void configurarPermissoesEcra() {
         btnGerarProposta.setManaged(podeGerar);
         btnGerarProposta.setVisible(podeGerar);
+        btnGerarAlternativas.setManaged(podeGerar);
+        btnGerarAlternativas.setVisible(podeGerar);
+        spQuantidadeAlternativas.setDisable(!podeGerar);
 
         painelValidacaoSupervisor.setManaged(podeValidar);
         painelValidacaoSupervisor.setVisible(podeValidar);
