@@ -42,6 +42,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.transaction.BeforeTransaction;
 
 import java.text.Normalizer;
 import java.time.LocalDate;
@@ -156,6 +157,11 @@ abstract class FluxosCriticosTestSupport {
 
     @PersistenceContext
     protected EntityManager entityManager;
+
+    @BeforeTransaction
+    void garantirEnumEstadoRejeitadoAntesDaTransacao() {
+        garantirValorEnumEstadoRejeitado();
+    }
 
     @BeforeEach
     void limparSessaoAntesDoTeste() {
@@ -595,6 +601,24 @@ abstract class FluxosCriticosTestSupport {
         }
     }
 
+    private void garantirValorEnumEstadoRejeitado() {
+        jdbcTemplate.execute(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM pg_type
+                        WHERE typname = 'estado_horario_enum'
+                    ) THEN
+                        ALTER TYPE public.estado_horario_enum
+                            ADD VALUE IF NOT EXISTS 'rejeitado';
+                    END IF;
+                END $$;
+                """
+        );
+    }
+
     private void garantirEstruturasDeTeste() {
         jdbcTemplate.execute(
                 """
@@ -707,6 +731,8 @@ abstract class FluxosCriticosTestSupport {
                 )
                 """
         );
+
+        garantirValorEnumEstadoRejeitado();
 
         jdbcTemplate.execute(
                 """
