@@ -844,13 +844,111 @@
     -fx-text-fill: #241f1f;
 }
 
+.calendario-mes-dia-topo {
+    -fx-alignment: center-left;
+    -fx-spacing: 8px;
+}
+
+.calendario-mes-dia-meta {
+    -fx-background-color: rgba(196, 18, 48, 0.10);
+    -fx-text-fill: #a8122c;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-padding: 4px 7px;
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
+}
+
+.calendario-mes-evento-texto {
+    -fx-font-size: 12px;
+    -fx-text-fill: #3d3030;
+}
+
+.calendario-mes-evento-card {
+    -fx-background-color: rgba(255, 255, 255, 0.97);
+    -fx-padding: 12px 14px 13px 14px;
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(145, 111, 109, 0.12);
+    -fx-effect: dropshadow(gaussian, rgba(20, 16, 16, 0.08), 16, 0.14, 0, 3);
+}
+
+.calendario-mes-evento-manha {
+    -fx-border-color: rgba(196, 18, 48, 0.16);
+}
+
+.calendario-mes-evento-intermedio {
+    -fx-border-color: rgba(122, 83, 36, 0.18);
+}
+
+.calendario-mes-evento-noite {
+    -fx-border-color: rgba(44, 56, 90, 0.18);
+}
+
+.calendario-mes-evento-topo {
+    -fx-alignment: center-left;
+}
+
+.calendario-mes-evento-ponto {
+    -fx-min-width: 7px;
+    -fx-min-height: 7px;
+    -fx-pref-width: 7px;
+    -fx-pref-height: 7px;
+    -fx-max-width: 7px;
+    -fx-max-height: 7px;
+    -fx-background-color: #c41230;
+    -fx-background-radius: 999px;
+}
+
+.calendario-mes-evento-manha .calendario-mes-evento-ponto {
+    -fx-background-color: #c41230;
+}
+
+.calendario-mes-evento-intermedio .calendario-mes-evento-ponto {
+    -fx-background-color: #8b5c1e;
+}
+
+.calendario-mes-evento-noite .calendario-mes-evento-ponto {
+    -fx-background-color: #314a82;
+}
+
+.calendario-mes-evento-periodo {
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #2a2424;
+}
+
+.calendario-mes-evento-colaborador {
+    -fx-font-family: "Arial Black";
+    -fx-font-size: 14px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #161313;
+    -fx-line-spacing: 1px;
+}
+
+.calendario-mes-evento-cargo {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #6a5b5a;
+    -fx-line-spacing: 2px;
+}
+
+.painel-turnos-estruturados {
+    -fx-background-color: rgba(255, 255, 255, 0.60);
+    -fx-border-color: rgba(196, 18, 48, 0.12);
+    -fx-border-width: 1px;
+    -fx-background-radius: 12px;
+    -fx-border-radius: 12px;
+    -fx-padding: 12px 14px;
+}
+
 .calendario-mes-evento {
     -fx-background-color: rgba(255, 240, 242, 0.96);
     -fx-border-color: rgba(196, 18, 48, 0.18);
     -fx-border-width: 1px;
     -fx-padding: 8px 10px;
-    -fx-font-size: 12px;
-    -fx-text-fill: #3d3030;
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
 }
@@ -970,7 +1068,7 @@
     -fx-border-radius: 18px;
     -fx-padding: 0;
 }
-
+ /**
 .alerta-personalizado:header .header-panel {
     -fx-background-color: linear-gradient(to right, rgba(196, 18, 48, 0.10), rgba(196, 18, 48, 0.02));
     -fx-padding: 24px 26px 8px 26px;
@@ -984,6 +1082,7 @@
     -fx-text-fill: #171515;
 }
 
+*/
 .alerta-personalizado .graphic-container {
     -fx-padding: 0;
 }

@@ -21,6 +21,8 @@ import com.example.projeto2.Repositories.PropostaHorarioMensalRepository;
 import com.example.projeto2.Repositories.RegraRepository;
 import com.example.projeto2.Repositories.RegrasLojaRepository;
 import com.example.projeto2.Repositories.TurnoRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,11 +53,19 @@ import java.util.Set;
 @Service
 public class GeracaoHorariosBLL {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(GeracaoHorariosBLL.class);
     private static final Set<String> CARGOS_COM_GERACAO = Set.of("gerente", "subgerente");
     private static final Set<String> CARGOS_COM_VALIDACAO = Set.of("supervisor");
     private static final Set<String> CARGOS_COM_PRESENCA_OBRIGATORIA_AO_SABADO = Set.of("gerente", "subgerente");
     private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final Duration TEMPO_MAXIMO_GERACAO_ALTERNATIVA = Duration.ofSeconds(20);
+    private static final int LIMITE_CANDIDATOS_POR_SLOT_BASE = 8;
+    private static final int LIMITE_CANDIDATOS_POR_SLOT_ALARGADO = 12;
+    private static final int LIMITE_CANDIDATOS_POR_SLOT_EXCECAO = 16;
+    private static final int LIMITE_NOS_PESQUISA_BASE = 12_000;
+    private static final int LIMITE_NOS_PESQUISA_ALARGADO = 24_000;
+    private static final int LIMITE_NOS_PESQUISA_EXCECAO = 40_000;
 
     private final LojautilizadorRepository lojautilizadorRepository;
     private final HorarioRepository horarioRepository;
@@ -190,8 +200,16 @@ public class GeracaoHorariosBLL {
         ));
 
         List<PropostaResultado> resultados = new ArrayList<>();
+        LOGGER.info(
+                "A gerar {} alternativa(s) para a loja {} no periodo {}/{}.",
+                quantidadeNormalizada,
+                valorOuTraco(dados.loja().getNome()),
+                String.format(Locale.ROOT, "%02d", dados.mes()),
+                dados.ano()
+        );
         for (int indice = 0; indice < quantidadeNormalizada; indice++) {
             PoliticaOtimizacao politica = PoliticaOtimizacao.porIndice(alternativasExistentes + indice);
+            Instant inicioGeracao = Instant.now();
             PlaneamentoGerado planeamento = gerarPlaneamento(
                     dados.colaboradoresAtivos(),
                     dados.turnos(),
@@ -203,12 +221,21 @@ public class GeracaoHorariosBLL {
                     dados.configuracoesPorData(),
                     dados.dataInicio(),
                     dados.dataFim(),
-                    politica
+                    politica,
+                    inicioGeracao.plus(TEMPO_MAXIMO_GERACAO_ALTERNATIVA)
             );
 
             MetricasPlaneamento metricas = calcularMetricasPlaneamento(planeamento, politica);
             PropostaHorarioMensal proposta = persistirProposta(dados.ligacaoAtiva(), dados.ano(), dados.mes(), planeamento, politica, metricas);
             List<Horario> horariosPersistidos = horarioRepository.findByIdPropostaHorarioId(proposta.getId());
+            LOGGER.info(
+                    "Alternativa {} gerada para {}/{} em {} ms com a politica {}.",
+                    proposta.getId(),
+                    String.format(Locale.ROOT, "%02d", dados.mes()),
+                    dados.ano(),
+                    Duration.between(inicioGeracao, Instant.now()).toMillis(),
+                    politica.nome()
+            );
             resultados.add(construirResultado(proposta, horariosPersistidos));
         }
         return resultados;
@@ -548,7 +575,8 @@ public class GeracaoHorariosBLL {
                                                Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData,
                                                LocalDate dataInicio,
                                                LocalDate dataFim,
-                                               PoliticaOtimizacao politica) {
+                                               PoliticaOtimizacao politica,
+                                               Instant prazoLimiteGeracao) {
         Map<Integer, EstadoColaborador> estadoPorColaborador = new LinkedHashMap<>();
         for (Lojautilizador ligacao : colaboradoresAtivos) {
             PerfilContratual perfilContratual = resolverPerfilContratual(ligacao)
@@ -592,6 +620,7 @@ public class GeracaoHorariosBLL {
         Map<LocalDate, ReservaOperacionalFimDeSemana> reservaOperacionalFimDeSemanaPorSemana = new HashMap<>();
 
         for (LocalDate data = dataInicio; !data.isAfter(dataFim); data = data.plusDays(1)) {
+            validarPrazoGeracao(prazoLimiteGeracao, dataInicio, politica);
             LocalDate dataAtual = data;
             LocalDate inicioSemanaAtual = inicioSemana(dataAtual);
             ConfiguracaoDiaEspecial configuracaoDia = configuracoesPorData.get(dataAtual);
@@ -646,7 +675,8 @@ public class GeracaoHorariosBLL {
                     preferenciasColegas,
                     horarios,
                     sabadosComChefia.contains(dataAtual),
-                    politica
+                    politica,
+                    prazoLimiteGeracao
             );
 
             for (AtribuicaoPlaneadaDia atribuicao : atribuicoesDoDia) {
@@ -723,66 +753,13 @@ public class GeracaoHorariosBLL {
                                                                 Map<Integer, List<Preferencia>> preferenciasColegas,
                                                                 List<Horario> horariosGerados,
                                                                 boolean sabadoJaTemChefia,
-                                                                PoliticaOtimizacao politica) {
-        List<SlotTurnoDia> slots = new ArrayList<>();
-        for (Turno turno : turnosDoDia) {
-            long minutosTurno = calcularDuracaoEmMinutos(turno);
-            Integer minimoNecessario = configuracaoDia != null && configuracaoDia.minimoColaboradoresTurno() != null
-                    ? configuracaoDia.minimoColaboradoresTurno()
-                    : parametros.minimosPorTurno().get(turno.getId());
-            if (minimoNecessario == null || minimoNecessario <= 0) {
-                throw new IllegalArgumentException("Foi encontrada uma regra minima invalida para um dos turnos.");
-            }
-            for (int indice = 0; indice < minimoNecessario; indice++) {
-                slots.add(new SlotTurnoDia(turno, minutosTurno, indice));
-            }
-        }
+                                                                PoliticaOtimizacao politica,
+                                                                Instant prazoLimiteGeracao) {
+        List<SlotTurnoDia> slots = construirSlotsDoDia(turnosDoDia, configuracaoDia, parametros);
 
         boolean precisaChefiaAoSabado = parametros.exigirChefiaAoSabado()
                 && data.getDayOfWeek() == DayOfWeek.SATURDAY
                 && !sabadoJaTemChefia;
-
-        Map<SlotTurnoDia, List<EstadoColaborador>> candidatosPorSlot = new LinkedHashMap<>();
-        for (SlotTurnoDia slot : slots) {
-            List<EstadoColaborador> candidatos = resolverCandidatosOrdenados(
-                    data,
-                    slot.turno(),
-                    slot.minutosTurno(),
-                    estadoPorColaborador.values(),
-                    bloqueiosPorUtilizador,
-                    parametros,
-                    reservaOperacionalFimDeSemana,
-                    contextoPreservacaoFimDeSemana,
-                    true,
-                    preferenciasTurnos,
-                    preferenciasColegas,
-                    horariosGerados,
-                    false,
-                    false,
-                    politica
-            );
-            if (candidatos.isEmpty() && contextoPreservacaoFimDeSemana == null) {
-                throw new IllegalArgumentException(
-                        "Nao foi possivel cobrir o turno "
-                                + formatarTurno(slot.turno())
-                                + " em "
-                                + data
-                                + ". Verifica equipa ativa, elegibilidade contratual, carga mensal, descanso semanal, rotacao de fins de semanas, descansos entre turnos e regras minimas."
-                                + " ["
-                                + diagnosticoDisponibilidade(
-                                        estadoPorColaborador.values(),
-                                        data,
-                                        slot.turno(),
-                                        slot.minutosTurno(),
-                                        bloqueiosPorUtilizador,
-                                        parametros,
-                                        reservaOperacionalFimDeSemana
-                                )
-                                + "]"
-                );
-            }
-            candidatosPorSlot.put(slot, candidatos);
-        }
 
         if (precisaChefiaAoSabado) {
             if (!existeChefiaPossivelNoDia(
@@ -801,204 +778,169 @@ public class GeracaoHorariosBLL {
             }
         }
 
-        int chefiasElegiveisNoDia = (int) candidatosPorSlot.values().stream()
-                .flatMap(List::stream)
-                .filter(EstadoColaborador::cumpreChefiaObrigatoriaAoSabado)
-                .map(EstadoColaborador::idUtilizador)
-                .distinct()
-                .count();
-        int minimoChefiasNoDia = ehFimDeSemana(data)
-                ? Math.min(2, chefiasElegiveisNoDia)
-                : 0;
+        int minimoChefiasNoDia = ehFimDeSemana(data) ? 1 : 0;
         if (precisaChefiaAoSabado) {
             minimoChefiasNoDia = Math.max(minimoChefiasNoDia, 1);
         }
 
-        List<SlotTurnoDia> slotsOrdenados = new ArrayList<>(slots);
-        slotsOrdenados.sort(Comparator
-                .comparingInt((SlotTurnoDia slot) -> candidatosPorSlot.getOrDefault(slot, List.of()).size())
-                .thenComparing(slot -> slot.turno().getHoraInicio(), Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(slot -> valorOuTraco(
-                        slot.turno().getTipo() != null ? String.valueOf(slot.turno().getTipo()) : null
-                ), String.CASE_INSENSITIVE_ORDER));
-
-        List<AtribuicaoPlaneadaDia> atribuicoes = new ArrayList<>();
-        boolean encontrou = tentarDistribuicaoDoDia(
-                slotsOrdenados,
-                0,
-                minimoChefiasNoDia,
-                0,
-                candidatosPorSlot,
-                new LinkedHashSet<>(),
-                atribuicoes,
-                estadoPorColaborador.values(),
+        ResultadoTentativaDistribuicao tentativaBase = executarTentativaDistribuicaoDoDia(
                 data,
-                contextoPreservacaoFimDeSemana,
-                parametros,
+                slots,
+                estadoPorColaborador,
                 bloqueiosPorUtilizador,
-                reservaOperacionalFimDeSemana
+                parametros,
+                reservaOperacionalFimDeSemana,
+                contextoPreservacaoFimDeSemana,
+                preferenciasTurnos,
+                preferenciasColegas,
+                horariosGerados,
+                politica,
+                true,
+                false,
+                false,
+                minimoChefiasNoDia,
+                LIMITE_CANDIDATOS_POR_SLOT_BASE,
+                LIMITE_NOS_PESQUISA_BASE,
+                prazoLimiteGeracao
         );
+        if (tentativaBase.encontrou()) {
+            return tentativaBase.atribuicoes();
+        }
+        registarTentativaLimitada(tentativaBase, data, "base");
 
-        boolean existeSlotSemCandidatosPorPreservacao = candidatosPorSlot.values().stream().anyMatch(List::isEmpty);
-        if (!encontrou
-                && contextoPreservacaoFimDeSemana != null
+        ResultadoTentativaDistribuicao tentativaAlargada = executarTentativaDistribuicaoDoDia(
+                data,
+                slots,
+                estadoPorColaborador,
+                bloqueiosPorUtilizador,
+                parametros,
+                reservaOperacionalFimDeSemana,
+                contextoPreservacaoFimDeSemana,
+                preferenciasTurnos,
+                preferenciasColegas,
+                horariosGerados,
+                politica,
+                true,
+                false,
+                false,
+                minimoChefiasNoDia,
+                LIMITE_CANDIDATOS_POR_SLOT_ALARGADO,
+                LIMITE_NOS_PESQUISA_ALARGADO,
+                prazoLimiteGeracao
+        );
+        if (tentativaAlargada.encontrou()) {
+            return tentativaAlargada.atribuicoes();
+        }
+        registarTentativaLimitada(tentativaAlargada, data, "alargada");
+
+        ResultadoTentativaDistribuicao ultimaTentativa = tentativaAlargada;
+        boolean existeSlotSemCandidatosPorPreservacao = tentativaBase.candidatosPorSlot().values().stream().anyMatch(List::isEmpty);
+        if (contextoPreservacaoFimDeSemana != null
                 && (ehFimDeSemana(data) || existeSlotSemCandidatosPorPreservacao)) {
-            Map<SlotTurnoDia, List<EstadoColaborador>> candidatosPorSlotRelaxados = new LinkedHashMap<>();
-            for (SlotTurnoDia slot : slots) {
-                List<EstadoColaborador> candidatos = resolverCandidatosOrdenados(
-                        data,
-                        slot.turno(),
-                        slot.minutosTurno(),
-                        estadoPorColaborador.values(),
-                        bloqueiosPorUtilizador,
-                        parametros,
-                        reservaOperacionalFimDeSemana,
-                        contextoPreservacaoFimDeSemana,
-                        false,
-                        preferenciasTurnos,
-                        preferenciasColegas,
-                        horariosGerados,
-                        false,
-                        false,
-                        politica
-                );
-                candidatosPorSlotRelaxados.put(slot, candidatos);
-            }
-
-            List<SlotTurnoDia> slotsRelaxados = new ArrayList<>(slots);
-            slotsRelaxados.sort(Comparator
-                    .comparingInt((SlotTurnoDia slot) -> candidatosPorSlotRelaxados.getOrDefault(slot, List.of()).size())
-                    .thenComparing(slot -> slot.turno().getHoraInicio(), Comparator.nullsLast(Comparator.naturalOrder()))
-                    .thenComparing(slot -> valorOuTraco(
-                            slot.turno().getTipo() != null ? String.valueOf(slot.turno().getTipo()) : null
-                    ), String.CASE_INSENSITIVE_ORDER));
-
-            atribuicoes.clear();
-            encontrou = tentarDistribuicaoDoDia(
-                    slotsRelaxados,
-                    0,
-                    minimoChefiasNoDia,
-                    0,
-                    candidatosPorSlotRelaxados,
-                    new LinkedHashSet<>(),
-                    atribuicoes,
-                    estadoPorColaborador.values(),
+            ResultadoTentativaDistribuicao tentativaPreservacaoRelaxada = executarTentativaDistribuicaoDoDia(
                     data,
-                    null,
-                    parametros,
+                    slots,
+                    estadoPorColaborador,
                     bloqueiosPorUtilizador,
-                    reservaOperacionalFimDeSemana
+                    parametros,
+                    reservaOperacionalFimDeSemana,
+                    contextoPreservacaoFimDeSemana,
+                    preferenciasTurnos,
+                    preferenciasColegas,
+                    horariosGerados,
+                    politica,
+                    false,
+                    false,
+                    false,
+                    minimoChefiasNoDia,
+                    LIMITE_CANDIDATOS_POR_SLOT_ALARGADO,
+                    LIMITE_NOS_PESQUISA_ALARGADO,
+                    prazoLimiteGeracao
             );
-            if (encontrou) {
-                return atribuicoes;
+            ultimaTentativa = tentativaPreservacaoRelaxada;
+            if (tentativaPreservacaoRelaxada.encontrou()) {
+                return tentativaPreservacaoRelaxada.atribuicoes();
             }
+            registarTentativaLimitada(tentativaPreservacaoRelaxada, data, "sem-preservacao");
         }
 
-        if (!encontrou && ehFimDeSemana(data) && parametros.janelaRotacaoFinsDeSemanaSemanas() >= 2) {
-            Map<SlotTurnoDia, List<EstadoColaborador>> candidatosComRotacaoRelaxada = new LinkedHashMap<>();
-            for (SlotTurnoDia slot : slots) {
-                List<EstadoColaborador> candidatos = resolverCandidatosOrdenados(
-                        data,
-                        slot.turno(),
-                        slot.minutosTurno(),
-                        estadoPorColaborador.values(),
-                        bloqueiosPorUtilizador,
-                        parametros,
-                        reservaOperacionalFimDeSemana,
-                        contextoPreservacaoFimDeSemana,
-                        false,
-                        preferenciasTurnos,
-                        preferenciasColegas,
-                        horariosGerados,
-                        true,
-                        false,
-                        politica
-                );
-                candidatosComRotacaoRelaxada.put(slot, candidatos);
-            }
-
-            List<SlotTurnoDia> slotsRotacaoRelaxada = new ArrayList<>(slots);
-            slotsRotacaoRelaxada.sort(Comparator
-                    .comparingInt((SlotTurnoDia slot) -> candidatosComRotacaoRelaxada.getOrDefault(slot, List.of()).size())
-                    .thenComparing(slot -> slot.turno().getHoraInicio(), Comparator.nullsLast(Comparator.naturalOrder()))
-                    .thenComparing(slot -> valorOuTraco(
-                            slot.turno().getTipo() != null ? String.valueOf(slot.turno().getTipo()) : null
-                    ), String.CASE_INSENSITIVE_ORDER));
-
-            atribuicoes.clear();
-            encontrou = tentarDistribuicaoDoDia(
-                    slotsRotacaoRelaxada,
-                    0,
-                    minimoChefiasNoDia,
-                    0,
-                    candidatosComRotacaoRelaxada,
-                    new LinkedHashSet<>(),
-                    atribuicoes,
-                    estadoPorColaborador.values(),
+        if (ehFimDeSemana(data) && parametros.janelaRotacaoFinsDeSemanaSemanas() >= 2) {
+            ResultadoTentativaDistribuicao tentativaRotacaoRelaxada = executarTentativaDistribuicaoDoDia(
                     data,
-                    null,
-                    parametros,
+                    slots,
+                    estadoPorColaborador,
                     bloqueiosPorUtilizador,
-                    reservaOperacionalFimDeSemana
+                    parametros,
+                    reservaOperacionalFimDeSemana,
+                    contextoPreservacaoFimDeSemana,
+                    preferenciasTurnos,
+                    preferenciasColegas,
+                    horariosGerados,
+                    politica,
+                    false,
+                    true,
+                    false,
+                    minimoChefiasNoDia,
+                    LIMITE_CANDIDATOS_POR_SLOT_EXCECAO,
+                    LIMITE_NOS_PESQUISA_EXCECAO,
+                    prazoLimiteGeracao
             );
-            if (encontrou) {
-                return atribuicoes;
+            ultimaTentativa = tentativaRotacaoRelaxada;
+            if (tentativaRotacaoRelaxada.encontrou()) {
+                return tentativaRotacaoRelaxada.atribuicoes();
             }
+            registarTentativaLimitada(tentativaRotacaoRelaxada, data, "rotacao-relaxada");
         }
 
-        if (!encontrou && ehFimDeSemana(data)) {
-            Map<SlotTurnoDia, List<EstadoColaborador>> candidatosComExcecaoOperacional = new LinkedHashMap<>();
-            for (SlotTurnoDia slot : slots) {
-                List<EstadoColaborador> candidatos = resolverCandidatosOrdenados(
-                        data,
-                        slot.turno(),
-                        slot.minutosTurno(),
-                        estadoPorColaborador.values(),
-                        bloqueiosPorUtilizador,
-                        parametros,
-                        reservaOperacionalFimDeSemana,
-                        contextoPreservacaoFimDeSemana,
-                        false,
-                        preferenciasTurnos,
-                        preferenciasColegas,
-                        horariosGerados,
-                        true,
-                        true,
-                        politica
-                );
-                candidatosComExcecaoOperacional.put(slot, candidatos);
-            }
-
-            List<SlotTurnoDia> slotsExcecaoOperacional = new ArrayList<>(slots);
-            slotsExcecaoOperacional.sort(Comparator
-                    .comparingInt((SlotTurnoDia slot) -> candidatosComExcecaoOperacional.getOrDefault(slot, List.of()).size())
-                    .thenComparing(slot -> slot.turno().getHoraInicio(), Comparator.nullsLast(Comparator.naturalOrder()))
-                    .thenComparing(slot -> valorOuTraco(
-                            slot.turno().getTipo() != null ? String.valueOf(slot.turno().getTipo()) : null
-                    ), String.CASE_INSENSITIVE_ORDER));
-
-            atribuicoes.clear();
-            encontrou = tentarDistribuicaoDoDia(
-                    slotsExcecaoOperacional,
-                    0,
-                    minimoChefiasNoDia,
-                    0,
-                    candidatosComExcecaoOperacional,
-                    new LinkedHashSet<>(),
-                    atribuicoes,
-                    estadoPorColaborador.values(),
+        if (ehFimDeSemana(data)) {
+            ResultadoTentativaDistribuicao tentativaExcecaoOperacional = executarTentativaDistribuicaoDoDia(
                     data,
-                    null,
-                    parametros,
+                    slots,
+                    estadoPorColaborador,
                     bloqueiosPorUtilizador,
-                    reservaOperacionalFimDeSemana
+                    parametros,
+                    reservaOperacionalFimDeSemana,
+                    contextoPreservacaoFimDeSemana,
+                    preferenciasTurnos,
+                    preferenciasColegas,
+                    horariosGerados,
+                    politica,
+                    false,
+                    true,
+                    true,
+                    minimoChefiasNoDia,
+                    LIMITE_CANDIDATOS_POR_SLOT_EXCECAO,
+                    LIMITE_NOS_PESQUISA_EXCECAO,
+                    prazoLimiteGeracao
             );
-            if (encontrou) {
-                return atribuicoes;
+            ultimaTentativa = tentativaExcecaoOperacional;
+            if (tentativaExcecaoOperacional.encontrou()) {
+                return tentativaExcecaoOperacional.atribuicoes();
             }
+            registarTentativaLimitada(tentativaExcecaoOperacional, data, "excecao-operacional");
         }
 
-        if (!encontrou) {
+        if (prazoLimiteGeracao != null && Instant.now().isAfter(prazoLimiteGeracao)) {
+            throw new IllegalArgumentException(
+                    "A geracao do planeamento demorou demasiado tempo para "
+                            + data.getMonthValue()
+                            + "/"
+                            + data.getYear()
+                            + ". Tenta gerar menos alternativas de cada vez ou reduzir restricoes muito apertadas."
+            );
+        }
+
+        if (ultimaTentativa.contextoPesquisa().atingiuLimitePesquisa()) {
+            throw new IllegalArgumentException(
+                    "A distribuicao de turnos em "
+                            + DATA_FORMATTER.format(data)
+                            + " exigiu combinacoes demais para a pesquisa automatica. Revê minimos por turno, bloqueios, folgas e regras de chefia desse periodo."
+            );
+        }
+
+        if (!ultimaTentativa.encontrou()) {
+            List<SlotTurnoDia> slotsOrdenados = ultimaTentativa.slotsOrdenados();
+            Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot = ultimaTentativa.candidatosPorSlot();
             SlotTurnoDia slotMaisCritico = slotsOrdenados.getFirst();
             throw new IllegalArgumentException(
                     "Nao foi possivel cobrir o turno "
@@ -1011,7 +953,7 @@ public class GeracaoHorariosBLL {
                                     estadoPorColaborador.values(),
                                     data,
                                     slotMaisCritico.turno(),
-                                    slotMaisCritico.minutosTurno(),
+                                    calcularDuracaoEmMinutos(slotMaisCritico.turno()),
                                     bloqueiosPorUtilizador,
                                     parametros,
                                     reservaOperacionalFimDeSemana
@@ -1023,7 +965,278 @@ public class GeracaoHorariosBLL {
             );
         }
 
-        return atribuicoes;
+        return ultimaTentativa.atribuicoes();
+    }
+
+    private ResultadoTentativaDistribuicao executarTentativaDistribuicaoDoDia(LocalDate data,
+                                                                              List<SlotTurnoDia> slots,
+                                                                              Map<Integer, EstadoColaborador> estadoPorColaborador,
+                                                                              Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
+                                                                              ParametrosGeracao parametros,
+                                                                              ReservaOperacionalFimDeSemana reservaOperacionalFimDeSemana,
+                                                                              ContextoPreservacaoFimDeSemana contextoPreservacaoFimDeSemana,
+                                                                              Map<Integer, List<Preferencia>> preferenciasTurnos,
+                                                                              Map<Integer, List<Preferencia>> preferenciasColegas,
+                                                                              List<Horario> horariosGerados,
+                                                                              PoliticaOtimizacao politica,
+                                                                              boolean aplicarPreservacaoFimDeSemana,
+                                                                              boolean ignorarRotacaoFimDeSemana,
+                                                                              boolean ignorarDescansoSemanal,
+                                                                              int minimoChefiasNoDia,
+                                                                              int limiteCandidatosPorSlot,
+                                                                              int limiteNosPesquisa,
+                                                                              Instant prazoLimiteGeracao) {
+        Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot = new LinkedHashMap<>();
+        for (SlotTurnoDia slot : slots) {
+            List<AtribuicaoPlaneadaDia> candidatos = limitarAtribuicoesPotenciais(
+                    resolverAtribuicoesOrdenadas(
+                            data,
+                            slot.turnosCompativeis(),
+                            estadoPorColaborador.values(),
+                            bloqueiosPorUtilizador,
+                            parametros,
+                            reservaOperacionalFimDeSemana,
+                            contextoPreservacaoFimDeSemana,
+                            aplicarPreservacaoFimDeSemana,
+                            preferenciasTurnos,
+                            preferenciasColegas,
+                            horariosGerados,
+                            ignorarRotacaoFimDeSemana,
+                            ignorarDescansoSemanal,
+                            politica
+                    ),
+                    limiteCandidatosPorSlot
+            );
+            candidatosPorSlot.put(slot, candidatos);
+        }
+
+        List<SlotTurnoDia> slotsOrdenados = ordenarSlotsPorEscassez(slots, candidatosPorSlot);
+        long candidatosDistintos = candidatosPorSlot.values().stream()
+                .flatMap(Collection::stream)
+                .map(AtribuicaoPlaneadaDia::estado)
+                .map(EstadoColaborador::idUtilizador)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+        if (candidatosDistintos < slotsOrdenados.size()) {
+            return new ResultadoTentativaDistribuicao(
+                    false,
+                    List.of(),
+                    candidatosPorSlot,
+                    slotsOrdenados,
+                    new PesquisaDistribuicaoContexto(prazoLimiteGeracao, limiteNosPesquisa)
+            );
+        }
+
+        List<AtribuicaoPlaneadaDia> atribuicoesGulosas = tentarDistribuicaoGulosaDoDia(
+                slotsOrdenados,
+                minimoChefiasNoDia,
+                candidatosPorSlot,
+                estadoPorColaborador.values(),
+                data,
+                aplicarPreservacaoFimDeSemana ? contextoPreservacaoFimDeSemana : null,
+                parametros,
+                bloqueiosPorUtilizador,
+                reservaOperacionalFimDeSemana
+        );
+        if (atribuicoesGulosas != null) {
+            return new ResultadoTentativaDistribuicao(
+                    true,
+                    List.copyOf(atribuicoesGulosas),
+                    candidatosPorSlot,
+                    slotsOrdenados,
+                    new PesquisaDistribuicaoContexto(prazoLimiteGeracao, limiteNosPesquisa)
+            );
+        }
+
+        List<AtribuicaoPlaneadaDia> atribuicoes = new ArrayList<>();
+        PesquisaDistribuicaoContexto contextoPesquisa = new PesquisaDistribuicaoContexto(prazoLimiteGeracao, limiteNosPesquisa);
+        boolean encontrou = tentarDistribuicaoDoDia(
+                slotsOrdenados,
+                0,
+                minimoChefiasNoDia,
+                0,
+                candidatosPorSlot,
+                new LinkedHashSet<>(),
+                atribuicoes,
+                estadoPorColaborador.values(),
+                data,
+                aplicarPreservacaoFimDeSemana ? contextoPreservacaoFimDeSemana : null,
+                parametros,
+                bloqueiosPorUtilizador,
+                reservaOperacionalFimDeSemana,
+                contextoPesquisa
+        );
+
+        return new ResultadoTentativaDistribuicao(
+                encontrou,
+                List.copyOf(atribuicoes),
+                candidatosPorSlot,
+                slotsOrdenados,
+                contextoPesquisa
+        );
+    }
+
+    private List<AtribuicaoPlaneadaDia> tentarDistribuicaoGulosaDoDia(List<SlotTurnoDia> slotsOrdenados,
+                                                                       int minimoChefiasNoDia,
+                                                                       Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot,
+                                                                       Collection<EstadoColaborador> estados,
+                                                                       LocalDate data,
+                                                                       ContextoPreservacaoFimDeSemana contextoPreservacaoFimDeSemana,
+                                                                       ParametrosGeracao parametros,
+                                                                       Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
+                                                                       ReservaOperacionalFimDeSemana reservaOperacionalFimDeSemana) {
+        Set<Integer> colaboradoresUsados = new LinkedHashSet<>();
+        List<AtribuicaoPlaneadaDia> atribuicoes = new ArrayList<>();
+        int chefiasAtribuidas = 0;
+
+        for (int indice = 0; indice < slotsOrdenados.size(); indice++) {
+            SlotTurnoDia slot = slotsOrdenados.get(indice);
+            boolean atribuido = false;
+
+            for (AtribuicaoPlaneadaDia candidato : candidatosPorSlot.getOrDefault(slot, List.of())) {
+                if (colaboradoresUsados.contains(candidato.estado().idUtilizador())) {
+                    continue;
+                }
+
+                colaboradoresUsados.add(candidato.estado().idUtilizador());
+                atribuicoes.add(candidato);
+
+                int proximasChefiasAtribuidas = chefiasAtribuidas + (candidato.estado().cumpreChefiaObrigatoriaAoSabado() ? 1 : 0);
+                boolean mantemChefiasPossiveis = proximasChefiasAtribuidas + contarChefiasDisponiveisNosSlotsRestantes(
+                        slotsOrdenados,
+                        indice + 1,
+                        candidatosPorSlot,
+                        colaboradoresUsados
+                ) >= minimoChefiasNoDia;
+
+                boolean mantemCapacidade = mantemCapacidadeFuturaAposAtribuicoes(
+                        estados,
+                        data,
+                        contextoPreservacaoFimDeSemana,
+                        parametros,
+                        bloqueiosPorUtilizador,
+                        reservaOperacionalFimDeSemana,
+                        atribuicoes
+                );
+
+                if (mantemChefiasPossiveis && mantemCapacidade) {
+                    chefiasAtribuidas = proximasChefiasAtribuidas;
+                    atribuido = true;
+                    break;
+                }
+
+                atribuicoes.removeLast();
+                colaboradoresUsados.remove(candidato.estado().idUtilizador());
+            }
+
+            if (!atribuido) {
+                return null;
+            }
+        }
+
+        return chefiasAtribuidas >= minimoChefiasNoDia ? atribuicoes : null;
+    }
+
+    private List<SlotTurnoDia> ordenarSlotsPorEscassez(List<SlotTurnoDia> slots,
+                                                       Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot) {
+        List<SlotTurnoDia> slotsOrdenados = new ArrayList<>(slots);
+        slotsOrdenados.sort(Comparator
+                .comparingInt((SlotTurnoDia slot) -> candidatosPorSlot.getOrDefault(slot, List.of()).size())
+                .thenComparing(slot -> slot.turno().getHoraInicio(), Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(slot -> valorOuTraco(
+                        slot.turno().getTipo() != null ? String.valueOf(slot.turno().getTipo()) : null
+                ), String.CASE_INSENSITIVE_ORDER));
+        return slotsOrdenados;
+    }
+
+    private List<SlotTurnoDia> construirSlotsDoDia(List<Turno> turnosDoDia,
+                                                   ConfiguracaoDiaEspecial configuracaoDia,
+                                                   ParametrosGeracao parametros) {
+        Map<String, List<Turno>> turnosPorTipo = new LinkedHashMap<>();
+        for (Turno turno : turnosDoDia) {
+            turnosPorTipo.computeIfAbsent(normalizarTurno(turno), ignored -> new ArrayList<>()).add(turno);
+        }
+
+        List<SlotTurnoDia> slots = new ArrayList<>();
+        for (List<Turno> grupo : turnosPorTipo.values()) {
+            if (grupo == null || grupo.isEmpty()) {
+                continue;
+            }
+
+            Turno turnoRepresentativo = selecionarTurnoRepresentativo(grupo);
+            int minimoNecessario = grupo.stream()
+                    .map(turno -> resolverMinimoNecessarioTurno(turno, configuracaoDia, parametros))
+                    .filter(Objects::nonNull)
+                    .max(Integer::compareTo)
+                    .orElse(0);
+            if (minimoNecessario <= 0) {
+                throw new IllegalArgumentException("Foi encontrada uma regra minima invalida para um dos turnos.");
+            }
+
+            long minutosTurno = calcularDuracaoEmMinutos(turnoRepresentativo);
+            for (int indice = 0; indice < minimoNecessario; indice++) {
+                slots.add(new SlotTurnoDia(turnoRepresentativo, List.copyOf(grupo), indice));
+            }
+        }
+        return slots;
+    }
+
+    private Integer resolverMinimoNecessarioTurno(Turno turno,
+                                                  ConfiguracaoDiaEspecial configuracaoDia,
+                                                  ParametrosGeracao parametros) {
+        if (configuracaoDia != null && configuracaoDia.minimoColaboradoresTurno() != null) {
+            return configuracaoDia.minimoColaboradoresTurno();
+        }
+        return turno != null ? parametros.minimosPorTurno().get(turno.getId()) : null;
+    }
+
+    private Turno selecionarTurnoRepresentativo(List<Turno> grupo) {
+        return grupo.stream()
+                .filter(Objects::nonNull)
+                .max(Comparator
+                        .comparingLong(this::calcularDuracaoEmMinutos)
+                        .thenComparing(Turno::getHoraInicio, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Turno::getHoraFim, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Turno::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElseThrow(() -> new IllegalArgumentException("Nao foi possivel determinar um turno representativo."));
+    }
+
+    private List<AtribuicaoPlaneadaDia> limitarAtribuicoesPotenciais(List<AtribuicaoPlaneadaDia> candidatos, int limiteCandidatosPorSlot) {
+        if (candidatos == null || candidatos.isEmpty() || limiteCandidatosPorSlot <= 0 || candidatos.size() <= limiteCandidatosPorSlot) {
+            return candidatos;
+        }
+        return List.copyOf(candidatos.subList(0, limiteCandidatosPorSlot));
+    }
+
+    private void registarTentativaLimitada(ResultadoTentativaDistribuicao tentativa, LocalDate data, String contextoTentativa) {
+        if (tentativa == null || tentativa.encontrou() || tentativa.contextoPesquisa() == null) {
+            return;
+        }
+        if (tentativa.contextoPesquisa().atingiuLimitePesquisa() || tentativa.contextoPesquisa().prazoEsgotado()) {
+            LOGGER.warn(
+                    "A tentativa {} da distribuicao de {} nao concluiu dentro do orcamento (nos explorados={}, limite={}, prazo esgotado={}).",
+                    contextoTentativa,
+                    DATA_FORMATTER.format(data),
+                    tentativa.contextoPesquisa().nosExplorados(),
+                    tentativa.contextoPesquisa().limiteNosPesquisa(),
+                    tentativa.contextoPesquisa().prazoEsgotado()
+            );
+        }
+    }
+
+    private void validarPrazoGeracao(Instant prazoLimiteGeracao, LocalDate dataReferencia, PoliticaOtimizacao politica) {
+        if (prazoLimiteGeracao != null && Instant.now().isAfter(prazoLimiteGeracao)) {
+            throw new IllegalArgumentException(
+                    "A geracao da alternativa com a politica "
+                            + (politica != null ? politica.nome() : "equilibrio")
+                            + " ultrapassou o tempo maximo para "
+                            + Month.of(dataReferencia.getMonthValue()).name().toLowerCase(Locale.ROOT)
+                            + "/"
+                            + dataReferencia.getYear()
+                            + "."
+            );
+        }
     }
 
     private boolean existeChefiaPossivelNoDia(LocalDate data,
@@ -1037,36 +1250,109 @@ public class GeracaoHorariosBLL {
                 continue;
             }
             for (SlotTurnoDia slot : slots) {
-                if (estado.podeReceber(
-                        data,
-                        slot.turno(),
-                        slot.minutosTurno(),
-                        bloqueiosPorUtilizador.getOrDefault(estado.idUtilizador(), Set.of()),
-                        parametros.maxDiasConsecutivos(),
-                        parametros.descansoMinimoHoras(),
-                        parametros.descansoSemanalMinimoDias(),
-                        parametros.janelaRotacaoFinsDeSemanaSemanas(),
-                        reservaOperacionalFimDeSemana,
-                        true,
-                        true
-                )) {
-                    return true;
+                for (Turno turnoCompativel : slot.turnosCompativeis()) {
+                    if (estado.podeReceber(
+                            data,
+                            turnoCompativel,
+                            calcularDuracaoEmMinutos(turnoCompativel),
+                            bloqueiosPorUtilizador.getOrDefault(estado.idUtilizador(), Set.of()),
+                            parametros.maxDiasConsecutivos(),
+                            parametros.descansoMinimoHoras(),
+                            parametros.descansoSemanalMinimoDias(),
+                            parametros.janelaRotacaoFinsDeSemanaSemanas(),
+                            reservaOperacionalFimDeSemana,
+                            true,
+                            true
+                    )) {
+                        return true;
+                    }
                 }
             }
         }
         return false;
     }
 
-    private String descreverCandidatosPorSlot(Map<SlotTurnoDia, List<EstadoColaborador>> candidatosPorSlot) {
+    private String descreverCandidatosPorSlot(Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot) {
         List<String> detalhes = new ArrayList<>();
-        for (Map.Entry<SlotTurnoDia, List<EstadoColaborador>> entry : candidatosPorSlot.entrySet()) {
+        for (Map.Entry<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> entry : candidatosPorSlot.entrySet()) {
             String nomes = entry.getValue().stream()
-                    .map(estado -> valorOuTraco(estado.ligacao().getIdUtilizador().getNome()))
+                    .map(atribuicao -> valorOuTraco(atribuicao.estado().ligacao().getIdUtilizador().getNome())
+                            + "@"
+                            + formatarPeriodo(atribuicao.turno()))
                     .toList()
                     .toString();
             detalhes.add(formatarTurno(entry.getKey().turno()) + "#" + entry.getKey().ordemNoTurno() + "=" + nomes);
         }
         return String.join("; ", detalhes);
+    }
+
+    private List<AtribuicaoPlaneadaDia> resolverAtribuicoesOrdenadas(LocalDate data,
+                                                                     List<Turno> turnosCompativeis,
+                                                                     Collection<EstadoColaborador> estados,
+                                                                     Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
+                                                                     ParametrosGeracao parametros,
+                                                                     ReservaOperacionalFimDeSemana reservaOperacionalFimDeSemana,
+                                                                     ContextoPreservacaoFimDeSemana contextoPreservacaoFimDeSemana,
+                                                                     boolean aplicarPreservacaoFimDeSemana,
+                                                                     Map<Integer, List<Preferencia>> preferenciasTurnos,
+                                                                     Map<Integer, List<Preferencia>> preferenciasColegas,
+                                                                     List<Horario> horariosGerados,
+                                                                     boolean ignorarRotacaoFimDeSemana,
+                                                                     boolean ignorarDescansoSemanal,
+                                                                     PoliticaOtimizacao politica) {
+        Map<Integer, AtribuicaoPlaneadaDia> melhorPorUtilizador = new LinkedHashMap<>();
+        for (Turno turnoCompativel : turnosCompativeis) {
+            long minutosTurno = calcularDuracaoEmMinutos(turnoCompativel);
+            List<EstadoColaborador> candidatos = resolverCandidatosOrdenados(
+                    data,
+                    turnoCompativel,
+                    minutosTurno,
+                    estados,
+                    bloqueiosPorUtilizador,
+                    parametros,
+                    reservaOperacionalFimDeSemana,
+                    contextoPreservacaoFimDeSemana,
+                    aplicarPreservacaoFimDeSemana,
+                    preferenciasTurnos,
+                    preferenciasColegas,
+                    horariosGerados,
+                    ignorarRotacaoFimDeSemana,
+                    ignorarDescansoSemanal,
+                    politica
+            );
+            for (EstadoColaborador candidato : candidatos) {
+                AtribuicaoPlaneadaDia proposta = new AtribuicaoPlaneadaDia(candidato, turnoCompativel, minutosTurno);
+                melhorPorUtilizador.merge(
+                        candidato.idUtilizador(),
+                        proposta,
+                        (atual, novo) -> criarComparatorAtribuicoesPotenciais(
+                                data,
+                                parametros.exigirChefiaAoSabado(),
+                                parametros.descansoSemanalMinimoDias(),
+                                parametros.janelaRotacaoFinsDeSemanaSemanas(),
+                                reservaOperacionalFimDeSemana,
+                                preferenciasTurnos,
+                                preferenciasColegas,
+                                horariosGerados,
+                                politica
+                        ).compare(atual, novo) <= 0 ? atual : novo
+                );
+            }
+        }
+
+        List<AtribuicaoPlaneadaDia> atribuicoes = new ArrayList<>(melhorPorUtilizador.values());
+        atribuicoes.sort(criarComparatorAtribuicoesPotenciais(
+                data,
+                parametros.exigirChefiaAoSabado(),
+                parametros.descansoSemanalMinimoDias(),
+                parametros.janelaRotacaoFinsDeSemanaSemanas(),
+                reservaOperacionalFimDeSemana,
+                preferenciasTurnos,
+                preferenciasColegas,
+                horariosGerados,
+                politica
+        ));
+        return atribuicoes;
     }
 
     private List<EstadoColaborador> resolverCandidatosOrdenados(LocalDate data,
@@ -1150,6 +1436,86 @@ public class GeracaoHorariosBLL {
                 ))
                 .sorted(comparatorComViabilidadeFutura)
                 .toList();
+    }
+
+    private Comparator<AtribuicaoPlaneadaDia> criarComparatorAtribuicoesPotenciais(LocalDate data,
+                                                                                    boolean exigirChefiaAoSabado,
+                                                                                    int descansoSemanalMinimoDias,
+                                                                                    int janelaRotacaoFinsDeSemanaSemanas,
+                                                                                    ReservaOperacionalFimDeSemana reservaOperacionalFimDeSemana,
+                                                                                    Map<Integer, List<Preferencia>> preferenciasTurnos,
+                                                                                    Map<Integer, List<Preferencia>> preferenciasColegas,
+                                                                                    List<Horario> horariosGerados,
+                                                                                    PoliticaOtimizacao politica) {
+        return Comparator
+                .comparingInt((AtribuicaoPlaneadaDia atribuicao) -> prioridadeChefiaNaDistribuicao(
+                        atribuicao.estado(),
+                        data,
+                        exigirChefiaAoSabado
+                ))
+                .thenComparingInt(atribuicao -> custoObjetivo(
+                        atribuicao.estado(),
+                        data,
+                        atribuicao.turno(),
+                        atribuicao.minutosTurno(),
+                        descansoSemanalMinimoDias,
+                        janelaRotacaoFinsDeSemanaSemanas,
+                        reservaOperacionalFimDeSemana,
+                        preferenciasTurnos,
+                        preferenciasColegas,
+                        horariosGerados,
+                        politica
+                ))
+                .thenComparingInt(atribuicao -> prioridadeConcentracaoFimDeSemana(atribuicao.estado(), data))
+                .thenComparingInt(atribuicao -> prioridadeGrupoRotacaoPlaneado(atribuicao.estado(), data))
+                .thenComparingInt(atribuicao -> prioridadeReservaOperacionalDaSemana(
+                        atribuicao.estado(),
+                        data,
+                        descansoSemanalMinimoDias,
+                        reservaOperacionalFimDeSemana
+                ))
+                .thenComparingInt(atribuicao -> prioridadePreservacaoDoProximoFimDeSemana(
+                        atribuicao.estado(),
+                        data,
+                        descansoSemanalMinimoDias,
+                        janelaRotacaoFinsDeSemanaSemanas
+                ))
+                .thenComparingInt(atribuicao -> atribuicao.estado().diasTrabalhadosNaSemana(data))
+                .thenComparingDouble(atribuicao -> atribuicao.estado().utilizacaoContratualProjetada(atribuicao.minutosTurno()))
+                .thenComparingInt(atribuicao -> prioridadePerfilNoFimDeSemana(atribuicao.estado(), data))
+                .thenComparingInt(atribuicao -> prioridadeSustentabilidadeDoFimDeSemana(
+                        atribuicao.estado(),
+                        data,
+                        descansoSemanalMinimoDias
+                ))
+                .thenComparingInt(atribuicao -> prioridadeReservaParaFimDeSemana(
+                        atribuicao.estado(),
+                        data,
+                        janelaRotacaoFinsDeSemanaSemanas
+                ))
+                .thenComparing(atribuicao -> !temPreferenciaTurnoFavoravel(
+                        preferenciasTurnos.getOrDefault(atribuicao.estado().idUtilizador(), List.of()),
+                        data,
+                        atribuicao.turno()
+                ))
+                .thenComparing(atribuicao -> !temPreferenciaColegasFavoravel(
+                        preferenciasColegas.getOrDefault(atribuicao.estado().idUtilizador(), List.of()),
+                        data,
+                        horariosGerados
+                ))
+                .thenComparingInt(atribuicao -> atribuicao.estado().turnosAtribuidos())
+                .thenComparingLong(atribuicao -> atribuicao.estado().minutosAtribuidos())
+                .thenComparingInt(atribuicao -> atribuicao.estado().turnosDoTipo(normalizarTurno(atribuicao.turno())))
+                .thenComparingInt(atribuicao -> prioridadeDiversificacao(
+                        atribuicao.estado(),
+                        data,
+                        atribuicao.turno(),
+                        politica
+                ))
+                .thenComparing(atribuicao -> valorOuTraco(
+                        atribuicao.estado().ligacao().getIdUtilizador().getNome()
+                ), String.CASE_INSENSITIVE_ORDER)
+                .thenComparingLong(AtribuicaoPlaneadaDia::minutosTurno);
     }
 
     private int prioridadeUsoExcecionalDaRotacao(EstadoColaborador estado,
@@ -1383,7 +1749,7 @@ public class GeracaoHorariosBLL {
                                             int indiceAtual,
                                             int minimoChefiasNoDia,
                                             int chefiasAtribuidas,
-                                            Map<SlotTurnoDia, List<EstadoColaborador>> candidatosPorSlot,
+                                            Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot,
                                             Set<Integer> colaboradoresUsados,
                                             List<AtribuicaoPlaneadaDia> atribuicoes,
                                             Collection<EstadoColaborador> estados,
@@ -1391,7 +1757,11 @@ public class GeracaoHorariosBLL {
                                             ContextoPreservacaoFimDeSemana contextoPreservacaoFimDeSemana,
                                             ParametrosGeracao parametros,
                                             Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
-                                            ReservaOperacionalFimDeSemana reservaOperacionalFimDeSemana) {
+                                            ReservaOperacionalFimDeSemana reservaOperacionalFimDeSemana,
+                                            PesquisaDistribuicaoContexto contextoPesquisa) {
+        if (contextoPesquisa != null && !contextoPesquisa.permiteContinuar()) {
+            return false;
+        }
         if (indiceAtual >= slotsOrdenados.size()) {
             return chefiasAtribuidas >= minimoChefiasNoDia;
         }
@@ -1406,15 +1776,15 @@ public class GeracaoHorariosBLL {
         }
 
         SlotTurnoDia slot = slotsOrdenados.get(indiceAtual);
-        for (EstadoColaborador candidato : candidatosPorSlot.getOrDefault(slot, List.of())) {
-            if (colaboradoresUsados.contains(candidato.idUtilizador())) {
+        for (AtribuicaoPlaneadaDia candidato : candidatosPorSlot.getOrDefault(slot, List.of())) {
+            if (colaboradoresUsados.contains(candidato.estado().idUtilizador())) {
                 continue;
             }
 
-            colaboradoresUsados.add(candidato.idUtilizador());
-            atribuicoes.add(new AtribuicaoPlaneadaDia(candidato, slot.turno(), slot.minutosTurno()));
+            colaboradoresUsados.add(candidato.estado().idUtilizador());
+            atribuicoes.add(candidato);
 
-            int proximasChefiasAtribuidas = chefiasAtribuidas + (candidato.cumpreChefiaObrigatoriaAoSabado() ? 1 : 0);
+            int proximasChefiasAtribuidas = chefiasAtribuidas + (candidato.estado().cumpreChefiaObrigatoriaAoSabado() ? 1 : 0);
             if (mantemCapacidadeFuturaAposAtribuicoes(
                     estados,
                     data,
@@ -1436,13 +1806,14 @@ public class GeracaoHorariosBLL {
                     contextoPreservacaoFimDeSemana,
                     parametros,
                     bloqueiosPorUtilizador,
-                    reservaOperacionalFimDeSemana
+                    reservaOperacionalFimDeSemana,
+                    contextoPesquisa
             )) {
                 return true;
             }
 
             atribuicoes.removeLast();
-            colaboradoresUsados.remove(candidato.idUtilizador());
+            colaboradoresUsados.remove(candidato.estado().idUtilizador());
         }
 
         return false;
@@ -1530,12 +1901,13 @@ public class GeracaoHorariosBLL {
 
     private int contarChefiasDisponiveisNosSlotsRestantes(List<SlotTurnoDia> slotsOrdenados,
                                                           int indiceAtual,
-                                                          Map<SlotTurnoDia, List<EstadoColaborador>> candidatosPorSlot,
+                                                          Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot,
                                                           Set<Integer> colaboradoresUsados) {
         Set<Integer> chefiasDisponiveis = new LinkedHashSet<>();
         for (int indice = indiceAtual; indice < slotsOrdenados.size(); indice++) {
             SlotTurnoDia slot = slotsOrdenados.get(indice);
             candidatosPorSlot.getOrDefault(slot, List.of()).stream()
+                    .map(AtribuicaoPlaneadaDia::estado)
                     .filter(EstadoColaborador::cumpreChefiaObrigatoriaAoSabado)
                     .map(EstadoColaborador::idUtilizador)
                     .filter(idUtilizador -> !colaboradoresUsados.contains(idUtilizador))
@@ -2002,13 +2374,46 @@ public class GeracaoHorariosBLL {
             }
 
             String descricao = normalizarTexto(preferencia.getDescricao());
+            boolean correspondeTipo = false;
             for (String alias : aliasesTurno(tipoTurno)) {
                 if (!alias.isBlank() && descricao.contains(alias)) {
-                    return true;
+                    correspondeTipo = true;
+                    break;
                 }
             }
+            if (!correspondeTipo) {
+                continue;
+            }
+
+            if (!respeitaDuracaoPreferida(descricao, turno)) {
+                continue;
+            }
+            return true;
         }
         return false;
+    }
+
+    private boolean respeitaDuracaoPreferida(String descricaoPreferencia, Turno turno) {
+        if (descricaoPreferencia == null || descricaoPreferencia.isBlank() || turno == null) {
+            return true;
+        }
+
+        boolean prefereCurto = descricaoPreferencia.contains("duracao preferida: curto")
+                || descricaoPreferencia.contains("turnos curtos")
+                || descricaoPreferencia.contains("turno curto");
+        boolean prefereLongo = descricaoPreferencia.contains("duracao preferida: longo")
+                || descricaoPreferencia.contains("turnos longos")
+                || descricaoPreferencia.contains("turno longo");
+
+        if (!prefereCurto && !prefereLongo) {
+            return true;
+        }
+
+        boolean turnoCurto = calcularDuracaoEmMinutos(turno) <= 300;
+        if (prefereCurto) {
+            return turnoCurto;
+        }
+        return !turnoCurto;
     }
 
     private boolean temPreferenciaColegasFavoravel(List<Preferencia> preferencias, LocalDate data, List<Horario> horariosGerados) {
@@ -2365,9 +2770,16 @@ public class GeracaoHorariosBLL {
 
     private List<String> aliasesTurno(String tipoTurno) {
         return switch (tipoTurno) {
-            case "manha" -> List.of("manha", "abertura", "morning");
-            case "tarde" -> List.of("tarde", "afternoon");
-            case "noite" -> List.of("noite", "fecho", "night");
+            case "manha" -> List.of("manha", "abertura", "morning", "cedo");
+            case "intermedio", "tarde" -> List.of(
+                    "intermedio",
+                    "tarde",
+                    "afternoon",
+                    "meio dia",
+                    "meio-dia",
+                    "central"
+            );
+            case "noite" -> List.of("noite", "fecho", "encerramento", "night");
             default -> List.of(tipoTurno);
         };
     }
@@ -3349,7 +3761,7 @@ public class GeracaoHorariosBLL {
 
     private record SlotTurnoDia(
             Turno turno,
-            long minutosTurno,
+            List<Turno> turnosCompativeis,
             int ordemNoTurno
     ) {
     }
@@ -3500,6 +3912,58 @@ public class GeracaoHorariosBLL {
             List<EstadoColaborador> estados,
             Collection<LocalDate> diasCobertos
     ) {
+    }
+
+    private record ResultadoTentativaDistribuicao(
+            boolean encontrou,
+            List<AtribuicaoPlaneadaDia> atribuicoes,
+            Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot,
+            List<SlotTurnoDia> slotsOrdenados,
+            PesquisaDistribuicaoContexto contextoPesquisa
+    ) {
+    }
+
+    private static final class PesquisaDistribuicaoContexto {
+        private final Instant prazoLimiteGeracao;
+        private final int limiteNosPesquisa;
+        private int nosExplorados;
+        private boolean prazoEsgotado;
+        private boolean limitePesquisaAtingido;
+
+        private PesquisaDistribuicaoContexto(Instant prazoLimiteGeracao, int limiteNosPesquisa) {
+            this.prazoLimiteGeracao = prazoLimiteGeracao;
+            this.limiteNosPesquisa = limiteNosPesquisa;
+        }
+
+        private boolean permiteContinuar() {
+            if (prazoLimiteGeracao != null && Instant.now().isAfter(prazoLimiteGeracao)) {
+                prazoEsgotado = true;
+                return false;
+            }
+
+            nosExplorados++;
+            if (limiteNosPesquisa > 0 && nosExplorados > limiteNosPesquisa) {
+                limitePesquisaAtingido = true;
+                return false;
+            }
+            return true;
+        }
+
+        private boolean prazoEsgotado() {
+            return prazoEsgotado;
+        }
+
+        private boolean atingiuLimitePesquisa() {
+            return limitePesquisaAtingido;
+        }
+
+        private int nosExplorados() {
+            return nosExplorados;
+        }
+
+        private int limiteNosPesquisa() {
+            return limiteNosPesquisa;
+        }
     }
 
     private record ResumoAcumulado(

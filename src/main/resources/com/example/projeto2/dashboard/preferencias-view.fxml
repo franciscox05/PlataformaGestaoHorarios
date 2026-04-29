@@ -46,6 +46,26 @@
                             </children>
                         </VBox>
 
+                        <VBox fx:id="painelTurnos" managed="false" spacing="8.0" styleClass="painel-turnos-estruturados" visible="false">
+                            <children>
+                                <Label styleClass="campo-titulo" text="Prefer&#234;ncia estruturada de turnos" />
+                                <Label styleClass="texto-ajuda" text="Escolhe os blocos de turno que preferes para o gerador conseguir respeitar melhor o teu pedido mensal." wrapText="true" />
+                                <HBox spacing="18.0">
+                                    <children>
+                                        <CheckBox fx:id="chkTurnoManha" mnemonicParsing="false" text="Manh&#227; / abertura" />
+                                        <CheckBox fx:id="chkTurnoIntermedio" mnemonicParsing="false" text="Interm&#233;dio / tarde" />
+                                        <CheckBox fx:id="chkTurnoNoite" mnemonicParsing="false" text="Noite / fecho" />
+                                    </children>
+                                </HBox>
+                                <VBox spacing="5.0">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Dura&#231;&#227;o preferida" />
+                                        <ComboBox fx:id="cbDuracaoPreferida" promptText="Indiferente" styleClass="campo-combo" />
+                                    </children>
+                                </VBox>
+                            </children>
+                        </VBox>
+
                         <HBox spacing="12.0">
                             <children>
                                 <VBox spacing="5.0" HBox.hgrow="ALWAYS">

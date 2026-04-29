@@ -147,6 +147,9 @@ public class HomeController {
     private ComboBox<MesOption> cbMesHorarioMensal;
 
     @FXML
+    private ComboBox<ColaboradorFiltroOption> cbColaboradorHorarioMensal;
+
+    @FXML
     private Spinner<Integer> spAnoHorarioMensal;
 
     @FXML
@@ -363,6 +366,8 @@ public class HomeController {
                 .filter(item -> item.numero() == LocalDate.now().getMonthValue())
                 .findFirst()
                 .orElse(null));
+        cbColaboradorHorarioMensal.setItems(FXCollections.observableArrayList(ColaboradorFiltroOption.todos()));
+        cbColaboradorHorarioMensal.setValue(ColaboradorFiltroOption.todos());
 
         spAnoHorarioMensal.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
                 LocalDate.now().getYear() - 1,
@@ -374,6 +379,11 @@ public class HomeController {
         renderizarCalendarioMensalLoja(YearMonth.now(), List.of());
 
         cbMesHorarioMensal.valueProperty().addListener((obs, antigo, novo) -> {
+            if (painelOperacaoLoja.isVisible()) {
+                carregarHorarioMensalLoja();
+            }
+        });
+        cbColaboradorHorarioMensal.valueProperty().addListener((obs, antigo, novo) -> {
             if (painelOperacaoLoja.isVisible()) {
                 carregarHorarioMensalLoja();
             }
@@ -456,6 +466,7 @@ public class HomeController {
 
         if (podeGerirLoja) {
             carregarColaboradoresOperacao();
+            carregarColaboradoresHorarioMensal();
             carregarOperacaoLoja();
             carregarHorarioMensalLoja();
         } else {
@@ -536,6 +547,42 @@ public class HomeController {
         }
     }
 
+    private void carregarColaboradoresHorarioMensal() {
+        if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+            return;
+        }
+
+        try {
+            ColaboradorFiltroOption anterior = cbColaboradorHorarioMensal.getValue();
+            List<ColaboradorFiltroOption> opcoes = horarioBll.listarColaboradoresAtivosDaLojaDoUtilizador(utilizadorLogado.getId()).stream()
+                    .sorted(Comparator.comparing(HorarioBLL.ColaboradorLoja::nome, String.CASE_INSENSITIVE_ORDER))
+                    .map(colaborador -> new ColaboradorFiltroOption(
+                            colaborador.idUtilizador(),
+                            colaborador.etiqueta()
+                    ))
+                    .toList();
+
+            cbColaboradorHorarioMensal.setItems(FXCollections.observableArrayList());
+            cbColaboradorHorarioMensal.getItems().add(ColaboradorFiltroOption.todos());
+            cbColaboradorHorarioMensal.getItems().addAll(opcoes);
+
+            if (anterior != null) {
+                cbColaboradorHorarioMensal.getItems().stream()
+                        .filter(item -> Objects.equals(item.idUtilizador(), anterior.idUtilizador()))
+                        .findFirst()
+                        .ifPresentOrElse(
+                                cbColaboradorHorarioMensal::setValue,
+                                () -> cbColaboradorHorarioMensal.setValue(ColaboradorFiltroOption.todos())
+                        );
+            } else {
+                cbColaboradorHorarioMensal.setValue(ColaboradorFiltroOption.todos());
+            }
+        } catch (Exception e) {
+            cbColaboradorHorarioMensal.setItems(FXCollections.observableArrayList(ColaboradorFiltroOption.todos()));
+            cbColaboradorHorarioMensal.setValue(ColaboradorFiltroOption.todos());
+        }
+    }
+
     private void carregarEscalaDetalhadaLoja() {
         if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
             return;
@@ -598,13 +645,21 @@ public class HomeController {
                 return;
             }
 
-            List<Horario> horarios = horarioBll.listarHorarioPublicadoMensalDaLojaDoUtilizador(
+            YearMonth periodo = YearMonth.of(anoSelecionado, mesSelecionado.numero());
+            Integer idColaborador = cbColaboradorHorarioMensal.getValue() != null
+                    ? cbColaboradorHorarioMensal.getValue().idUtilizador()
+                    : null;
+            String etiquetaColaborador = cbColaboradorHorarioMensal.getValue() != null
+                    ? cbColaboradorHorarioMensal.getValue().label()
+                    : "Toda a equipa";
+
+            List<Horario> horarios = horarioBll.listarHorarioPublicadoDaLojaDoUtilizador(
                     utilizadorLogado.getId(),
-                    anoSelecionado,
-                    mesSelecionado.numero()
+                    periodo.atDay(1),
+                    periodo.atEndOfMonth(),
+                    idColaborador
             );
 
-            YearMonth periodo = YearMonth.of(anoSelecionado, mesSelecionado.numero());
             renderizarCalendarioMensalLoja(periodo, horarios);
 
             if (horarios.isEmpty()) {
@@ -614,6 +669,21 @@ public class HomeController {
                                 + " de "
                                 + anoSelecionado
                                 + "."
+                );
+                return;
+            }
+
+            if (idColaborador != null) {
+                lblResumoHorarioMensal.setText(
+                        "Vista mensal filtrada para "
+                                + etiquetaColaborador
+                                + " em "
+                                + mesSelecionado.nome().toLowerCase(LOCALE_PT)
+                                + " de "
+                                + anoSelecionado
+                                + ", com "
+                                + horarios.size()
+                                + " turno(s) publicados."
                 );
                 return;
             }
@@ -637,7 +707,7 @@ public class HomeController {
                             + totalColaboradores
                             + " colaborador(es) e "
                             + horarios.size()
-                            + " turno(s)."
+                            + " turno(s). Usa o filtro de colaborador para isolar uma escala individual."
             );
         } catch (Exception e) {
             renderizarCalendarioMensalLoja(YearMonth.now(), List.of());

@@ -82,6 +82,6 @@ class HorariosEspeciaisValidationTest extends FluxosCriticosTestSupport {
         long turnosDiaNormal = proposta.linhas().stream()
                 .filter(linha -> diaNormal.equals(linha.data()))
                 .count();
-        assertEquals(fixture.turnos().size(), turnosDiaNormal);
+        assertEquals(contarBlocosCobertura(fixture.turnos()), turnosDiaNormal);
     }
 }

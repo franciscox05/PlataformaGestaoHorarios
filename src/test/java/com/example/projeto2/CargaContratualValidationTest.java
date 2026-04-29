@@ -49,7 +49,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
         );
 
         assertNotNull(proposta);
-        assertEquals(fixture.referencia().lengthOfMonth() * fixture.turnos().size(), proposta.resumo().turnos());
+        assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
         assertFalse(proposta.resumoColaboradores().isEmpty());
 
         Map<Integer, String> tiposCargoPorUtilizador = mapearTiposCargoDaLoja(fixture.lojaFixture().loja().getId());
@@ -130,7 +130,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
 
         assertFalse(contemColaborador(proposta, inativo.getNome()));
         assertFalse(contemColaborador(proposta, semVinculoNoPeriodo.getNome()));
-        assertEquals(fixture.referencia().lengthOfMonth() * fixture.turnos().size(), proposta.resumo().turnos());
+        assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
     }
 
     private Map<Integer, String> mapearTiposCargoDaLoja(Integer idLoja) {

@@ -345,6 +345,15 @@ abstract class FluxosCriticosTestSupport {
                 .count();
     }
 
+    protected long contarBlocosCobertura(List<Turno> turnos) {
+        return turnos.stream()
+                .map(Turno::getTipo)
+                .map(this::normalizarTexto)
+                .filter(tipo -> !tipo.isBlank())
+                .distinct()
+                .count();
+    }
+
     protected HorarioEspecialLoja criarHorarioEspecial(Integer idUtilizadorGerente,
                                                        String descricao,
                                                        LocalDate dataInicio,

@@ -221,6 +221,12 @@
                                         </VBox>
                                         <VBox spacing="5.0">
                                             <children>
+                                                <Label styleClass="campo-titulo" text="Colaborador" />
+                                                <ComboBox fx:id="cbColaboradorHorarioMensal" prefWidth="260.0" promptText="Toda a equipa" styleClass="campo-combo" />
+                                            </children>
+                                        </VBox>
+                                        <VBox spacing="5.0">
+                                            <children>
                                                 <Label styleClass="campo-titulo" text="Ano" />
                                                 <Spinner fx:id="spAnoHorarioMensal" prefWidth="110.0" />
                                             </children>

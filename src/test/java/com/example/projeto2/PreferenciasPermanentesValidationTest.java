@@ -2,14 +2,17 @@ package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
 import com.example.projeto2.Modules.Preferencia;
+import com.example.projeto2.Modules.Turno;
 import com.example.projeto2.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -99,5 +102,40 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
         assertTrue(proposta.linhas().stream()
                 .anyMatch(linha -> linha.data().isAfter(referencia.plusDays(2))
                         && colaboradorTemporario.getNome().equals(linha.colaborador())));
+    }
+
+    @Test
+    void preferenciaEstruturadaDeTurnosReconheceBlocoEDuracaoNoMotor() {
+        Preferencia preferencia = new Preferencia();
+        preferencia.setTipo("turnos");
+        preferencia.setDataInicio(LocalDate.now());
+        preferencia.setDataFim(null);
+        preferencia.setDescricao("Turnos preferidos: intermedio/tarde. Duracao preferida: curto. Nota adicional: estudo de manha.");
+
+        Turno turnoCurtoTarde = criarTurno("intermedio", 14, 0, 18, 30);
+        Turno turnoLongoTarde = criarTurno("intermedio", 12, 0, 21, 0);
+        Turno turnoManha = criarTurno("manha", 10, 0, 19, 0);
+
+        assertTrue(preferenciaTurnoFavoravel(preferencia, turnoCurtoTarde));
+        assertFalse(preferenciaTurnoFavoravel(preferencia, turnoLongoTarde));
+        assertFalse(preferenciaTurnoFavoravel(preferencia, turnoManha));
+    }
+
+    private boolean preferenciaTurnoFavoravel(Preferencia preferencia, Turno turno) {
+        return Boolean.TRUE.equals(ReflectionTestUtils.invokeMethod(
+                geracaoHorariosBLL,
+                "temPreferenciaTurnoFavoravel",
+                List.of(preferencia),
+                LocalDate.now(),
+                turno
+        ));
+    }
+
+    private Turno criarTurno(String tipo, int horaInicio, int minutoInicio, int horaFim, int minutoFim) {
+        Turno turno = new Turno();
+        turno.setTipo(tipo);
+        turno.setHoraInicio(LocalTime.of(horaInicio, minutoInicio));
+        turno.setHoraFim(LocalTime.of(horaFim, minutoFim));
+        return turno;
     }
 }

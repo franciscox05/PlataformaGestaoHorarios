@@ -81,6 +81,8 @@
                             </children>
                         </HBox>
 
+                        <Label styleClass="subtitulo" text="As alternativas geradas ficam guardadas no sistema e aparecem na tabela abaixo. Podes abrir o detalhe ao selecionar uma proposta ou ao clicar em &quot;Ver planeamento&quot;." wrapText="true" />
+
                         <Label fx:id="lblFeedback" managed="false" styleClass="mensagem-feedback" visible="false" wrapText="true" />
                     </children>
                 </VBox>
@@ -111,7 +113,7 @@
                             <children>
                                 <ComboBox fx:id="cbComparacaoBase" prefWidth="280.0" promptText="Alternativa base" styleClass="campo-combo" />
                                 <ComboBox fx:id="cbComparacaoAlvo" prefWidth="280.0" promptText="Alternativa a comparar" styleClass="campo-combo" />
-                                <Button onAction="#onCompararPropostasClick" styleClass="botao-acao" text="Comparar" />
+                                <Button fx:id="btnCompararPropostas" onAction="#onCompararPropostasClick" styleClass="botao-acao" text="Comparar" />
                             </children>
                         </HBox>
                         <Label fx:id="lblResumoComparacao" styleClass="subtitulo" text="Seleciona duas alternativas para comparar distribuição, carga horária e impacto por colaborador." wrapText="true" />

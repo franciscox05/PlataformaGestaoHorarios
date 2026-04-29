@@ -2,12 +2,15 @@ package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
 import com.example.projeto2.Modules.Horario;
+import com.example.projeto2.Modules.RegrasLoja;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,8 +41,9 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         assertEquals(3, alternativas.stream().map(GeracaoHorariosBLL.PropostaResultado::idProposta).collect(Collectors.toSet()).size());
         assertTrue(alternativas.stream().allMatch(proposta -> "pendente".equalsIgnoreCase(proposta.estado())));
         assertTrue(alternativas.stream().allMatch(proposta -> proposta.metricas().pontuacao() >= 0));
+        long blocosCobertura = contarBlocosCobertura(fixture.turnos());
         assertTrue(alternativas.stream().allMatch(proposta ->
-                proposta.resumo().turnos() == fixture.referencia().lengthOfMonth() * fixture.turnos().size()));
+                proposta.resumo().turnos() == fixture.referencia().lengthOfMonth() * blocosCobertura));
 
         List<GeracaoHorariosBLL.PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
                 fixture.lojaFixture().gerente().getId(),
@@ -106,5 +110,81 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
                 )
         );
         assertTrue(erro.getMessage().contains("proposta aprovada") || erro.getMessage().contains("horarios publicados"));
+    }
+
+    @Test
+    void verPlaneamentoRecuperaAAlternativaMaisRecenteGeradaParaOMes() {
+        GeracaoFixture fixture = criarContextoGeracao("alternativas-planeamento");
+
+        List<GeracaoHorariosBLL.PropostaResultado> alternativas = geracaoHorariosBLL.gerarPropostas(
+                fixture.lojaFixture().gerente().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue(),
+                3
+        );
+
+        List<GeracaoHorariosBLL.PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
+                fixture.lojaFixture().gerente().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue()
+        );
+
+        GeracaoHorariosBLL.PropostaResultado planeamento = geracaoHorariosBLL.obterPlaneamento(
+                fixture.lojaFixture().gerente().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue()
+        );
+
+        assertEquals(3, alternativas.size());
+        assertFalse(resumos.isEmpty());
+        assertNotNull(planeamento);
+        assertEquals(resumos.getFirst().idProposta(), planeamento.idProposta());
+        assertFalse(planeamento.linhas().isEmpty());
+        assertTrue(planeamento.resumo().turnos() > 0);
+    }
+
+    @Test
+    void geracaoAgrupaVariantesDoMesmoTipoESuportaMinimoGenericoMaisElevado() {
+        GeracaoFixture fixture = criarContextoGeracao("alternativas-variantes-turno");
+        RegrasLoja regraMinimos = regrasLojaRepository.findByIdLojaWithRegraOrderByDescricao(
+                        fixture.lojaFixture().loja().getId())
+                .stream()
+                .filter(regraLoja -> regraLoja.getIdRegra() != null)
+                .filter(regraLoja -> regraLoja.getIdRegra().getDescricao() != null)
+                .filter(regraLoja -> regraLoja.getIdRegra().getDescricao().toLowerCase().contains("minimo"))
+                .filter(regraLoja -> regraLoja.getIdRegra().getDescricao().toLowerCase().contains("colaborador"))
+                .findFirst()
+                .orElseThrow();
+        regraMinimos.setValorEspecifico(2);
+        regrasLojaRepository.save(regraMinimos);
+        flushAndClear();
+
+        List<GeracaoHorariosBLL.PropostaResultado> propostas = geracaoHorariosBLL.gerarPropostas(
+                fixture.lojaFixture().gerente().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue(),
+                1
+        );
+
+        assertEquals(1, propostas.size());
+        GeracaoHorariosBLL.PropostaResultado proposta = propostas.getFirst();
+        assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()) * 2, proposta.resumo().turnos());
+
+        List<Horario> horarios = horarioRepository.findByIdPropostaHorarioId(proposta.idProposta());
+        assertFalse(horarios.isEmpty());
+        assertTrue(horarios.stream().anyMatch(horario -> duracaoEmMinutos(horario) < 300));
+    }
+
+    private long duracaoEmMinutos(Horario horario) {
+        LocalTime horaInicio = horario.getIdTurno().getHoraInicio();
+        LocalTime horaFim = horario.getIdTurno().getHoraFim();
+        if (horaInicio == null || horaFim == null) {
+            return 0;
+        }
+        if (!horaFim.isBefore(horaInicio)) {
+            return Duration.between(horaInicio, horaFim).toMinutes();
+        }
+        return Duration.between(horaInicio, LocalTime.MAX).plusMinutes(1).toMinutes()
+                + Duration.between(LocalTime.MIN, horaFim).toMinutes();
     }
 }

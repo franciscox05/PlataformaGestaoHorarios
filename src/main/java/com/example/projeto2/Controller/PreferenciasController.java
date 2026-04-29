@@ -21,12 +21,15 @@ import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Component
 @Scope("prototype")
@@ -49,6 +52,21 @@ public class PreferenciasController {
 
     @FXML
     private ComboBox<String> cbColegaPreferido;
+
+    @FXML
+    private VBox painelTurnos;
+
+    @FXML
+    private CheckBox chkTurnoManha;
+
+    @FXML
+    private CheckBox chkTurnoIntermedio;
+
+    @FXML
+    private CheckBox chkTurnoNoite;
+
+    @FXML
+    private ComboBox<String> cbDuracaoPreferida;
 
     @FXML
     private DatePicker dpDataInicio;
@@ -156,6 +174,8 @@ public class PreferenciasController {
     @FXML
     public void initialize() {
         cbTipo.setItems(FXCollections.observableArrayList("Folgas", "Férias", "Colegas", "Turnos"));
+        cbDuracaoPreferida.setItems(FXCollections.observableArrayList("Indiferente", "Mais curto", "Mais longo"));
+        cbDuracaoPreferida.setValue("Indiferente");
 
         configurarTabelaHistoricoProprio();
         configurarTabelaPendentes();
@@ -190,6 +210,8 @@ public class PreferenciasController {
 
         painelAprovacao.setManaged(false);
         painelAprovacao.setVisible(false);
+        painelTurnos.setManaged(false);
+        painelTurnos.setVisible(false);
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -362,6 +384,7 @@ public class PreferenciasController {
             chkSemDataFim.setSelected(nova.getDataFim() == null && permitePreferenciaSemDataFim(nova.getTipo()));
             dpDataFim.setValue(nova.getDataFim());
             preencherFormularioColegas(nova);
+            preencherFormularioTurnos(nova);
             txtDescricao.setText(obterNotaLivre(nova));
             atualizarEstadoDatas();
 
@@ -380,6 +403,10 @@ public class PreferenciasController {
         dpDataInicio.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
         dpDataFim.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
         cbColegaPreferido.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
+        cbDuracaoPreferida.valueProperty().addListener((obs, antigo, novo) -> esconderFeedback());
+        chkTurnoManha.selectedProperty().addListener((obs, antigo, novo) -> esconderFeedback());
+        chkTurnoIntermedio.selectedProperty().addListener((obs, antigo, novo) -> esconderFeedback());
+        chkTurnoNoite.selectedProperty().addListener((obs, antigo, novo) -> esconderFeedback());
         chkSemDataFim.selectedProperty().addListener((obs, antigo, novo) -> {
             atualizarEstadoDatas();
             esconderFeedback();
@@ -452,12 +479,18 @@ public class PreferenciasController {
 
         cbTipo.setValue(null);
         cbColegaPreferido.setValue(null);
+        chkTurnoManha.setSelected(false);
+        chkTurnoIntermedio.setSelected(false);
+        chkTurnoNoite.setSelected(false);
+        cbDuracaoPreferida.setValue("Indiferente");
         dpDataInicio.setValue(null);
         dpDataFim.setValue(null);
         chkSemDataFim.setSelected(false);
         txtDescricao.clear();
         painelColega.setManaged(false);
         painelColega.setVisible(false);
+        painelTurnos.setManaged(false);
+        painelTurnos.setVisible(false);
         dpDataFim.setDisable(false);
         dpDataFim.setPromptText("Opcional");
         txtDescricao.setPromptText("Explica a tua preferência com detalhe suficiente para ser analisada.");
@@ -676,13 +709,22 @@ public class PreferenciasController {
     private void configurarTipoSelecionado() {
         String tipoSelecionado = cbTipo.getValue();
         boolean tipoColegas = "Colegas".equals(tipoSelecionado);
+        boolean tipoTurnos = "Turnos".equals(tipoSelecionado);
         boolean permiteSemFim = permitePreferenciaSemDataFim(tipoSelecionado);
 
         painelColega.setManaged(tipoColegas);
         painelColega.setVisible(tipoColegas);
+        painelTurnos.setManaged(tipoTurnos);
+        painelTurnos.setVisible(tipoTurnos);
 
         if (!tipoColegas) {
             cbColegaPreferido.setValue(null);
+        }
+        if (!tipoTurnos) {
+            chkTurnoManha.setSelected(false);
+            chkTurnoIntermedio.setSelected(false);
+            chkTurnoNoite.setSelected(false);
+            cbDuracaoPreferida.setValue("Indiferente");
         }
 
         chkSemDataFim.setDisable(!permiteSemFim);
@@ -693,7 +735,7 @@ public class PreferenciasController {
         if (tipoColegas) {
             txtDescricao.setPromptText("Se quiseres, acrescenta contexto adicional para esta preferência.");
         } else if ("Turnos".equals(tipoSelecionado)) {
-            txtDescricao.setPromptText("Indica os turnos que preferes e algum contexto adicional.");
+            txtDescricao.setPromptText("Acrescenta contexto opcional, por exemplo: estudo de manha, prefiro fechos curtos ou quero evitar aberturas consecutivas.");
         } else if ("Folgas".equals(tipoSelecionado) || "Férias".equals(tipoSelecionado)) {
             txtDescricao.setPromptText("Explica a tua preferência com o contexto necessário para análise.");
         } else {
@@ -760,10 +802,127 @@ public class PreferenciasController {
             return "Colega preferido: " + colega + ". Nota adicional: " + textoLivre;
         }
 
+        if ("turnos".equals(tipoNormalizado)) {
+            return construirDescricaoEstruturadaTurnos(textoLivre);
+        }
+
         if (textoLivre == null) {
             throw new IllegalArgumentException("Indica uma descrição para a preferência.");
         }
         return textoLivre;
+    }
+
+    private String construirDescricaoEstruturadaTurnos(String textoLivre) {
+        Set<String> turnosPreferidos = new LinkedHashSet<>();
+        if (chkTurnoManha.isSelected()) {
+            turnosPreferidos.add("manha/abertura");
+        }
+        if (chkTurnoIntermedio.isSelected()) {
+            turnosPreferidos.add("intermedio/tarde");
+        }
+        if (chkTurnoNoite.isSelected()) {
+            turnosPreferidos.add("noite/fecho");
+        }
+
+        if (turnosPreferidos.isEmpty()) {
+            turnosPreferidos.addAll(inferirTurnosAPartirDoContexto(textoLivre));
+        }
+
+        if (turnosPreferidos.isEmpty()) {
+            throw new IllegalArgumentException("Seleciona pelo menos um bloco de turnos preferido.");
+        }
+
+        StringBuilder descricao = new StringBuilder("Turnos preferidos: ");
+        descricao.append(String.join(", ", turnosPreferidos)).append(".");
+
+        String duracao = resolverDuracaoPreferidaEstruturada();
+        if (duracao == null) {
+            duracao = inferirDuracaoAPartirDoContexto(textoLivre);
+        }
+        if (duracao != null) {
+            descricao.append(" Duracao preferida: ").append(duracao).append(".");
+        }
+
+        if (textoLivre != null) {
+            descricao.append(" Nota adicional: ").append(textoLivre);
+        }
+
+        return descricao.toString();
+    }
+
+    private Set<String> inferirTurnosAPartirDoContexto(String textoLivre) {
+        Set<String> turnosInferidos = new LinkedHashSet<>();
+        String textoNormalizado = normalizarTextoPesquisa(textoLivre);
+        if (textoNormalizado.isBlank()) {
+            return turnosInferidos;
+        }
+
+        if (textoNormalizado.contains("manha")
+                || textoNormalizado.contains("abertura")
+                || textoNormalizado.contains("cedo")) {
+            turnosInferidos.add("manha/abertura");
+        }
+
+        if (textoNormalizado.contains("intermedio")
+                || textoNormalizado.contains("tarde")
+                || textoNormalizado.contains("meio dia")
+                || textoNormalizado.contains("meio-dia")) {
+            turnosInferidos.add("intermedio/tarde");
+        }
+
+        if (textoNormalizado.contains("noite")
+                || textoNormalizado.contains("fecho")
+                || textoNormalizado.contains("encerramento")) {
+            turnosInferidos.add("noite/fecho");
+        }
+
+        return turnosInferidos;
+    }
+
+    private String resolverDuracaoPreferidaEstruturada() {
+        String selecao = cbDuracaoPreferida.getValue();
+        if (selecao == null || selecao.isBlank() || "Indiferente".equalsIgnoreCase(selecao)) {
+            return null;
+        }
+
+        return switch (selecao) {
+            case "Mais curto" -> "curto";
+            case "Mais longo" -> "longo";
+            default -> null;
+        };
+    }
+
+    private String inferirDuracaoAPartirDoContexto(String textoLivre) {
+        if (textoLivre == null || textoLivre.isBlank()) {
+            return null;
+        }
+
+        String textoNormalizado = normalizarTextoPesquisa(textoLivre);
+        if (textoNormalizado.contains("curto")
+                || textoNormalizado.contains("curtos")
+                || textoNormalizado.contains("reduzido")
+                || textoNormalizado.contains("mais curto")) {
+            return "curto";
+        }
+
+        if (textoNormalizado.contains("longo")
+                || textoNormalizado.contains("longos")
+                || textoNormalizado.contains("mais longo")
+                || textoNormalizado.contains("completo")) {
+            return "longo";
+        }
+
+        return null;
+    }
+
+    private String normalizarTextoPesquisa(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return "";
+        }
+
+        return Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private void preencherFormularioColegas(Preferencia preferencia) {
@@ -788,13 +947,46 @@ public class PreferenciasController {
         cbColegaPreferido.setValue(null);
     }
 
+    private void preencherFormularioTurnos(Preferencia preferencia) {
+        if (preferencia == null || !"turnos".equalsIgnoreCase(preferencia.getTipo())) {
+            chkTurnoManha.setSelected(false);
+            chkTurnoIntermedio.setSelected(false);
+            chkTurnoNoite.setSelected(false);
+            cbDuracaoPreferida.setValue("Indiferente");
+            return;
+        }
+
+        String descricao = limparTexto(preferencia.getDescricao());
+        if (descricao == null) {
+            chkTurnoManha.setSelected(false);
+            chkTurnoIntermedio.setSelected(false);
+            chkTurnoNoite.setSelected(false);
+            cbDuracaoPreferida.setValue("Indiferente");
+            return;
+        }
+
+        String descricaoNormalizada = descricao.toLowerCase(Locale.ROOT);
+        chkTurnoManha.setSelected(descricaoNormalizada.contains("manha") || descricaoNormalizada.contains("abertura"));
+        chkTurnoIntermedio.setSelected(descricaoNormalizada.contains("intermedio") || descricaoNormalizada.contains("tarde"));
+        chkTurnoNoite.setSelected(descricaoNormalizada.contains("noite") || descricaoNormalizada.contains("fecho"));
+
+        if (descricaoNormalizada.contains("duracao preferida: curto") || descricaoNormalizada.contains(" turnos curtos")) {
+            cbDuracaoPreferida.setValue("Mais curto");
+        } else if (descricaoNormalizada.contains("duracao preferida: longo") || descricaoNormalizada.contains(" turnos longos")) {
+            cbDuracaoPreferida.setValue("Mais longo");
+        } else {
+            cbDuracaoPreferida.setValue("Indiferente");
+        }
+    }
+
     private String obterNotaLivre(Preferencia preferencia) {
         if (preferencia == null || preferencia.getDescricao() == null) {
             return "";
         }
 
         String descricao = preferencia.getDescricao().trim();
-        if (!"colegas".equalsIgnoreCase(preferencia.getTipo())) {
+        if (!"colegas".equalsIgnoreCase(preferencia.getTipo())
+                && !"turnos".equalsIgnoreCase(preferencia.getTipo())) {
             return descricao;
         }
 

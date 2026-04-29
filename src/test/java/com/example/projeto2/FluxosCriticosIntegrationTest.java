@@ -166,7 +166,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
 
         assertNotNull(proposta);
         assertTrue("pendente".equalsIgnoreCase(proposta.estado()));
-        assertEquals(referencia.lengthOfMonth() * fixture.turnos().size(), proposta.resumo().turnos());
+        assertEquals(referencia.lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
         assertFalse(proposta.linhas().isEmpty());
         assertFalse(proposta.linhas().stream()
                 .anyMatch(linha -> referencia.equals(linha.data()) && bloqueadoPorDayOff.getNome().equals(linha.colaborador())));
