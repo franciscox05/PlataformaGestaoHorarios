@@ -1,16 +1,21 @@
 # Plataforma de Gestao de Horarios
 
-## Relatorio atualizado da entrega desktop
+## Relatorio atualizado da entrega desktop e web
 
 ### 1. Enquadramento
 
 O projeto **Plataforma de Gestao de Horarios** foi desenvolvido para apoiar a organizacao do trabalho por turnos numa loja Levi's, com foco na realidade operacional da equipa, na comunicacao entre colaboradores e gerencia e na reducao do trabalho manual associado ao planeamento mensal.
 
-Nesta entrega, o foco ficou centrado numa **aplicacao desktop** desenvolvida em JavaFX, Spring Boot e PostgreSQL. O objetivo principal foi disponibilizar uma plataforma funcional e demonstravel, cobrindo autenticacao, gestao operacional, regras da loja, preferencias, aprovacoes, geracao de horarios e relatorios.
+Nesta fase final, a plataforma evoluiu para dois canais de utilizacao:
+
+- **desktop** (JavaFX), para fluxo operacional ja consolidado;
+- **web** (Spring MVC), para acesso por browser aos fluxos essenciais de autenticacao e horarios.
+
+O objetivo manteve-se: disponibilizar uma solucao funcional e demonstravel, cobrindo autenticacao, gestao operacional, regras da loja, preferencias, aprovacoes, geracao de horarios e relatorios.
 
 ### 2. Objetivos da solucao
 
-Os objetivos principais da aplicacao desktop foram:
+Os objetivos principais da solucao foram:
 
 - autenticar diferentes perfis de utilizador com controlo de sessao
 - disponibilizar um dashboard com informacao imediata sobre a atividade do colaborador
@@ -20,6 +25,7 @@ Os objetivos principais da aplicacao desktop foram:
 - apoiar a geracao de propostas mensais de horario
 - disponibilizar relatorios mensais de horas
 - garantir uma demonstracao estavel com dados de exemplo e empacotamento de entrega
+- disponibilizar interface Web para os fluxos nucleares de horarios
 
 ### 3. Tecnologias utilizadas
 
@@ -30,6 +36,8 @@ Os objetivos principais da aplicacao desktop foram:
 - **JavaFX 21.0.2**
 - **Maven**
 - **Spring Security Crypto** para hashing de passwords com BCrypt
+- **Spring MVC**
+- **Thymeleaf**
 
 ### 4. Arquitetura da aplicacao
 
@@ -47,6 +55,8 @@ A aplicacao segue uma organizacao por camadas:
   - persiste utilizadores, lojas, horarios, folgas, permutas, preferencias, propostas e auditoria
 
 A integracao entre JavaFX e Spring Boot permite criar controllers como beans do Spring, o que simplifica a injecao de dependencias e a separacao entre interface e logica de negocio.
+
+Na vertente Web, a mesma camada de negocio (BLL) e repositorios e reutilizada pelos controllers Spring MVC, reduzindo duplicacao de regras entre canais.
 
 ### 5. Modelo de dados principal
 
@@ -161,6 +171,14 @@ Estas entidades suportam:
 - documentacao de demonstracao
 - empacotamento ZIP com JAR executavel, configuracao, SQL e scripts de arranque
 
+#### 6.13 Aplicacao Web (capitulo novo)
+
+- login/logout Web com sessao HTTP
+- pagina de consulta de planeamento mensal
+- geracao de proposta mensal de horarios via browser
+- listagem de alternativas geradas para o periodo
+- reutilizacao da BLL existente para garantir consistencia de regras entre desktop e Web
+
 ### 7. Mapeamento resumido de requisitos
 
 | Requisito | Estado |
@@ -222,12 +240,13 @@ Foram atualizadas evidencias visuais de apoio ao documento, incluindo:
 
 ### 10. Estrutura da entrega
 
-A entrega desktop passa a incluir:
+A entrega final passa a incluir:
 
 - codigo-fonte do projeto
 - script SQL de demonstracao
 - documentacao de apoio
-- ZIP de entrega gerado por Maven
+- ZIP de entrega desktop gerado por Maven
+- ZIP de entrega Web gerado por Maven
 
 O ZIP final integra:
 
@@ -237,17 +256,23 @@ O ZIP final integra:
 - ficheiros SQL de apoio
 - documentacao de execucao
 
+Para a vertente Web, o ZIP integra adicionalmente:
+
+- `Projeto2-web.jar`
+- scripts de arranque Web
+- documentacao especifica da execucao Web
+
 ### 11. Trabalho futuro
 
-Mesmo com a aplicacao desktop bastante completa, continuam identificadas algumas frentes de evolucao:
+Mesmo com a aplicacao desktop e Web funcionais para entrega, continuam identificadas algumas frentes de evolucao:
 
 - gestao de horarios especiais e excecoes por data
 - testes automatizados para fluxos criticos
 - painel de auditoria com visualizacao historica
-- futura evolucao para API REST e interface web
+- extensao da interface Web para maior cobertura funcional (perfil, folgas, permutas e preferencias)
 
 ### 12. Conclusao
 
-A entrega desktop da **Plataforma de Gestao de Horarios** apresenta um conjunto funcional coerente com o objetivo do projeto, cobrindo autenticacao, operacao de colaborador, fluxos de gerencia, geracao de horarios, relatorios e empacotamento de entrega.
+A entrega final da **Plataforma de Gestao de Horarios** apresenta um conjunto funcional coerente com o objetivo do projeto, cobrindo autenticacao, operacao de colaborador, fluxos de gerencia, geracao de horarios, relatorios e empacotamento de entrega em desktop e Web.
 
-O resultado final demonstra uma aplicacao organizada por camadas, integrada com Spring Boot, JavaFX e PostgreSQL, pronta para demonstracao e preparada para evolucao futura.
+O resultado final demonstra uma aplicacao organizada por camadas, integrada com Spring Boot, JavaFX, Spring MVC e PostgreSQL, pronta para demonstracao e preparada para evolucao futura.
