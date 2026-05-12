@@ -96,6 +96,19 @@
                 <configuration>
                     <mainClass>com.example.projeto2.AppLauncher</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>repackage-web</id>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <classifier>web</classifier>
+                            <mainClass>com.example.projeto2.Projeto2WebApplication</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -103,6 +116,7 @@
                 <configuration>
                     <descriptors>
                         <descriptor>src/assembly/desktop-entrega.xml</descriptor>
+                        <descriptor>src/assembly/web-entrega.xml</descriptor>
                     </descriptors>
                     <finalName>PlataformaGestaoHorarios-desktop</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
@@ -114,6 +128,20 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>web-entrega-zip</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/web-entrega.xml</descriptor>
+                            </descriptors>
+                            <finalName>PlataformaGestaoHorarios-web</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
