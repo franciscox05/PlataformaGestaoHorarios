@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 https://maven.apache.org/xsd/assembly-2.1.1.xsd">
+    <id>web-entrega</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>PlataformaGestaoHorarios-web</baseDirectory>
+
+    <files>
+        <file>
+            <source>${project.build.directory}/${project.build.finalName}-web.jar</source>
+            <outputDirectory>app</outputDirectory>
+            <destName>Projeto2-web.jar</destName>
+        </file>
+        <file>
+            <source>README.md</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+        <file>
+            <source>src/main/resources/application.properties</source>
+            <outputDirectory>config</outputDirectory>
+            <destName>application.properties</destName>
+        </file>
+        <file>
+            <source>docs/execucao-zip-web-entrega.md</source>
+            <outputDirectory>docs</outputDirectory>
+        </file>
+        <file>
+            <source>docs/validacao-entrega.md</source>
+            <outputDirectory>docs</outputDirectory>
+        </file>
+    </files>
+
+    <fileSets>
+        <fileSet>
+            <directory>scripts</directory>
+            <outputDirectory>scripts</outputDirectory>
+            <includes>
+                <include>iniciar-aplicacao-web.bat</include>
+                <include>iniciar-aplicacao-web.ps1</include>
+            </includes>
+            <lineEnding>keep</lineEnding>
+        </fileSet>
+        <fileSet>
+            <directory>sql</directory>
+            <outputDirectory>sql</outputDirectory>
+            <includes>
+                <include>*.sql</include>
+            </includes>
+            <lineEnding>keep</lineEnding>
+        </fileSet>
+    </fileSets>
+</assembly>
