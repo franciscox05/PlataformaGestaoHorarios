@@ -1,6 +1,6 @@
 # Apoio a atualizacao do relatorio
 
-Este documento resume o que deve ficar refletido no relatorio PDF atualizado da entrega desktop.
+Este documento resume o que deve ficar refletido no relatorio PDF atualizado da entrega desktop e Web.
 
 O documento final preparado para submissao passa a estar materializado em:
 
@@ -10,7 +10,7 @@ O documento final preparado para submissao passa a estar materializado em:
 
 ## Objetivo da aplicacao
 
-Disponibilizar uma plataforma desktop para apoiar a gestao de horarios por turnos numa loja Levi's, cobrindo autenticacao, operacao diaria, planeamento e fluxos de colaborador e gerencia.
+Disponibilizar uma plataforma de gestao de horarios por turnos numa loja Levi's, com canal desktop e Web, cobrindo autenticacao, operacao diaria, planeamento e fluxos de colaborador e gerencia.
 
 ## Tecnologias usadas
 
@@ -19,6 +19,8 @@ Disponibilizar uma plataforma desktop para apoiar a gestao de horarios por turno
 - Spring Data JPA
 - PostgreSQL
 - JavaFX
+- Spring MVC
+- Thymeleaf
 - Maven
 
 ## Funcionalidades implementadas
@@ -34,6 +36,10 @@ Disponibilizar uma plataforma desktop para apoiar a gestao de horarios por turno
 - geracao de propostas mensais de horarios
 - relatorios mensais de horas
 - perfil do utilizador e edicao de dados pessoais
+- login/logout Web
+- consulta Web de planeamento mensal
+- geracao Web de proposta mensal de horarios
+- listagem Web de alternativas por periodo
 
 ## Aspetos de demonstracao
 
@@ -53,7 +59,7 @@ Disponibilizar uma plataforma desktop para apoiar a gestao de horarios por turno
 
 Vale a pena acrescentar ou rever um capitulo com:
 
-1. funcionalidades da aplicacao desktop
+1. funcionalidades da aplicacao desktop e Web
 2. tecnologias usadas
 3. estrutura da base de dados e principais entidades
 4. principais fluxos de utilizacao
