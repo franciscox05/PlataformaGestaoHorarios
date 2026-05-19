@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -22,7 +23,9 @@ public class Projeto2Application extends Application {
 
     @Override
     public void init() {
-        springContext = new SpringApplicationBuilder(Projeto2Application.class).run();
+        springContext = new SpringApplicationBuilder(Projeto2Application.class)
+                .web(WebApplicationType.NONE)
+                .run();
     }
 
     @Override

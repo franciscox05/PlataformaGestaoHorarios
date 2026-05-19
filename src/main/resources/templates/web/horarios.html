@@ -12,45 +12,59 @@
         <strong>Levi's Staff Portal Web</strong>
         <span th:text="'Utilizador: ' + ${utilizadorNome}"></span>
     </div>
-    <form method="post" action="/web/logout">
-        <button type="submit" class="btn-ghost">Terminar sessao</button>
-    </form>
+    <div class="web-topbar-actions">
+        <a class="btn-link btn-link-active" href="/web/horarios">Horarios</a>
+        <a class="btn-link" href="/web/complementares">Complementares</a>
+        <form method="post" action="/web/logout">
+            <button type="submit" class="btn-ghost">Terminar sessao</button>
+        </form>
+    </div>
 </header>
 
 <main class="web-layout">
     <section class="web-card">
-        <h1>Geracao e consulta de horarios</h1>
-        <p th:if="${contexto}" th:text="'Loja: ' + ${contexto.nomeLoja()} + ' · ' + ${contexto.localizacao()}"></p>
-
-        <form method="get" action="/web/horarios" class="web-inline-form">
-            <label for="ano">Ano</label>
-            <select id="ano" name="ano">
-                <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
-            </select>
-
-            <label for="mes">Mes</label>
-            <select id="mes" name="mes">
-                <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
-            </select>
-            <button type="submit">Consultar</button>
-        </form>
-
-        <form method="post" action="/web/horarios/gerar" class="web-inline-form" th:if="${podeGerar}">
-            <input type="hidden" name="ano" th:value="${ano}">
-            <input type="hidden" name="mes" th:value="${mes}">
-            <button type="submit">Gerar Proposta</button>
-        </form>
-
+        <h1>Gestao de horarios</h1>
+        <p class="web-subtitle">Consulta mensal, geracao de proposta e comparacao de alternativas.</p>
+        <p class="web-contexto" th:if="${contexto}" th:text="'Loja: ' + ${contexto.nomeLoja()} + ' - ' + ${contexto.localizacao()}"></p>
         <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
         <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
     </section>
 
+    <section class="web-grid-2">
+        <article class="web-card">
+            <h2>Selecionar periodo</h2>
+            <form method="get" action="/web/horarios" class="web-inline-form web-inline-form-compact">
+                <label for="ano">Ano</label>
+                <select id="ano" name="ano">
+                    <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
+                </select>
+
+                <label for="mes">Mes</label>
+                <select id="mes" name="mes">
+                    <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
+                </select>
+                <button type="submit">Consultar</button>
+            </form>
+        </article>
+
+        <article class="web-card">
+            <h2>Acoes</h2>
+            <p class="web-subtitle">Geracao de proposta para o periodo selecionado.</p>
+            <form method="post" action="/web/horarios/gerar" class="web-inline-form web-inline-form-action" th:if="${podeGerar}">
+                <input type="hidden" name="ano" th:value="${ano}">
+                <input type="hidden" name="mes" th:value="${mes}">
+                <button type="submit">Gerar proposta</button>
+            </form>
+            <p th:if="${!podeGerar}" class="web-muted">Sem permissao para gerar proposta neste perfil.</p>
+        </article>
+    </section>
+
     <section class="web-card">
-        <h2>Resumo da proposta</h2>
+        <h2>Resumo da proposta atual</h2>
         <div th:if="${proposta == null}">
-            <p>Sem proposta/planeamento para o periodo selecionado.</p>
+            <p>Sem proposta ou planeamento para o periodo selecionado.</p>
         </div>
-        <div th:if="${proposta != null}">
+        <div th:if="${proposta != null}" class="web-proposta-grid">
             <p><strong>Estado:</strong> <span th:text="${proposta.estado()}"></span></p>
             <p><strong>Origem:</strong> <span th:text="${proposta.origemPlaneamento()}"></span></p>
             <p><strong>Gerado por:</strong> <span th:text="${proposta.geradoPor()}"></span></p>
@@ -58,7 +72,7 @@
             <p><strong>Resumo:</strong> <span th:text="${proposta.resumoGeracao()}"></span></p>
             <p th:if="${proposta.resumo() != null}">
                 <strong>Cobertura:</strong>
-                <span th:text="${proposta.resumo().turnos()} + ' turnos · ' + ${proposta.resumo().diasCobertos()} + ' dias'"></span>
+                <span th:text="${proposta.resumo().turnos()} + ' turnos - ' + ${proposta.resumo().diasCobertos()} + ' dias'"></span>
             </p>
         </div>
     </section>

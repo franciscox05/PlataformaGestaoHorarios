@@ -5,7 +5,7 @@
 body {
     margin: 0;
     font-family: "Segoe UI", Arial, sans-serif;
-    background: #f4f6f8;
+    background: #eef2f7;
     color: #1f2933;
 }
 
@@ -24,7 +24,8 @@ body {
     background: #ffffff;
     border: 1px solid #d9e2ec;
     border-radius: 8px;
-    padding: 20px;
+    padding: 22px;
+    box-shadow: 0 1px 2px rgba(16, 42, 67, 0.04);
 }
 
 .web-form,
@@ -34,9 +35,10 @@ body {
 }
 
 .web-inline-form {
-    grid-template-columns: auto minmax(90px, 140px) auto minmax(140px, 180px) auto;
+    grid-template-columns: 160px minmax(220px, 1fr) 240px;
     align-items: center;
-    margin-top: 12px;
+    margin-top: 8px;
+    gap: 10px;
 }
 
 input,
@@ -77,17 +79,64 @@ button {
     padding: 14px 18px;
 }
 
+.web-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .web-topbar div {
     display: grid;
     gap: 4px;
 }
 
+.btn-link {
+    border: 1px solid #486581;
+    background: #243b53;
+    color: #d9e2ec;
+    border-radius: 6px;
+    padding: 8px 12px;
+    text-decoration: none;
+}
+
+.btn-link-active {
+    background: #334e68;
+    border-color: #829ab1;
+    color: #ffffff;
+}
+
 .web-layout {
-    max-width: 1120px;
-    margin: 18px auto;
+    max-width: 1060px;
+    margin: 20px auto;
     padding: 0 16px 22px;
     display: grid;
-    gap: 14px;
+    gap: 16px;
+}
+
+.web-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.web-grid-1 {
+    display: grid;
+    gap: 16px;
+}
+
+.web-subtitle {
+    margin: 0;
+    color: #52606d;
+}
+
+.web-contexto {
+    margin: 10px 0 0;
+    color: #334e68;
+}
+
+.web-muted {
+    margin: 10px 0 0;
+    color: #7b8794;
 }
 
 .web-feedback {
@@ -105,6 +154,39 @@ button {
     color: #842029;
 }
 
+.permuta-form {
+    margin-top: 10px;
+}
+
+.web-inline-form-compact {
+    grid-template-columns: 80px minmax(140px, 1fr) 80px minmax(140px, 1fr);
+    align-items: end;
+}
+
+.web-inline-form-compact button {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+.web-inline-form-action {
+    grid-template-columns: 1fr;
+    max-width: none;
+}
+
+.web-inline-form-action button {
+    width: 100%;
+}
+
+.web-proposta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 20px;
+}
+
+.web-proposta-grid p {
+    margin: 0;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -114,12 +196,36 @@ th,
 td {
     border-bottom: 1px solid #d9e2ec;
     text-align: left;
-    padding: 8px;
+    padding: 9px 8px;
     vertical-align: top;
+}
+
+h1 {
+    margin: 0 0 12px;
+}
+
+h2 {
+    margin: 0 0 16px;
 }
 
 @media (max-width: 800px) {
     .web-inline-form {
+        grid-template-columns: 1fr;
+    }
+
+    .web-inline-form-compact {
+        grid-template-columns: 1fr;
+    }
+
+    .web-inline-form-compact button {
+        grid-column: auto;
+    }
+
+    .web-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .web-proposta-grid {
         grid-template-columns: 1fr;
     }
 }
