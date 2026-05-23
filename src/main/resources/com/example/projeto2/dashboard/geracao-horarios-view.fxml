@@ -81,15 +81,50 @@
                             </children>
                         </HBox>
 
-                        <Label styleClass="subtitulo" text="As alternativas geradas ficam guardadas no sistema e aparecem na tabela abaixo. Podes abrir o detalhe ao selecionar uma proposta ou ao clicar em &quot;Ver planeamento&quot;." wrapText="true" />
+                        <VBox fx:id="painelSelecaoColaboradores" spacing="9.0">
+                            <children>
+                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                    <children>
+                                        <Label styleClass="campo-titulo" text="Funcionarios incluidos na geracao" />
+                                        <Region HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="btnSelecionarTodosColaboradores" onAction="#onSelecionarTodosColaboradoresClick" styleClass="botao-secundario topo-botao-curto" text="Todos" />
+                                        <Button fx:id="btnLimparColaboradores" onAction="#onLimparColaboradoresClick" styleClass="botao-secundario topo-botao-curto" text="Limpar" />
+                                    </children>
+                                </HBox>
+                                <Label fx:id="lblResumoColaboradoresGeracao" styleClass="texto-ajuda" text="Escolhe o periodo para carregar a equipa elegivel." wrapText="true" />
+                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefHeight="150.0" styleClass="selecao-colaboradores-scroll">
+                                    <content>
+                                        <VBox fx:id="boxColaboradoresGeracao" spacing="8.0" styleClass="selecao-colaboradores-lista" />
+                                    </content>
+                                </ScrollPane>
+                            </children>
+                        </VBox>
+
+                        <Label styleClass="subtitulo" text="As alternativas geradas ficam como rascunho do gerente. Depois de reveres e comparares, envia ao supervisor apenas as alternativas escolhidas." wrapText="true" />
 
                         <Label fx:id="lblFeedback" managed="false" styleClass="mensagem-feedback" visible="false" wrapText="true" />
+                        <VBox fx:id="painelDiagnosticoGeracao" managed="false" spacing="10.0" styleClass="diagnostico-geracao" visible="false">
+                            <children>
+                                <Label fx:id="lblDiagnosticoTitulo" styleClass="diagnostico-titulo" text="Porque nao foi possivel gerar" wrapText="true" />
+                                <Label fx:id="lblDiagnosticoResumo" styleClass="diagnostico-resumo" wrapText="true" />
+                                <VBox fx:id="boxDiagnosticoMotivos" spacing="8.0" />
+                                <Label styleClass="diagnostico-titulo" text="Sugestoes para resolver" wrapText="true" />
+                                <VBox fx:id="boxDiagnosticoSugestoes" spacing="8.0" />
+                                <Label fx:id="lblDiagnosticoPerfilRecomendado" managed="false" styleClass="diagnostico-reforco" visible="false" wrapText="true" />
+                            </children>
+                        </VBox>
                     </children>
                 </VBox>
 
                 <VBox spacing="12.0" styleClass="info-card">
                     <children>
                         <Label styleClass="card-titulo" text="Alternativas geradas" />
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <children>
+                                <Button fx:id="btnEnviarSupervisor" onAction="#onEnviarSupervisorClick" styleClass="botao-acao" text="Enviar selecionadas ao supervisor" />
+                                <Label styleClass="texto-ajuda" text="O supervisor so valida alternativas enviadas pelo gerente." wrapText="true" />
+                            </children>
+                        </HBox>
                         <TableView fx:id="tabelaPropostas" prefHeight="170.0">
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

@@ -9,23 +9,31 @@ import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
@@ -58,7 +66,40 @@ public class GeracaoHorariosController {
     private Spinner<Integer> spQuantidadeAlternativas;
 
     @FXML
+    private VBox painelSelecaoColaboradores;
+
+    @FXML
+    private VBox boxColaboradoresGeracao;
+
+    @FXML
+    private Label lblResumoColaboradoresGeracao;
+
+    @FXML
+    private Button btnSelecionarTodosColaboradores;
+
+    @FXML
+    private Button btnLimparColaboradores;
+
+    @FXML
     private Label lblFeedback;
+
+    @FXML
+    private VBox painelDiagnosticoGeracao;
+
+    @FXML
+    private Label lblDiagnosticoTitulo;
+
+    @FXML
+    private Label lblDiagnosticoResumo;
+
+    @FXML
+    private Label lblDiagnosticoPerfilRecomendado;
+
+    @FXML
+    private VBox boxDiagnosticoMotivos;
+
+    @FXML
+    private VBox boxDiagnosticoSugestoes;
 
     @FXML
     private VBox painelValidacaoSupervisor;
@@ -151,6 +192,9 @@ public class GeracaoHorariosController {
     private Button btnCompararPropostas;
 
     @FXML
+    private Button btnEnviarSupervisor;
+
+    @FXML
     private Label lblResumoComparacao;
 
     @FXML
@@ -201,6 +245,7 @@ public class GeracaoHorariosController {
     private LocalDate semanaPlaneamentoInicio;
     private Task<?> operacaoEmCurso;
     private boolean suprimirCarregamentoPorSelecao;
+    private final Map<Integer, CheckBox> selecaoColaboradoresGeracao = new LinkedHashMap<>();
 
     public GeracaoHorariosController(GeracaoHorariosBLL geracaoHorariosBLL) {
         this.geracaoHorariosBLL = geracaoHorariosBLL;
@@ -246,6 +291,23 @@ public class GeracaoHorariosController {
     @FXML
     public void onGerarAlternativasClick() {
         gerarAlternativasEmSegundoPlano(spQuantidadeAlternativas.getValue());
+    }
+
+    @FXML
+    public void onSelecionarTodosColaboradoresClick() {
+        selecaoColaboradoresGeracao.values().forEach(checkBox -> checkBox.setSelected(true));
+        atualizarResumoSelecaoColaboradores();
+    }
+
+    @FXML
+    public void onLimparColaboradoresClick() {
+        selecaoColaboradoresGeracao.values().forEach(checkBox -> checkBox.setSelected(false));
+        atualizarResumoSelecaoColaboradores();
+    }
+
+    @FXML
+    public void onEnviarSupervisorClick() {
+        enviarPropostasSelecionadasEmSegundoPlano();
     }
 
     @FXML
@@ -326,8 +388,14 @@ public class GeracaoHorariosController {
         spQuantidadeAlternativas.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 3));
         spQuantidadeAlternativas.setEditable(true);
 
-        cbMes.valueProperty().addListener((observavel, antigo, novo) -> invalidarPropostaAtual());
-        spAno.valueProperty().addListener((observavel, antigo, novo) -> invalidarPropostaAtual());
+        cbMes.valueProperty().addListener((observavel, antigo, novo) -> {
+            invalidarPropostaAtual();
+            carregarColaboradoresElegiveis();
+        });
+        spAno.valueProperty().addListener((observavel, antigo, novo) -> {
+            invalidarPropostaAtual();
+            carregarColaboradoresElegiveis();
+        });
 
         cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
         cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
@@ -350,6 +418,8 @@ public class GeracaoHorariosController {
     }
 
     private void configurarTabelaPropostas() {
+        tabelaPropostas.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
         colPropostaRotulo.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().rotulo()));
         colPropostaEstado.setCellValueFactory(cellData ->
@@ -367,6 +437,7 @@ public class GeracaoHorariosController {
             if (selecionada != null && !suprimirCarregamentoPorSelecao) {
                 carregarPropostaPorIdEmSegundoPlano(selecionada.idProposta(), false);
             }
+            atualizarEstadoInterativo();
         });
     }
 
@@ -404,6 +475,7 @@ public class GeracaoHorariosController {
             spAno.getValueFactory().setValue(contexto.anoAtual());
             selecionarMes(contexto.mesAtual());
             configurarPermissoesEcra();
+            carregarColaboradoresElegiveis();
             carregarPlaneamentoDoPeriodo();
         } catch (IllegalArgumentException e) {
             bloquearEcraSemPermissao(e.getMessage());
@@ -470,12 +542,17 @@ public class GeracaoHorariosController {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
                 throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
+            List<Integer> idsColaboradoresSelecionados = obterIdsColaboradoresSelecionados();
+            if (idsColaboradoresSelecionados.isEmpty()) {
+                throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horario.");
+            }
 
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     quantidade == 1 ? "Gerar alternativa" : "Gerar alternativas",
                     quantidade == 1 ? "Deseja gerar uma nova alternativa?" : "Deseja gerar " + quantidade + " alternativas?",
-                    "As alternativas ficam pendentes para comparação e só uma será publicada depois da validação."
+                    "A geracao vai usar " + idsColaboradoresSelecionados.size()
+                            + " colaboradores selecionados. Depois podes enviar ao supervisor apenas as alternativas escolhidas."
             )) {
                 return;
             }
@@ -485,7 +562,8 @@ public class GeracaoHorariosController {
                     utilizadorLogado.getId(),
                     spAno.getValue(),
                     mesSelecionado.numero(),
-                    quantidade
+                    quantidade,
+                    idsColaboradoresSelecionados
             );
 
             GeracaoHorariosBLL.PropostaResultado melhorResultado = resultados.stream()
@@ -508,6 +586,138 @@ public class GeracaoHorariosController {
         } catch (Exception e) {
             mostrarErro("Não foi possível gerar alternativas para o período selecionado.");
         }
+    }
+
+    private void carregarColaboradoresElegiveis() {
+        if (!podeGerar
+                || utilizadorLogado == null
+                || utilizadorLogado.getId() == null
+                || cbMes.getValue() == null
+                || spAno.getValue() == null) {
+            renderizarColaboradoresGeracao(List.of());
+            return;
+        }
+
+        try {
+            List<GeracaoHorariosBLL.ColaboradorElegivel> colaboradores = geracaoHorariosBLL.listarColaboradoresElegiveis(
+                    utilizadorLogado.getId(),
+                    spAno.getValue(),
+                    cbMes.getValue().numero()
+            );
+            renderizarColaboradoresGeracao(colaboradores);
+        } catch (IllegalArgumentException e) {
+            renderizarColaboradoresGeracao(List.of());
+            lblResumoColaboradoresGeracao.setText(e.getMessage());
+        } catch (Exception e) {
+            renderizarColaboradoresGeracao(List.of());
+            lblResumoColaboradoresGeracao.setText("Nao foi possivel carregar a equipa elegivel para este periodo.");
+        }
+    }
+
+    private void renderizarColaboradoresGeracao(List<GeracaoHorariosBLL.ColaboradorElegivel> colaboradores) {
+        Set<Integer> selecionadosAnteriores = obterIdsColaboradoresSelecionadosComoSet();
+        boolean devePreservarSelecao = !selecaoColaboradoresGeracao.isEmpty();
+
+        selecaoColaboradoresGeracao.clear();
+        boxColaboradoresGeracao.getChildren().clear();
+
+        if (colaboradores == null || colaboradores.isEmpty()) {
+            Label vazio = new Label("Sem colaboradores elegiveis para o periodo selecionado.");
+            vazio.getStyleClass().add("texto-ajuda");
+            boxColaboradoresGeracao.getChildren().add(vazio);
+            atualizarResumoSelecaoColaboradores();
+            return;
+        }
+
+        Map<String, List<GeracaoHorariosBLL.ColaboradorElegivel>> colaboradoresPorCargo = agruparColaboradoresPorCargo(colaboradores);
+        for (Map.Entry<String, List<GeracaoHorariosBLL.ColaboradorElegivel>> grupo : colaboradoresPorCargo.entrySet()) {
+            VBox boxGrupo = new VBox(6);
+            boxGrupo.getStyleClass().add("grupo-colaboradores");
+
+            CheckBox checkGrupo = new CheckBox(grupo.getKey() + " (" + grupo.getValue().size() + ")");
+            checkGrupo.getStyleClass().add("grupo-colaboradores-titulo");
+            boxGrupo.getChildren().add(checkGrupo);
+
+            VBox boxItensGrupo = new VBox(5);
+            boxItensGrupo.getStyleClass().add("grupo-colaboradores-itens");
+            List<CheckBox> checksGrupo = new ArrayList<>();
+            for (GeracaoHorariosBLL.ColaboradorElegivel colaborador : grupo.getValue()) {
+                CheckBox checkBox = criarCheckBoxColaborador(colaborador, devePreservarSelecao, selecionadosAnteriores);
+                checksGrupo.add(checkBox);
+                boxItensGrupo.getChildren().add(checkBox);
+                selecaoColaboradoresGeracao.put(colaborador.idColaborador(), checkBox);
+            }
+
+            checkGrupo.setOnAction(event -> checksGrupo.forEach(checkBox -> checkBox.setSelected(checkGrupo.isSelected())));
+            checksGrupo.forEach(checkBox -> checkBox.selectedProperty().addListener(
+                    (observavel, anterior, selecionado) -> atualizarEstadoCheckGrupo(checkGrupo, checksGrupo)
+            ));
+            atualizarEstadoCheckGrupo(checkGrupo, checksGrupo);
+
+            boxGrupo.getChildren().add(boxItensGrupo);
+            boxColaboradoresGeracao.getChildren().add(boxGrupo);
+        }
+
+        atualizarResumoSelecaoColaboradores();
+    }
+
+    private Map<String, List<GeracaoHorariosBLL.ColaboradorElegivel>> agruparColaboradoresPorCargo(
+            List<GeracaoHorariosBLL.ColaboradorElegivel> colaboradores) {
+        Map<String, List<GeracaoHorariosBLL.ColaboradorElegivel>> grupos = new LinkedHashMap<>();
+        colaboradores.stream()
+                .sorted(Comparator
+                        .comparing(GeracaoHorariosBLL.ColaboradorElegivel::cargo, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(GeracaoHorariosBLL.ColaboradorElegivel::nome, String.CASE_INSENSITIVE_ORDER))
+                .forEach(colaborador -> grupos
+                        .computeIfAbsent(colaborador.cargo(), ignorado -> new ArrayList<>())
+                        .add(colaborador));
+        return grupos;
+    }
+
+    private CheckBox criarCheckBoxColaborador(GeracaoHorariosBLL.ColaboradorElegivel colaborador,
+                                              boolean devePreservarSelecao,
+                                              Set<Integer> selecionadosAnteriores) {
+            CheckBox checkBox = new CheckBox(colaborador.nome()
+                    + " | "
+                    + colaborador.perfilContratual());
+            checkBox.getStyleClass().add("colaborador-check");
+            checkBox.setWrapText(true);
+            checkBox.setSelected(devePreservarSelecao
+                    ? selecionadosAnteriores.contains(colaborador.idColaborador())
+                    : colaborador.selecionadoPorDefeito());
+            checkBox.selectedProperty().addListener((observavel, anterior, selecionado) -> atualizarResumoSelecaoColaboradores());
+            return checkBox;
+    }
+
+    private void atualizarEstadoCheckGrupo(CheckBox checkGrupo, List<CheckBox> checksGrupo) {
+        long selecionados = checksGrupo.stream().filter(CheckBox::isSelected).count();
+        checkGrupo.setIndeterminate(selecionados > 0 && selecionados < checksGrupo.size());
+        checkGrupo.setSelected(selecionados == checksGrupo.size() && !checksGrupo.isEmpty());
+    }
+
+    private List<Integer> obterIdsColaboradoresSelecionados() {
+        return obterIdsColaboradoresSelecionadosComoSet().stream().toList();
+    }
+
+    private Set<Integer> obterIdsColaboradoresSelecionadosComoSet() {
+        Set<Integer> selecionados = new LinkedHashSet<>();
+        for (Map.Entry<Integer, CheckBox> entrada : selecaoColaboradoresGeracao.entrySet()) {
+            if (entrada.getValue().isSelected()) {
+                selecionados.add(entrada.getKey());
+            }
+        }
+        return selecionados;
+    }
+
+    private void atualizarResumoSelecaoColaboradores() {
+        int total = selecaoColaboradoresGeracao.size();
+        int selecionados = obterIdsColaboradoresSelecionadosComoSet().size();
+        if (total == 0) {
+            lblResumoColaboradoresGeracao.setText("Escolhe o periodo para carregar a equipa elegivel.");
+        } else {
+            lblResumoColaboradoresGeracao.setText(selecionados + " de " + total + " colaboradores selecionados para a geracao.");
+        }
+        atualizarEstadoInterativo();
     }
 
     private void carregarListaPropostas(Integer idSelecionar) {
@@ -686,6 +896,9 @@ public class GeracaoHorariosController {
         btnGerarProposta.setDisable(true);
         btnGerarAlternativas.setDisable(true);
         spQuantidadeAlternativas.setDisable(true);
+        painelSelecaoColaboradores.setManaged(false);
+        painelSelecaoColaboradores.setVisible(false);
+        btnEnviarSupervisor.setDisable(true);
         painelValidacaoSupervisor.setManaged(false);
         painelValidacaoSupervisor.setVisible(false);
         tabelaPropostas.setDisable(true);
@@ -703,6 +916,10 @@ public class GeracaoHorariosController {
         btnGerarAlternativas.setManaged(podeGerar);
         btnGerarAlternativas.setVisible(podeGerar);
         spQuantidadeAlternativas.setDisable(!podeGerar);
+        painelSelecaoColaboradores.setManaged(podeGerar);
+        painelSelecaoColaboradores.setVisible(podeGerar);
+        btnEnviarSupervisor.setManaged(podeGerar);
+        btnEnviarSupervisor.setVisible(podeGerar);
 
         painelValidacaoSupervisor.setManaged(podeValidar);
         painelValidacaoSupervisor.setVisible(podeValidar);
@@ -752,6 +969,145 @@ public class GeracaoHorariosController {
         lblFeedback.setVisible(false);
         lblFeedback.setManaged(false);
         lblFeedback.setText("");
+    }
+
+    private void mostrarDiagnosticoGeracao(Throwable erro) {
+        Throwable causaRaiz = encontrarCausaRaiz(erro);
+        if (!(causaRaiz instanceof GeracaoHorariosBLL.FalhaGeracaoHorarioException falha)) {
+            esconderDiagnosticoGeracao();
+            return;
+        }
+
+        lblDiagnosticoTitulo.setText("Turno sem cobertura: " + falha.turno() + " em " + falha.data());
+        lblDiagnosticoResumo.setText(
+                "Foram considerados "
+                        + falha.colaboradoresConsiderados()
+                        + " colaboradores. Principal bloqueio: "
+                        + falha.motivoPrincipal()
+        );
+        String perfilRecomendado = perfilRecomendado(falha);
+        lblDiagnosticoPerfilRecomendado.setText(perfilRecomendado.isBlank()
+                ? ""
+                : "Reforco recomendado: " + perfilRecomendado
+                        + ". Este e o perfil que mais ajuda a aliviar este gargalo sem mexer nas restantes regras.");
+        lblDiagnosticoPerfilRecomendado.setVisible(!perfilRecomendado.isBlank());
+        lblDiagnosticoPerfilRecomendado.setManaged(!perfilRecomendado.isBlank());
+        boxDiagnosticoMotivos.getChildren().clear();
+        boxDiagnosticoSugestoes.getChildren().clear();
+
+        for (GeracaoHorariosBLL.MotivoFalhaGeracao motivo : falha.motivos()) {
+            VBox blocoMotivo = new VBox(6);
+            blocoMotivo.getStyleClass().add("diagnostico-bloco-motivo");
+
+            HBox linha = new HBox(10);
+            linha.getStyleClass().add("diagnostico-linha");
+
+            Button total = new Button(motivo.total() == 1 ? "1 pessoa" : motivo.total() + " pessoas");
+            total.getStyleClass().add("diagnostico-contador");
+            total.setOnAction(event -> mostrarDetalheMotivo(motivo));
+
+            Label descricao = new Label(motivo.descricao());
+            descricao.getStyleClass().add("diagnostico-descricao");
+            descricao.setWrapText(true);
+
+            linha.getChildren().addAll(total, descricao);
+            blocoMotivo.getChildren().add(linha);
+
+            if (motivo.nomes() != null && !motivo.nomes().isEmpty()) {
+                HBox nomes = new HBox(6);
+                nomes.getStyleClass().add("diagnostico-nomes");
+                List<String> nomesVisiveis = motivo.nomes().stream().limit(4).toList();
+                for (String nome : nomesVisiveis) {
+                    Label etiqueta = new Label(nome);
+                    etiqueta.getStyleClass().add("diagnostico-nome");
+                    nomes.getChildren().add(etiqueta);
+                }
+                if (motivo.nomes().size() > nomesVisiveis.size()) {
+                    Label restantes = new Label("+" + (motivo.nomes().size() - nomesVisiveis.size()) + " ver no contador");
+                    restantes.getStyleClass().add("diagnostico-nome-mais");
+                    nomes.getChildren().add(restantes);
+                }
+                blocoMotivo.getChildren().add(nomes);
+            }
+
+            boxDiagnosticoMotivos.getChildren().add(blocoMotivo);
+        }
+
+        int indice = 0;
+        for (GeracaoHorariosBLL.SugestaoFalhaGeracao sugestao : falha.sugestoes()) {
+            HBox linha = new HBox(10);
+            linha.getStyleClass().add("diagnostico-linha");
+
+            Label ordem = new Label(rotuloSugestao(indice++));
+            ordem.getStyleClass().add("diagnostico-etapa");
+
+            Label descricao = new Label(sugestao.texto());
+            descricao.getStyleClass().add("diagnostico-sugestao");
+            descricao.setWrapText(true);
+
+            VBox textoSugestao = new VBox(5);
+            textoSugestao.getChildren().add(descricao);
+
+            linha.getChildren().addAll(ordem, textoSugestao);
+            boxDiagnosticoSugestoes.getChildren().add(linha);
+        }
+
+        painelDiagnosticoGeracao.setVisible(true);
+        painelDiagnosticoGeracao.setManaged(true);
+    }
+
+    private String perfilRecomendado(GeracaoHorariosBLL.FalhaGeracaoHorarioException falha) {
+        return falha.sugestoes().stream()
+                .map(GeracaoHorariosBLL.SugestaoFalhaGeracao::perfilRecomendado)
+                .filter(perfil -> perfil != null && !perfil.isBlank())
+                .findFirst()
+                .orElse("");
+    }
+
+    private void mostrarDetalheMotivo(GeracaoHorariosBLL.MotivoFalhaGeracao motivo) {
+        FlowPane nomes = new FlowPane(8, 8);
+        nomes.getStyleClass().add("diagnostico-modal-nomes");
+        for (String nome : motivo.nomes()) {
+            Label etiqueta = new Label(nome);
+            etiqueta.getStyleClass().add("diagnostico-nome");
+            nomes.getChildren().add(etiqueta);
+        }
+
+        DialogosHelper.mostrarConteudo(
+                obterJanela(),
+                "Diagnostico da geracao",
+                motivo.total() == 1 ? "1 pessoa afetada" : motivo.total() + " pessoas afetadas",
+                motivo.descricao(),
+                nomes
+        );
+    }
+
+    private String rotuloSugestao(int indice) {
+        return switch (indice) {
+            case 0 -> "Fazer primeiro";
+            case 1 -> "Depois";
+            case 2 -> "Verificar";
+            default -> "Opcional";
+        };
+    }
+
+    private void esconderDiagnosticoGeracao() {
+        if (painelDiagnosticoGeracao == null) {
+            return;
+        }
+        painelDiagnosticoGeracao.setVisible(false);
+        painelDiagnosticoGeracao.setManaged(false);
+        if (lblDiagnosticoPerfilRecomendado != null) {
+            lblDiagnosticoPerfilRecomendado.setVisible(false);
+            lblDiagnosticoPerfilRecomendado.setManaged(false);
+            lblDiagnosticoPerfilRecomendado.setText("");
+        }
+        if (boxDiagnosticoMotivos != null) {
+            boxDiagnosticoMotivos.getChildren().clear();
+        }
+        if (boxDiagnosticoSugestoes != null) {
+            boxDiagnosticoSugestoes.getChildren().clear();
+        }
     }
 
     private void mostrarFeedbackValidacao(String mensagem, boolean sucesso) {
@@ -940,15 +1296,76 @@ public class GeracaoHorariosController {
         );
     }
 
+    private void enviarPropostasSelecionadasEmSegundoPlano() {
+        try {
+            validarUtilizadorAutenticado();
+
+            List<Integer> idsPropostas = tabelaPropostas.getSelectionModel().getSelectedItems().stream()
+                    .filter(this::propostaEmRascunho)
+                    .map(GeracaoHorariosBLL.PropostaResumo::idProposta)
+                    .toList();
+            if (idsPropostas.isEmpty()) {
+                throw new IllegalArgumentException("Seleciona uma ou mais alternativas em rascunho para enviar ao supervisor.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Enviar ao supervisor",
+                    idsPropostas.size() == 1
+                            ? "Deseja enviar a alternativa selecionada ao supervisor?"
+                            : "Deseja enviar " + idsPropostas.size() + " alternativas ao supervisor?",
+                    "So as alternativas enviadas ficam disponiveis para aprovacao ou rejeicao."
+            )) {
+                return;
+            }
+
+            executarOperacaoEmSegundoPlano(
+                    idsPropostas.size() == 1
+                            ? "A enviar alternativa ao supervisor..."
+                            : "A enviar alternativas ao supervisor...",
+                    () -> {
+                        geracaoHorariosBLL.enviarPropostasParaValidacao(utilizadorLogado.getId(), idsPropostas);
+                        MesOption mesSelecionado = obterMesSelecionado();
+                        List<GeracaoHorariosBLL.PropostaResumo> propostas = geracaoHorariosBLL.listarPropostas(
+                                utilizadorLogado.getId(),
+                                spAno.getValue(),
+                                mesSelecionado.numero()
+                        );
+                        GeracaoHorariosBLL.PropostaResultado enviada = geracaoHorariosBLL.obterPropostaPorId(
+                                utilizadorLogado.getId(),
+                                idsPropostas.getFirst()
+                        );
+                        return new EnvioSupervisorDados(propostas, enviada, idsPropostas.size());
+                    },
+                    dados -> {
+                        aplicarListaPropostas(dados.propostas(), dados.propostaSelecionada().idProposta());
+                        preencherResultado(dados.propostaSelecionada());
+                        selecionarPropostaNaTabela(dados.propostaSelecionada().idProposta());
+                        mostrarSucesso(dados.totalEnviadas() == 1
+                                ? "Alternativa enviada ao supervisor."
+                                : dados.totalEnviadas() + " alternativas enviadas ao supervisor.");
+                    },
+                    erro -> mostrarErro(resolverMensagemErro(erro, "Nao foi possivel enviar as alternativas ao supervisor."))
+            );
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        }
+    }
+
     private void gerarAlternativasEmSegundoPlano(int quantidade) {
         try {
             validarUtilizadorAutenticado();
+            List<Integer> idsColaboradoresSelecionados = obterIdsColaboradoresSelecionados();
+            if (idsColaboradoresSelecionados.isEmpty()) {
+                throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horario.");
+            }
 
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     quantidade == 1 ? "Gerar alternativa" : "Gerar alternativas",
                     quantidade == 1 ? "Deseja gerar uma nova alternativa?" : "Deseja gerar " + quantidade + " alternativas?",
-                    "As alternativas ficam pendentes para comparação e só uma será publicada depois da validação."
+                    "A geracao vai usar " + idsColaboradoresSelecionados.size()
+                            + " colaboradores selecionados. Depois podes enviar ao supervisor apenas as alternativas escolhidas."
             )) {
                 return;
             }
@@ -963,7 +1380,8 @@ public class GeracaoHorariosController {
                                 utilizadorLogado.getId(),
                                 spAno.getValue(),
                                 mesSelecionado.numero(),
-                                quantidade
+                                quantidade,
+                                idsColaboradoresSelecionados
                         );
 
                         GeracaoHorariosBLL.PropostaResultado melhorResultado = resultados.stream()
@@ -981,18 +1399,21 @@ public class GeracaoHorariosController {
                         preencherResultado(dados.melhorResultado());
                         selecionarPropostaNaTabela(dados.melhorResultado().idProposta());
                         esconderFeedbackValidacao();
+                        esconderDiagnosticoGeracao();
                         mostrarSucesso(dados.totalGeradas() == 1
-                                ? "Alternativa gerada com sucesso e guardada na tabela acima. Usa \"Ver planeamento\" ou seleciona a proposta para rever o calendário."
-                                : dados.totalGeradas() + " alternativas geradas e guardadas na tabela acima. A melhor pontuação ficou selecionada para análise.");
+                                ? "Alternativa gerada como rascunho. Seleciona-a na tabela e envia ao supervisor quando estiver pronta."
+                                : dados.totalGeradas() + " alternativas geradas como rascunho. A melhor pontuacao ficou selecionada para analise.");
                     },
                     erro -> {
                         String mensagem = resolverMensagemErro(erro, "Não foi possível gerar alternativas para o período selecionado.");
                         if (tentarCarregarPlaneamentoExistente()) {
                             esconderFeedbackValidacao();
                             mostrarErro(mensagem + " O planeamento atual foi carregado abaixo para facilitar a análise.");
+                            mostrarDiagnosticoGeracao(erro);
                             return;
                         }
                         mostrarErro(mensagem);
+                        mostrarDiagnosticoGeracao(erro);
                     }
             );
         } catch (IllegalArgumentException e) {
@@ -1024,6 +1445,15 @@ public class GeracaoHorariosController {
         atualizarEstadoInterativo();
     }
 
+    private boolean propostaEmRascunho(GeracaoHorariosBLL.PropostaResumo proposta) {
+        return proposta != null && "rascunho".equals(normalizarTexto(proposta.estado()));
+    }
+
+    private boolean existePropostaEmRascunhoSelecionada() {
+        return tabelaPropostas.getSelectionModel().getSelectedItems().stream()
+                .anyMatch(this::propostaEmRascunho);
+    }
+
     private void atualizarEstadoInterativo() {
         boolean emProcessamento = operacaoEmCurso != null && operacaoEmCurso.isRunning();
         boolean contextoCarregado = utilizadorLogado != null && utilizadorLogado.getId() != null;
@@ -1034,10 +1464,14 @@ public class GeracaoHorariosController {
         btnGerarProposta.setDisable(!podeGerar || emProcessamento);
         btnGerarAlternativas.setDisable(!podeGerar || emProcessamento);
         spQuantidadeAlternativas.setDisable(!podeGerar || emProcessamento);
+        painelSelecaoColaboradores.setDisable(!podeGerar || emProcessamento);
+        btnSelecionarTodosColaboradores.setDisable(!podeGerar || emProcessamento || selecaoColaboradoresGeracao.isEmpty());
+        btnLimparColaboradores.setDisable(!podeGerar || emProcessamento || selecaoColaboradoresGeracao.isEmpty());
 
         tabelaPropostas.setDisable(emProcessamento);
         cbComparacaoBase.setDisable(emProcessamento);
         cbComparacaoAlvo.setDisable(emProcessamento);
+        btnEnviarSupervisor.setDisable(!podeGerar || emProcessamento || !existePropostaEmRascunhoSelecionada());
         if (btnCompararPropostas != null) {
             btnCompararPropostas.setDisable(
                     emProcessamento
@@ -1104,14 +1538,54 @@ public class GeracaoHorariosController {
         }
     }
 
+    private String normalizarTexto(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        return Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(java.util.Locale.ROOT)
+                .trim();
+    }
+
     private String resolverMensagemErro(Throwable erro, String fallback) {
         Throwable causaRaiz = encontrarCausaRaiz(erro);
         if (causaRaiz instanceof IllegalArgumentException
                 && causaRaiz.getMessage() != null
                 && !causaRaiz.getMessage().isBlank()) {
-            return causaRaiz.getMessage();
+            return tornarMensagemErroApresentavel(causaRaiz.getMessage(), fallback);
         }
         return fallback;
+    }
+
+    private String tornarMensagemErroApresentavel(String mensagem, String fallback) {
+        String mensagemNormalizada = mensagem != null ? mensagem.trim() : "";
+        if (mensagemNormalizada.isBlank()) {
+            return fallback;
+        }
+
+        boolean pareceDiagnosticoTecnico = mensagemNormalizada.length() > 420
+                || mensagemNormalizada.contains("={")
+                || mensagemNormalizada.contains("=[")
+                || mensagemNormalizada.contains("@10:")
+                || mensagemNormalizada.contains("@14:")
+                || mensagemNormalizada.contains("@18:");
+
+        if (!pareceDiagnosticoTecnico) {
+            return mensagemNormalizada;
+        }
+
+        String mensagemCurta = mensagemNormalizada
+                .replaceAll("\\s*\\[[\\s\\S]*", "")
+                .replaceAll("\\s*\\{[\\s\\S]*", "")
+                .trim();
+
+        if (mensagemCurta.isBlank() || mensagemCurta.length() > 260) {
+            mensagemCurta = fallback;
+        }
+
+        return mensagemCurta
+                + " Revê a equipa selecionada, folgas/preferencias aprovadas, descanso entre turnos, limite de horas e minimo exigido por turno.";
     }
 
     private Throwable encontrarCausaRaiz(Throwable erro) {
@@ -1139,6 +1613,13 @@ public class GeracaoHorariosController {
             List<GeracaoHorariosBLL.PropostaResumo> propostas,
             GeracaoHorariosBLL.PropostaResultado melhorResultado,
             int totalGeradas
+    ) {
+    }
+
+    private record EnvioSupervisorDados(
+            List<GeracaoHorariosBLL.PropostaResumo> propostas,
+            GeracaoHorariosBLL.PropostaResultado propostaSelecionada,
+            int totalEnviadas
     ) {
     }
 

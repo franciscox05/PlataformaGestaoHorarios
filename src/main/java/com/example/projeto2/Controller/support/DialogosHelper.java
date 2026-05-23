@@ -78,6 +78,24 @@ public final class DialogosHelper {
         mostrarMensagem(owner, titulo, cabecalho, conteudo);
     }
 
+    public static void mostrarConteudo(Window owner,
+                                       String titulo,
+                                       String cabecalho,
+                                       String conteudo,
+                                       Region conteudoExtra) {
+        Button btnFechar = criarBotao("Fechar", "botao-acao");
+        Stage stage = construirStageDialogo(
+                owner,
+                titulo,
+                cabecalho,
+                conteudo,
+                conteudoExtra,
+                btnFechar
+        );
+        btnFechar.setOnAction(event -> stage.close());
+        stage.showAndWait();
+    }
+
     public static Optional<String> pedirTexto(Window owner,
                                               String titulo,
                                               String cabecalho,

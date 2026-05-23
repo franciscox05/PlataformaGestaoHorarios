@@ -1,28 +1,39 @@
 <!doctype html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Levi's Staff Portal Web - Login</title>
-    <link rel="stylesheet" href="/web/css/app.css">
-</head>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Login')}"></head>
 <body class="web-auth-body">
-<main class="web-auth-shell">
-    <section class="web-auth-panel">
-        <h1>Staff Portal Web</h1>
-        <p>Inicia sessao para consultar e gerar horarios.</p>
+<main class="web-login-shell">
+    <section class="web-login-backdrop"></section>
+    <section class="web-login-overlay"></section>
 
-        <form method="post" action="/web/login" class="web-form">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" required>
+    <section class="web-login-content">
+        <article class="web-login-editorial">
+            <p class="web-login-era">AUTENTICO DESDE 1853</p>
+            <h1>RAW<br>DENIM</h1>
+            <p>A qualidade nunca passa de moda. O portal oficial da Levi Strauss &amp; Co. para operacao, equipa e planeamento editorial.</p>
+        </article>
 
-            <label for="password">Palavra-passe</label>
-            <input id="password" name="password" type="password" required>
+        <article class="web-login-card">
+            <header class="web-login-brand">
+                <strong>LEVI'S</strong>
+                <span>PORTAL INTERNO</span>
+            </header>
 
-            <button type="submit">Entrar</button>
-        </form>
+            <h2>Aceder ao portal</h2>
+            <p>Introduz as tuas credenciais internas para continuar.</p>
 
-        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+            <form method="post" action="/web/login" class="web-form">
+                <label for="email">UTILIZADOR</label>
+                <input id="email" name="email" type="email" placeholder="Email ou identificador interno" required>
+
+                <label for="password">PALAVRA-PASSE</label>
+                <input id="password" name="password" type="password" placeholder="Palavra-passe" required>
+                <button type="submit" class="botao-acao">ENTRAR</button>
+            </form>
+
+            <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+            <p class="web-login-legal">© 2024 Levi Strauss &amp; Co. Informacao confidencial e proprietaria. Apenas para pessoal autorizado.</p>
+        </article>
     </section>
 </main>
 </body>

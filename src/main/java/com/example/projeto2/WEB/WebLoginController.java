@@ -16,15 +16,18 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class WebLoginController {
 
     private final UtilizadorBLL utilizadorBLL;
+    private final WebAppService webAppService;
 
-    public WebLoginController(UtilizadorBLL utilizadorBLL) {
+    public WebLoginController(UtilizadorBLL utilizadorBLL,
+                              WebAppService webAppService) {
         this.utilizadorBLL = utilizadorBLL;
+        this.webAppService = webAppService;
     }
 
     @GetMapping({"", "/", "/login"})
     public String loginPage(HttpSession session, Model model) {
         if (session.getAttribute(WebSession.UTILIZADOR_ID) != null) {
-            return "redirect:/web/horarios";
+            return "redirect:/web/painel";
         }
 
         if (!model.containsAttribute("erro")) {
@@ -44,9 +47,8 @@ public class WebLoginController {
             return "redirect:/web/login";
         }
 
-        session.setAttribute(WebSession.UTILIZADOR_ID, utilizador.getId());
-        session.setAttribute(WebSession.UTILIZADOR_NOME, utilizador.getNome());
-        return "redirect:/web/horarios";
+        webAppService.sincronizarSessao(session, utilizador);
+        return "redirect:/web/painel";
     }
 
     @PostMapping("/logout")

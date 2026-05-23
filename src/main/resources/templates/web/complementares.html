@@ -1,137 +1,99 @@
 <!doctype html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Levi's Staff Portal Web - Complementares</title>
-    <link rel="stylesheet" href="/web/css/app.css">
-</head>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Complementares')}"></head>
 <body>
-<header class="web-topbar">
-    <div>
-        <strong>Levi's Staff Portal Web</strong>
-        <span th:text="'Utilizador: ' + ${utilizadorNome}"></span>
-    </div>
-    <div class="web-topbar-actions">
-        <a class="btn-link" href="/web/horarios">Horarios</a>
-        <a class="btn-link btn-link-active" href="/web/complementares">Complementares</a>
-        <form method="post" action="/web/logout">
-            <button type="submit" class="btn-ghost">Terminar sessao</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{web/fragments :: shellHeader}"></header>
 
-<main class="web-layout">
-    <section class="web-card">
-        <h1>Fluxos complementares</h1>
-        <p class="web-subtitle">Registo de preferencias, folgas e permutas.</p>
-        <p class="web-feedback web-feedback-success" th:if="${sucessoComplementares}" th:text="${sucessoComplementares}"></p>
-        <p class="web-feedback web-feedback-error" th:if="${erroComplementares}" th:text="${erroComplementares}"></p>
-    </section>
+<div class="web-shell">
+    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 
-    <section class="web-grid-2">
-        <article class="web-card" id="preferencias">
-            <h2>Registar preferencia</h2>
-            <form method="post" action="/web/complementares/preferencias" class="web-form">
-                <label for="prefTipo">Tipo</label>
-                <select id="prefTipo" name="tipo" required>
-                    <option value="folgas">Folgas</option>
-                    <option value="ferias">Ferias</option>
-                    <option value="colegas">Colegas</option>
-                    <option value="turnos">Turnos</option>
-                </select>
+    <main class="web-content">
+        <h1>Modulo Complementares</h1>
+        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
+        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
 
-                <label for="prefDescricao">Descricao</label>
-                <input id="prefDescricao" name="descricao" required>
+        <section class="web-grid-two">
+            <article class="web-card">
+                <h2>Novo pedido de folga</h2>
+                <form method="post" action="/web/complementares/folgas" class="web-form">
+                    <label for="dataAusencia">Data</label>
+                    <input id="dataAusencia" name="dataAusencia" type="date" required>
 
-                <label for="prefInicio">Data inicio</label>
-                <input id="prefInicio" name="dataInicio" type="date">
+                    <label for="tipoFolga">Tipo</label>
+                    <select id="tipoFolga" name="tipo" required>
+                        <option value="ferias">Ferias</option>
+                        <option value="folgas">Folgas</option>
+                        <option value="baixa">Baixa</option>
+                    </select>
 
-                <label for="prefFim">Data fim</label>
-                <input id="prefFim" name="dataFim" type="date">
+                    <label for="motivoFolga">Motivo</label>
+                    <textarea id="motivoFolga" name="motivo" rows="2"></textarea>
+                    <button type="submit">Submeter pedido</button>
+                </form>
+            </article>
 
-                <button type="submit">Guardar preferencia</button>
-            </form>
-        </article>
+            <article class="web-card">
+                <h2>Nova preferencia</h2>
+                <form method="post" action="/web/complementares/preferencias" class="web-form">
+                    <label for="tipoPreferencia">Tipo</label>
+                    <select id="tipoPreferencia" name="tipo" required>
+                        <option th:each="tipo : ${tiposPreferencia}" th:value="${tipo}" th:text="${tipo}"></option>
+                    </select>
 
-        <article class="web-card" id="folgas">
-            <h2>Registar folga</h2>
-            <form method="post" action="/web/complementares/folgas" class="web-form">
-                <label for="folgaTipo">Tipo</label>
-                <select id="folgaTipo" name="tipo" required>
-                    <option value="folgas">Folgas</option>
-                    <option value="ferias">Ferias</option>
-                    <option value="baixa">Baixa</option>
-                </select>
+                    <div class="web-grid-two">
+                        <div>
+                            <label for="dataInicioPreferencia">Data inicio</label>
+                            <input id="dataInicioPreferencia" name="dataInicio" type="date">
+                        </div>
+                        <div>
+                            <label for="dataFimPreferencia">Data fim</label>
+                            <input id="dataFimPreferencia" name="dataFim" type="date">
+                        </div>
+                    </div>
 
-                <label for="folgaData">Data</label>
-                <input id="folgaData" name="dataAusencia" type="date" required>
+                    <label for="prioridadePreferencia">Prioridade (1-5)</label>
+                    <input id="prioridadePreferencia" name="prioridade" type="number" min="1" max="5">
 
-                <label for="folgaMotivo">Motivo</label>
-                <input id="folgaMotivo" name="motivo">
+                    <label for="descricaoPreferencia">Descricao</label>
+                    <textarea id="descricaoPreferencia" name="descricao" rows="2" required></textarea>
+                    <button type="submit">Guardar preferencia</button>
+                </form>
+            </article>
+        </section>
 
-                <button type="submit">Submeter folga</button>
-            </form>
-        </article>
-    </section>
-
-    <section class="web-grid-1" id="permutas">
-        <article class="web-card">
-            <h2>Submeter permuta</h2>
+        <section class="web-card">
+            <h2>Novo pedido de permuta</h2>
             <form method="get" action="/web/complementares" class="web-inline-form">
-                <label for="origemFiltro">Meu turno</label>
-                <select id="origemFiltro" name="origemId">
-                    <option value="">Seleciona um turno</option>
-                    <option th:each="turno : ${meusTurnos}"
+                <label for="origemPermuta">Meu turno de origem</label>
+                <select id="origemPermuta" name="origemPermuta">
+                    <option value="">Selecionar</option>
+                    <option th:each="turno : ${meusTurnosPermutaveis}"
                             th:value="${turno.id}"
-                            th:selected="${origemSelecionadaId != null and origemSelecionadaId == turno.id}"
-                            th:text="${T(com.example.projeto2.WEB.WebComplementaresController).formatarTurno(turno)}"></option>
+                            th:text="${turno.dataTurno} + ' | ' + ${turno.idTurno.horaInicio} + ' - ' + ${turno.idTurno.horaFim}"
+                            th:selected="${origemPermutaSelecionada != null && origemPermutaSelecionada == turno.id}">
+                    </option>
                 </select>
                 <button type="submit">Carregar opcoes</button>
             </form>
 
-            <form method="post" action="/web/complementares/permutas" class="web-form permuta-form" th:if="${origemSelecionadaId != null}">
-                <input type="hidden" name="origemId" th:value="${origemSelecionadaId}">
-                <label for="destinoId">Turno colega elegivel</label>
-                <select id="destinoId" name="destinoId" required>
-                    <option value="">Seleciona turno elegivel</option>
+            <form method="post" action="/web/complementares/permutas" class="web-inline-form">
+                <input type="hidden" name="idHorarioOrigem" th:value="${origemPermutaSelecionada}">
+                <label for="idHorarioDestino">Turno de destino</label>
+                <select id="idHorarioDestino" name="idHorarioDestino" required>
+                    <option value="">Selecionar</option>
                     <option th:each="turno : ${turnosElegiveis}"
                             th:value="${turno.id}"
-                            th:text="${turno.idLojautilizador.idUtilizador.nome + ' | ' + T(com.example.projeto2.WEB.WebComplementaresController).formatarTurno(turno)}"></option>
+                            th:text="${turno.idLojautilizador.idUtilizador.nome} + ' | ' + ${turno.idTurno.horaInicio} + ' - ' + ${turno.idTurno.horaFim}">
+                    </option>
                 </select>
                 <button type="submit">Submeter permuta</button>
             </form>
-        </article>
-    </section>
+        </section>
 
-    <section class="web-grid-1" id="historicos">
-        <article class="web-card">
-            <h2>Historico de preferencias</h2>
-            <table>
-                <thead>
-                <tr>
-                    <th>Tipo</th>
-                    <th>Periodo</th>
-                    <th>Estado</th>
-                    <th>Descricao</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:if="${#lists.isEmpty(preferencias)}">
-                    <td colspan="4">Sem preferencias registadas.</td>
-                </tr>
-                <tr th:each="pref : ${preferencias}">
-                    <td th:text="${T(com.example.projeto2.WEB.WebComplementaresController).formatarTipoPreferencia(pref.tipo)}"></td>
-                    <td th:text="${T(com.example.projeto2.WEB.WebComplementaresController).formatarPeriodo(pref)}"></td>
-                    <td th:text="${T(com.example.projeto2.WEB.WebComplementaresController).formatarEstado(pref.estado)}"></td>
-                    <td th:text="${pref.descricao}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </article>
+        <section class="web-card">
+            <h2>Historico pessoal</h2>
 
-        <article class="web-card">
-            <h2>Historico de folgas</h2>
+            <h3>Folgas</h3>
             <table>
                 <thead>
                 <tr>
@@ -142,21 +104,44 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:if="${#lists.isEmpty(pedidosFolga)}">
-                    <td colspan="4">Sem pedidos de folga.</td>
+                <tr th:if="${#lists.isEmpty(minhasFolgas)}">
+                    <td colspan="4">Sem pedidos registados.</td>
                 </tr>
-                <tr th:each="pedido : ${pedidosFolga}">
-                    <td th:text="${pedido.dataAusencia}"></td>
-                    <td th:text="${pedido.tipo}"></td>
-                    <td th:text="${pedido.motivo}"></td>
-                    <td th:text="${T(com.example.projeto2.WEB.WebComplementaresController).formatarEstado(pedido.estado)}"></td>
+                <tr th:each="item : ${minhasFolgas}">
+                    <td th:text="${item.dataAusencia}"></td>
+                    <td th:text="${item.tipo}"></td>
+                    <td th:text="${item.motivo != null ? item.motivo : '-'}"></td>
+                    <td th:text="${item.estado}"></td>
                 </tr>
                 </tbody>
             </table>
-        </article>
 
-        <article class="web-card">
-            <h2>Historico de permutas</h2>
+            <h3>Preferencias</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Periodo</th>
+                    <th>Prioridade</th>
+                    <th>Descricao</th>
+                    <th>Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(minhasPreferencias)}">
+                    <td colspan="5">Sem preferencias registadas.</td>
+                </tr>
+                <tr th:each="item : ${minhasPreferencias}">
+                    <td th:text="${item.tipo}"></td>
+                    <td th:text="${(item.dataInicio != null ? item.dataInicio : '-') + ' -> ' + (item.dataFim != null ? item.dataFim : '-')}"></td>
+                    <td th:text="${item.prioridade}"></td>
+                    <td th:text="${item.descricao}"></td>
+                    <td th:text="${item.estado}"></td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>Permutas</h3>
             <table>
                 <thead>
                 <tr>
@@ -167,19 +152,121 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:if="${#lists.isEmpty(pedidosPermuta)}">
-                    <td colspan="4">Sem pedidos de permuta.</td>
+                <tr th:if="${#lists.isEmpty(minhasPermutas)}">
+                    <td colspan="4">Sem pedidos de permuta registados.</td>
                 </tr>
-                <tr th:each="permuta : ${pedidosPermuta}">
-                    <td th:text="${T(com.example.projeto2.WEB.WebComplementaresController).formatarDataHoraPedido(permuta.dataPedido)}"></td>
-                    <td th:text="${T(com.example.projeto2.WEB.WebComplementaresController).formatarTurno(permuta.idHorarioOrigem)}"></td>
-                    <td th:text="${permuta.idHorarioDestino.idLojautilizador.idUtilizador.nome + ' | ' + T(com.example.projeto2.WEB.WebComplementaresController).formatarTurno(permuta.idHorarioDestino)}"></td>
-                    <td th:text="${T(com.example.projeto2.WEB.WebComplementaresController).formatarEstado(permuta.estado)}"></td>
+                <tr th:each="item : ${minhasPermutas}">
+                    <td th:text="${item.dataPedido}"></td>
+                    <td th:text="${item.idHorarioOrigem.dataTurno} + ' | ' + ${item.idHorarioOrigem.idTurno.horaInicio} + ' - ' + ${item.idHorarioOrigem.idTurno.horaFim}"></td>
+                    <td th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioDestino.idTurno.horaInicio} + ' - ' + ${item.idHorarioDestino.idTurno.horaFim}"></td>
+                    <td th:text="${item.estado}"></td>
                 </tr>
                 </tbody>
             </table>
-        </article>
-    </section>
-</main>
+        </section>
+
+        <section class="web-card" th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar()}">
+            <h2>Pendentes para aprovacao</h2>
+
+            <div th:if="${webPermissoes.podeAprovarFolgas()}">
+                <h3>Folgas pendentes</h3>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Acao</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(folgasPendentes)}">
+                        <td colspan="4">Sem folgas pendentes.</td>
+                    </tr>
+                    <tr th:each="item : ${folgasPendentes}">
+                        <td th:text="${nomesFolgasPendentes[item.idUtilizador]}"></td>
+                        <td th:text="${item.dataAusencia}"></td>
+                        <td th:text="${item.tipo}"></td>
+                        <td class="web-actions">
+                            <form method="post" th:action="@{'/web/complementares/folgas/' + ${item.idDayoff} + '/aprovar'}">
+                                <button type="submit">Aprovar</button>
+                            </form>
+                            <form method="post" th:action="@{'/web/complementares/folgas/' + ${item.idDayoff} + '/rejeitar'}">
+                                <button type="submit" class="btn-danger">Rejeitar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div th:if="${webPermissoes.podeAprovarPreferencias()}">
+                <h3>Preferencias pendentes</h3>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Tipo</th>
+                        <th>Descricao</th>
+                        <th>Decisao</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(preferenciasPendentes)}">
+                        <td colspan="4">Sem preferencias pendentes.</td>
+                    </tr>
+                    <tr th:each="item : ${preferenciasPendentes}">
+                        <td th:text="${nomesPreferencias[item.idUtilizador.id]}"></td>
+                        <td th:text="${item.tipo}"></td>
+                        <td th:text="${item.descricao}"></td>
+                        <td>
+                            <form method="post" th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/aprovar'}" class="web-form-inline">
+                                <input type="text" name="decisao" placeholder="Observacao opcional">
+                                <button type="submit">Aprovar</button>
+                            </form>
+                            <form method="post" th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/rejeitar'}" class="web-form-inline">
+                                <input type="text" name="decisao" placeholder="Observacao opcional">
+                                <button type="submit" class="btn-danger">Rejeitar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div th:if="${webPermissoes.podeAprovarPermutas()}">
+                <h3>Permutas pendentes</h3>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Solicitante</th>
+                        <th>Origem</th>
+                        <th>Destino</th>
+                        <th>Acao</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(permutasPendentes)}">
+                        <td colspan="4">Sem permutas pendentes.</td>
+                    </tr>
+                    <tr th:each="item : ${permutasPendentes}">
+                        <td th:text="${item.idHorarioOrigem.idLojautilizador.idUtilizador.nome}"></td>
+                        <td th:text="${item.idHorarioOrigem.dataTurno} + ' | ' + ${item.idHorarioOrigem.idTurno.horaInicio} + ' - ' + ${item.idHorarioOrigem.idTurno.horaFim}"></td>
+                        <td th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioDestino.idTurno.horaInicio} + ' - ' + ${item.idHorarioDestino.idTurno.horaFim}"></td>
+                        <td class="web-actions">
+                            <form method="post" th:action="@{'/web/complementares/permutas/' + ${item.id} + '/aprovar'}">
+                                <button type="submit">Aprovar</button>
+                            </form>
+                            <form method="post" th:action="@{'/web/complementares/permutas/' + ${item.id} + '/rejeitar'}">
+                                <button type="submit" class="btn-danger">Rejeitar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
 </body>
 </html>

@@ -17,6 +17,38 @@ O projeto ja inclui os principais modulos da entrega desktop:
 - perfil do utilizador
 - relatorios mensais de horas
 
+## Organizacao das pastas
+
+O projeto segue a estrutura pedida para o superfolder `Projeto2`:
+
+```text
+API/
+DESKTOP/
+WEB/
+```
+
+A implementacao compilavel continua no projeto Maven principal:
+
+- `API`: endpoints REST em `src/main/java/com/example/projeto2/API`
+- `DESKTOP`: aplicacao JavaFX em `src/main/java/com/example/projeto2/Controller` e `src/main/resources/com/example/projeto2`
+- `WEB`: pasta reservada para uma futura interface web
+
+A API esta organizada em:
+
+```text
+src/main/java/com/example/projeto2/API/Controllers
+src/main/java/com/example/projeto2/API/Modules
+src/main/java/com/example/projeto2/API/Services
+src/main/java/com/example/projeto2/API/Repositories
+```
+
+Endpoints iniciais:
+
+- `GET /api/health`
+- `GET /api/users/{idUtilizador}`
+- `POST /api/users`, com o header `X-Manager-Id`
+- `POST /create-user`, alias simples no estilo do enunciado
+
 ## Tecnologias
 
 - Java 25
@@ -137,6 +169,8 @@ Ficheiros adicionais de apoio:
 - [docs/validacao-entrega.md](docs/validacao-entrega.md) com a checklist de validacao final
 - [docs/apoio-relatorio-entrega.md](docs/apoio-relatorio-entrega.md) com o resumo para atualizar o PDF do relatorio
 - [docs/relatorio-final-entrega.md](docs/relatorio-final-entrega.md) com o conteudo atualizado do relatorio
+- [docs/mvp-web-entrega.md](docs/mvp-web-entrega.md) com o escopo minimo e os criterios de fecho da entrega Web
+- [docs/validacao-web-desktop.md](docs/validacao-web-desktop.md) com a validacao de paridade funcional entre Desktop e Web
 - `Projeto2_EI_33400_33397_relatorio_atualizado.pdf` como artefacto final pronto a submeter
 
 ## Nota

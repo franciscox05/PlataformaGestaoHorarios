@@ -674,6 +674,150 @@
     -fx-border-color: transparent;
 }
 
+.selecao-colaboradores-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(145, 111, 109, 0.18);
+    -fx-border-width: 1px;
+}
+
+.selecao-colaboradores-scroll > .viewport {
+    -fx-background-color: rgba(255,255,255,0.70);
+}
+
+.selecao-colaboradores-lista {
+    -fx-padding: 10px 12px;
+}
+
+.grupo-colaboradores {
+    -fx-padding: 8px 10px;
+    -fx-background-color: rgba(255,255,255,0.86);
+    -fx-border-color: rgba(145, 111, 109, 0.14);
+    -fx-border-width: 1px;
+}
+
+.grupo-colaboradores-titulo {
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #171515;
+}
+
+.grupo-colaboradores-itens {
+    -fx-padding: 2px 0 0 18px;
+}
+
+.colaborador-check {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #2b2423;
+}
+
+.diagnostico-geracao {
+    -fx-background-color: #fff8e9;
+    -fx-border-color: #e6c56e;
+    -fx-border-width: 1px;
+    -fx-padding: 14px 16px;
+}
+
+.diagnostico-titulo {
+    -fx-font-size: 14px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #5a3200;
+}
+
+.diagnostico-resumo {
+    -fx-font-size: 13px;
+    -fx-text-fill: #6b5131;
+}
+
+.diagnostico-linha {
+    -fx-alignment: CENTER_LEFT;
+}
+
+.diagnostico-bloco-motivo {
+    -fx-padding: 4px 0 8px 0;
+}
+
+.diagnostico-contador {
+    -fx-min-width: 78px;
+    -fx-pref-width: 78px;
+    -fx-alignment: CENTER;
+    -fx-padding: 5px 8px;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-text-fill: white;
+    -fx-background-color: #c41230;
+    -fx-cursor: hand;
+    -fx-background-radius: 0;
+}
+
+.diagnostico-contador:hover {
+    -fx-background-color: #93001d;
+}
+
+.diagnostico-etapa {
+    -fx-min-width: 104px;
+    -fx-pref-width: 104px;
+    -fx-alignment: CENTER;
+    -fx-padding: 7px 8px;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-text-fill: white;
+    -fx-background-color: #1a6a38;
+}
+
+.diagnostico-descricao {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #3a2a24;
+}
+
+.diagnostico-nomes {
+    -fx-padding: 0 0 0 88px;
+}
+
+.diagnostico-nome {
+    -fx-background-color: #fdecef;
+    -fx-border-color: #d31235;
+    -fx-border-width: 1px;
+    -fx-padding: 4px 8px;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #93001d;
+}
+
+.diagnostico-nome-mais {
+    -fx-background-color: rgba(147, 0, 29, 0.08);
+    -fx-border-color: rgba(147, 0, 29, 0.28);
+    -fx-border-width: 1px;
+    -fx-padding: 4px 8px;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #5d232c;
+}
+
+.diagnostico-modal-nomes {
+    -fx-padding: 4px 0 0 0;
+    -fx-pref-wrap-length: 470px;
+}
+
+.diagnostico-sugestao {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1f3327;
+    -fx-background-color: rgba(26, 106, 56, 0.08);
+    -fx-padding: 8px 10px;
+}
+
+.diagnostico-reforco {
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #0f5d30;
+    -fx-background-color: rgba(26, 106, 56, 0.12);
+    -fx-border-color: rgba(26, 106, 56, 0.28);
+    -fx-border-width: 1px;
+    -fx-padding: 9px 11px;
+}
+
 .combo-box-base .arrow-button,
 .date-picker .arrow-button {
     -fx-background-color: rgba(196, 18, 48, 0.08);

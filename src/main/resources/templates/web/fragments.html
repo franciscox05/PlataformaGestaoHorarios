@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${titulo}">Levi's Staff Portal Web</title>
+    <link rel="stylesheet"
+          th:href="@{/web/css/app.css(v='20260523-01')}"
+          href="/web/css/app.css?v=20260523-01">
+</head>
+<body>
+<header class="web-topbar" th:fragment="shellHeader">
+    <div class="web-topbar-brand">
+        <strong>Levi's Staff Portal Web</strong>
+        <span th:text="${webUtilizador != null ? webUtilizador.nome : '-'}"></span>
+    </div>
+    <div class="web-topbar-meta">
+        <span th:text="'Cargo: ' + ${webCargoAtual}"></span>
+        <form method="post" action="/web/logout">
+            <button type="submit" class="btn-ghost">Terminar sessao</button>
+        </form>
+    </div>
+</header>
+
+<aside class="web-sidebar" th:fragment="shellSidebar">
+    <a href="/web/painel" th:classappend="${webModuloAtivo == 'painel'} ? 'ativo' : ''">Painel</a>
+    <a href="/web/horarios" th:classappend="${webModuloAtivo == 'horarios'} ? 'ativo' : ''"
+       th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}">Horarios</a>
+    <a href="/web/complementares" th:classappend="${webModuloAtivo == 'complementares'} ? 'ativo' : ''"
+       th:if="${webPermissoes != null && webPermissoes.podeVerComplementares()}">Complementares</a>
+    <a href="/web/relatorios" th:classappend="${webModuloAtivo == 'relatorios'} ? 'ativo' : ''"
+       th:if="${webPermissoes != null && webPermissoes.podeVerRelatorios()}">Relatorios</a>
+    <a href="/web/gestao-loja" th:classappend="${webModuloAtivo == 'gestao-loja'} ? 'ativo' : ''"
+       th:if="${webPermissoes != null && webPermissoes.podeGerirLoja()}">Gestao Loja</a>
+    <a href="/web/perfil" th:classappend="${webModuloAtivo == 'perfil'} ? 'ativo' : ''">Perfil</a>
+</aside>
+</body>
+</html>

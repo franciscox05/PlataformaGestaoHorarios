@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(classes = Projeto2Application.class)
 @ActiveProfiles("test")
 @Transactional
 @Rollback
@@ -187,6 +187,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
                 referencia.getMonthValue()
         );
 
+        geracaoHorariosBLL.enviarPropostasParaValidacao(gerente.getId(), List.of(proposta.idProposta()));
         return geracaoHorariosBLL.aprovarProposta(
                 supervisor.getId(),
                 proposta.idProposta(),

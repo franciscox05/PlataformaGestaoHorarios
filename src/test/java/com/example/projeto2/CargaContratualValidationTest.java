@@ -10,11 +10,14 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Comparator;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -23,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(classes = Projeto2Application.class)
 @ActiveProfiles("test")
 @Transactional
 @Rollback
@@ -98,6 +101,94 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
     }
 
     @Test
+    void gerentePodeGerarHorarioApenasComFuncionariosSelecionados() {
+        GeracaoFixture fixture = criarContextoGeracao("carga-selecao-funcionarios");
+        Utilizador colaboradorExcluido = fixture.lojaFixture().colaboradores().getFirst();
+
+        List<Integer> idsSelecionados = geracaoHorariosBLL.listarColaboradoresElegiveis(
+                        fixture.lojaFixture().gerente().getId(),
+                        fixture.referencia().getYear(),
+                        fixture.referencia().getMonthValue()
+                )
+                .stream()
+                .map(GeracaoHorariosBLL.ColaboradorElegivel::idColaborador)
+                .filter(idColaborador -> !colaboradorExcluido.getId().equals(idColaborador))
+                .toList();
+
+        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+                fixture.lojaFixture().gerente().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue(),
+                idsSelecionados
+        );
+
+        assertFalse(contemColaborador(proposta, colaboradorExcluido.getNome()));
+        assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
+    }
+
+    @Test
+    void fullTimeEGestaoNaoRecebemTurnosComMenosDeOitoHoras() {
+        GeracaoFixture fixture = criarContextoGeracao("carga-turnos-ft");
+
+        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+                fixture.lojaFixture().gerente().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue()
+        );
+
+        List<Horario> horarios = horarioRepository.findByIdPropostaHorarioId(proposta.idProposta());
+        assertFalse(horarios.isEmpty());
+        assertTrue(horarios.stream()
+                .filter(horario -> horario.getIdLojautilizador() != null)
+                .filter(horario -> horario.getIdLojautilizador().getIdCargo() != null)
+                .filter(horario -> {
+                    String tipo = horario.getIdLojautilizador().getIdCargo().getTipo();
+                    return "fulltime".equalsIgnoreCase(tipo)
+                            || "gerente".equalsIgnoreCase(tipo)
+                            || "subgerente".equalsIgnoreCase(tipo)
+                            || "supervisor".equalsIgnoreCase(tipo);
+                })
+                .allMatch(horario -> duracaoEmMinutos(horario) >= 8 * 60));
+    }
+
+    @Test
+    void geracaoRespeitaPeloMenosOitoHorasDeDescansoEntreDiasConsecutivos() {
+        GeracaoFixture fixture = criarContextoGeracao("carga-descanso-entre-turnos");
+
+        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+                fixture.lojaFixture().gerente().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue()
+        );
+
+        Map<Integer, List<Horario>> horariosPorColaborador = horarioRepository.findByIdPropostaHorarioId(proposta.idProposta()).stream()
+                .filter(horario -> horario.getIdLojautilizador() != null)
+                .filter(horario -> horario.getIdLojautilizador().getIdUtilizador() != null)
+                .collect(Collectors.groupingBy(horario -> horario.getIdLojautilizador().getIdUtilizador().getId()));
+
+        for (List<Horario> horariosColaborador : horariosPorColaborador.values()) {
+            List<Horario> ordenados = horariosColaborador.stream()
+                    .sorted(Comparator
+                            .comparing(Horario::getDataTurno)
+                            .thenComparing(horario -> horario.getIdTurno().getHoraInicio()))
+                    .toList();
+
+            for (int indice = 1; indice < ordenados.size(); indice++) {
+                Horario anterior = ordenados.get(indice - 1);
+                Horario atual = ordenados.get(indice);
+                if (!anterior.getDataTurno().plusDays(1).equals(atual.getDataTurno())) {
+                    continue;
+                }
+
+                assertTrue(
+                        horasDescanso(anterior, atual) >= 8,
+                        "Um colaborador nao pode ter menos de 8 horas entre turnos de dias consecutivos."
+                );
+            }
+        }
+    }
+
+    @Test
     void geracaoMensalExcluiInativosESemVinculoValidoNoPeriodo() {
         GeracaoFixture fixture = criarContextoGeracao("carga-elegibilidade");
         LocalDate inicioPeriodo = fixture.referencia().withDayOfMonth(1);
@@ -158,5 +249,29 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
     private boolean ehFimDeSemana(LocalDate data) {
         return data != null
                 && (data.getDayOfWeek() == DayOfWeek.SATURDAY || data.getDayOfWeek() == DayOfWeek.SUNDAY);
+    }
+
+    private long duracaoEmMinutos(Horario horario) {
+        if (horario.getIdTurno() == null
+                || horario.getIdTurno().getHoraInicio() == null
+                || horario.getIdTurno().getHoraFim() == null) {
+            return 0;
+        }
+
+        if (!horario.getIdTurno().getHoraFim().isBefore(horario.getIdTurno().getHoraInicio())) {
+            return Duration.between(horario.getIdTurno().getHoraInicio(), horario.getIdTurno().getHoraFim()).toMinutes();
+        }
+        return Duration.between(horario.getIdTurno().getHoraInicio(), java.time.LocalTime.MAX).plusMinutes(1).toMinutes()
+                + Duration.between(java.time.LocalTime.MIN, horario.getIdTurno().getHoraFim()).toMinutes();
+    }
+
+    private long horasDescanso(Horario anterior, Horario atual) {
+        LocalDateTime fimAnterior = anterior.getDataTurno().atTime(anterior.getIdTurno().getHoraFim());
+        if (!anterior.getIdTurno().getHoraFim().isAfter(anterior.getIdTurno().getHoraInicio())) {
+            fimAnterior = fimAnterior.plusDays(1);
+        }
+
+        LocalDateTime inicioAtual = atual.getDataTurno().atTime(atual.getIdTurno().getHoraInicio());
+        return Duration.between(fimAnterior, inicioAtual).toHours();
     }
 }

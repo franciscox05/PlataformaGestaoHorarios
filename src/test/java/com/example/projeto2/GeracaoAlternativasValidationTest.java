@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(classes = Projeto2Application.class)
 @ActiveProfiles("test")
 @Transactional
 @Rollback
@@ -39,7 +39,7 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
 
         assertEquals(3, alternativas.size());
         assertEquals(3, alternativas.stream().map(GeracaoHorariosBLL.PropostaResultado::idProposta).collect(Collectors.toSet()).size());
-        assertTrue(alternativas.stream().allMatch(proposta -> "pendente".equalsIgnoreCase(proposta.estado())));
+        assertTrue(alternativas.stream().allMatch(proposta -> "rascunho".equalsIgnoreCase(proposta.estado())));
         assertTrue(alternativas.stream().allMatch(proposta -> proposta.metricas().pontuacao() >= 0));
         long blocosCobertura = contarBlocosCobertura(fixture.turnos());
         assertTrue(alternativas.stream().allMatch(proposta ->
@@ -54,6 +54,13 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         assertTrue(resumos.size() >= 3);
         assertTrue(resumos.stream().map(GeracaoHorariosBLL.PropostaResumo::politicaOtimizacao).distinct().count() >= 2);
 
+        List<GeracaoHorariosBLL.PropostaResumo> resumosSupervisorAntesDoEnvio = geracaoHorariosBLL.listarPropostas(
+                fixture.lojaFixture().supervisor().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue()
+        );
+        assertTrue(resumosSupervisorAntesDoEnvio.isEmpty());
+
         GeracaoHorariosBLL.ComparacaoPropostas comparacao = geracaoHorariosBLL.compararPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 alternativas.get(0).idProposta(),
@@ -64,6 +71,21 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         assertFalse(comparacao.diferencas().isEmpty());
         assertEquals(alternativas.get(0).idProposta(), comparacao.idPropostaBase());
         assertEquals(alternativas.get(1).idProposta(), comparacao.idPropostaComparada());
+
+        List<GeracaoHorariosBLL.PropostaResultado> enviadas = geracaoHorariosBLL.enviarPropostasParaValidacao(
+                fixture.lojaFixture().gerente().getId(),
+                List.of(alternativas.get(0).idProposta(), alternativas.get(1).idProposta())
+        );
+        assertEquals(2, enviadas.size());
+        assertTrue(enviadas.stream().allMatch(proposta -> "pendente".equalsIgnoreCase(proposta.estado())));
+
+        List<GeracaoHorariosBLL.PropostaResumo> resumosSupervisorDepoisDoEnvio = geracaoHorariosBLL.listarPropostas(
+                fixture.lojaFixture().supervisor().getId(),
+                fixture.referencia().getYear(),
+                fixture.referencia().getMonthValue()
+        );
+        assertEquals(2, resumosSupervisorDepoisDoEnvio.size());
+        assertTrue(resumosSupervisorDepoisDoEnvio.stream().allMatch(proposta -> "pendente".equalsIgnoreCase(proposta.estado())));
     }
 
     @Test
@@ -75,6 +97,10 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue(),
                 2
+        );
+        geracaoHorariosBLL.enviarPropostasParaValidacao(
+                fixture.lojaFixture().gerente().getId(),
+                alternativas.stream().map(GeracaoHorariosBLL.PropostaResultado::idProposta).toList()
         );
 
         GeracaoHorariosBLL.PropostaResultado aprovada = geracaoHorariosBLL.aprovarProposta(

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(classes = Projeto2Application.class)
 @ActiveProfiles("test")
 @Transactional
 @Rollback
@@ -165,7 +165,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         }
 
         assertNotNull(proposta);
-        assertTrue("pendente".equalsIgnoreCase(proposta.estado()));
+        assertTrue("rascunho".equalsIgnoreCase(proposta.estado()));
         assertEquals(referencia.lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
         assertFalse(proposta.linhas().isEmpty());
         assertFalse(proposta.linhas().stream()
@@ -173,6 +173,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         assertFalse(proposta.linhas().stream()
                 .anyMatch(linha -> referencia.plusDays(1).equals(linha.data()) && bloqueadoPorPreferencia.getNome().equals(linha.colaborador())));
 
+        geracaoHorariosBLL.enviarPropostasParaValidacao(gerente.getId(), List.of(proposta.idProposta()));
         GeracaoHorariosBLL.PropostaResultado aprovada = geracaoHorariosBLL.aprovarProposta(
                 supervisor.getId(),
                 proposta.idProposta(),

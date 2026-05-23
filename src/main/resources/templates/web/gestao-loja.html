@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Gestao Loja')}"></head>
+<body>
+<header th:replace="~{web/fragments :: shellHeader}"></header>
+
+<div class="web-shell">
+    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+
+    <main class="web-content">
+        <h1>Modulo Gestao Loja</h1>
+        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
+        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+
+        <section class="web-card" th:if="${resumo != null}">
+            <h2 th:text="${resumo.nomeLoja()}"></h2>
+            <p th:text="${resumo.localizacao()}"></p>
+            <p th:text="'Cargo atual: ' + ${resumo.cargoGestor()}"></p>
+
+            <form method="post" action="/web/gestao-loja/horario" class="web-inline-form">
+                <label for="horaAbertura">Abertura</label>
+                <input id="horaAbertura" name="horaAbertura" type="time" th:value="${resumo.horaAbertura()}" required>
+
+                <label for="horaFecho">Fecho</label>
+                <input id="horaFecho" name="horaFecho" type="time" th:value="${resumo.horaFecho()}" required>
+
+                <button type="submit">Atualizar horario base</button>
+            </form>
+        </section>
+
+        <section class="web-card" th:if="${resumo != null}">
+            <h2>Regras da loja</h2>
+            <form method="post" action="/web/gestao-loja/regras" class="web-form">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Regra</th>
+                        <th>Tipo</th>
+                        <th>Valor base</th>
+                        <th>Valor loja</th>
+                        <th>Observacoes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(resumo.regras())}">
+                        <td colspan="5">Sem regras configuradas para mostrar.</td>
+                    </tr>
+                    <tr th:each="regra : ${resumo.regras()}">
+                        <td th:text="${regra.descricao()}"></td>
+                        <td th:text="${regra.tipo()}"></td>
+                        <td th:text="${regra.valorPadrao()}"></td>
+                        <td>
+                            <input type="number"
+                                   min="0"
+                                   th:name="'regra_valor_' + ${regra.idRegra()}"
+                                   th:value="${regra.valorEspecifico() != null ? regra.valorEspecifico() : ''}">
+                        </td>
+                        <td>
+                            <input type="text"
+                                   th:name="'regra_obs_' + ${regra.idRegra()}"
+                                   th:value="${regra.observacoes() != null ? regra.observacoes() : ''}">
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button type="submit">Guardar regras</button>
+            </form>
+        </section>
+
+        <section class="web-card" th:if="${resumo != null}">
+            <h2>Horario especial</h2>
+            <form method="post" action="/web/gestao-loja/excecao" class="web-form">
+                <input type="hidden" name="idHorarioEspecial">
+                <label for="descricao">Descricao</label>
+                <input id="descricao" name="descricao" type="text" required>
+
+                <div class="web-grid-two">
+                    <div>
+                        <label for="dataInicio">Data inicio</label>
+                        <input id="dataInicio" name="dataInicio" type="date" required>
+                    </div>
+                    <div>
+                        <label for="dataFim">Data fim</label>
+                        <input id="dataFim" name="dataFim" type="date" required>
+                    </div>
+                </div>
+
+                <label>
+                    <input type="checkbox" name="lojaEncerrada">
+                    Loja encerrada neste periodo
+                </label>
+
+                <div class="web-grid-three">
+                    <div>
+                        <label for="horaAberturaExcecao">Abertura especial</label>
+                        <input id="horaAberturaExcecao" name="horaAbertura" type="time">
+                    </div>
+                    <div>
+                        <label for="horaFechoExcecao">Fecho especial</label>
+                        <input id="horaFechoExcecao" name="horaFecho" type="time">
+                    </div>
+                    <div>
+                        <label for="minimoColaboradoresTurno">Minimo por turno</label>
+                        <input id="minimoColaboradoresTurno" name="minimoColaboradoresTurno" type="number" min="1">
+                    </div>
+                </div>
+
+                <label for="observacoesExcecao">Observacoes</label>
+                <textarea id="observacoesExcecao" name="observacoes" rows="2"></textarea>
+                <button type="submit">Guardar excecao</button>
+            </form>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>Periodo</th>
+                    <th>Operacao</th>
+                    <th>Horario</th>
+                    <th>Minimo</th>
+                    <th>Descricao</th>
+                    <th>Acao</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(resumo.horariosEspeciais())}">
+                    <td colspan="6">Sem horarios especiais configurados.</td>
+                </tr>
+                <tr th:each="item : ${resumo.horariosEspeciais()}">
+                    <td th:text="${item.periodo()}"></td>
+                    <td th:text="${item.tipoOperacao()}"></td>
+                    <td th:text="${item.horarioAplicado()}"></td>
+                    <td th:text="${item.minimoColaboradoresTurno() != null ? item.minimoColaboradoresTurno() : '-'}"></td>
+                    <td th:text="${item.descricao()}"></td>
+                    <td>
+                        <form method="post" action="/web/gestao-loja/excecao/remover">
+                            <input type="hidden" name="idHorarioEspecial" th:value="${item.idHorarioEspecial()}">
+                            <button type="submit" class="btn-danger">Remover</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

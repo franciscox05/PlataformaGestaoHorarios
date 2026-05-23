@@ -57,6 +57,11 @@ public class GeracaoHorariosBLL {
     private static final Set<String> CARGOS_COM_GERACAO = Set.of("gerente", "subgerente");
     private static final Set<String> CARGOS_COM_VALIDACAO = Set.of("supervisor");
     private static final Set<String> CARGOS_COM_PRESENCA_OBRIGATORIA_AO_SABADO = Set.of("gerente", "subgerente");
+    private static final String ESTADO_RASCUNHO = "rascunho";
+    private static final String ESTADO_PENDENTE = "pendente";
+    private static final String ESTADO_APROVADO = "aprovado";
+    private static final String ESTADO_REJEITADO = "rejeitado";
+    private static final long DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS = 8 * 60L;
     private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final Duration TEMPO_MAXIMO_GERACAO_ALTERNATIVA = Duration.ofSeconds(20);
@@ -127,11 +132,7 @@ public class GeracaoHorariosBLL {
                 hoje.getMonthValue(),
                 temPermissaoDeGeracao(ligacaoAtiva),
                 temPermissaoDeValidacao(ligacaoAtiva),
-                propostaHorarioMensalRepository.findFirstByIdLojaIdAndAnoAndMesOrderByDataGeracaoDesc(
-                        ligacaoAtiva.getIdLoja().getId(),
-                        hoje.getYear(),
-                        hoje.getMonthValue()
-                ).isPresent()
+                !obterPropostasVisiveis(ligacaoAtiva, hoje.getYear(), hoje.getMonthValue()).isEmpty()
         );
     }
 
@@ -146,12 +147,11 @@ public class GeracaoHorariosBLL {
         int anoNormalizado = normalizarAno(ano);
         int mesNormalizado = normalizarMes(mes);
 
-        Optional<PropostaHorarioMensal> proposta = propostaHorarioMensalRepository
-                .findFirstByIdLojaIdAndAnoAndMesOrderByDataGeracaoDesc(
-                        ligacaoAtiva.getIdLoja().getId(),
-                        anoNormalizado,
-                        mesNormalizado
-                );
+        Optional<PropostaHorarioMensal> proposta = obterPropostasVisiveis(
+                ligacaoAtiva,
+                anoNormalizado,
+                mesNormalizado
+        ).stream().findFirst();
 
         if (proposta.isPresent()) {
             return construirResultado(proposta.get(), horarioRepository.findByIdPropostaHorarioId(proposta.get().getId()));
@@ -181,6 +181,61 @@ public class GeracaoHorariosBLL {
         return decidirProposta(idUtilizador, idProposta, "rejeitado", observacoesSupervisor);
     }
 
+    @Transactional(readOnly = true)
+    public List<ColaboradorElegivel> listarColaboradoresElegiveis(Integer idUtilizador, Integer ano, Integer mes) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        int anoNormalizado = normalizarAno(ano);
+        int mesNormalizado = normalizarMes(mes);
+        LocalDate dataInicio = LocalDate.of(anoNormalizado, mesNormalizado, 1);
+        LocalDate dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
+
+        return obterColaboradoresElegiveis(ligacaoAtiva.getIdLoja().getId(), dataInicio, dataFim).stream()
+                .map(ligacao -> new ColaboradorElegivel(
+                        ligacao.getIdUtilizador().getId(),
+                        valorOuTraco(ligacao.getIdUtilizador().getNome()),
+                        ligacao.getIdCargo() != null ? valorOuTraco(ligacao.getIdCargo().getNome()) : "-",
+                        resolverPerfilContratual(ligacao)
+                                .map(PerfilContratual::descricaoCurta)
+                                .orElse("-"),
+                        formatarPeriodoVinculo(ligacao),
+                        true
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public List<PropostaResultado> enviarPropostasParaValidacao(Integer idUtilizador, Collection<Integer> idsPropostas) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Set<Integer> idsNormalizados = normalizarIds(idsPropostas);
+        if (idsNormalizados.isEmpty()) {
+            throw new IllegalArgumentException("Seleciona pelo menos uma alternativa para enviar ao supervisor.");
+        }
+
+        List<PropostaResultado> resultados = new ArrayList<>();
+        for (Integer idProposta : idsNormalizados) {
+            PropostaHorarioMensal proposta = propostaHorarioMensalRepository.findByIdAndIdLojaId(
+                            idProposta,
+                            ligacaoAtiva.getIdLoja().getId()
+                    )
+                    .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada a proposta #" + idProposta + " na tua loja."));
+
+            String estadoAtual = normalizarTexto(proposta.getEstado());
+            if (ESTADO_APROVADO.equals(estadoAtual) || ESTADO_REJEITADO.equals(estadoAtual)) {
+                throw new IllegalArgumentException("A proposta #" + idProposta + " ja foi decidida pelo supervisor.");
+            }
+            if (!ESTADO_RASCUNHO.equals(estadoAtual) && !ESTADO_PENDENTE.equals(estadoAtual)) {
+                throw new IllegalArgumentException("A proposta #" + idProposta + " esta num estado que nao permite envio ao supervisor.");
+            }
+
+            if (ESTADO_RASCUNHO.equals(estadoAtual)) {
+                proposta.setEstado(ESTADO_PENDENTE);
+                proposta = propostaHorarioMensalRepository.save(proposta);
+            }
+            resultados.add(construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId())));
+        }
+        return resultados;
+    }
+
     @Transactional
     public PropostaResultado gerarProposta(Integer idUtilizador, Integer ano, Integer mes) {
         return gerarPropostas(idUtilizador, ano, mes, 1).getFirst();
@@ -188,7 +243,24 @@ public class GeracaoHorariosBLL {
 
     @Transactional
     public List<PropostaResultado> gerarPropostas(Integer idUtilizador, Integer ano, Integer mes, Integer quantidade) {
-        DadosGeracao dados = prepararDadosGeracao(idUtilizador, ano, mes);
+        return gerarPropostas(idUtilizador, ano, mes, quantidade, null);
+    }
+
+    @Transactional
+    public PropostaResultado gerarProposta(Integer idUtilizador,
+                                           Integer ano,
+                                           Integer mes,
+                                           Collection<Integer> idsColaboradoresSelecionados) {
+        return gerarPropostas(idUtilizador, ano, mes, 1, idsColaboradoresSelecionados).getFirst();
+    }
+
+    @Transactional
+    public List<PropostaResultado> gerarPropostas(Integer idUtilizador,
+                                                  Integer ano,
+                                                  Integer mes,
+                                                  Integer quantidade,
+                                                  Collection<Integer> idsColaboradoresSelecionados) {
+        DadosGeracao dados = prepararDadosGeracao(idUtilizador, ano, mes, idsColaboradoresSelecionados);
         int quantidadeNormalizada = normalizarQuantidadeAlternativas(quantidade);
         int alternativasExistentes = Math.toIntExact(Math.min(
                 Integer.MAX_VALUE,
@@ -247,12 +319,7 @@ public class GeracaoHorariosBLL {
         int anoNormalizado = normalizarAno(ano);
         int mesNormalizado = normalizarMes(mes);
 
-        return propostaHorarioMensalRepository
-                .findByIdLojaIdAndAnoAndMesOrderByDataGeracaoDesc(
-                        ligacaoAtiva.getIdLoja().getId(),
-                        anoNormalizado,
-                        mesNormalizado
-                )
+        return obterPropostasVisiveis(ligacaoAtiva, anoNormalizado, mesNormalizado)
                 .stream()
                 .map(proposta -> construirResumoProposta(
                         proposta,
@@ -273,6 +340,9 @@ public class GeracaoHorariosBLL {
                         ligacaoAtiva.getIdLoja().getId()
                 )
                 .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada nenhuma proposta para a tua loja com esse identificador."));
+        if (!propostaVisivelParaUtilizador(ligacaoAtiva, proposta)) {
+            throw new IllegalArgumentException("Esta proposta ainda nao foi enviada ao supervisor.");
+        }
 
         return construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId()));
     }
@@ -340,7 +410,29 @@ public class GeracaoHorariosBLL {
         );
     }
 
-    private DadosGeracao prepararDadosGeracao(Integer idUtilizador, Integer ano, Integer mes) {
+    private List<PropostaHorarioMensal> obterPropostasVisiveis(Lojautilizador ligacaoAtiva, int ano, int mes) {
+        return propostaHorarioMensalRepository
+                .findByIdLojaIdAndAnoAndMesOrderByDataGeracaoDesc(
+                        ligacaoAtiva.getIdLoja().getId(),
+                        ano,
+                        mes
+                )
+                .stream()
+                .filter(proposta -> propostaVisivelParaUtilizador(ligacaoAtiva, proposta))
+                .toList();
+    }
+
+    private boolean propostaVisivelParaUtilizador(Lojautilizador ligacaoAtiva, PropostaHorarioMensal proposta) {
+        if (temPermissaoDeGeracao(ligacaoAtiva)) {
+            return true;
+        }
+        return !ESTADO_RASCUNHO.equals(normalizarTexto(proposta.getEstado()));
+    }
+
+    private DadosGeracao prepararDadosGeracao(Integer idUtilizador,
+                                              Integer ano,
+                                              Integer mes,
+                                              Collection<Integer> idsColaboradoresSelecionados) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
         Loja loja = ligacaoAtiva.getIdLoja();
         int anoNormalizado = normalizarAno(ano);
@@ -352,7 +444,10 @@ public class GeracaoHorariosBLL {
 
         validarEstadoAtualDaLoja(idLoja, anoNormalizado, mesNormalizado, dataInicio, dataFim);
 
-        List<Lojautilizador> colaboradoresAtivos = obterColaboradoresElegiveis(idLoja, dataInicio, dataFim);
+        List<Lojautilizador> colaboradoresAtivos = filtrarColaboradoresSelecionados(
+                obterColaboradoresElegiveis(idLoja, dataInicio, dataFim),
+                idsColaboradoresSelecionados
+        );
         if (colaboradoresAtivos.isEmpty()) {
             throw new IllegalArgumentException("Nao e possivel gerar horarios sem colaboradores elegiveis e com vinculo valido na loja.");
         }
@@ -417,7 +512,7 @@ public class GeracaoHorariosBLL {
         proposta.setIdUtilizadorGeracao(ligacaoAtiva.getIdUtilizador());
         proposta.setAno(anoNormalizado);
         proposta.setMes(mesNormalizado);
-        proposta.setEstado("pendente");
+        proposta.setEstado(ESTADO_RASCUNHO);
         proposta.setResumoGeracao(criarResumoGeracao(planeamento, politica, metricas));
         proposta.setDataGeracao(LocalDateTime.now());
         proposta = propostaHorarioMensalRepository.save(proposta);
@@ -426,13 +521,13 @@ public class GeracaoHorariosBLL {
         List<HistoricoHorarioEstado> historicos = new ArrayList<>();
         for (Horario horario : planeamento.horarios()) {
             horario.setIdPropostaHorario(proposta);
-            horario.setEstado("pendente");
+            horario.setEstado(ESTADO_PENDENTE);
             Horario guardado = horarioRepository.save(horario);
             horariosPersistidos.add(guardado);
 
             HistoricoHorarioEstado historico = new HistoricoHorarioEstado();
             historico.setIdHorario(guardado);
-            historico.setEstadoNovo("pendente");
+            historico.setEstadoNovo(ESTADO_PENDENTE);
             historico.setDataRegisto(Instant.now());
             historico.setObservacoes("Gerado automaticamente na proposta mensal.");
             historicos.add(historico);
@@ -457,11 +552,15 @@ public class GeracaoHorariosBLL {
                 )
                 .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada nenhuma proposta para a tua loja com esse identificador."));
 
-        if (!"pendente".equals(normalizarTexto(proposta.getEstado()))) {
+        if (ESTADO_RASCUNHO.equals(normalizarTexto(proposta.getEstado()))) {
+            throw new IllegalArgumentException("Esta proposta ainda esta em rascunho. O gerente tem de a enviar ao supervisor antes da validacao.");
+        }
+
+        if (!ESTADO_PENDENTE.equals(normalizarTexto(proposta.getEstado()))) {
             throw new IllegalArgumentException("Esta proposta ja foi decidida e nao pode voltar a ser alterada.");
         }
 
-        if ("aprovado".equals(normalizarTexto(novoEstado))) {
+        if (ESTADO_APROVADO.equals(normalizarTexto(novoEstado))) {
             validarAprovacaoSemConflitos(proposta);
         }
 
@@ -486,7 +585,7 @@ public class GeracaoHorariosBLL {
 
         horarioRepository.saveAll(horarios);
         historicoHorarioEstadoRepository.saveAll(historicos);
-        if ("aprovado".equals(normalizarTexto(novoEstado))) {
+        if (ESTADO_APROVADO.equals(normalizarTexto(novoEstado))) {
             rejeitarPropostasPendentesConcorrentes(proposta, ligacaoAtiva.getIdUtilizador());
         }
 
@@ -502,7 +601,7 @@ public class GeracaoHorariosBLL {
                 );
         boolean existeOutraAprovada = propostasDoPeriodo.stream()
                 .filter(outra -> !Objects.equals(outra.getId(), proposta.getId()))
-                .anyMatch(outra -> "aprovado".equals(normalizarTexto(outra.getEstado())));
+                .anyMatch(outra -> ESTADO_APROVADO.equals(normalizarTexto(outra.getEstado())));
         if (existeOutraAprovada) {
             throw new IllegalArgumentException("Ja existe uma proposta aprovada para este periodo.");
         }
@@ -529,7 +628,7 @@ public class GeracaoHorariosBLL {
 
         List<PropostaHorarioMensal> propostasParaRejeitar = propostasDoPeriodo.stream()
                 .filter(proposta -> !Objects.equals(proposta.getId(), propostaAprovada.getId()))
-                .filter(proposta -> "pendente".equals(normalizarTexto(proposta.getEstado())))
+                .filter(proposta -> ESTADO_PENDENTE.equals(normalizarTexto(proposta.getEstado())))
                 .toList();
         if (propostasParaRejeitar.isEmpty()) {
             return;
@@ -538,7 +637,7 @@ public class GeracaoHorariosBLL {
         List<Horario> horariosParaAtualizar = new ArrayList<>();
         List<HistoricoHorarioEstado> historicos = new ArrayList<>();
         for (PropostaHorarioMensal proposta : propostasParaRejeitar) {
-            proposta.setEstado("rejeitado");
+            proposta.setEstado(ESTADO_REJEITADO);
             proposta.setIdUtilizadorDecisao(decisor);
             proposta.setDataDecisao(LocalDateTime.now());
             proposta.setObservacoesSupervisor(
@@ -548,12 +647,12 @@ public class GeracaoHorariosBLL {
             );
 
             for (Horario horario : horarioRepository.findByIdPropostaHorarioId(proposta.getId())) {
-                horario.setEstado("rejeitado");
+                horario.setEstado(ESTADO_REJEITADO);
                 horariosParaAtualizar.add(horario);
 
                 HistoricoHorarioEstado historico = new HistoricoHorarioEstado();
                 historico.setIdHorario(horario);
-                historico.setEstadoNovo("rejeitado");
+                historico.setEstadoNovo(ESTADO_REJEITADO);
                 historico.setDataRegisto(Instant.now());
                 historico.setObservacoes("Rejeitado automaticamente apos aprovacao de uma alternativa concorrente.");
                 historicos.add(historico);
@@ -942,30 +1041,278 @@ public class GeracaoHorariosBLL {
             List<SlotTurnoDia> slotsOrdenados = ultimaTentativa.slotsOrdenados();
             Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot = ultimaTentativa.candidatosPorSlot();
             SlotTurnoDia slotMaisCritico = slotsOrdenados.getFirst();
-            throw new IllegalArgumentException(
-                    "Nao foi possivel cobrir o turno "
-                            + formatarTurno(slotMaisCritico.turno())
-                            + " em "
-                            + data
-                            + ". Verifica equipa ativa, elegibilidade contratual, carga mensal, descanso semanal, rotacao de fins de semanas, descansos entre turnos e regras minimas."
-                            + " ["
-                            + diagnosticoDisponibilidade(
-                                    estadoPorColaborador.values(),
-                                    data,
-                                    slotMaisCritico.turno(),
-                                    calcularDuracaoEmMinutos(slotMaisCritico.turno()),
-                                    bloqueiosPorUtilizador,
-                                    parametros,
-                                    reservaOperacionalFimDeSemana
-                            )
-                            + "]"
-                            + " {"
-                            + descreverCandidatosPorSlot(candidatosPorSlot)
-                            + "}"
+            String diagnostico = diagnosticoDisponibilidade(
+                    estadoPorColaborador.values(),
+                    data,
+                    slotMaisCritico.turno(),
+                    calcularDuracaoEmMinutos(slotMaisCritico.turno()),
+                    bloqueiosPorUtilizador,
+                    parametros,
+                    reservaOperacionalFimDeSemana
+            );
+            LOGGER.warn(
+                    "Falha ao cobrir turno {} em {}. Diagnostico: [{}]. Candidatos por slot: [{}]",
+                    formatarTurno(slotMaisCritico.turno()),
+                    data,
+                    diagnostico,
+                    descreverCandidatosPorSlot(candidatosPorSlot)
+            );
+            throw criarMensagemFalhaCobertura(
+                    data,
+                    slotMaisCritico,
+                    estadoPorColaborador.values(),
+                    slotsOrdenados,
+                    candidatosPorSlot,
+                    bloqueiosPorUtilizador,
+                    parametros,
+                    reservaOperacionalFimDeSemana
             );
         }
 
         return ultimaTentativa.atribuicoes();
+    }
+
+    private FalhaGeracaoHorarioException criarMensagemFalhaCobertura(LocalDate data,
+                                                                     SlotTurnoDia slotMaisCritico,
+                                                                     Collection<EstadoColaborador> estados,
+                                                                     List<SlotTurnoDia> slotsOrdenados,
+                                                                     Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot,
+                                                                     Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
+                                                                     ParametrosGeracao parametros,
+                                                                     ReservaOperacionalFimDeSemana reservaOperacionalFimDeSemana) {
+        String turno = formatarTurno(slotMaisCritico.turno());
+        String dataFormatada = data != null ? DATA_FORMATTER.format(data) : "data selecionada";
+        int colaboradoresConsiderados = estados != null ? estados.size() : 0;
+        List<MotivoFalhaGeracao> motivos = resumirMotivosFalhaCobertura(
+                estados,
+                data,
+                slotMaisCritico.turno(),
+                calcularDuracaoEmMinutos(slotMaisCritico.turno()),
+                bloqueiosPorUtilizador,
+                parametros,
+                reservaOperacionalFimDeSemana
+        );
+        String motivoPrincipal = motivos.isEmpty()
+                ? "Nao havia colaboradores suficientes sem violar as regras configuradas."
+                : motivos.getFirst().descricao();
+        GargaloCobertura gargalo = calcularGargaloCobertura(slotMaisCritico, slotsOrdenados, candidatosPorSlot);
+        List<SugestaoFalhaGeracao> sugestoes = criarSugestoesFalhaGeracao(slotMaisCritico, motivos, gargalo);
+
+        String mensagem = "Nao foi possivel gerar o horario porque o turno "
+                + turno
+                + " de "
+                + dataFormatada
+                + " ficou sem colaboradores disponiveis. Foram considerados "
+                + colaboradoresConsiderados
+                + " colaboradores selecionados. Revê a selecao da equipa, folgas/preferencias aprovadas, descanso entre turnos, limite de horas e minimo exigido por turno.";
+
+        return new FalhaGeracaoHorarioException(
+                mensagem,
+                turno,
+                dataFormatada,
+                colaboradoresConsiderados,
+                motivoPrincipal,
+                motivos,
+                sugestoes
+        );
+    }
+
+    private GargaloCobertura calcularGargaloCobertura(SlotTurnoDia slotMaisCritico,
+                                                      List<SlotTurnoDia> slotsOrdenados,
+                                                      Map<SlotTurnoDia, List<AtribuicaoPlaneadaDia>> candidatosPorSlot) {
+        if (slotMaisCritico == null || slotsOrdenados == null || slotsOrdenados.isEmpty()) {
+            return new GargaloCobertura(1, 0, 1);
+        }
+
+        String turnoCritico = normalizarTurno(slotMaisCritico.turno());
+        String periodoCritico = formatarPeriodo(slotMaisCritico.turno());
+        List<SlotTurnoDia> slotsDoTurno = slotsOrdenados.stream()
+                .filter(slot -> Objects.equals(turnoCritico, normalizarTurno(slot.turno())))
+                .filter(slot -> Objects.equals(periodoCritico, formatarPeriodo(slot.turno())))
+                .toList();
+
+        Set<Integer> candidatosUnicos = new LinkedHashSet<>();
+        for (SlotTurnoDia slot : slotsDoTurno) {
+            for (AtribuicaoPlaneadaDia candidato : candidatosPorSlot.getOrDefault(slot, List.of())) {
+                if (candidato != null && candidato.estado() != null && candidato.estado().idUtilizador() != null) {
+                    candidatosUnicos.add(candidato.estado().idUtilizador());
+                }
+            }
+        }
+
+        int procura = Math.max(1, slotsDoTurno.size());
+        int oferta = candidatosUnicos.size();
+        int deficit = Math.max(1, procura - oferta);
+        return new GargaloCobertura(procura, oferta, deficit);
+    }
+
+    private List<SugestaoFalhaGeracao> criarSugestoesFalhaGeracao(SlotTurnoDia slotMaisCritico,
+                                                                  List<MotivoFalhaGeracao> motivos,
+                                                                  GargaloCobertura gargalo) {
+        List<SugestaoFalhaGeracao> sugestoes = new ArrayList<>();
+        String turno = formatarTurno(slotMaisCritico.turno());
+        String periodo = formatarPeriodo(slotMaisCritico.turno());
+        int deficit = Math.max(1, gargalo.deficit());
+        String perfilRecomendado = recomendarPerfilReforco(slotMaisCritico.turno());
+
+        if (gargalo.oferta() < gargalo.procura()) {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "capacidade",
+                    "Seleciona pelo menos mais " + deficit + " colaborador(es) elegivel(eis) para " + turno
+                            + " (" + periodo + "). Neste gargalo eram precisas " + gargalo.procura()
+                            + " pessoa(s), mas so havia " + gargalo.oferta()
+                            + " candidato(s) que podiam realmente ser usados.",
+                    perfilRecomendado
+            ));
+        } else {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "reorganizar",
+                    "Nao parece faltar gente para este turno isolado: havia " + gargalo.oferta()
+                            + " candidato(s) para " + gargalo.procura()
+                            + " lugar(es). O problema e a combinacao do mes. Revê primeiro quem ja acumulou muitas horas antes deste dia e tenta libertar essas pessoas para "
+                            + turno
+                            + ".",
+                    perfilRecomendado
+            ));
+        }
+
+        Set<String> codigos = motivos.stream()
+                .map(MotivoFalhaGeracao::codigo)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        if (codigos.contains("turno-curto")) {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "turno-curto",
+                    "Ha FT/gestao bloqueados porque este turno e curto. Resolve selecionando part-time suficientes para este turno ou alterando o turno para 8 horas, se a loja puder operar assim.",
+                    "Assistente de Vendas PT"
+            ));
+        }
+        if (codigos.contains("perfil")) {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "perfil",
+                    "Ha pessoas selecionadas que nao podem trabalhar neste dia pelo perfil. Se forem reforcos de fim de semana, nao contam para uma quarta-feira; inclui mais part-time/full-time validos para dias uteis.",
+                    perfilRecomendado
+            ));
+        }
+        if (codigos.contains("bloqueio")) {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "bloqueio",
+                    "Verifica folgas, ferias e preferencias aprovadas neste dia. Se uma ausencia puder mudar de dia, muda primeiro a de alguem que consiga fazer " + turno + ".",
+                    perfilRecomendado
+            ));
+        }
+        if (codigos.contains("descanso-turno")) {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "descanso-turno",
+                    "Ha pessoas que trabalharam tarde no dia anterior e nao podem abrir de manha. Move essas pessoas para tarde/noite ou troca a noite do dia anterior com alguem que nao precise abrir.",
+                    perfilRecomendado
+            ));
+        }
+        if (codigos.contains("carga")) {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "carga",
+                    "A carga mensal esta a bloquear pessoas. Para julho, tira alguns turnos anteriores desses colaboradores ou adiciona alguem com horas livres no mes.",
+                    perfilRecomendado
+            ));
+        }
+        if (codigos.contains("descanso-semanal") || codigos.contains("consecutivo")) {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "descanso-semanal",
+                    "Ha sequencias de muitos dias seguidos. Coloca uma folga antes do dia critico para quem podia fazer " + turno + ", ou troca um turno dessa pessoa nos dias anteriores.",
+                    perfilRecomendado
+            ));
+        }
+        if (codigos.contains("sem-combinacao")) {
+            sugestoes.add(new SugestaoFalhaGeracao(
+                    "combinacao",
+                    "Como ha candidatos isolados mas o conjunto nao fecha, tenta gerar so 1 alternativa e reduz primeiro as restricoes menos criticas: preferencias, rotacao de fins de semana ou minimos desse dia.",
+                    perfilRecomendado
+            ));
+        }
+
+        sugestoes.add(new SugestaoFalhaGeracao(
+                "minimos",
+                "Se operacionalmente for aceitavel, baixa temporariamente o minimo de colaboradores no turno "
+                        + turno + " para este periodo. Esta e a forma direta de relaxar a restricao que tornou o horario inviavel.",
+                "Sem novo colaborador"
+        ));
+
+        return sugestoes.stream().limit(5).toList();
+    }
+
+    private String recomendarPerfilReforco(Turno turno) {
+        long duracao = calcularDuracaoEmMinutos(turno);
+        String tipo = normalizarTurno(turno);
+        boolean fimDeSemana = tipo.contains("sabado") || tipo.contains("domingo");
+        if (fimDeSemana) {
+            return "Reforco Fim de Semana";
+        }
+        if (duracao > 0 && duracao < DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS) {
+            return "Assistente de Vendas PT";
+        }
+        return "Assistente de Vendas FT com margem de horas";
+    }
+
+    private List<MotivoFalhaGeracao> resumirMotivosFalhaCobertura(Collection<EstadoColaborador> estados,
+                                                                  LocalDate data,
+                                                                  Turno turno,
+                                                                  long minutosTurno,
+                                                                  Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
+                                                                  ParametrosGeracao parametros,
+                                                                  ReservaOperacionalFimDeSemana reservaOperacionalFimDeSemana) {
+        if (estados == null || estados.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, List<String>> nomesPorMotivo = new LinkedHashMap<>();
+        for (EstadoColaborador estado : estados) {
+            List<String> motivos = estado.motivosIndisponibilidade(
+                    data,
+                    turno,
+                    minutosTurno,
+                    bloqueiosPorUtilizador.getOrDefault(estado.idUtilizador(), Set.of()),
+                    parametros.maxDiasConsecutivos(),
+                    parametros.descansoMinimoHoras(),
+                    parametros.descansoSemanalMinimoDias(),
+                    parametros.janelaRotacaoFinsDeSemanaSemanas(),
+                    reservaOperacionalFimDeSemana
+            );
+            String motivo = motivos.isEmpty() ? "sem-combinacao" : motivos.getFirst();
+            nomesPorMotivo.computeIfAbsent(motivo, ignorado -> new ArrayList<>())
+                    .add(valorOuTraco(estado.ligacao().getIdUtilizador().getNome()));
+        }
+
+        return nomesPorMotivo.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
+                .map(entry -> {
+                    List<String> nomes = entry.getValue().stream()
+                            .distinct()
+                            .sorted(String.CASE_INSENSITIVE_ORDER)
+                            .toList();
+                    return new MotivoFalhaGeracao(
+                            entry.getKey(),
+                            nomes.size(),
+                            descreverMotivoFalha(entry.getKey()),
+                            nomes
+                    );
+                })
+                .toList();
+    }
+
+    private String descreverMotivoFalha(String motivo) {
+        return switch (motivo) {
+            case "bloqueio" -> "Folga, ferias ou preferencia aprovada bloqueia este dia.";
+            case "ja-atribuido" -> "Colaborador ja tinha outro turno nesse dia.";
+            case "vinculo" -> "Colaborador sem vinculo valido nessa data.";
+            case "turno-curto" -> "Full-time/gestao nao podem fazer este turno curto.";
+            case "perfil" -> "Perfil contratual nao permite trabalhar neste dia ou turno.";
+            case "carga" -> "Limite de horas mensal ja foi atingido ou ficaria ultrapassado.";
+            case "descanso-semanal" -> "Descanso semanal minimo ficaria comprometido.";
+            case "rotacao" -> "Rotacao de fins de semana impede nova atribuicao.";
+            case "consecutivo" -> "Maximo de dias consecutivos seria ultrapassado.";
+            case "descanso-turno" -> "Descanso minimo entre turnos nao seria cumprido.";
+            case "sem-combinacao" -> "Colaborador podia fazer este turno isoladamente, mas a combinacao completa do dia/mes nao fecha.";
+            default -> "Outras regras impediram a atribuicao.";
+        };
     }
 
     private ResultadoTentativaDistribuicao executarTentativaDistribuicaoDoDia(LocalDate data,
@@ -2629,7 +2976,7 @@ public class GeracaoHorariosBLL {
                 .filter(Objects::nonNull)
                 .filter(valor -> valor > 0)
                 .findFirst()
-                .orElse(11);
+                .orElse(8);
 
         int descansoSemanalMinimoDias = regras.stream()
                 .filter(this::ehRegraDescansoSemanal)
@@ -2766,6 +3113,41 @@ public class GeracaoHorariosBLL {
 
     private boolean regraMencionaPerfilContratual(RegraAplicada regra, PerfilContratual perfilContratual) {
         return perfilContratual.correspondeRegra(regra.textoNormalizado());
+    }
+
+    private List<Lojautilizador> filtrarColaboradoresSelecionados(List<Lojautilizador> colaboradoresElegiveis,
+                                                                  Collection<Integer> idsColaboradoresSelecionados) {
+        if (idsColaboradoresSelecionados == null) {
+            return colaboradoresElegiveis;
+        }
+
+        Set<Integer> idsSelecionados = normalizarIds(idsColaboradoresSelecionados);
+        if (idsSelecionados.isEmpty()) {
+            throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horario.");
+        }
+
+        Set<Integer> idsElegiveis = new LinkedHashSet<>();
+        for (Lojautilizador ligacao : colaboradoresElegiveis) {
+            if (ligacao.getIdUtilizador() != null && ligacao.getIdUtilizador().getId() != null) {
+                idsElegiveis.add(ligacao.getIdUtilizador().getId());
+            }
+        }
+
+        List<Integer> idsInvalidos = idsSelecionados.stream()
+                .filter(id -> !idsElegiveis.contains(id))
+                .toList();
+        if (!idsInvalidos.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Foram selecionados colaboradores que nao estao elegiveis neste periodo: "
+                            + String.join(", ", idsInvalidos.stream().map(String::valueOf).toList())
+                            + "."
+            );
+        }
+
+        return colaboradoresElegiveis.stream()
+                .filter(ligacao -> ligacao.getIdUtilizador() != null)
+                .filter(ligacao -> idsSelecionados.contains(ligacao.getIdUtilizador().getId()))
+                .toList();
     }
 
     private List<String> aliasesTurno(String tipoTurno) {
@@ -2920,7 +3302,7 @@ public class GeracaoHorariosBLL {
         boolean existePropostaAprovada = propostaHorarioMensalRepository
                 .findByIdLojaIdAndAnoAndMesOrderByDataGeracaoDesc(idLoja, ano, mes)
                 .stream()
-                .anyMatch(proposta -> "aprovado".equals(normalizarTexto(proposta.getEstado())));
+                .anyMatch(proposta -> ESTADO_APROVADO.equals(normalizarTexto(proposta.getEstado())));
 
         if (existePropostaAprovada) {
             throw new IllegalArgumentException("Ja existe uma proposta aprovada para o periodo selecionado.");
@@ -3195,7 +3577,7 @@ public class GeracaoHorariosBLL {
     }
 
     private String criarObservacaoHistoricoDecisao(PropostaHorarioMensal proposta, String novoEstado) {
-        String acao = "aprovado".equals(normalizarTexto(novoEstado)) ? "aprovado" : "rejeitado";
+        String acao = ESTADO_APROVADO.equals(normalizarTexto(novoEstado)) ? "aprovado" : "rejeitado";
         String observacoes = limparTexto(proposta.getObservacoesSupervisor());
         if (observacoes == null) {
             return "Horario " + acao + " pelo supervisor.";
@@ -3218,7 +3600,7 @@ public class GeracaoHorariosBLL {
                 proposta.getIdUtilizadorDecisao() != null ? valorOuTraco(proposta.getIdUtilizadorDecisao().getNome()) : "-",
                 proposta.getDataDecisao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataDecisao()) : "-",
                 valorOuTraco(proposta.getObservacoesSupervisor()),
-                "pendente".equals(normalizarTexto(proposta.getEstado())),
+                ESTADO_PENDENTE.equals(normalizarTexto(proposta.getEstado())),
                 horarios
         );
     }
@@ -3367,8 +3749,10 @@ public class GeracaoHorariosBLL {
     private String construirOrigemPlaneamento(PropostaHorarioMensal proposta) {
         String estadoNormalizado = normalizarTexto(proposta.getEstado());
         return switch (estadoNormalizado) {
-            case "aprovado" -> "Horarios publicados a partir de proposta aprovada";
-            case "rejeitado" -> "Proposta mensal rejeitada";
+            case ESTADO_APROVADO -> "Horarios publicados a partir de proposta aprovada";
+            case ESTADO_REJEITADO -> "Proposta mensal rejeitada";
+            case ESTADO_RASCUNHO -> "Rascunho do gerente";
+            case ESTADO_PENDENTE -> "Enviada ao supervisor";
             default -> "Proposta mensal";
         };
     }
@@ -3452,6 +3836,20 @@ public class GeracaoHorariosBLL {
         return quantidade;
     }
 
+    private Set<Integer> normalizarIds(Collection<Integer> ids) {
+        Set<Integer> idsNormalizados = new LinkedHashSet<>();
+        if (ids == null) {
+            return idsNormalizados;
+        }
+
+        for (Integer id : ids) {
+            if (id != null && id > 0) {
+                idsNormalizados.add(id);
+            }
+        }
+        return idsNormalizados;
+    }
+
     private boolean preferenciaAtivaNaData(Preferencia preferencia, LocalDate data) {
         LocalDate dataInicio = preferencia.getDataInicio();
         LocalDate dataFim = preferencia.getDataFim();
@@ -3526,11 +3924,20 @@ public class GeracaoHorariosBLL {
         return turno.getHoraInicio() + " - " + turno.getHoraFim();
     }
 
+    private String formatarPeriodoVinculo(Lojautilizador ligacao) {
+        if (ligacao == null || ligacao.getDataInicio() == null) {
+            return "-";
+        }
+        String inicio = DATA_FORMATTER.format(ligacao.getDataInicio());
+        String fim = ligacao.getDataFim() != null ? DATA_FORMATTER.format(ligacao.getDataFim()) : "sem fim";
+        return inicio + " a " + fim;
+    }
+
     private String formatarEstado(String estado) {
         if (estado == null || estado.isBlank()) {
             return "-";
         }
-        String valor = estado.trim().toLowerCase(Locale.ROOT);
+        String valor = estado.trim().toLowerCase(Locale.ROOT).replace('_', ' ');
         return Character.toUpperCase(valor.charAt(0)) + valor.substring(1);
     }
 
@@ -3643,6 +4050,91 @@ public class GeracaoHorariosBLL {
             String colaborador,
             String cargo,
             String estado
+    ) {
+    }
+
+    public record ColaboradorElegivel(
+            Integer idColaborador,
+            String nome,
+            String cargo,
+            String perfilContratual,
+            String periodoVinculo,
+            boolean selecionadoPorDefeito
+    ) {
+        @Override
+        public String toString() {
+            return nome + " - " + cargo;
+        }
+    }
+
+    public record MotivoFalhaGeracao(
+            String codigo,
+            int total,
+            String descricao,
+            List<String> nomes
+    ) {
+    }
+
+    public record SugestaoFalhaGeracao(
+            String codigo,
+            String texto,
+            String perfilRecomendado
+    ) {
+    }
+
+    public static class FalhaGeracaoHorarioException extends IllegalArgumentException {
+        private final String turno;
+        private final String data;
+        private final int colaboradoresConsiderados;
+        private final String motivoPrincipal;
+        private final List<MotivoFalhaGeracao> motivos;
+        private final List<SugestaoFalhaGeracao> sugestoes;
+
+        public FalhaGeracaoHorarioException(String mensagem,
+                                            String turno,
+                                            String data,
+                                            int colaboradoresConsiderados,
+                                            String motivoPrincipal,
+                                            List<MotivoFalhaGeracao> motivos,
+                                            List<SugestaoFalhaGeracao> sugestoes) {
+            super(mensagem);
+            this.turno = turno;
+            this.data = data;
+            this.colaboradoresConsiderados = colaboradoresConsiderados;
+            this.motivoPrincipal = motivoPrincipal;
+            this.motivos = motivos != null ? List.copyOf(motivos) : List.of();
+            this.sugestoes = sugestoes != null ? List.copyOf(sugestoes) : List.of();
+        }
+
+        public String turno() {
+            return turno;
+        }
+
+        public String data() {
+            return data;
+        }
+
+        public int colaboradoresConsiderados() {
+            return colaboradoresConsiderados;
+        }
+
+        public String motivoPrincipal() {
+            return motivoPrincipal;
+        }
+
+        public List<MotivoFalhaGeracao> motivos() {
+            return motivos;
+        }
+
+        public List<SugestaoFalhaGeracao> sugestoes() {
+            return sugestoes;
+        }
+    }
+
+    private record GargaloCobertura(
+            int procura,
+            int oferta,
+            int deficit
     ) {
     }
 
@@ -3845,6 +4337,13 @@ public class GeracaoHorariosBLL {
             }
             DayOfWeek dayOfWeek = data.getDayOfWeek();
             return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY;
+        }
+
+        private boolean permiteTurno(long minutosTurno) {
+            if (this != GESTAO && this != FULLTIME) {
+                return true;
+            }
+            return minutosTurno >= DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS;
         }
 
         private boolean correspondeRegra(String textoNormalizado) {
@@ -4146,6 +4645,7 @@ public class GeracaoHorariosBLL {
                     || atribuicoesConhecidas.containsKey(data)
                     || !temVinculoValidoNaData(data)
                     || !perfilContratual.permiteData(data)
+                    || !perfilContratual.permiteTurno(minutosTurno)
                     || (minutosAtribuidos + minutosTurno) > cargaMaximaMensalMinutos
                     || (!ignorarDescansoSemanal && excedeMaximoDiasTrabalhadosNaSemana(data, descansoSemanalMinimoDias))
                     || (!ignorarRotacaoFimDeSemana && violariaRotacaoDeFimDeSemana(data, janelaRotacaoFinsDeSemanaSemanas))) {
@@ -4240,6 +4740,9 @@ public class GeracaoHorariosBLL {
             }
             if (!perfilContratual.permiteData(data)) {
                 motivos.add("perfil");
+            }
+            if (!perfilContratual.permiteTurno(minutosTurno)) {
+                motivos.add("turno-curto");
             }
             if ((minutosAtribuidos + minutosTurno) > cargaMaximaMensalMinutos) {
                 motivos.add("carga");

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Relatorios')}"></head>
+<body>
+<header th:replace="~{web/fragments :: shellHeader}"></header>
+
+<div class="web-shell">
+    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+
+    <main class="web-content">
+        <h1>Modulo Relatorios</h1>
+        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+
+        <section class="web-card" th:if="${contexto != null}">
+            <p th:text="'Loja: ' + ${contexto.nomeLoja()}"></p>
+            <form method="get" action="/web/relatorios" class="web-inline-form">
+                <label for="ano">Ano</label>
+                <select id="ano" name="ano">
+                    <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
+                </select>
+
+                <label for="mes">Mes</label>
+                <select id="mes" name="mes">
+                    <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
+                </select>
+
+                <label for="colaborador">Colaborador</label>
+                <select id="colaborador" name="colaborador">
+                    <option value="">Todos</option>
+                    <option th:each="colaborador : ${contexto.colaboradores()}"
+                            th:value="${colaborador.id()}"
+                            th:text="${colaborador.nome() + ' (' + colaborador.cargo() + ')'}"
+                            th:selected="${colaboradorSelecionado != null && colaborador.id() == colaboradorSelecionado}"></option>
+                </select>
+
+                <button type="submit">Gerar</button>
+            </form>
+        </section>
+
+        <section class="web-card" th:if="${resultado != null}">
+            <h2 th:text="'Relatorio de ' + ${resultado.nomeMes()} + ' de ' + ${resultado.ano()}"></h2>
+            <p th:text="'Colaboradores: ' + ${resultado.resumo().colaboradores()} + ' - Turnos: ' + ${resultado.resumo().turnos()} + ' - Folgas aprovadas: ' + ${resultado.resumo().folgasAprovadas()} + ' - Horas: ' + ${resultado.resumo().horasFormatadas()}"></p>
+
+            <table>
+                <thead>
+                <tr>
+                    <th>Colaborador</th>
+                    <th>Cargo</th>
+                    <th>Turnos</th>
+                    <th>Folgas aprovadas</th>
+                    <th>Horas</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(resultado.linhas())}">
+                    <td colspan="5">Sem dados para os filtros selecionados.</td>
+                </tr>
+                <tr th:each="linha : ${resultado.linhas()}">
+                    <td th:text="${linha.nomeColaborador()}"></td>
+                    <td th:text="${linha.cargo()}"></td>
+                    <td th:text="${linha.turnos()}"></td>
+                    <td th:text="${linha.folgasAprovadas()}"></td>
+                    <td th:text="${linha.horasFormatadas()}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

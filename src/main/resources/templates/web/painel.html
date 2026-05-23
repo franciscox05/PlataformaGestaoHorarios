@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Painel')}"></head>
+<body>
+<header th:replace="~{web/fragments :: shellHeader}"></header>
+
+<div class="web-shell">
+    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+
+    <main class="web-content">
+        <h1>Painel</h1>
+        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
+
+        <section class="web-kpis">
+            <article class="web-kpi">
+                <h2>Folgas pendentes</h2>
+                <strong th:text="${folgasPendentes}">0</strong>
+            </article>
+            <article class="web-kpi">
+                <h2>Preferencias pendentes</h2>
+                <strong th:text="${preferenciasPendentes}">0</strong>
+            </article>
+            <article class="web-kpi">
+                <h2>Permutas pendentes</h2>
+                <strong th:text="${permutasPendentes}">0</strong>
+            </article>
+            <article class="web-kpi" th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar()}">
+                <h2>Aprovar complementares</h2>
+                <strong th:text="${folgasParaAprovar + preferenciasParaAprovar + permutasParaAprovar}">0</strong>
+            </article>
+        </section>
+
+        <section class="web-card">
+            <h2>Proximos turnos</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Horario</th>
+                    <th>Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(proximosTurnos)}">
+                    <td colspan="3">Sem turnos publicados para os proximos dias.</td>
+                </tr>
+                <tr th:each="turno : ${proximosTurnos}">
+                    <td th:text="${turno.dataTurno}"></td>
+                    <td th:text="${turno.idTurno != null ? turno.idTurno.horaInicio + ' - ' + turno.idTurno.horaFim : '-'}"></td>
+                    <td th:text="${turno.estado}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+</body>
+</html>

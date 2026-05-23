@@ -1,39 +1,19 @@
 <!doctype html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Levi's Staff Portal Web - Horarios</title>
-    <link rel="stylesheet" href="/web/css/app.css">
-</head>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Horarios')}"></head>
 <body>
-<header class="web-topbar">
-    <div>
-        <strong>Levi's Staff Portal Web</strong>
-        <span th:text="'Utilizador: ' + ${utilizadorNome}"></span>
-    </div>
-    <div class="web-topbar-actions">
-        <a class="btn-link btn-link-active" href="/web/horarios">Horarios</a>
-        <a class="btn-link" href="/web/complementares">Complementares</a>
-        <form method="post" action="/web/logout">
-            <button type="submit" class="btn-ghost">Terminar sessao</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{web/fragments :: shellHeader}"></header>
 
-<main class="web-layout">
-    <section class="web-card">
-        <h1>Gestao de horarios</h1>
-        <p class="web-subtitle">Consulta mensal, geracao de proposta e comparacao de alternativas.</p>
-        <p class="web-contexto" th:if="${contexto}" th:text="'Loja: ' + ${contexto.nomeLoja()} + ' - ' + ${contexto.localizacao()}"></p>
-        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
-        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
-    </section>
+<div class="web-shell">
+    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 
-    <section class="web-grid-2">
-        <article class="web-card">
-            <h2>Selecionar periodo</h2>
-            <form method="get" action="/web/horarios" class="web-inline-form web-inline-form-compact">
+    <main class="web-content">
+        <h1>Modulo Horarios</h1>
+
+        <section class="web-card">
+            <p th:if="${contexto}" th:text="'Loja: ' + ${contexto.nomeLoja()} + ' - ' + ${contexto.localizacao()}"></p>
+
+            <form method="get" action="/web/horarios" class="web-inline-form">
                 <label for="ano">Ano</label>
                 <select id="ano" name="ano">
                     <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
@@ -45,64 +25,82 @@
                 </select>
                 <button type="submit">Consultar</button>
             </form>
-        </article>
 
-        <article class="web-card">
-            <h2>Acoes</h2>
-            <p class="web-subtitle">Geracao de proposta para o periodo selecionado.</p>
-            <form method="post" action="/web/horarios/gerar" class="web-inline-form web-inline-form-action" th:if="${podeGerar}">
+            <form method="post" action="/web/horarios/gerar" class="web-inline-form" th:if="${podeGerar}">
                 <input type="hidden" name="ano" th:value="${ano}">
                 <input type="hidden" name="mes" th:value="${mes}">
                 <button type="submit">Gerar proposta</button>
             </form>
-            <p th:if="${!podeGerar}" class="web-muted">Sem permissao para gerar proposta neste perfil.</p>
-        </article>
-    </section>
 
-    <section class="web-card">
-        <h2>Resumo da proposta atual</h2>
-        <div th:if="${proposta == null}">
-            <p>Sem proposta ou planeamento para o periodo selecionado.</p>
-        </div>
-        <div th:if="${proposta != null}" class="web-proposta-grid">
-            <p><strong>Estado:</strong> <span th:text="${proposta.estado()}"></span></p>
-            <p><strong>Origem:</strong> <span th:text="${proposta.origemPlaneamento()}"></span></p>
-            <p><strong>Gerado por:</strong> <span th:text="${proposta.geradoPor()}"></span></p>
-            <p><strong>Data:</strong> <span th:text="${proposta.dataGeracao()}"></span></p>
-            <p><strong>Resumo:</strong> <span th:text="${proposta.resumoGeracao()}"></span></p>
-            <p th:if="${proposta.resumo() != null}">
-                <strong>Cobertura:</strong>
-                <span th:text="${proposta.resumo().turnos()} + ' turnos - ' + ${proposta.resumo().diasCobertos()} + ' dias'"></span>
-            </p>
-        </div>
-    </section>
+            <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
+            <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+        </section>
 
-    <section class="web-card">
-        <h2>Alternativas do periodo</h2>
-        <table>
-            <thead>
-            <tr>
-                <th>Proposta</th>
-                <th>Estado</th>
-                <th>Pontuacao</th>
-                <th>Qualidade</th>
-                <th>Geracao</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:if="${propostas == null || #lists.isEmpty(propostas)}">
-                <td colspan="5">Ainda nao existem alternativas para este periodo.</td>
-            </tr>
-            <tr th:each="item : ${propostas}">
-                <td th:text="${item.rotulo()}"></td>
-                <td th:text="${item.estado()}"></td>
-                <td th:text="${item.pontuacao()}"></td>
-                <td th:text="${item.qualidade()}"></td>
-                <td th:text="${item.dataGeracao()}"></td>
-            </tr>
-            </tbody>
-        </table>
-    </section>
-</main>
+        <section class="web-card">
+            <h2>Resumo da proposta atual</h2>
+            <div th:if="${proposta == null}">
+                <p>Sem proposta/planeamento para o periodo selecionado.</p>
+            </div>
+            <div th:if="${proposta != null}">
+                <p><strong>ID:</strong> <span th:text="${proposta.idProposta()}"></span></p>
+                <p><strong>Estado:</strong> <span th:text="${proposta.estado()}"></span></p>
+                <p><strong>Origem:</strong> <span th:text="${proposta.origemPlaneamento()}"></span></p>
+                <p><strong>Gerado por:</strong> <span th:text="${proposta.geradoPor()}"></span></p>
+                <p><strong>Data:</strong> <span th:text="${proposta.dataGeracao()}"></span></p>
+                <p><strong>Resumo:</strong> <span th:text="${proposta.resumoGeracao()}"></span></p>
+                <p th:if="${proposta.resumo() != null}">
+                    <strong>Cobertura:</strong>
+                    <span th:text="${proposta.resumo().turnos()} + ' turnos - ' + ${proposta.resumo().diasCobertos()} + ' dias'"></span>
+                </p>
+
+                <div th:if="${podeValidar && proposta.podeSerDecidida()}" class="web-grid-two">
+                    <form method="post" th:action="@{'/web/horarios/' + ${proposta.idProposta()} + '/aprovar'}" class="web-form">
+                        <input type="hidden" name="ano" th:value="${ano}">
+                        <input type="hidden" name="mes" th:value="${mes}">
+                        <label for="obsAprovar">Observacoes (opcional)</label>
+                        <textarea id="obsAprovar" name="observacoes" rows="2"></textarea>
+                        <button type="submit">Aprovar proposta</button>
+                    </form>
+                    <form method="post" th:action="@{'/web/horarios/' + ${proposta.idProposta()} + '/rejeitar'}" class="web-form">
+                        <input type="hidden" name="ano" th:value="${ano}">
+                        <input type="hidden" name="mes" th:value="${mes}">
+                        <label for="obsRejeitar">Justificacao (opcional)</label>
+                        <textarea id="obsRejeitar" name="observacoes" rows="2"></textarea>
+                        <button type="submit" class="btn-danger">Rejeitar proposta</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section class="web-card">
+            <h2>Alternativas do periodo</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Proposta</th>
+                    <th>Estado</th>
+                    <th>Pontuacao</th>
+                    <th>Qualidade</th>
+                    <th>Geracao</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${propostas == null || #lists.isEmpty(propostas)}">
+                    <td colspan="6">Ainda nao existem alternativas para este periodo.</td>
+                </tr>
+                <tr th:each="item : ${propostas}">
+                    <td th:text="${item.idProposta()}"></td>
+                    <td th:text="${item.rotulo()}"></td>
+                    <td th:text="${item.estado()}"></td>
+                    <td th:text="${item.pontuacao()}"></td>
+                    <td th:text="${item.qualidade()}"></td>
+                    <td th:text="${item.dataGeracao()}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
 </body>
 </html>

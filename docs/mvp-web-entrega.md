@@ -49,9 +49,9 @@ Entregar uma aplicacao Web Java funcional, integrando com a API/camada de negoci
 
 ## Checklist de fecho
 
-- [ ] Escopo MVP validado pela equipa
-- [ ] Fluxo de login/logout Web funcional
-- [ ] Consulta e geracao de horarios Web funcional
-- [ ] Fluxo complementar funcional (preferencias/folgas/permutas)
-- [ ] ZIP final gerado e testado em ambiente limpo
-- [ ] PDF final atualizado e revisto pela equipa
+- [x] Escopo MVP validado pela equipa
+- [x] Fluxo de login/logout Web funcional
+- [x] Consulta e geracao de horarios Web funcional
+- [x] Fluxo complementar funcional (preferencias/folgas/permutas)
+- [x] ZIP final gerado e testado em ambiente limpo
+- [x] PDF final atualizado e revisto pela equipa

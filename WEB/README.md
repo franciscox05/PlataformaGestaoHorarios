@@ -4,12 +4,20 @@ Interface Web da entrega, implementada com Spring MVC + Thymeleaf.
 
 ## Estado atual
 
-- login/logout Web com sessao HTTP;
-- pagina de consulta do planeamento mensal;
-- acao de geracao de proposta mensal de horarios;
-- tabela de alternativas geradas para o periodo;
-- fluxos complementares Web: preferencias, folgas e permutas (submissao + historico).
-- execucao separada desktop/web com classes principais distintas (`Projeto2Application` e `Projeto2WebApplication`).
+- shell comum com navegacao modular por rotas distintas;
+- guards de sessao e permissao por modulo no backend;
+- painel Web como ponto de entrada apos autenticacao;
+- modulo de horarios com consulta, geracao e decisao de propostas;
+- modulo complementares com fluxos de folgas, preferencias e permutas;
+- modulo de relatorios com filtros por periodo e colaborador;
+- modulo de gestao de loja com horario base, regras e horarios especiais;
+- modulo de perfil com consulta e edicao de dados.
+
+## Paridade Desktop vs Web
+
+- os dois canais usam a mesma base de dados e a mesma camada BLL;
+- a informacao apresentada na Web e alimentada pelas mesmas regras de negocio da Desktop;
+- o visual da Web foi alinhado com a identidade da Desktop, incluindo a imagem de login.
 
 ## Arranque local
 
@@ -26,18 +34,3 @@ Depois abrir no browser:
 ```text
 http://localhost:8080/web/login
 ```
-
-## Perfis de execucao (IntelliJ)
-
-Criar duas configuracoes Spring Boot distintas:
-
-- `Desktop` -> main class `com.example.projeto2.Projeto2Application`
-- `Web` -> main class `com.example.projeto2.Projeto2WebApplication`
-
-Isto evita abrir desktop e web ao mesmo tempo no mesmo arranque.
-
-## Validacao da entrega
-
-Evidencias e checklist em:
-
-- `docs/validacao-entrega-web-desktop.md`
