@@ -8,6 +8,8 @@ set "CONFIG_PATH=%ROOT_DIR%\config\application.properties"
 
 if not exist "%JAR_PATH%" (
   echo Nao encontrei o JAR Web em "%JAR_PATH%".
+  echo Este script e para o ZIP de entrega ^(pasta com app\ e config\^).
+  echo No repositorio, usa .\scripts\iniciar-dev.ps1 -Modo web
   exit /b 1
 )
 

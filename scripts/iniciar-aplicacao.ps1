@@ -5,7 +5,7 @@ $configDir = Join-Path $appRoot "config"
 $configUri = "file:/{0}/" -f (($configDir -replace "\\", "/").TrimStart("/"))
 
 if (-not (Test-Path $jarPath)) {
-    throw "Nao encontrei o JAR da aplicacao em $jarPath."
+    throw "Nao encontrei o JAR da aplicacao em $jarPath. Este script e para o ZIP de entrega (pasta com app\ e config\). No repositorio, usa .\scripts\iniciar-dev.ps1 -Modo desktop."
 }
 
 $javaExecutavel = $null

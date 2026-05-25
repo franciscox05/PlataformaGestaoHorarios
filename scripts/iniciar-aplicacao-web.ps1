@@ -8,7 +8,7 @@ $jarPath = Join-Path $rootDir "app\Projeto2-web.jar"
 $configPath = Join-Path $rootDir "config\application.properties"
 
 if (-not (Test-Path $jarPath)) {
-    throw "Nao encontrei o JAR Web em $jarPath."
+    throw "Nao encontrei o JAR Web em $jarPath. Este script e para o ZIP de entrega (pasta com app\ e config\). No repositorio, usa .\scripts\iniciar-dev.ps1 -Modo web."
 }
 
 if (-not $JavaHome -and $env:JAVA_HOME) {

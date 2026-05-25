@@ -31,7 +31,7 @@ A implementacao compilavel continua no projeto Maven principal:
 
 - `API`: endpoints REST em `src/main/java/com/example/projeto2/API`
 - `DESKTOP`: aplicacao JavaFX em `src/main/java/com/example/projeto2/Controller` e `src/main/resources/com/example/projeto2`
-- `WEB`: pasta reservada para uma futura interface web
+- `WEB`: interface web em `src/main/resources/templates/web` e `src/main/resources/static/web`
 
 A API esta organizada em:
 
@@ -68,7 +68,20 @@ Endpoints iniciais:
 & 'C:\Program Files\PostgreSQL\18\bin\psql.exe' -U postgres -d gestaohorarios -f .\sql\demo-entrega.sql
 ```
 
-4. Arrancar a aplicacao no IntelliJ ou com Maven.
+4. Arrancar a aplicacao:
+
+```powershell
+# desktop + web em duas janelas
+.\scripts\iniciar-dev.ps1 -Modo ambas -JavaHome 'C:\Users\franc\.jdks\openjdk-25'
+
+# so desktop
+.\scripts\iniciar-dev.ps1 -Modo desktop -JavaHome 'C:\Users\franc\.jdks\openjdk-25'
+
+# so web
+.\scripts\iniciar-dev.ps1 -Modo web -JavaHome 'C:\Users\franc\.jdks\openjdk-25'
+```
+
+URL da web: `http://localhost:8081/web/login`.
 
 ## Gerar o ZIP da entrega
 
