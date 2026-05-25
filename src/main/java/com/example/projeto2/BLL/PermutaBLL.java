@@ -91,14 +91,14 @@ public class PermutaBLL {
         horarioRepository.save(horarioOrigem);
         horarioRepository.save(horarioDestino);
 
-        pedido.setEstado("aprovado");
+        pedido.setEstado("aprovada");
         Permuta pedidoAprovado = permutaRepository.save(pedido);
 
         List<Permuta> conflitos = permutaRepository.findPedidosPendentesConflitantes(
                 pedido.getId(),
                 Set.of(horarioOrigem.getId(), horarioDestino.getId())
         );
-        conflitos.forEach(conflicto -> conflicto.setEstado("rejeitado"));
+        conflitos.forEach(conflicto -> conflicto.setEstado("rejeitada"));
         permutaRepository.saveAll(conflitos);
 
         return pedidoAprovado;
@@ -107,7 +107,7 @@ public class PermutaBLL {
     @Transactional
     public Permuta rejeitarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador) {
         Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador);
-        pedido.setEstado("rejeitado");
+        pedido.setEstado("rejeitada");
         return permutaRepository.save(pedido);
     }
 
