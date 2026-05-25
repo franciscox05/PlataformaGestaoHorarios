@@ -77,9 +77,20 @@ function Start-Desktop {
 function Start-Web {
     $mavenExecutable = Get-MavenExecutable
     $commonArgs = Get-MavenCommonArgs
+    $webJarPath = Join-Path $rootDir "target\Projeto2-0.0.1-SNAPSHOT-web.jar"
 
     Write-Host "A arrancar Web (porta $WebPort)..." -ForegroundColor Cyan
-    & $mavenExecutable @commonArgs spring-boot:run "-Dspring-boot.run.mainClass=com.example.projeto2.Projeto2WebApplication" "-Dspring-boot.run.arguments=--server.port=$WebPort"
+
+    if (-not (Test-Path $webJarPath)) {
+        Write-Host "JAR web nao encontrado. A gerar artefacto web..." -ForegroundColor Yellow
+        & $mavenExecutable @commonArgs "-DskipTests" package
+    }
+
+    if (-not (Test-Path $webJarPath)) {
+        throw "Nao foi possivel gerar o JAR web em $webJarPath."
+    }
+
+    java -jar $webJarPath "--server.port=$WebPort"
 }
 
 Set-Java -JavaHomePath $JavaHome
