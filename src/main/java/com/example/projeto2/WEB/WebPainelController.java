@@ -50,6 +50,9 @@ public class WebPainelController {
         List<Horario> proximosTurnos = horarioBLL.listarProximosTurnos(utilizadorId).stream()
                 .limit(5)
                 .toList();
+        List<Horario> equipaHoje = horarioBLL.listarEquipaDeHoje(utilizadorId).stream()
+                .limit(10)
+                .toList();
 
         List<DayOff> folgas = dayOffBLL.listarPedidosPorUtilizador(utilizadorId);
         List<Preferencia> preferencias = preferenciaBLL.listarPreferenciasPorUtilizador(utilizadorId);
@@ -75,6 +78,8 @@ public class WebPainelController {
         }
 
         model.addAttribute("proximosTurnos", proximosTurnos);
+        model.addAttribute("equipaHoje", equipaHoje);
+        model.addAttribute("totalEquipaHoje", equipaHoje.size());
         model.addAttribute("folgasPendentes", folgasPendentes);
         model.addAttribute("preferenciasPendentes", preferenciasPendentes);
         model.addAttribute("permutasPendentes", permutasPendentes);

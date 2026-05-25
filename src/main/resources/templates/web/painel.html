@@ -29,6 +29,20 @@
                 <h2>Aprovar complementares</h2>
                 <strong th:text="${folgasParaAprovar + preferenciasParaAprovar + permutasParaAprovar}">0</strong>
             </article>
+            <article class="web-kpi" th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}">
+                <h2>Equipa ativa hoje</h2>
+                <strong th:text="${totalEquipaHoje}">0</strong>
+            </article>
+        </section>
+
+        <section class="web-card web-card-ops">
+            <h2>Operacoes Rapidas Web</h2>
+            <p>Fluxo otimizado para browser: valida pedidos, consulta escala e fecha relatorios sem sair desta vista.</p>
+            <div class="web-actions web-actions-wrap">
+                <a class="botao-acao" href="/web/complementares">Validar complementares</a>
+                <a class="botao-acao" href="/web/horarios">Atualizar horarios</a>
+                <a class="botao-acao" href="/web/relatorios">Fechar relatorio mensal</a>
+            </div>
         </section>
 
         <section class="web-card">
@@ -49,6 +63,29 @@
                     <td th:text="${turno.dataTurno}"></td>
                     <td th:text="${turno.idTurno != null ? turno.idTurno.horaInicio + ' - ' + turno.idTurno.horaFim : '-'}"></td>
                     <td th:text="${turno.estado}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="web-card" th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}">
+            <h2>Operacao da Loja Hoje</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Colaborador</th>
+                    <th>Horario</th>
+                    <th>Tipo de turno</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(equipaHoje)}">
+                    <td colspan="3">Sem equipa alocada para hoje.</td>
+                </tr>
+                <tr th:each="item : ${equipaHoje}">
+                    <td th:text="${item.idLojautilizador != null && item.idLojautilizador.idUtilizador != null ? item.idLojautilizador.idUtilizador.nome : '-'}"></td>
+                    <td th:text="${item.idTurno != null ? item.idTurno.horaInicio + ' - ' + item.idTurno.horaFim : '-'}"></td>
+                    <td th:text="${item.idTurno != null ? item.idTurno.tipo : '-'}"></td>
                 </tr>
                 </tbody>
             </table>

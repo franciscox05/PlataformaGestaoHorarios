@@ -8,7 +8,7 @@
     <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 
     <main class="web-content">
-        <h1>Modulo Relatorios</h1>
+        <h1>Relatorios Mensais</h1>
         <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
 
         <section class="web-card" th:if="${contexto != null}">
@@ -35,11 +35,18 @@
 
                 <button type="submit">Gerar</button>
             </form>
+            <p class="web-muted">Versao web: consulta rapida e exportacao direta para CSV.</p>
         </section>
 
         <section class="web-card" th:if="${resultado != null}">
             <h2 th:text="'Relatorio de ' + ${resultado.nomeMes()} + ' de ' + ${resultado.ano()}"></h2>
             <p th:text="'Colaboradores: ' + ${resultado.resumo().colaboradores()} + ' - Turnos: ' + ${resultado.resumo().turnos()} + ' - Folgas aprovadas: ' + ${resultado.resumo().folgasAprovadas()} + ' - Horas: ' + ${resultado.resumo().horasFormatadas()}"></p>
+            <div class="web-actions">
+                <a class="botao-acao"
+                   th:href="@{/web/relatorios/exportar.csv(ano=${ano},mes=${mes},colaborador=${colaboradorSelecionado})}">
+                    Exportar CSV
+                </a>
+            </div>
 
             <table>
                 <thead>

@@ -1,4 +1,5 @@
 :root {
+    --topbar-height: 86px;
     --bg-soft: #f8f3ef;
     --bg-soft-2: #f5f0ec;
     --surface: rgba(252, 249, 247, 0.92);
@@ -27,6 +28,7 @@ body {
 }
 
 body {
+    min-height: 100vh;
     font-family: "Segoe UI", "Arial", sans-serif;
     background: linear-gradient(to bottom, var(--bg-soft-2) 0%, var(--bg-soft) 100%);
     color: var(--text);
@@ -167,6 +169,9 @@ p {
 }
 
 .web-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 80;
     background: rgba(252, 249, 248, 0.94);
     border-bottom: 1px solid rgba(145, 111, 109, 0.1);
     display: flex;
@@ -200,10 +205,15 @@ p {
 .web-shell {
     display: grid;
     grid-template-columns: 286px 1fr;
-    min-height: calc(100vh - 78px);
+    align-items: start;
+    min-height: calc(100vh - var(--topbar-height));
 }
 
 .web-sidebar {
+    position: sticky;
+    top: var(--topbar-height);
+    height: calc(100vh - var(--topbar-height));
+    overflow-y: auto;
     background: linear-gradient(to bottom, #272323 0%, #1a1818 100%);
     padding: 18px 0;
     display: grid;
@@ -235,6 +245,7 @@ p {
     padding: 20px;
     display: grid;
     gap: 16px;
+    min-width: 0;
 }
 
 .web-content h1 {
@@ -327,6 +338,9 @@ textarea {
 
 button,
 .botao-acao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: var(--brand);
     border: 0;
     border-radius: 12px;
@@ -336,6 +350,7 @@ button,
     font-weight: 900;
     letter-spacing: 1px;
     cursor: pointer;
+    text-decoration: none;
 }
 
 button:hover,
@@ -357,6 +372,11 @@ button:hover,
 
 .btn-danger:hover {
     background: #770018;
+}
+
+.web-muted {
+    font-size: 13px;
+    color: #6f5f5d;
 }
 
 .web-feedback {
@@ -416,6 +436,15 @@ tbody tr:hover {
 .web-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+.web-card-ops {
+    background: linear-gradient(135deg, rgba(255, 251, 249, 0.98) 0%, rgba(250, 241, 236, 0.95) 100%);
+}
+
+.web-actions-wrap .botao-acao {
+    min-width: 180px;
 }
 
 @media (max-width: 1050px) {
@@ -434,6 +463,10 @@ tbody tr:hover {
     }
 
     .web-sidebar {
+        position: static;
+        top: auto;
+        height: auto;
+        overflow: visible;
         grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
         border-bottom: 1px solid rgba(145, 111, 109, 0.14);
     }
