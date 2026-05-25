@@ -228,4 +228,57 @@ class WebFluxosCriticosE2ETest extends FluxosCriticosTestSupport {
         assertTrue(corpo.contains("Loja;Mes;Ano;Colaborador;Cargo;Turnos;FolgasAprovadas;Horas"));
         assertTrue(corpo.contains(colaborador.getNome()));
     }
+
+    @Test
+    void gerentePodeGerirPedidosDiretamenteNoPerfilDoColaborador() throws Exception {
+        GeracaoFixture fixture = criarContextoGeracao("web-e2e-equipa");
+        var gerente = fixture.lojaFixture().gerente();
+        var colaborador = fixture.lojaFixture().colaboradores().get(0);
+
+        MvcResult loginColaborador = mockMvc.perform(post("/web/login")
+                        .param("email", colaborador.getEmail())
+                        .param("password", "Colaborador123"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        MockHttpSession sessaoColaborador = (MockHttpSession) loginColaborador.getRequest().getSession(false);
+        assertNotNull(sessaoColaborador);
+
+        LocalDate dataFolga = fixture.referencia().plusDays(7);
+        mockMvc.perform(post("/web/complementares/folgas")
+                        .session(sessaoColaborador)
+                        .param("dataAusencia", dataFolga.toString())
+                        .param("tipo", "folgas")
+                        .param("motivo", "Pedido para validar gestao por perfil"))
+                .andExpect(status().is3xxRedirection());
+
+        Integer idDayOff = dayOffBLL.listarPedidosPorUtilizador(colaborador.getId()).stream()
+                .filter(item -> item.getDataAusencia() != null && item.getDataAusencia().equals(dataFolga))
+                .findFirst()
+                .orElseThrow()
+                .getIdDayoff();
+
+        MvcResult loginGerente = mockMvc.perform(post("/web/login")
+                        .param("email", gerente.getEmail())
+                        .param("password", "Gestor123"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        MockHttpSession sessaoGerente = (MockHttpSession) loginGerente.getRequest().getSession(false);
+        assertNotNull(sessaoGerente);
+
+        mockMvc.perform(get("/web/equipa/{idUtilizador}", colaborador.getId()).session(sessaoGerente))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(colaborador.getNome())));
+
+        mockMvc.perform(post("/web/equipa/{idUtilizador}/folgas/{idDayOff}/aprovar", colaborador.getId(), idDayOff)
+                        .session(sessaoGerente))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/web/equipa/" + colaborador.getId()));
+
+        String estadoAtual = dayOffBLL.listarPedidosPorUtilizador(colaborador.getId()).stream()
+                .filter(item -> item.getIdDayoff().equals(idDayOff))
+                .findFirst()
+                .orElseThrow()
+                .getEstado();
+        assertEquals("aprovado", estadoAtual.toLowerCase());
+    }
 }

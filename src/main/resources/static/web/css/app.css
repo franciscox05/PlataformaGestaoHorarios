@@ -449,6 +449,110 @@ tbody tr:hover {
     min-width: 180px;
 }
 
+.web-page-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: start;
+}
+
+.web-master-detail {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.web-users-panel {
+    position: sticky;
+    top: calc(var(--topbar-height) + 14px);
+}
+
+.web-user-list {
+    display: grid;
+    gap: 8px;
+    max-height: calc(100vh - var(--topbar-height) - 170px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.web-user-row {
+    display: grid;
+    gap: 10px;
+    text-decoration: none;
+    border: 1px solid rgba(145, 111, 109, 0.2);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.82);
+    color: inherit;
+}
+
+.web-user-row:hover {
+    border-color: rgba(196, 18, 48, 0.34);
+    background: rgba(255, 248, 248, 0.95);
+}
+
+.web-user-row.ativo {
+    border-color: rgba(196, 18, 48, 0.62);
+    box-shadow: 0 0 0 2px rgba(196, 18, 48, 0.14);
+}
+
+.web-user-row strong {
+    font-size: 15px;
+}
+
+.web-user-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.web-user-tags span {
+    background: rgba(241, 234, 230, 0.95);
+    border: 1px solid rgba(145, 111, 109, 0.2);
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4e3c3a;
+}
+
+.web-user-tags span.ok {
+    background: rgba(231, 244, 236, 0.88);
+    border-color: rgba(26, 106, 56, 0.24);
+    color: #1a6a38;
+}
+
+.web-user-detail {
+    display: grid;
+    gap: 14px;
+}
+
+.web-user-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: start;
+    margin-bottom: 10px;
+}
+
+.web-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.web-search-inline {
+    align-items: center;
+}
+
+.web-search-inline input[type="text"] {
+    min-width: min(600px, 100%);
+    flex: 1 1 auto;
+}
+
 @media (max-width: 1050px) {
     .web-login-content {
         grid-template-columns: 1fr;
@@ -481,6 +585,19 @@ tbody tr:hover {
 
     .web-sidebar a.ativo {
         border-bottom-color: var(--brand);
+    }
+
+    .web-master-detail {
+        grid-template-columns: 1fr;
+    }
+
+    .web-users-panel {
+        position: static;
+        top: auto;
+    }
+
+    .web-user-list {
+        max-height: none;
     }
 }
 

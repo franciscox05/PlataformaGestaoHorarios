@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${titulo}">Levi's Staff Portal Web</title>
     <link rel="stylesheet"
-          th:href="@{/web/css/app.css(v='20260525-01')}"
-          href="/web/css/app.css?v=20260525-01">
+          th:href="@{/web/css/app.css(v='20260526-01')}"
+          href="/web/css/app.css?v=20260526-01">
     <script defer
-            th:src="@{/web/js/layout.js(v='20260525-01')}"
-            src="/web/js/layout.js?v=20260525-01"></script>
+            th:src="@{/web/js/layout.js(v='20260526-01')}"
+            src="/web/js/layout.js?v=20260526-01"></script>
 </head>
 <body>
 <header class="web-topbar" th:fragment="shellHeader">
@@ -35,6 +35,8 @@
        th:if="${webPermissoes != null && webPermissoes.podeVerRelatorios()}">Relatorios</a>
     <a href="/web/gestao-loja" th:classappend="${webModuloAtivo == 'gestao-loja'} ? 'ativo' : ''"
        th:if="${webPermissoes != null && webPermissoes.podeGerirLoja()}">Gestao Loja</a>
+    <a href="/web/equipa" th:classappend="${webModuloAtivo == 'equipa'} ? 'ativo' : ''"
+       th:if="${webPermissoes != null && webPermissoes.podeGerirLoja()}">Equipa</a>
     <a href="/web/perfil" th:classappend="${webModuloAtivo == 'perfil'} ? 'ativo' : ''">Perfil</a>
 </aside>
 </body>
