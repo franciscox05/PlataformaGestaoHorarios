@@ -71,7 +71,7 @@ function Start-Desktop {
     $commonArgs = Get-MavenCommonArgs
 
     Write-Host "A arrancar Desktop (porta $DesktopPort)..." -ForegroundColor Cyan
-    & $mavenExecutable @commonArgs spring-boot:run "-Dspring-boot.run.main-class=com.example.projeto2.AppLauncher" "-Dspring-boot.run.arguments=--server.port=$DesktopPort"
+    & $mavenExecutable @commonArgs spring-boot:run "-Dspring-boot.run.mainClass=com.example.projeto2.AppLauncher" "-Dspring-boot.run.arguments=--server.port=$DesktopPort"
 }
 
 function Start-Web {
@@ -79,7 +79,7 @@ function Start-Web {
     $commonArgs = Get-MavenCommonArgs
 
     Write-Host "A arrancar Web (porta $WebPort)..." -ForegroundColor Cyan
-    & $mavenExecutable @commonArgs spring-boot:run "-Dspring-boot.run.main-class=com.example.projeto2.Projeto2WebApplication" "-Dspring-boot.run.arguments=--server.port=$WebPort"
+    & $mavenExecutable @commonArgs spring-boot:run "-Dspring-boot.run.mainClass=com.example.projeto2.Projeto2WebApplication" "-Dspring-boot.run.arguments=--server.port=$WebPort"
 }
 
 Set-Java -JavaHomePath $JavaHome
