@@ -172,6 +172,63 @@
                         <HBox fx:id="boxSemanaColaborador" spacing="10.0" styleClass="calendario-semana" />
                     </children>
                 </VBox>
+                <VBox spacing="14.0" styleClass="info-card">
+                    <children>
+                        <Label styleClass="card-titulo" text="Perfil operacional do colaborador" />
+                        <Label fx:id="lblPerfilOperacionalResumo" styleClass="texto-ajuda" text="Seleciona um colaborador para veres folgas, preferencias, permutas e decisoes pendentes." wrapText="true" />
+
+                        <VBox spacing="10.0">
+                            <children>
+                                <Label styleClass="campo-titulo" text="Folgas" />
+                                <TableView fx:id="tabelaFolgasColaborador" prefHeight="180.0">
+                                    <columnResizePolicy>
+                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                    </columnResizePolicy>
+                                    <columns>
+                                        <TableColumn fx:id="colFolgaData" text="Data" />
+                                        <TableColumn fx:id="colFolgaTipo" text="Tipo" />
+                                        <TableColumn fx:id="colFolgaEstado" text="Estado" />
+                                        <TableColumn fx:id="colFolgaAcao" text="Acao" />
+                                    </columns>
+                                </TableView>
+                            </children>
+                        </VBox>
+
+                        <VBox spacing="10.0">
+                            <children>
+                                <Label styleClass="campo-titulo" text="Preferencias" />
+                                <TableView fx:id="tabelaPreferenciasColaborador" prefHeight="180.0">
+                                    <columnResizePolicy>
+                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                    </columnResizePolicy>
+                                    <columns>
+                                        <TableColumn fx:id="colPreferenciaTipo" text="Tipo" />
+                                        <TableColumn fx:id="colPreferenciaPeriodo" text="Periodo" />
+                                        <TableColumn fx:id="colPreferenciaEstado" text="Estado" />
+                                        <TableColumn fx:id="colPreferenciaAcao" text="Acao" />
+                                    </columns>
+                                </TableView>
+                            </children>
+                        </VBox>
+
+                        <VBox spacing="10.0">
+                            <children>
+                                <Label styleClass="campo-titulo" text="Permutas" />
+                                <TableView fx:id="tabelaPermutasColaborador" prefHeight="180.0">
+                                    <columnResizePolicy>
+                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                    </columnResizePolicy>
+                                    <columns>
+                                        <TableColumn fx:id="colPermutaData" text="Data turno" />
+                                        <TableColumn fx:id="colPermutaTurnos" text="Troca" />
+                                        <TableColumn fx:id="colPermutaEstado" text="Estado" />
+                                        <TableColumn fx:id="colPermutaAcao" text="Acao" />
+                                    </columns>
+                                </TableView>
+                            </children>
+                        </VBox>
+                    </children>
+                </VBox>
             </children>
         </VBox>
     </content>
