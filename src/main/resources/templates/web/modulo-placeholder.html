@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Levi's Staff Portal Web - Modulo</title>
+    <link rel="stylesheet" href="/web/css/app.css">
+</head>
+<body>
+<header th:replace="~{web/fragments/shell :: topbar(${webPaginaAtiva}, ${utilizadorNome}, ${webCargoAtual}, ${webPodeAcederHorarios}, ${webPodeGerirLoja}, ${webPodeRelatorios})}"></header>
+
+<main class="web-layout">
+    <section class="web-card">
+        <h1 th:text="${tituloModulo}"></h1>
+        <p class="web-subtitle">Modulo preparado para a migracao faseada da desktop para web.</p>
+        <p class="web-muted">Proximo passo: transportar fluxos, tabelas e validacoes desta area com paridade funcional.</p>
+    </section>
+</main>
+</body>
+</html>
