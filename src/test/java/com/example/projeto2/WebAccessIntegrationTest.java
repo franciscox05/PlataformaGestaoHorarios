@@ -76,6 +76,14 @@ class WebAccessIntegrationTest {
     }
 
     @Test
+    void painelSemSessaoDeveRedirecionarParaLogin() throws Exception {
+        HttpResponse<String> response = clientSemSessao()
+                .send(getRequest("/web/painel"), HttpResponse.BodyHandlers.ofString());
+        assertEquals(302, response.statusCode());
+        assertTrue(response.headers().firstValue("location").orElse("").contains("/web/login"));
+    }
+
+    @Test
     void complementaresSemSessaoDeveRedirecionarParaLogin() throws Exception {
         HttpResponse<String> response = clientSemSessao()
                 .send(getRequest("/web/complementares"), HttpResponse.BodyHandlers.ofString());
@@ -84,7 +92,7 @@ class WebAccessIntegrationTest {
     }
 
     @Test
-    void loginValidoDeveRedirecionarParaHorarios() throws Exception {
+    void loginValidoDeveRedirecionarParaPainel() throws Exception {
         Utilizador utilizador = new Utilizador();
         utilizador.setId(10);
         utilizador.setNome("Teste");
@@ -93,7 +101,7 @@ class WebAccessIntegrationTest {
         HttpResponse<String> response = clientSemSessao()
                 .send(postForm("/web/login", "email=teste%40ipvc.pt&password=123456"), HttpResponse.BodyHandlers.ofString());
         assertEquals(302, response.statusCode());
-        assertTrue(response.headers().firstValue("location").orElse("").contains("/web/horarios"));
+        assertTrue(response.headers().firstValue("location").orElse("").contains("/web/painel"));
     }
 
     @Test
