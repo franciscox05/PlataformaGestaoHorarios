@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="topbar(paginaAtiva, utilizadorNome, cargoAtual, podeAcederHorarios, podeGerirLoja, podeRelatorios)"
+        class="web-topbar">
+    <div class="web-topbar-identity">
+        <strong>LEVI'S</strong>
+        <span>Portal interno</span>
+        <span th:text="'Utilizador: ' + ${utilizadorNome} + ' · Cargo: ' + ${cargoAtual}"></span>
+    </div>
+    <nav class="web-topbar-actions">
+        <a class="btn-link"
+           th:classappend="${paginaAtiva == 'painel'} ? ' btn-link-active'"
+           href="/web/painel">Painel</a>
+        <a class="btn-link"
+           th:classappend="${paginaAtiva == 'complementares'} ? ' btn-link-active'"
+           href="/web/complementares">Complementares</a>
+        <a class="btn-link"
+           th:classappend="${paginaAtiva == 'horarios'} ? ' btn-link-active'"
+           href="/web/horarios" th:if="${podeAcederHorarios}">Horarios</a>
+        <a class="btn-link" href="/web/gestao-loja" th:if="${podeGerirLoja}">Gestao Loja</a>
+        <a class="btn-link" href="/web/relatorios" th:if="${podeRelatorios}">Relatorios</a>
+        <form method="post" action="/web/logout">
+            <button type="submit" class="btn-ghost">Terminar sessao</button>
+        </form>
+    </nav>
+</header>
+</body>
+</html>
