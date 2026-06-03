@@ -73,7 +73,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
         LocalDate referencia = fixture.referencia();
         LocalDate diaAnalise = referencia.plusDays(1);
 
-        criarDayOffAprovado(colaboradorAusente.getId(), diaAnalise, "Consulta medica.");
+        criarDayOffAprovado(colaboradorAusente, diaAnalise, "Consulta medica.");
         gerarEAprovarHorarios(gerente, supervisor, referencia);
 
         SnapshotOperacionalLojaBLL.SnapshotOperacionalLoja snapshot = snapshotOperacionalLojaBLL.carregarSnapshot(
@@ -110,7 +110,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
 
         Utilizador colaboradorFolga = fixture.lojaFixture().colaboradores().get(2);
         DayOff pedidoFolga = new DayOff();
-        pedidoFolga.setIdUtilizador(colaboradorFolga.getId());
+        pedidoFolga.setIdUtilizador(colaboradorFolga);
         pedidoFolga.setDataAusencia(diaAnalise);
         pedidoFolga.setTipo("folgas");
         pedidoFolga.setMotivo("Compromisso familiar");

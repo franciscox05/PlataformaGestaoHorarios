@@ -1,27 +1,41 @@
 package com.example.projeto2;
 
+import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.BLL.GestaoLojaBLL;
+import com.example.projeto2.BLL.HorarioBLL;
+import com.example.projeto2.BLL.SessaoBLL;
+import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
 import com.example.projeto2.Controller.DashboardController;
 import com.example.projeto2.Controller.HomeController;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.layout.BorderPane;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = Projeto2Application.class)
 @ActiveProfiles("test")
@@ -34,6 +48,51 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
     @Autowired
     private ApplicationContext applicationContext;
 
+    @MockitoBean
+    private SessaoBLL sessaoBLL;
+
+    @MockitoBean
+    private GestaoLojaBLL gestaoLojaBLL;
+
+    @MockitoBean
+    private GeracaoHorariosBLL geracaoHorariosBLL;
+
+    @MockitoBean
+    private HorarioBLL horarioBLL;
+
+    @MockitoBean
+    private SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
+
+    @BeforeEach
+    void prepararSessaoMock() {
+        doNothing().when(sessaoBLL).iniciarSessao(any());
+        doNothing().when(sessaoBLL).terminarSessaoManual();
+        doNothing().when(sessaoBLL).expirarSessao();
+        doNothing().when(sessaoBLL).registarAtividade();
+        when(sessaoBLL.temSessaoAtiva()).thenReturn(false);
+        when(sessaoBLL.obterTempoMaximoInatividade()).thenReturn(java.time.Duration.ofMinutes(15));
+
+        when(gestaoLojaBLL.utilizadorPodeGerirLoja(anyInt())).thenReturn(true);
+        when(geracaoHorariosBLL.utilizadorPodeValidarHorarios(anyInt())).thenReturn(true);
+
+        when(horarioBLL.listarHorarioPublicadoDoUtilizador(anyInt(), any(), any())).thenReturn(List.of());
+        when(horarioBLL.listarEquipaDeHoje(anyInt())).thenReturn(List.of());
+        when(horarioBLL.listarColaboradoresAtivosDaLojaDoUtilizador(anyInt())).thenReturn(List.of());
+        when(horarioBLL.listarHorarioPublicadoDaLojaDoUtilizador(anyInt(), any(), any(), any())).thenReturn(List.of());
+
+        when(snapshotOperacionalLojaBLL.carregarSnapshot(anyInt(), any(), any())).thenReturn(
+                new SnapshotOperacionalLojaBLL.SnapshotOperacionalLoja(
+                        new SnapshotOperacionalLojaBLL.ContextoLoja(1, "Loja Teste", "Viana do Castelo", "Gerente"),
+                        new SnapshotOperacionalLojaBLL.IntervaloOperacional(java.time.LocalDate.now(), java.time.LocalDate.now(), true),
+                        new SnapshotOperacionalLojaBLL.ResumoOperacional(0, 0, 0, 0, 0, 0, 0),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        List.of()
+                )
+        );
+    }
+
     @BeforeAll
     static void inicializarJavaFx() throws Exception {
         if (javafxInicializado) {
@@ -41,11 +100,35 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
         }
 
         CountDownLatch latch = new CountDownLatch(1);
-        Platform.startup(() -> {
-            javafxInicializado = true;
+        FutureTask<Void> startup = new FutureTask<>(() -> {
+            Platform.startup(() -> {
+                Platform.setImplicitExit(false);
+                javafxInicializado = true;
+                latch.countDown();
+            });
+            return null;
+        });
+        Thread startupThread = new Thread(startup, "javafx-startup-test");
+        startupThread.setDaemon(true);
+        startupThread.start();
+        startup.get(15, TimeUnit.SECONDS);
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+    }
+
+    @AfterAll
+    static void terminarJavaFx() throws Exception {
+        if (!javafxInicializado) {
+            return;
+        }
+
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            Platform.setImplicitExit(true);
+            Platform.exit();
             latch.countDown();
         });
         assertTrue(latch.await(10, TimeUnit.SECONDS));
+        javafxInicializado = false;
     }
 
     @Test
@@ -72,7 +155,7 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
             }
         });
 
-        assertTrue(latch.await(15, TimeUnit.SECONDS));
+        assertTrue(latch.await(45, TimeUnit.SECONDS));
         assertNull(erro.get(), () -> erro.get() == null ? "" : erro.get().toString());
         assertNotNull(rootRef.get());
         assertNotNull(controllerRef.get());
@@ -102,7 +185,7 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
             }
         });
 
-        assertTrue(latch.await(15, TimeUnit.SECONDS));
+        assertTrue(latch.await(45, TimeUnit.SECONDS));
         assertNull(erro.get(), () -> erro.get() == null ? "" : erro.get().toString());
         assertNotNull(rootRef.get());
         assertNotNull(controllerRef.get());

@@ -1,8 +1,11 @@
 package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Enums.EstadoHorario;
+import com.example.projeto2.Modules.Cargo;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.RegrasLoja;
+import com.example.projeto2.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -124,8 +127,8 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
 
         assertFalse(horariosAprovados.isEmpty());
         assertFalse(horariosRejeitados.isEmpty());
-        assertTrue(horariosAprovados.stream().allMatch(horario -> "aprovado".equalsIgnoreCase(horario.getEstado())));
-        assertTrue(horariosRejeitados.stream().allMatch(horario -> "rejeitado".equalsIgnoreCase(horario.getEstado())));
+        assertTrue(horariosAprovados.stream().allMatch(horario -> EstadoHorario.aprovado == horario.getEstado()));
+        assertTrue(horariosRejeitados.stream().allMatch(horario -> EstadoHorario.rejeitado == horario.getEstado()));
 
         IllegalArgumentException erro = assertThrows(
                 IllegalArgumentException.class,
@@ -172,6 +175,14 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
     @Test
     void geracaoAgrupaVariantesDoMesmoTipoESuportaMinimoGenericoMaisElevado() {
         GeracaoFixture fixture = criarContextoGeracao("alternativas-variantes-turno");
+        Cargo cargoFullTime = obterOuCriarCargo("fulltime", "Assistente de Vendas FT");
+        Utilizador colaboradorExtra = criarUtilizadorHashado(
+                "Colaborador Extra Variantes",
+                "colaborador.extra.variantes",
+                "Colaborador123"
+        );
+        criarLigacaoAtiva(colaboradorExtra, fixture.lojaFixture().loja(), cargoFullTime);
+
         RegrasLoja regraMinimos = regrasLojaRepository.findByIdLojaWithRegraOrderByDescricao(
                         fixture.lojaFixture().loja().getId())
                 .stream()

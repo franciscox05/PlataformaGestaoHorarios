@@ -86,7 +86,7 @@ class RegrasGestaoPublicacaoValidationTest extends FluxosCriticosTestSupport {
         GeracaoFixture fixture = criarContextoGeracao("gestao-falha");
         LocalDate primeiroSabado = fixture.referencia().with(TemporalAdjusters.firstInMonth(DayOfWeek.SATURDAY));
 
-        criarDayOffAprovado(fixture.lojaFixture().gerente().getId(), primeiroSabado, "Gerente ausente no sabado.");
+        criarDayOffAprovado(fixture.lojaFixture().gerente(), primeiroSabado, "Gerente ausente no sabado.");
         lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(fixture.lojaFixture().loja().getId()).stream()
                 .filter(ligacao -> ligacao.getDataFim() == null)
                 .filter(ligacao -> ligacao.getIdCargo() != null)
@@ -94,7 +94,7 @@ class RegrasGestaoPublicacaoValidationTest extends FluxosCriticosTestSupport {
                 .filter(ligacao -> "subgerente".equalsIgnoreCase(ligacao.getIdCargo().getTipo()))
                 .findFirst()
                 .ifPresent(ligacao -> criarDayOffAprovado(
-                        ligacao.getIdUtilizador().getId(),
+                        ligacao.getIdUtilizador(),
                         primeiroSabado,
                         "Subgerente ausente no sabado."
                 ));
@@ -109,7 +109,7 @@ class RegrasGestaoPublicacaoValidationTest extends FluxosCriticosTestSupport {
         );
 
         assertEquals(
-                "Nao foi possivel garantir presenca de gerente ou subgerente no sabado " + primeiroSabado.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".",
+                "Nao foi possivel garantir presenca de gerente/subgerente no sabado " + primeiroSabado.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".",
                 erro.getMessage()
         );
     }

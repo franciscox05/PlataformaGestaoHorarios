@@ -17,6 +17,14 @@
                th:if="${contexto}" th:text="${contexto.nomeLoja() + ' · ' + contexto.localizacao()}">Planeamento mensal</p>
             <p class="font-body text-[14px] text-on-surface-variant mt-1" th:unless="${contexto}">Planeamento mensal da loja</p>
         </div>
+        <div class="flex items-center gap-2 self-start mt-1" th:if="${proposta != null}">
+            <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full"
+                  th:classappend="${proposta.estado() == 'APROVADO'} ? 'badge-ok' : (${proposta.estado() == 'REJEITADO'} ? 'badge-err' : 'badge-warn')">
+                <span class="material-symbols-outlined text-[13px]"
+                      th:text="${proposta.estado() == 'APROVADO'} ? 'check_circle' : (${proposta.estado() == 'REJEITADO'} ? 'cancel' : 'hourglass_empty')">schedule</span>
+                <span th:text="${proposta.estado()}">PENDENTE</span>
+            </span>
+        </div>
     </div>
 
     <!-- Feedback -->
@@ -75,8 +83,11 @@
             <span class="material-symbols-outlined text-[36px] text-outline/50">calendar_month</span>
         </div>
         <h2 class="font-display font-bold text-[20px] text-on-surface">Sem proposta para este período</h2>
-        <p class="font-body text-[14px] text-on-surface-variant max-w-md">
+        <p th:if="${podeGerar}" class="font-body text-[14px] text-on-surface-variant max-w-md">
             Não existe planeamento guardado. Usa o botão <strong>"Gerar proposta"</strong> para criar um novo.
+        </p>
+        <p th:unless="${podeGerar}" class="font-body text-[14px] text-on-surface-variant max-w-md">
+            Não existe planeamento guardado para este período e o teu perfil não tem permissão para gerar propostas.
         </p>
     </section>
 

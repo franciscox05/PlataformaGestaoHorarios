@@ -1,6 +1,7 @@
 package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Enums.EstadoHorario;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Lojautilizador;
 import com.example.projeto2.Modules.Turno;
@@ -43,7 +44,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
         LocalDate diaBloqueado = fixture.referencia().plusDays(2);
         LocalDate domingoFechado = fixture.referencia().with(TemporalAdjusters.firstInMonth(DayOfWeek.SUNDAY));
 
-        criarDayOffAprovado(colaboradorComDayOff.getId(), diaBloqueado, "Folga semanal protegida.");
+        criarDayOffAprovado(colaboradorComDayOff, diaBloqueado, "Folga semanal protegida.");
         criarPreferenciaAprovada(
                 colaboradorComPreferencia,
                 decisor,
@@ -202,7 +203,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
         horario.setIdLojautilizador(ligacao);
         horario.setIdTurno(turno);
         horario.setDataTurno(dataTurno);
-        horario.setEstado("aprovado");
+        horario.setEstado(EstadoHorario.aprovado);
         horarioRepository.save(horario);
     }
 

@@ -120,6 +120,10 @@ public class WebAppService {
         model.addAttribute("webCargoAtual", obterCargoAtual(idUtilizador));
         model.addAttribute("webPermissoes", permissoes);
         model.addAttribute("webModuloAtivo", moduloAtivo);
+        model.addAttribute("totalFolgasPendentes", 0);
+        model.addAttribute("totalPreferenciasPendentes", 0);
+        model.addAttribute("totalPermutasPendentes", 0);
+        model.addAttribute("totalPendenciasComplementares", 0);
     }
 
     public String redirecionarComErro(RedirectAttributes redirectAttributes, String mensagem) {

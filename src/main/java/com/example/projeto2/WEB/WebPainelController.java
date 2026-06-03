@@ -84,6 +84,11 @@ public class WebPainelController {
         model.addAttribute("folgasPendentes", folgasPendentes);
         model.addAttribute("preferenciasPendentes", preferenciasPendentes);
         model.addAttribute("permutasPendentes", permutasPendentes);
+        model.addAttribute("totalFolgasPendentes", folgasPendentes);
+        model.addAttribute("totalPreferenciasPendentes", preferenciasPendentes);
+        model.addAttribute("totalPermutasPendentes", permutasPendentes);
+        model.addAttribute("totalPendenciasComplementares",
+                folgasPendentes + preferenciasPendentes + permutasPendentes);
         model.addAttribute("folgasParaAprovar", folgasParaAprovar);
         model.addAttribute("preferenciasParaAprovar", preferenciasParaAprovar);
         model.addAttribute("permutasParaAprovar", permutasParaAprovar);

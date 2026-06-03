@@ -154,8 +154,8 @@ class WebAccessIntegrationTest {
         HttpResponse<String> response = client.send(getRequest("/web/horarios"), HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());
-        assertTrue(response.body().contains("Gestao de horarios"));
-        assertTrue(!response.body().contains("Gerar Proposta"));
+        assertTrue(response.body().contains("Horários da loja") || response.body().contains("HorÃ¡rios da loja"));
+        assertTrue(!response.body().contains("Gerar proposta"));
     }
 
     @Test

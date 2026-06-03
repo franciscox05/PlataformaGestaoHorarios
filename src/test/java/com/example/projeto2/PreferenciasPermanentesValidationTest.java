@@ -1,10 +1,12 @@
 package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.BLL.HorarioGeneratorEngine;
 import com.example.projeto2.Modules.Preferencia;
 import com.example.projeto2.Modules.Turno;
 import com.example.projeto2.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
@@ -27,6 +29,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Transactional
 @Rollback
 class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
+
+    @Autowired
+    private HorarioGeneratorEngine horarioGeneratorEngine;
 
     @Test
     void preferenciasSemDataFimAssumemDataInicialImplicitaParaTodosOsTipos() {
@@ -122,12 +127,16 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
     }
 
     private boolean preferenciaTurnoFavoravel(Preferencia preferencia, Turno turno) {
+        Utilizador utilizador = new Utilizador();
+        utilizador.setId(1);
+        preferencia.setIdUtilizador(utilizador);
         return Boolean.TRUE.equals(ReflectionTestUtils.invokeMethod(
-                geracaoHorariosBLL,
+                horarioGeneratorEngine,
                 "temPreferenciaTurnoFavoravel",
-                List.of(preferencia),
+                utilizador.getId(),
+                turno,
                 LocalDate.now(),
-                turno
+                java.util.Map.of(utilizador.getId(), List.of(preferencia))
         ));
     }
 

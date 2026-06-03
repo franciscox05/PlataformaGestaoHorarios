@@ -14,9 +14,16 @@
         <div>
             <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Relatórios mensais</h1>
             <p class="font-body text-[14px] text-on-surface-variant mt-1"
-               th:if="${contexto != null}" th:text="'Loja: ' + ${contexto.nomeLoja()}">Consulta e exportação de dados da equipa.</p>
+               th:if="${contexto != null}" th:text="'Loja: ' + ${contexto.nomeLoja()} + ' · Dados de frequência e horas'">Consulta e exportação de dados da equipa.</p>
             <p class="font-body text-[14px] text-on-surface-variant mt-1" th:unless="${contexto != null}">Consulta e exportação de dados da equipa.</p>
         </div>
+        <a th:if="${resultado != null}"
+           th:href="@{/web/relatorios/exportar.csv(ano=${ano},mes=${mes},colaborador=${colaboradorSelecionado})}"
+           class="hidden sm:flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/40 text-on-surface font-body font-bold text-[13px] px-4 py-2.5 rounded-xl hover:bg-surface-container-high transition-all hover:-translate-y-0.5 self-start mt-1"
+           style="box-shadow:0 2px 8px rgba(28,27,27,.06)">
+            <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">download</span>
+            Exportar CSV
+        </a>
     </div>
 
     <!-- Feedback -->

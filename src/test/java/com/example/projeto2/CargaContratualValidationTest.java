@@ -1,6 +1,7 @@
 package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Enums.EstadoUtilizador;
 import com.example.projeto2.Modules.Cargo;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Utilizador;
@@ -200,7 +201,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
                 "Colaborador Inativo " + inicioPeriodo,
                 "inativo." + inicioPeriodo,
                 "Colaborador123",
-                "inativo"
+                EstadoUtilizador.inativo
         );
         criarLigacao(inativo, fixture.lojaFixture().loja(), cargoFullTime, inicioPeriodo.minusDays(20), null);
 

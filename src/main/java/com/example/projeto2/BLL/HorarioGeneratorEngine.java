@@ -463,7 +463,7 @@ public class HorarioGeneratorEngine {
     // Resolução e ordenação de candidatos
     // =========================================================================
 
-    private List<AtribuicaoDia> resolverCandidatosOrdenados(LocalDate data,
+        private List<AtribuicaoDia> resolverCandidatosOrdenados(LocalDate data,
                                                             List<Turno> turnosCompativeis,
                                                             Collection<EstadoColaborador> estados,
                                                             ReservaFimDeSemana reservaFDS,
@@ -520,6 +520,14 @@ public class HorarioGeneratorEngine {
 
         // Rotação fins de semana: preferir quem trabalhou menos FDS
         pontuacao += a.estado().totalFimDeSemanaTrabalhados() * 20;
+        if (validator.ehFimDeSemana(data)) {
+            if (a.estado().trabalhouFimDeSemanaAnterior(data)) {
+                pontuacao += a.estado().ehApenasFimDeSemana() ? 220 : 140;
+            } else if (a.estado().ehApenasFimDeSemana()) {
+                // Usar reforco ao fim de semana preserva carga dos restantes perfis para dias uteis.
+                pontuacao -= 25;
+            }
+        }
 
         // Preferências: recompensar correspondência
         if (temPreferenciaTurnoFavoravel(a.estado().idUtilizador(),
@@ -662,16 +670,54 @@ public class HorarioGeneratorEngine {
         for (Preferencia p : prefs) {
             if (p.getDataInicio() != null && !data.isBefore(p.getDataInicio())
                     && (p.getDataFim() == null || !data.isAfter(p.getDataFim()))) {
-                // preferência de turno curto: duração < 5h
                 String desc = p.getDescricao() != null ? p.getDescricao().toLowerCase() : "";
-                if (desc.contains("curto") && duracaoMinutos < 300) return true;
-                if (desc.contains("longo") && duracaoMinutos >= 300) return true;
-                if (desc.contains("manha") && turno.getHoraInicio() != null
-                        && turno.getHoraInicio().isBefore(LocalTime.of(10, 0))) return true;
-                if (desc.contains("tarde") && turno.getHoraInicio() != null
-                        && !turno.getHoraInicio().isBefore(LocalTime.NOON)) return true;
+                boolean exigeCurto = desc.contains("curto");
+                boolean exigeLongo = desc.contains("longo");
+                boolean exigeManha = desc.contains("manha");
+                boolean exigeTarde = desc.contains("tarde");
+                boolean exigeIntermedio = desc.contains("intermedio");
+
+                boolean temFiltroDuracao = exigeCurto || exigeLongo;
+                boolean temFiltroPeriodo = exigeManha || exigeTarde || exigeIntermedio;
+
+                boolean correspondeDuracao = !temFiltroDuracao
+                        || (exigeCurto && duracaoMinutos < 300)
+                        || (exigeLongo && duracaoMinutos >= 300);
+
+                boolean correspondePeriodo = !temFiltroPeriodo || correspondePeriodo(turno, exigeManha, exigeTarde, exigeIntermedio);
+
+                if (correspondeDuracao && correspondePeriodo) {
+                    return true;
+                }
             }
         }
+        return false;
+    }
+
+    private boolean correspondePeriodo(Turno turno,
+                                       boolean exigeManha,
+                                       boolean exigeTarde,
+                                       boolean exigeIntermedio) {
+        String tipoNormalizado = normalizarTurno(turno);
+        LocalTime horaInicio = turno.getHoraInicio();
+
+        if (exigeManha && ("manha".equals(tipoNormalizado)
+                || (horaInicio != null && horaInicio.isBefore(LocalTime.of(10, 0))))) {
+            return true;
+        }
+
+        if (exigeIntermedio && ("intermedio".equals(tipoNormalizado)
+                || (horaInicio != null
+                && !horaInicio.isBefore(LocalTime.of(10, 0))
+                && horaInicio.isBefore(LocalTime.NOON)))) {
+            return true;
+        }
+
+        if (exigeTarde && ("tarde".equals(tipoNormalizado)
+                || (horaInicio != null && !horaInicio.isBefore(LocalTime.NOON)))) {
+            return true;
+        }
+
         return false;
     }
 
@@ -869,6 +915,8 @@ public class HorarioGeneratorEngine {
         private final Lojautilizador ligacao;
         private final long cargaMaximaMinutos;
         private final boolean chefiaAoSabado;
+        private final boolean apenasFimDeSemana;
+        private final boolean exigeTurnoMinimoOitoHoras;
 
         private LocalDate ultimaDataAtribuida;
         private int diasConsecutivos;
@@ -885,6 +933,12 @@ public class HorarioGeneratorEngine {
             this.cargaMaximaMinutos = cargaMaximaMinutos;
             this.chefiaAoSabado = ligacao.getIdUtilizador() != null
                     && chefiasSabadoIds.contains(ligacao.getIdUtilizador().getId());
+            String tipoCargo = ligacao.getIdCargo() != null ? normalizarCargo(ligacao.getIdCargo().getTipo()) : "";
+            this.apenasFimDeSemana = "reforco_parttime".equals(tipoCargo);
+            this.exigeTurnoMinimoOitoHoras = "fulltime".equals(tipoCargo)
+                    || "gerente".equals(tipoCargo)
+                    || "subgerente".equals(tipoCargo)
+                    || "supervisor".equals(tipoCargo);
         }
 
         Integer idUtilizador() {
@@ -894,6 +948,8 @@ public class HorarioGeneratorEngine {
         Lojautilizador ligacao() { return ligacao; }
 
         boolean ehChefiaAoSabado() { return chefiaAoSabado; }
+
+        boolean ehApenasFimDeSemana() { return apenasFimDeSemana; }
 
         double utilizacaoProjetada(long minutosTurno) {
             if (cargaMaximaMinutos <= 0) return Double.MAX_VALUE;
@@ -912,7 +968,9 @@ public class HorarioGeneratorEngine {
             Set<LocalDate> bloqueios = pedido.bloqueiosPorColaborador()
                     .getOrDefault(idUtilizador(), Set.of());
 
-            if (bloqueios.contains(data)
+            if ((apenasFimDeSemana && !validator.ehFimDeSemana(data))
+                    || (exigeTurnoMinimoOitoHoras && minutosTurno < 8 * 60L)
+                    || bloqueios.contains(data)
                     || atribuicoesConhecidas.containsKey(data)
                     || (minutosAtribuidos + minutosTurno) > cargaMaximaMinutos) {
                 return false;
@@ -994,6 +1052,21 @@ public class HorarioGeneratorEngine {
             return ultimoFimDeSemana.values().stream()
                     .max(Comparator.naturalOrder())
                     .orElse(null);
+        }
+
+        private boolean trabalhouFimDeSemanaAnterior(LocalDate data) {
+            if (data == null || !validator.ehFimDeSemana(data)) {
+                return false;
+            }
+            LocalDate fimDeSemanaAtual = validator.inicioFimDeSemana(data);
+            return ultimoFimDeSemana.containsKey(fimDeSemanaAtual.minusWeeks(1));
+        }
+
+        private String normalizarCargo(String tipoCargo) {
+            if (tipoCargo == null) {
+                return "";
+            }
+            return tipoCargo.trim().toLowerCase(java.util.Locale.ROOT);
         }
     }
 }

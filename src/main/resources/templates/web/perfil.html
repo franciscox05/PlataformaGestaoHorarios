@@ -7,8 +7,47 @@
 <main class="md:ml-sidebar pt-topbar min-h-screen">
 <div class="max-w-[86rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-6">
 
-    <!-- Header -->
-    <div class="fade-up">
+    <!-- Hero Banner -->
+    <section th:if="${resumo != null}"
+             class="fade-up relative overflow-hidden rounded-2xl"
+             style="background:linear-gradient(135deg,#0d0000 0%,#1e0007 55%,#0d0000 100%);box-shadow:0 8px 40px rgba(0,0,0,.18)">
+        <div class="absolute inset-0 pointer-events-none"
+             style="background:radial-gradient(ellipse at 80% 50%,rgba(192,0,31,.22) 0%,transparent 60%)"></div>
+        <div class="absolute inset-0 pointer-events-none opacity-[.025]"
+             style="background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-size:40px 40px"></div>
+        <div class="absolute top-0 right-0 w-64 h-64 rounded-full border border-white/[.03] pointer-events-none"
+             style="transform:translate(30%,-30%)"></div>
+        <div class="absolute bottom-0 left-0 right-0 h-px"
+             style="background:linear-gradient(90deg,transparent,rgba(192,0,31,.4),transparent)"></div>
+
+        <div class="relative z-10 flex items-center gap-6 p-8">
+            <!-- Avatar grande -->
+            <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-display font-black text-3xl shrink-0"
+                 style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 4px 22px rgba(192,0,31,.42)"
+                 th:text="${resumo.nome() != null && !resumo.nome().isEmpty() ? resumo.nome().substring(0,1).toUpperCase() : 'U'}">U</div>
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="h-px w-6" style="background:linear-gradient(90deg,#c0001f,transparent)"></div>
+                    <p class="font-body font-bold text-[9px] uppercase tracking-[.2em]" style="color:rgba(255,179,175,.4)">Colaborador</p>
+                </div>
+                <h1 class="font-display font-bold text-white text-[26px] leading-tight" th:text="${resumo.nome()}">–</h1>
+                <div class="flex items-center gap-2.5 mt-2.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full"
+                          style="background:rgba(255,179,175,.1);color:#ffb3af;border:1px solid rgba(255,179,175,.15)"
+                          th:text="${resumo.cargoAtual()}">–</span>
+                    <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full badge-ok"
+                          th:text="${resumo.estado()}">Ativo</span>
+                    <span class="font-body text-[12px] flex items-center gap-1.5" style="color:rgba(255,255,255,.28)">
+                        <span class="material-symbols-outlined text-[13px]">store</span>
+                        <span th:text="${resumo.lojaAtual()}">–</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Header simples se sem resumo -->
+    <div class="fade-up" th:if="${resumo == null}">
         <h1 class="font-display font-bold text-[28px] md:text-[32px] text-on-surface tracking-tight">Perfil</h1>
         <p class="font-body text-[14px] text-on-surface-variant mt-1">Consulta os teus dados e atualiza informações pessoais.</p>
     </div>
@@ -27,7 +66,9 @@
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="flex items-center justify-between">
                 <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Horas este mês</p>
-                <span class="material-symbols-outlined text-[18px] text-outline/40">timer</span>
+                <span class="w-8 h-8 rounded-xl bg-primary-container/8 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">timer</span>
+                </span>
             </div>
             <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
                     th:text="${resumo.horasEsteMes()}">0</strong>
@@ -36,7 +77,9 @@
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="flex items-center justify-between">
                 <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Pedidos pendentes</p>
-                <span class="material-symbols-outlined text-[18px] text-outline/40">hourglass_empty</span>
+                <span class="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[17px] text-amber-500">hourglass_empty</span>
+                </span>
             </div>
             <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
                     th:text="${resumo.pedidosPendentes()}">0</strong>
@@ -45,7 +88,9 @@
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="flex items-center justify-between">
                 <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Folgas aprovadas</p>
-                <span class="material-symbols-outlined text-[18px] text-outline/40">beach_access</span>
+                <span class="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[17px] text-emerald-600">beach_access</span>
+                </span>
             </div>
             <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
                     th:text="${resumo.pedidosAprovados()}">0</strong>
@@ -54,7 +99,9 @@
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="flex items-center justify-between">
                 <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Turnos futuros</p>
-                <span class="material-symbols-outlined text-[18px] text-outline/40">upcoming</span>
+                <span class="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[17px] text-blue-500">upcoming</span>
+                </span>
             </div>
             <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
                     th:text="${resumo.turnosFuturos()}">0</strong>
@@ -65,26 +112,12 @@
     <div class="grid lg:grid-cols-[300px_1fr] gap-5" th:if="${resumo != null}">
 
         <!-- Cartão identidade -->
-        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden self-start"
                  style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
-            <!-- Banner topo -->
-            <div class="h-20 relative shrink-0"
-                 style="background:linear-gradient(135deg,#1a0005,#2a0a0f)">
-                <div class="absolute inset-0" style="background:radial-gradient(ellipse at right,rgba(192,0,31,.3),transparent 60%)"></div>
+            <div class="px-5 py-4 border-b border-outline-variant/25">
+                <h2 class="font-display font-bold text-[15px] text-on-surface">Informações</h2>
             </div>
-            <!-- Avatar -->
-            <div class="px-6 pb-5 -mt-10 flex flex-col items-center text-center relative">
-                <div class="w-20 h-20 rounded-full flex items-center justify-center text-white font-display font-black text-3xl mb-3"
-                     style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 0 0 4px #fff,0 4px 16px rgba(192,0,31,.3)"
-                     th:text="${resumo.nome() != null && !resumo.nome().isEmpty() ? resumo.nome().substring(0,1).toUpperCase() : 'U'}">U</div>
-                <p class="font-display font-bold text-[20px] text-on-surface" th:text="${resumo.nome()}">–</p>
-                <p class="font-body text-[13px] text-on-surface-variant mt-0.5" th:text="${resumo.cargoAtual()}">–</p>
-                <span class="inline-flex items-center gap-1.5 font-body font-bold text-[10px] uppercase tracking-wider badge-ok px-3 py-1 rounded-full mt-3"
-                      th:text="${resumo.estado()}">Ativo</span>
-            </div>
-
-            <!-- Info -->
-            <div class="flex flex-col gap-1 px-5 pb-6 border-t border-outline-variant/25 pt-4">
+            <div class="flex flex-col gap-1 px-4 py-4">
                 <div class="flex items-center gap-3 py-2.5 rounded-xl hover:bg-surface-container-low px-2 transition-colors">
                     <span class="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
                         <span class="material-symbols-outlined text-[15px] text-on-surface-variant">mail</span>
@@ -121,7 +154,7 @@
                         <p class="font-body text-[13px] text-on-surface" th:text="${resumo.dataEntrada()}">–</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3 py-2.5 rounded-xl px-2"
+                <div class="flex items-center gap-3 py-2.5 px-2 rounded-xl mt-1"
                      style="background:rgba(192,0,31,.04);border:1px solid rgba(192,0,31,.1)">
                     <span class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                           style="background:rgba(192,0,31,.1)">
@@ -136,10 +169,10 @@
             </div>
         </section>
 
-        <!-- Formulários -->
+        <!-- Formulários de edição -->
         <div class="grid sm:grid-cols-2 gap-4 content-start">
 
-            <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4"
+            <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4 card-lift"
                      style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
                 <div class="flex items-center gap-2.5">
                     <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
@@ -149,18 +182,16 @@
                 </div>
                 <form method="post" action="/web/perfil/nome" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="nome">Novo nome</label>
-                        <input id="nome" name="nome" type="text" placeholder="Nome completo" required
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
-                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
-                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Novo nome</label>
+                        <input name="nome" type="text" placeholder="Nome completo" required
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                     </div>
-                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all"
+                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
                             style="background:linear-gradient(135deg,#c0001f,#7a0014)">Guardar nome</button>
                 </form>
             </article>
 
-            <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4"
+            <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4 card-lift"
                      style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
                 <div class="flex items-center gap-2.5">
                     <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
@@ -170,18 +201,16 @@
                 </div>
                 <form method="post" action="/web/perfil/email" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="email">Novo email</label>
-                        <input id="email" name="email" type="email" placeholder="email@empresa.pt" required
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
-                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
-                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Novo email</label>
+                        <input name="email" type="email" placeholder="email@empresa.pt" required
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                     </div>
-                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all"
+                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
                             style="background:linear-gradient(135deg,#c0001f,#7a0014)">Guardar email</button>
                 </form>
             </article>
 
-            <article class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4"
+            <article class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4 card-lift"
                      style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
                 <div class="flex items-center gap-2.5">
                     <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
@@ -191,18 +220,16 @@
                 </div>
                 <form method="post" action="/web/perfil/telemovel" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="telemovel">Número (9 dígitos)</label>
-                        <input id="telemovel" name="telemovel" type="text" maxlength="9" placeholder="9XXXXXXXX" required
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
-                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
-                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Número (9 dígitos)</label>
+                        <input name="telemovel" type="text" maxlength="9" placeholder="9XXXXXXXX" required
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                     </div>
-                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all"
+                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
                             style="background:linear-gradient(135deg,#c0001f,#7a0014)">Guardar telemóvel</button>
                 </form>
             </article>
 
-            <article class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4"
+            <article class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4 card-lift"
                      style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
                 <div class="flex items-center gap-2.5">
                     <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
@@ -212,20 +239,15 @@
                 </div>
                 <form method="post" action="/web/perfil/password" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="passwordAtual">Atual</label>
-                        <input id="passwordAtual" name="passwordAtual" type="password" required placeholder="••••••••"
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
-                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
-                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Atual</label>
+                        <input name="passwordAtual" type="password" required placeholder="••••••••"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                     </div>
                     <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="novaPassword">Nova</label>
-                        <input id="novaPassword" name="novaPassword" type="password" required placeholder="••••••••"
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Nova</label>
+                        <input name="novaPassword" type="password" required placeholder="••••••••"
                                oninput="updateStrength(this.value)"
-                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
-                               onblur="this.style.borderColor='';this.style.boxShadow=''">
-                        <!-- Indicador de força -->
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                         <div class="flex gap-1 mt-0.5" id="strengthBars">
                             <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb1"></div>
                             <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb2"></div>
@@ -235,13 +257,11 @@
                         <p id="strengthLabel" class="font-body text-[10px] text-on-surface-variant/50"></p>
                     </div>
                     <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="confirmarPassword">Confirmar</label>
-                        <input id="confirmarPassword" name="confirmarPassword" type="password" required placeholder="••••••••"
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
-                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
-                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Confirmar</label>
+                        <input name="confirmarPassword" type="password" required placeholder="••••••••"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                     </div>
-                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all"
+                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
                             style="background:linear-gradient(135deg,#c0001f,#7a0014)">Atualizar palavra-passe</button>
                 </form>
             </article>

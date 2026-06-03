@@ -1,6 +1,8 @@
 package com.example.projeto2;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Enums.EstadoHorario;
+import com.example.projeto2.Enums.EstadoUtilizador;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Preferencia;
@@ -35,7 +37,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 "Autenticacao Legada",
                 "auth.legada",
                 "Segredo123",
-                "ativo"
+                EstadoUtilizador.ativo
         );
 
         long falhasAntes = contarEventos("login", "falha", utilizador.getEmail());
@@ -136,7 +138,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         assertTrue(geracaoHorariosBLL.utilizadorPodeGerarHorarios(gerente.getId()));
         assertTrue(geracaoHorariosBLL.utilizadorPodeValidarHorarios(supervisor.getId()));
 
-        criarDayOffAprovado(bloqueadoPorDayOff.getId(), referencia, "Ausencia bloqueada pelo teste.");
+        criarDayOffAprovado(bloqueadoPorDayOff, referencia, "Ausencia bloqueada pelo teste.");
         criarPreferenciaAprovada(
                 bloqueadoPorPreferencia,
                 gerente,
@@ -185,7 +187,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
 
         var horarios = horarioRepository.findByIdPropostaHorarioId(proposta.idProposta());
         assertFalse(horarios.isEmpty());
-        assertTrue(horarios.stream().allMatch(horario -> "aprovado".equalsIgnoreCase(horario.getEstado())));
+        assertTrue(horarios.stream().allMatch(horario -> EstadoHorario.aprovado == horario.getEstado()));
 
         Set<Integer> idsHorarios = horarios.stream()
                 .map(Horario::getId)
@@ -233,7 +235,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         criarHorarioPublicadoSemProposta(colaborador, dataFolga, fixture.turnos().get(0));
 
         DayOff pedido = new DayOff();
-        pedido.setIdUtilizador(colaborador.getId());
+        pedido.setIdUtilizador(colaborador);
         pedido.setDataAusencia(dataFolga);
         pedido.setTipo("folgas");
         pedido.setMotivo("Teste de remocao do turno publicado.");
@@ -253,7 +255,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         criarHorarioPublicadoSemProposta(colaborador, LocalDate.now(), fixture.turnos().get(0));
 
         DayOff pedidoTardio = new DayOff();
-        pedidoTardio.setIdUtilizador(colaborador.getId());
+        pedidoTardio.setIdUtilizador(colaborador);
         pedidoTardio.setDataAusencia(LocalDate.now());
         pedidoTardio.setTipo("folgas");
         pedidoTardio.setMotivo("Pedido tardio.");

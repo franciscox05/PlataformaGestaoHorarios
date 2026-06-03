@@ -70,19 +70,29 @@
         h1,h2,h3,h4,h5 { font-family:'Space Grotesk',sans-serif; }
         .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24; vertical-align:middle; }
         .icon-fill { font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24; }
+
+        /* Sidebar */
         #sidebar { transition:transform .3s cubic-bezier(.4,0,.2,1); }
         .nav-link { position:relative; transition:all .18s ease; }
         .nav-active { background:rgba(255,179,175,.08) !important; color:#ffb3af !important; }
         .nav-active::before { content:''; position:absolute; left:0; top:18%; bottom:18%; width:3px; background:linear-gradient(180deg,#ff6b61,#c0001f); border-radius:0 3px 3px 0; }
         .nav-link:not(.nav-active):hover { background:rgba(255,255,255,.06); color:rgba(255,255,255,.85) !important; }
+        nav::-webkit-scrollbar { width:2px; }
+        nav::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:9999px; }
+
+        /* Scrollbar global */
         ::-webkit-scrollbar { width:4px; height:4px; }
         ::-webkit-scrollbar-track { background:transparent; }
         ::-webkit-scrollbar-thumb { background:rgba(144,111,109,.25); border-radius:9999px; }
         ::-webkit-scrollbar-thumb:hover { background:rgba(144,111,109,.45); }
-        .badge-ok  { background:#d1fae5; color:#065f46; }
-        .badge-warn{ background:#fef3c7; color:#92400e; }
-        .badge-err { background:#fee2e2; color:#991b1b; }
-        .badge-neu { background:#f1edec; color:#5c403e; }
+
+        /* Badges */
+        .badge-ok   { background:#d1fae5; color:#065f46; }
+        .badge-warn { background:#fef3c7; color:#92400e; }
+        .badge-err  { background:#fee2e2; color:#991b1b; }
+        .badge-neu  { background:#f1edec; color:#5c403e; }
+
+        /* Animations */
         @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
         .fade-up   { animation:fadeUp  .4s cubic-bezier(.16,1,.3,1) both; }
@@ -91,16 +101,56 @@
         .fade-up-2 { animation-delay:.12s; }
         .fade-up-3 { animation-delay:.18s; }
         .fade-up-4 { animation-delay:.24s; }
+
+        /* Topbar glass */
         .topbar-glass { background:rgba(253,248,248,.88); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5); }
-        body { animation:pageLoad .2s ease both; }
-        @keyframes pageLoad { from{opacity:.7} to{opacity:1} }
+
+        /* Page load */
+        body { animation:pageLoad .25s ease both; }
+        @keyframes pageLoad { from{opacity:.6;transform:translateY(3px)} to{opacity:1;transform:none} }
+
+        /* Card hover lift */
         .card-lift { transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s cubic-bezier(.16,1,.3,1); }
-        .card-lift:hover { transform:translateY(-2px); }
-        input:focus, select:focus, textarea:focus { border-color:rgba(192,0,31,.45) !important; box-shadow:0 0 0 3px rgba(192,0,31,.09) !important; }
+        .card-lift:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(28,27,27,.1) !important; }
+
+        /* Input focus glow */
+        input:focus, select:focus, textarea:focus {
+            border-color:rgba(192,0,31,.45) !important;
+            box-shadow:0 0 0 3px rgba(192,0,31,.09) !important;
+            outline:none !important;
+        }
+
+        /* Online pulse */
         @keyframes pulse-dot { 0%,100%{box-shadow:0 0 5px #4ade80} 50%{box-shadow:0 0 12px 3px #4ade80} }
         .status-online { animation:pulse-dot 2.5s ease-in-out infinite; }
-        nav::-webkit-scrollbar { width:2px; }
-        nav::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:9999px; }
+
+        /* Toast notification */
+        #toast-container { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; display:flex; flex-direction:column; gap:.5rem; pointer-events:none; }
+        .toast { display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; border-radius:.75rem; font-family:'Manrope',sans-serif; font-size:.8125rem; font-weight:600; pointer-events:all;
+                 box-shadow:0 8px 32px rgba(0,0,0,.12); animation:toastIn .3s cubic-bezier(.16,1,.3,1) both; max-width:360px; }
+        .toast.toast-out { animation:toastOut .25s ease forwards; }
+        @keyframes toastIn  { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
+        @keyframes toastOut { to{opacity:0;transform:translateY(8px) scale(.97)} }
+        .toast-success { background:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+        .toast-error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+        .toast-info    { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
+
+        /* Smooth tab slider */
+        .tab-slider { transition:transform .25s cubic-bezier(.16,1,.3,1),width .25s cubic-bezier(.16,1,.3,1); }
+
+        /* Table row hover */
+        tbody tr { transition:background .12s ease; }
+
+        /* Button press */
+        button[type="submit"]:active { transform:scale(.98); }
+
+        /* Scrollable table wrapper */
+        .table-scroll { overflow-x:auto; }
+        .table-scroll::-webkit-scrollbar { height:3px; }
+        .table-scroll::-webkit-scrollbar-thumb { background:rgba(144,111,109,.2); border-radius:9999px; }
+
+        /* Section entrance stagger */
+        main section, main article { animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both; }
     </style>
 </head>
 <body>
@@ -126,16 +176,19 @@
     <!-- User pill -->
     <div class="px-4 py-3 border-b border-white/5 shrink-0" th:if="${webUtilizador != null}">
         <div class="flex items-center gap-3 rounded-xl px-3 py-2.5" style="background:rgba(255,255,255,.05)">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-sm shrink-0"
-                 style="background:linear-gradient(135deg,#c0001f,#7a0014)"
-                 th:text="${webUtilizador.nome != null && !webUtilizador.nome.isEmpty() ? webUtilizador.nome.substring(0,1).toUpperCase() : 'U'}">U</div>
+            <div class="relative shrink-0">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-sm"
+                     style="background:linear-gradient(135deg,#c0001f,#7a0014)"
+                     th:text="${webUtilizador.nome != null && !webUtilizador.nome.isEmpty() ? webUtilizador.nome.substring(0,1).toUpperCase() : 'U'}">U</div>
+                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 status-online shrink-0"
+                      style="background:#4ade80;border-color:#1e1a19"></span>
+            </div>
             <div class="min-w-0 flex-1">
                 <p class="font-body font-bold text-[13px] text-white/90 leading-tight truncate"
                    th:text="${webUtilizador.nome != null ? webUtilizador.nome.split(' ')[0] : 'Utilizador'}">Nome</p>
                 <p class="font-body text-[10px] text-white/35 uppercase tracking-wider"
                    th:text="${webCargoAtual}">Cargo</p>
             </div>
-            <span class="w-2 h-2 rounded-full shrink-0 status-online" style="background:#4ade80"></span>
         </div>
     </div>
 
@@ -149,6 +202,8 @@
             <span class="material-symbols-outlined text-[19px]"
                   th:classappend="${webModuloAtivo == 'painel'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">dashboard</span>
             Painel
+            <span th:if="${webModuloAtivo == 'painel'}"
+                  class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
         </a>
         <a href="/web/horarios"
            th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}"
@@ -157,6 +212,8 @@
             <span class="material-symbols-outlined text-[19px]"
                   th:classappend="${webModuloAtivo == 'horarios'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">calendar_month</span>
             Horários
+            <span th:if="${webModuloAtivo == 'horarios'}"
+                  class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
         </a>
         <a href="/web/complementares"
            th:if="${webPermissoes != null && webPermissoes.podeVerComplementares()}"
@@ -165,10 +222,10 @@
             <span class="material-symbols-outlined text-[19px]"
                   th:classappend="${webModuloAtivo == 'complementares'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">mark_as_unread</span>
             Pedidos
-            <span th:if="${webPermissoes.podeAprovarAlgumComplementar() && (folgasPendentes != null && folgasPendentes > 0 || preferenciasPendentes != null && preferenciasPendentes > 0 || permutasPendentes != null && permutasPendentes > 0)}"
+            <span th:if="${webPermissoes.podeAprovarAlgumComplementar() && (totalPendenciasComplementares ?: 0) > 0}"
                   class="ml-auto font-body font-bold text-[10px] px-1.5 py-0.5 rounded-full text-white shrink-0"
                   style="background:#c0001f;min-width:18px;text-align:center"
-                  th:text="${(folgasPendentes ?: 0) + (preferenciasPendentes ?: 0) + (permutasPendentes ?: 0)}">0</span>
+                  th:text="${totalPendenciasComplementares ?: 0}">0</span>
         </a>
         <a href="/web/relatorios"
            th:if="${webPermissoes != null && webPermissoes.podeVerRelatorios()}"
@@ -177,10 +234,16 @@
             <span class="material-symbols-outlined text-[19px]"
                   th:classappend="${webModuloAtivo == 'relatorios'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">bar_chart</span>
             Relatórios
+            <span th:if="${webModuloAtivo == 'relatorios'}"
+                  class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
         </a>
 
         <div th:if="${webPermissoes != null && webPermissoes.podeGerirLoja()}">
-            <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20 px-3 mt-5 mb-1.5">Gestão</p>
+            <div class="flex items-center gap-2 px-3 mt-5 mb-1.5">
+                <div class="h-px flex-1" style="background:rgba(255,255,255,.06)"></div>
+                <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20">Gestão</p>
+                <div class="h-px flex-1" style="background:rgba(255,255,255,.06)"></div>
+            </div>
             <a href="/web/gestao-loja"
                th:classappend="${webModuloAtivo == 'gestao-loja'} ? 'nav-active' : 'text-white/40'"
                class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
@@ -197,7 +260,11 @@
             </a>
         </div>
 
-        <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20 px-3 mt-5 mb-1.5">Conta</p>
+        <div class="flex items-center gap-2 px-3 mt-5 mb-1.5">
+            <div class="h-px flex-1" style="background:rgba(255,255,255,.06)"></div>
+            <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20">Conta</p>
+            <div class="h-px flex-1" style="background:rgba(255,255,255,.06)"></div>
+        </div>
         <a href="/web/perfil"
            th:classappend="${webModuloAtivo == 'perfil'} ? 'nav-active' : 'text-white/40'"
            class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
@@ -211,8 +278,8 @@
     <div class="p-3 border-t border-white/5 shrink-0">
         <form method="post" action="/web/logout">
             <button type="submit"
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/30 hover:text-white/70 hover:bg-white/5 transition-all font-body font-semibold text-[13px]">
-                <span class="material-symbols-outlined text-[18px]">logout</span>
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/30 hover:text-white/70 hover:bg-white/5 transition-all font-body font-semibold text-[13px] group">
+                <span class="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform duration-200">logout</span>
                 Terminar sessão
             </button>
         </form>
@@ -235,42 +302,52 @@
         <span class="material-symbols-outlined text-[22px]">menu</span>
     </button>
 
-    <!-- Título do módulo (mobile) -->
-    <span class="md:hidden font-display font-bold text-[15px] text-on-surface capitalize"
-          th:if="${webModuloAtivo != null}" th:text="${webModuloAtivo}"></span>
-
+    <!-- Breadcrumb desktop -->
     <div class="hidden md:flex items-center gap-2 text-on-surface-variant">
-        <span class="material-symbols-outlined text-[15px]">store_mall_directory</span>
-        <span class="font-body text-[12px] font-semibold tracking-wide"
+        <span class="material-symbols-outlined text-[15px] text-outline/50">store_mall_directory</span>
+        <span class="font-body text-[12px] font-medium text-on-surface-variant/60 tracking-wide"
               th:text="${webLoja != null ? webLoja : 'Staff Portal'}">Staff Portal</span>
-        <span class="text-outline/40 text-[11px]" th:if="${webModuloAtivo != null}">›</span>
-        <span class="font-body text-[12px] font-semibold text-on-surface capitalize"
+        <span class="text-outline/30 text-[13px]" th:if="${webModuloAtivo != null}">›</span>
+        <span class="font-body text-[12px] font-bold text-on-surface capitalize"
               th:if="${webModuloAtivo != null}" th:text="${webModuloAtivo}"></span>
     </div>
 
+    <!-- Título móvel -->
+    <span class="md:hidden font-display font-bold text-[15px] text-on-surface capitalize"
+          th:if="${webModuloAtivo != null}" th:text="${webModuloAtivo}"></span>
+
+    <!-- Direita -->
     <div class="flex items-center gap-2 ml-auto">
+        <!-- Cargo badge -->
         <span th:if="${webCargoAtual != null}"
               class="hidden sm:inline-flex items-center gap-1.5 font-body font-semibold text-[10px] uppercase tracking-wider
                      text-on-surface-variant bg-surface-container border border-outline-variant/40 px-3 py-1 rounded-full">
             <span class="w-1.5 h-1.5 rounded-full status-online" style="background:#4ade80"></span>
             <span th:text="${webCargoAtual}">Cargo</span>
         </span>
-        <!-- Badge notificações pendentes (gestor) -->
-        <div th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar() && (folgasPendentes != null && folgasPendentes > 0 || preferenciasPendentes != null && preferenciasPendentes > 0 || permutasPendentes != null && permutasPendentes > 0)}"
+
+        <!-- Notificações -->
+        <div th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar() && (totalPendenciasComplementares ?: 0) > 0}"
              class="relative hidden sm:block">
             <a href="/web/complementares"
                class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant">
                 <span class="material-symbols-outlined text-[20px]">notifications</span>
-                <span class="absolute top-1 right-1 w-4 h-4 rounded-full text-white font-body font-black text-[9px] flex items-center justify-center"
+                <span class="absolute top-1 right-1 w-4 h-4 rounded-full text-white font-body font-black flex items-center justify-center"
                       style="background:#c0001f;font-size:8px"
-                      th:text="${(folgasPendentes ?: 0) + (preferenciasPendentes ?: 0) + (permutasPendentes ?: 0)}">0</span>
+                      th:text="${totalPendenciasComplementares ?: 0}">0</span>
             </a>
         </div>
-        <div th:if="${webUtilizador != null}"
-             class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-[13px] cursor-pointer select-none"
-             style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 0 0 2px rgba(192,0,31,.2)"
-             th:text="${webUtilizador.nome != null && !webUtilizador.nome.isEmpty() ? webUtilizador.nome.substring(0,1).toUpperCase() : 'U'}">U</div>
+
+        <!-- Avatar -->
+        <a href="/web/perfil"
+           th:if="${webUtilizador != null}"
+           class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-[13px] cursor-pointer select-none hover:ring-2 transition-all"
+           style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 0 0 2px rgba(192,0,31,.2);ring-color:rgba(192,0,31,.4)"
+           th:text="${webUtilizador.nome != null && !webUtilizador.nome.isEmpty() ? webUtilizador.nome.substring(0,1).toUpperCase() : 'U'}">U</a>
+
         <div class="hidden sm:block w-px h-5 bg-outline-variant/40 mx-1"></div>
+
+        <!-- Sair -->
         <form method="post" action="/web/logout">
             <button type="submit"
                     class="hidden sm:flex items-center gap-1.5 font-body font-semibold text-[12px] text-on-surface-variant
@@ -282,7 +359,11 @@
     </div>
 </header>
 
+<!-- ═══════════════════════════ TOAST CONTAINER ═══════════════════════════ -->
+<div id="toast-container"></div>
+
 <script>
+// ─── Sidebar mobile ───
 function openSidebar() {
     document.getElementById('sidebar').classList.remove('-translate-x-full');
     document.getElementById('sidebar-overlay').classList.remove('hidden');
@@ -295,33 +376,67 @@ function closeSidebar() {
 }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSidebar(); });
 
+// ─── Toast API ───
+window.showToast = function(msg, type, duration) {
+    var container = document.getElementById('toast-container');
+    if(!container) return;
+    var t = type || 'info';
+    var d = duration || 4000;
+    var icons = { success:'check_circle', error:'error_outline', info:'info' };
+    var el = document.createElement('div');
+    el.className = 'toast toast-' + t;
+    el.innerHTML = '<span class="material-symbols-outlined text-[18px] shrink-0">' + (icons[t]||'info') + '</span><span class="flex-1">' + msg + '</span>'
+        + '<button onclick="dismissToast(this.parentElement)" class="shrink-0 opacity-60 hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-[16px]">close</span></button>';
+    container.appendChild(el);
+    setTimeout(function(){ dismissToast(el); }, d);
+};
+window.dismissToast = function(el) {
+    if(!el || !el.parentNode) return;
+    el.classList.add('toast-out');
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 260);
+};
+
+// ─── DOMContentLoaded ───
 document.addEventListener('DOMContentLoaded', function(){
-    // ── Auto-dismiss success messages after 5 s ──
+
+    // Page exit animation on nav links
+    document.querySelectorAll('a[href^="/web/"]').forEach(function(link){
+        link.addEventListener('click', function(e){
+            var href = this.getAttribute('href');
+            if(!href || href === window.location.pathname) return;
+            if(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            e.preventDefault();
+            document.body.style.transition='opacity .18s ease,transform .18s ease';
+            document.body.style.opacity='0';
+            document.body.style.transform='translateY(-4px)';
+            setTimeout(function(){ window.location.href = href; }, 185);
+        });
+    });
+
+    // Auto-dismiss success flash messages after 5 s
     document.querySelectorAll('.material-symbols-outlined').forEach(function(icon){
         if(icon.textContent.trim()==='check_circle'){
             var wrap = icon.closest('.fade-up');
             if(wrap && wrap.closest('main')){
                 var bar = document.createElement('div');
                 bar.style.cssText='position:absolute;bottom:0;left:0;height:2px;border-radius:9999px;background:linear-gradient(90deg,#059669,#34d399);transition:width 5s linear;width:100%';
-                wrap.style.position='relative';
-                wrap.style.overflow='hidden';
+                wrap.style.position='relative'; wrap.style.overflow='hidden';
                 wrap.appendChild(bar);
                 requestAnimationFrame(function(){ setTimeout(function(){ bar.style.width='0'; },50); });
                 setTimeout(function(){
                     wrap.style.transition='opacity .4s ease,transform .4s ease';
-                    wrap.style.opacity='0';
-                    wrap.style.transform='translateY(-6px) scale(.99)';
+                    wrap.style.opacity='0'; wrap.style.transform='translateY(-6px) scale(.99)';
                     setTimeout(function(){ if(wrap.parentNode) wrap.style.display='none'; },420);
                 },5100);
             }
         }
     });
 
-    // ── Count-up animation for elements with data-count ──
+    // Count-up for [data-count]
     var easeOut = function(t){ return 1-Math.pow(1-t,3); };
     document.querySelectorAll('[data-count]').forEach(function(el){
         var target = +el.dataset.count;
-        if(isNaN(target) || target <= 0) return;
+        if(isNaN(target) || target <= 0){ el.textContent = target || '0'; return; }
         var dur = Math.min(900, 300 + target*80), start = Date.now();
         var tick = function(){
             var p = Math.min((Date.now()-start)/dur, 1);
@@ -331,7 +446,20 @@ document.addEventListener('DOMContentLoaded', function(){
         el.textContent = '0';
         requestAnimationFrame(tick);
     });
+
+    // Add ripple to all primary buttons
+    document.querySelectorAll('button[type="submit"]').forEach(function(btn){
+        btn.addEventListener('click', function(e){
+            var rect = btn.getBoundingClientRect();
+            var rip = document.createElement('span');
+            rip.style.cssText = 'position:absolute;border-radius:50%;background:rgba(255,255,255,.25);width:80px;height:80px;transform:scale(0);animation:ripple .5s ease;pointer-events:none;left:'+(e.clientX-rect.left-40)+'px;top:'+(e.clientY-rect.top-40)+'px';
+            btn.style.position = 'relative'; btn.style.overflow = 'hidden';
+            btn.appendChild(rip);
+            setTimeout(function(){ if(rip.parentNode) rip.parentNode.removeChild(rip); }, 520);
+        });
+    });
 });
 </script>
+<style>@keyframes ripple{to{transform:scale(2.5);opacity:0}}</style>
 </body>
 </html>

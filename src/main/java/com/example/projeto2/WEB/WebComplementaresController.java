@@ -99,6 +99,11 @@ public class WebComplementaresController {
         model.addAttribute("folgasPendentes", folgasPendentes);
         model.addAttribute("preferenciasPendentes", preferenciasPendentes);
         model.addAttribute("permutasPendentes", permutasPendentes);
+        model.addAttribute("totalFolgasPendentes", folgasPendentes.size());
+        model.addAttribute("totalPreferenciasPendentes", preferenciasPendentes.size());
+        model.addAttribute("totalPermutasPendentes", permutasPendentes.size());
+        model.addAttribute("totalPendenciasComplementares",
+                folgasPendentes.size() + preferenciasPendentes.size() + permutasPendentes.size());
         model.addAttribute("nomesFolgasPendentes", nomesFolgasPendentes);
         model.addAttribute("nomesPreferencias", nomesPreferencias);
 

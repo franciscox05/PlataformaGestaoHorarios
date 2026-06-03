@@ -11,6 +11,8 @@ import com.example.projeto2.BLL.SegurancaBLL;
 import com.example.projeto2.BLL.SessaoBLL;
 import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
 import com.example.projeto2.BLL.UtilizadorBLL;
+import com.example.projeto2.Enums.EstadoHorario;
+import com.example.projeto2.Enums.EstadoUtilizador;
 import com.example.projeto2.Modules.Cargo;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.HistoricoHorarioEstado;
@@ -161,6 +163,7 @@ abstract class FluxosCriticosTestSupport {
     @BeforeTransaction
     void garantirEnumEstadoRejeitadoAntesDaTransacao() {
         garantirValorEnumEstadoRejeitado();
+        garantirValoresEnumEstadoPermuta();
     }
 
     @BeforeEach
@@ -170,6 +173,7 @@ abstract class FluxosCriticosTestSupport {
         }
 
         garantirEstruturasDeTeste();
+        garantirValoresEnumEstadoPermuta();
         sincronizarSequencias();
     }
 
@@ -252,7 +256,7 @@ abstract class FluxosCriticosTestSupport {
         return new GeracaoFixture(lojaFixture, referencia, turnoRepository.findAllByOrderByHoraInicioAsc());
     }
 
-    protected Utilizador criarUtilizadorComPasswordEmTexto(String nome, String emailPrefixo, String passwordEmTexto, String estado) {
+    protected Utilizador criarUtilizadorComPasswordEmTexto(String nome, String emailPrefixo, String passwordEmTexto, EstadoUtilizador estado) {
         Utilizador utilizador = new Utilizador();
         utilizador.setNome(nome);
         utilizador.setEmail(emailPrefixo + "@testes.local");
@@ -268,13 +272,13 @@ abstract class FluxosCriticosTestSupport {
         utilizador.setEmail(emailPrefixo + "@testes.local");
         utilizador.setTelemovel(novoTelemovel());
         utilizador.setPasswordHash(segurancaBLL.gerarHash(passwordEmTexto));
-        utilizador.setEstado("ativo");
+        utilizador.setEstado(EstadoUtilizador.ativo);
         return utilizadorRepository.save(utilizador);
     }
 
-    protected DayOff criarDayOffAprovado(Integer idUtilizador, LocalDate data, String motivo) {
+    protected DayOff criarDayOffAprovado(Utilizador utilizador, LocalDate data, String motivo) {
         DayOff dayOff = new DayOff();
-        dayOff.setIdUtilizador(idUtilizador);
+        dayOff.setIdUtilizador(utilizador);
         dayOff.setDataAusencia(data);
         dayOff.setMotivo(motivo);
         dayOff.setTipo("folgas");
@@ -313,7 +317,7 @@ abstract class FluxosCriticosTestSupport {
         horario.setIdLojautilizador(ligacaoAtiva);
         horario.setIdTurno(turno);
         horario.setDataTurno(dataTurno);
-        horario.setEstado("aprovado");
+        horario.setEstado(EstadoHorario.aprovado);
         horario.setIdPropostaHorario(null);
         return horarioRepository.save(horario);
     }
@@ -628,6 +632,30 @@ abstract class FluxosCriticosTestSupport {
         );
     }
 
+    private void garantirValoresEnumEstadoPermuta() {
+        jdbcTemplate.execute(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM pg_type
+                        WHERE typname = 'estado_permuta_enum'
+                    ) THEN
+                        ALTER TYPE public.estado_permuta_enum
+                            ADD VALUE IF NOT EXISTS 'pendente';
+                        ALTER TYPE public.estado_permuta_enum
+                            ADD VALUE IF NOT EXISTS 'aprovado';
+                        ALTER TYPE public.estado_permuta_enum
+                            ADD VALUE IF NOT EXISTS 'rejeitado';
+                        ALTER TYPE public.estado_permuta_enum
+                            ADD VALUE IF NOT EXISTS 'cancelado';
+                    END IF;
+                END $$;
+                """
+        );
+    }
+
     private void garantirEstruturasDeTeste() {
         jdbcTemplate.execute(
                 """
@@ -742,6 +770,7 @@ abstract class FluxosCriticosTestSupport {
         );
 
         garantirValorEnumEstadoRejeitado();
+        garantirValoresEnumEstadoPermuta();
 
         jdbcTemplate.execute(
                 """
