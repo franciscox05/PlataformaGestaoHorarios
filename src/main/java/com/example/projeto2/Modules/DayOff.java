@@ -1,11 +1,6 @@
 package com.example.projeto2.Modules;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
@@ -18,8 +13,9 @@ public class DayOff {
     @Column(name = "id_dayoff", nullable = false)
     private Integer idDayoff;
 
-    @Column(name = "id_utilizador", nullable = false)
-    private Integer idUtilizador;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_utilizador", nullable = false)
+    private Utilizador idUtilizador;
 
     @Column(name = "data_ausencia", nullable = false)
     private LocalDate dataAusencia;
@@ -36,7 +32,7 @@ public class DayOff {
     public DayOff() {
     }
 
-    public DayOff(Integer idDayoff, Integer idUtilizador, LocalDate dataAusencia, String motivo, String tipo, String estado) {
+    public DayOff(Integer idDayoff, Utilizador idUtilizador, LocalDate dataAusencia, String motivo, String tipo, String estado) {
         this.idDayoff = idDayoff;
         this.idUtilizador = idUtilizador;
         this.dataAusencia = dataAusencia;
@@ -53,11 +49,11 @@ public class DayOff {
         this.idDayoff = idDayoff;
     }
 
-    public Integer getIdUtilizador() {
+    public Utilizador getIdUtilizador() {
         return idUtilizador;
     }
 
-    public void setIdUtilizador(Integer idUtilizador) {
+    public void setIdUtilizador(Utilizador idUtilizador) {
         this.idUtilizador = idUtilizador;
     }
 

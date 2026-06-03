@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Geração de Horários - Levi's Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Space+Grotesk:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#ffdad7",
+                        "surface-variant": "#e6e1e1",
+                        "on-secondary": "#ffffff",
+                        "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "primary-fixed-dim": "#ffb3af",
+                        "on-secondary-fixed": "#1c1b1c",
+                        "outline": "#906f6d",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#e5e2e1",
+                        "inverse-primary": "#ffb3af",
+                        "primary-container": "#c91428",
+                        "inverse-on-surface": "#f4f0ef",
+                        "on-surface": "#1c1b1b",
+                        "surface-tint": "#bf0522",
+                        "background": "#fdf8f8",
+                        "on-tertiary": "#ffffff",
+                        "success-emerald": "#059669",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "surface-container-low": "#f7f2f2",
+                        "surface-container": "#f1edec",
+                        "secondary-container": "#e2dfdf",
+                        "surface": "#FCF9F8",
+                        "secondary-fixed-dim": "#c8c6c6",
+                        "on-background": "#1c1b1b",
+                        "surface-dim": "#ddd9d8",
+                        "inverse-surface": "#313030",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#fdf8f8",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "on-primary-fixed-variant": "#930017",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#e6e3e2",
+                        "on-secondary-fixed-variant": "#474647",
+                        "secondary": "#5f5e5e",
+                        "warning-amber": "#D97706",
+                        "on-primary-fixed": "#410005",
+                        "primary": "#9f001a",
+                        "on-surface-variant": "#5c403e",
+                        "tertiary": "#4e4d4d",
+                        "outline-variant": "#e5bdba",
+                        "surface-container-high": "#ece7e7",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e5e2e1",
+                        "error": "#ba1a1a",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#e6e1e1",
+                        "on-secondary-container": "#636262",
+                        "tertiary-container": "#666565",
+                        "on-primary-container": "#ffdcd9"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "header-height": "5rem",
+                        "stack-sm": "1rem",
+                        "stack-md": "1.5rem",
+                        "stack-lg": "4rem",
+                        "sidebar-width": "16rem",
+                        "gutter": "2.5rem",
+                        "container-max": "80rem",
+                        "card-padding": "2rem"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Manrope"],
+                        "headline-md": ["Space Grotesk"],
+                        "body-md": ["Manrope"],
+                        "headline-sm": ["Space Grotesk"],
+                        "display-lg": ["Space Grotesk"],
+                        "label-bold": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "display-lg-mobile": ["Space Grotesk"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-sm": ["18px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-bold": ["14px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-x-hidden min-h-screen flex">
+<!-- SideNavBar -->
+<aside class="bg-inverse-surface text-primary-container w-sidebar-width h-full fixed left-0 top-0 shadow-[6px_0_12px_rgba(28,27,27,0.06)] shadow-lg flex flex-col z-50">
+<div class="p-gutter flex items-center justify-center border-b border-white/10">
+<h1 class="font-display-lg text-primary-container tracking-tighter">Levi's Portal</h1>
+</div>
+<div class="px-6 py-4">
+<p class="font-label-caps text-surface-variant uppercase opacity-70">Staff Management</p>
+</div>
+<nav class="flex-1 overflow-y-auto mt-4 space-y-1">
+<a class="flex items-center gap-3 px-6 py-3 text-surface-variant hover:text-white transition-colors hover:bg-surface-variant/5" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-bold text-label-bold">Painel</span>
+</a>
+<!-- Active Navigation -->
+<a class="flex items-center gap-3 px-6 py-3 text-primary-container border-r-4 border-primary-container bg-surface-variant/10 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-weight="fill">calendar_month</span>
+<span class="font-label-bold text-label-bold">Horários</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-surface-variant hover:text-white transition-colors hover:bg-surface-variant/5" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-bold text-label-bold">Equipa</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-surface-variant hover:text-white transition-colors hover:bg-surface-variant/5" href="#">
+<span class="material-symbols-outlined">rule</span>
+<span class="font-label-bold text-label-bold">Regras da Loja</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-surface-variant hover:text-white transition-colors hover:bg-surface-variant/5" href="#">
+<span class="material-symbols-outlined">mark_as_unread</span>
+<span class="font-label-bold text-label-bold">Pedidos</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-surface-variant hover:text-white transition-colors hover:bg-surface-variant/5" href="#">
+<span class="material-symbols-outlined">fact_check</span>
+<span class="font-label-bold text-label-bold">Auditoria</span>
+</a>
+</nav>
+<div class="p-6 mt-auto border-t border-white/10 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-surface-variant hover:text-white transition-colors hover:bg-surface-variant/5 rounded" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-bold text-label-bold">Definições</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-surface-variant hover:text-white transition-colors hover:bg-surface-variant/5 rounded" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-bold text-label-bold">Sair</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-sidebar-width flex-1 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface/80 backdrop-blur-md fixed top-0 right-0 h-header-height z-40 border-b border-surface-variant/30 shadow-sm flex items-center justify-between px-gutter w-[calc(100%-16rem)]">
+<div class="flex items-center gap-4">
+<span class="font-headline-sm text-on-surface uppercase tracking-widest">Portal de Staff</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4 text-on-surface-variant">
+<button class="hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant">
+<img alt="Foto de Perfil do Utilizador" class="w-full h-full object-cover" data-alt="A close-up portrait of a professional individual looking confidently at the camera. The lighting is soft and natural, creating a bright, modern aesthetic typical of a corporate headshot. The background is slightly blurred and neutral, focusing attention on the subject. The overall mood is approachable yet authoritative, fitting a premium portal context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbJyCVbKSfoxJ3y9W-5Hj0MmlhcTWARi1d0UTQW8zvz-1JvQJcigBWQnm0l3vosv8h9a5NYHDX1dhBJBObKD_yEgYFNbGblkW8FLTB2D-1QcmncPywzxKK5PoZygzvu0hcrP04-zcKgn9tljO9FurYuWAayzBAM1EpZ5DcoPnWTvTrxmrJFTnqvDacoIANejHj65qfvHZ-aGMfjXa1bMseiH0E0vAD678_dDiVuay_wVcfba4AKlI0M9BGzu1lSfTap_w7Srh7pW4"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<div class="pt-header-height p-gutter w-full max-w-container-max mx-auto">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-stack-md">
+<div>
+<h2 class="font-display-lg text-on-surface">Geração de Horários</h2>
+<p class="font-body-lg text-on-surface-variant mt-2">Planeamento e distribuição de turnos da equipa.</p>
+</div>
+<button class="bg-primary-container text-on-primary font-label-bold text-label-bold px-6 py-3 rounded shadow hover:shadow-lg transition-shadow flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                    GERAR HORÁRIO MENSAL
+                </button>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Left Column: Motor Parameters (1/3) -->
+<div class="lg:col-span-1 space-y-6">
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(28,27,27,0.03)] border border-surface-variant/50 p-card-padding">
+<h3 class="font-headline-sm text-on-surface border-b border-surface-variant/50 pb-4 mb-6">Parâmetros de Geração</h3>
+<div class="space-y-6">
+<div>
+<label class="block font-label-caps text-on-surface-variant uppercase mb-2">Mês Alvo</label>
+<select class="w-full bg-surface-container-low border-0 border-b-2 border-surface-variant focus:border-primary-container focus:ring-0 text-on-surface font-body-md py-2 px-3">
+<option>Novembro</option>
+<option selected="">Dezembro</option>
+<option>Janeiro</option>
+</select>
+</div>
+<div>
+<label class="block font-label-caps text-on-surface-variant uppercase mb-2">Ano</label>
+<select class="w-full bg-surface-container-low border-0 border-b-2 border-surface-variant focus:border-primary-container focus:ring-0 text-on-surface font-body-md py-2 px-3">
+<option selected="">2023</option>
+<option>2024</option>
+</select>
+</div>
+<div>
+<label class="block font-label-caps text-on-surface-variant uppercase mb-2">Variantes de Escala</label>
+<div class="space-y-3 mt-3">
+<label class="flex items-center justify-between group cursor-pointer">
+<span class="font-body-md text-on-surface">Minimizar Fechos Seguidos</span>
+<div class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+</div>
+</label>
+<label class="flex items-center justify-between group cursor-pointer">
+<span class="font-body-md text-on-surface">Distribuir Fins-de-semana</span>
+<div class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+</div>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Data Area (2/3) -->
+<div class="lg:col-span-2 space-y-6">
+<!-- Calendar View -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(28,27,27,0.03)] border border-surface-variant/50 p-card-padding">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-on-surface">Visão Geral - Dezembro 2023</h3>
+<div class="flex gap-2">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Mini Apple-style Calendar Grid -->
+<div class="grid grid-cols-7 gap-px bg-surface-variant/30 rounded-lg overflow-hidden border border-surface-variant/50">
+<!-- Days Header -->
+<div class="bg-surface text-center py-2 font-label-caps text-on-surface-variant uppercase">Dom</div>
+<div class="bg-surface text-center py-2 font-label-caps text-on-surface-variant uppercase">Seg</div>
+<div class="bg-surface text-center py-2 font-label-caps text-on-surface-variant uppercase">Ter</div>
+<div class="bg-surface text-center py-2 font-label-caps text-on-surface-variant uppercase">Qua</div>
+<div class="bg-surface text-center py-2 font-label-caps text-on-surface-variant uppercase">Qui</div>
+<div class="bg-surface text-center py-2 font-label-caps text-on-surface-variant uppercase">Sex</div>
+<div class="bg-surface text-center py-2 font-label-caps text-on-surface-variant uppercase">Sáb</div>
+<!-- Calendar Cells (Simulated) -->
+<!-- Row 1 -->
+<div class="bg-surface-container-lowest h-24 p-2 text-right font-body-md text-surface-dim">26</div>
+<div class="bg-surface-container-lowest h-24 p-2 text-right font-body-md text-surface-dim">27</div>
+<div class="bg-surface-container-lowest h-24 p-2 text-right font-body-md text-surface-dim">28</div>
+<div class="bg-surface-container-lowest h-24 p-2 text-right font-body-md text-surface-dim">29</div>
+<div class="bg-surface-container-lowest h-24 p-2 text-right font-body-md text-surface-dim">30</div>
+<div class="bg-surface-container-lowest h-24 p-2 relative">
+<span class="absolute top-2 right-2 font-body-md text-on-surface">1</span>
+<div class="mt-6 space-y-1">
+<div class="h-1.5 w-full bg-primary-container/20 rounded"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest h-24 p-2 relative">
+<span class="absolute top-2 right-2 font-body-md text-on-surface">2</span>
+<div class="mt-6 space-y-1">
+<div class="h-1.5 w-full bg-primary-container/20 rounded"></div>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="bg-surface-container-lowest h-24 p-2 relative"><span class="absolute top-2 right-2 font-body-md text-on-surface">3</span></div>
+<div class="bg-surface-container-lowest h-24 p-2 relative"><span class="absolute top-2 right-2 font-body-md text-on-surface">4</span></div>
+<div class="bg-surface-container-lowest h-24 p-2 relative">
+<span class="absolute top-2 right-2 font-body-md text-on-surface">5</span>
+<div class="mt-6 space-y-1">
+<div class="bg-primary-container/10 text-primary font-label-caps text-[10px] px-1 rounded truncate">Feriado</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest h-24 p-2 relative"><span class="absolute top-2 right-2 font-body-md text-on-surface">6</span></div>
+<div class="bg-surface-container-lowest h-24 p-2 relative"><span class="absolute top-2 right-2 font-body-md text-on-surface">7</span></div>
+<div class="bg-surface-container-lowest h-24 p-2 relative"><span class="absolute top-2 right-2 font-body-md text-on-surface">8</span></div>
+<div class="bg-surface-container-lowest h-24 p-2 relative"><span class="absolute top-2 right-2 font-body-md text-on-surface">9</span></div>
+</div>
+</div>
+<!-- Comparison Table -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(28,27,27,0.03)] border border-surface-variant/50 p-card-padding">
+<h3 class="font-headline-sm text-on-surface mb-6">Comparação de Escalas Base</h3>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-md">
+<thead>
+<tr class="border-b-2 border-surface-variant">
+<th class="pb-3 font-label-caps text-on-surface-variant uppercase">Equipa</th>
+<th class="pb-3 font-label-caps text-on-surface-variant uppercase">Total Horas</th>
+<th class="pb-3 font-label-caps text-on-surface-variant uppercase">Fins-de-semana</th>
+<th class="pb-3 font-label-caps text-on-surface-variant uppercase">Fechos</th>
+<th class="pb-3 font-label-caps text-on-surface-variant uppercase">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant/50">
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-4 font-label-bold text-on-surface">Equipa Manhã A</td>
+<td class="py-4 text-on-surface">160h</td>
+<td class="py-4 text-on-surface">2</td>
+<td class="py-4 text-on-surface">0</td>
+<td class="py-4">
+<span class="bg-success-emerald/10 text-success-emerald font-label-caps px-2 py-1 rounded">Equilibrado</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-4 font-label-bold text-on-surface">Equipa Tarde B</td>
+<td class="py-4 text-on-surface">158h</td>
+<td class="py-4 text-on-surface">2</td>
+<td class="py-4 text-on-surface">14</td>
+<td class="py-4">
+<span class="bg-warning-amber/10 text-warning-amber font-label-caps px-2 py-1 rounded">Revisão</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-4 font-label-bold text-on-surface">Reforços FDS</td>
+<td class="py-4 text-on-surface">48h</td>
+<td class="py-4 text-on-surface">4</td>
+<td class="py-4 text-on-surface">4</td>
+<td class="py-4">
+<span class="bg-success-emerald/10 text-success-emerald font-label-caps px-2 py-1 rounded">Equilibrado</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

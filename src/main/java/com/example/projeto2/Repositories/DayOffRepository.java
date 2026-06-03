@@ -1,6 +1,7 @@
 package com.example.projeto2.Repositories;
 
 import com.example.projeto2.Modules.DayOff;
+import com.example.projeto2.Modules.Utilizador;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,14 +12,19 @@ import java.util.Optional;
 
 public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
 
-    List<DayOff> findByIdUtilizador(Integer idUtilizador);
+    // Pesquisa por entidade Utilizador (relação JPA correcta)
+    List<DayOff> findByIdUtilizador(Utilizador idUtilizador);
+
+    // Convenência: pesquisa por ID do utilizador (evita carregar a entidade antes)
+    @Query("SELECT d FROM DayOff d WHERE d.idUtilizador.id = :idUtilizador")
+    List<DayOff> findByIdUtilizadorId(@Param("idUtilizador") Integer idUtilizador);
 
     @Query("SELECT d FROM DayOff d " +
             "WHERE LOWER(CAST(d.estado AS string)) = 'pendente' " +
-            "AND d.idUtilizador <> :idUtilizadorAprovador " +
+            "AND d.idUtilizador.id <> :idUtilizadorAprovador " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +
-            "    WHERE lu.idUtilizador.id = d.idUtilizador " +
+            "    WHERE lu.idUtilizador.id = d.idUtilizador.id " +
             "    AND lu.idLoja.id = :idLoja " +
             "    AND lu.dataFim IS NULL" +
             ") " +
@@ -31,7 +37,7 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
             "AND d.dataAusencia BETWEEN :dataInicio AND :dataFim " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +
-            "    WHERE lu.idUtilizador.id = d.idUtilizador " +
+            "    WHERE lu.idUtilizador.id = d.idUtilizador.id " +
             "    AND lu.idLoja.id = :idLoja " +
             "    AND lu.dataFim IS NULL" +
             ") " +
@@ -42,11 +48,11 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
 
     @Query("SELECT d FROM DayOff d " +
             "WHERE LOWER(CAST(d.estado AS string)) = 'pendente' " +
-            "AND d.idUtilizador <> :idUtilizadorAprovador " +
+            "AND d.idUtilizador.id <> :idUtilizadorAprovador " +
             "AND d.dataAusencia BETWEEN :dataInicio AND :dataFim " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +
-            "    WHERE lu.idUtilizador.id = d.idUtilizador " +
+            "    WHERE lu.idUtilizador.id = d.idUtilizador.id " +
             "    AND lu.idLoja.id = :idLoja " +
             "    AND lu.dataFim IS NULL" +
             ") " +
@@ -60,7 +66,7 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
             "WHERE d.idDayoff = :idDayOff " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +
-            "    WHERE lu.idUtilizador.id = d.idUtilizador " +
+            "    WHERE lu.idUtilizador.id = d.idUtilizador.id " +
             "    AND lu.idLoja.id = :idLoja " +
             "    AND lu.dataFim IS NULL" +
             ")")

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public final class CalendarioMensalHelper {
 
@@ -33,6 +34,14 @@ public final class CalendarioMensalHelper {
                                            YearMonth periodo,
                                            Map<LocalDate, List<String>> eventosPorDia,
                                            String mensagemVazia) {
+        preencherCalendario(grelha, periodo, eventosPorDia, mensagemVazia, null);
+    }
+
+    public static void preencherCalendario(GridPane grelha,
+                                           YearMonth periodo,
+                                           Map<LocalDate, List<String>> eventosPorDia,
+                                           String mensagemVazia,
+                                           Consumer<LocalDate> aoSelecionarDia) {
         if (grelha == null || periodo == null) {
             return;
         }
@@ -63,7 +72,7 @@ public final class CalendarioMensalHelper {
         }
 
         adicionarCabecalhos(grelha);
-        adicionarDias(grelha, periodo, eventosPorDia, mensagemVazia);
+        adicionarDias(grelha, periodo, eventosPorDia, mensagemVazia, aoSelecionarDia);
     }
 
     private static void adicionarCabecalhos(GridPane grelha) {
@@ -91,7 +100,8 @@ public final class CalendarioMensalHelper {
     private static void adicionarDias(GridPane grelha,
                                       YearMonth periodo,
                                       Map<LocalDate, List<String>> eventosPorDia,
-                                      String mensagemVazia) {
+                                      String mensagemVazia,
+                                      Consumer<LocalDate> aoSelecionarDia) {
         LocalDate primeiroDia = periodo.atDay(1);
         int deslocamentoInicial = primeiroDia.getDayOfWeek().getValue() - 1;
         int totalDias = periodo.lengthOfMonth();
@@ -105,7 +115,7 @@ public final class CalendarioMensalHelper {
                     data = periodo.atDay(diaMes);
                 }
 
-                VBox card = criarCardDia(data, eventosPorDia, mensagemVazia);
+                VBox card = criarCardDia(data, eventosPorDia, mensagemVazia, aoSelecionarDia);
                 grelha.add(card, coluna, linha);
                 indiceCelula++;
             }
@@ -114,12 +124,13 @@ public final class CalendarioMensalHelper {
 
     private static VBox criarCardDia(LocalDate data,
                                      Map<LocalDate, List<String>> eventosPorDia,
-                                     String mensagemVazia) {
+                                     String mensagemVazia,
+                                     Consumer<LocalDate> aoSelecionarDia) {
         VBox card = new VBox(8.0);
         card.getStyleClass().add("calendario-mes-dia-card");
         card.setPadding(new Insets(12.0));
         card.setFillWidth(true);
-        card.setMinHeight(160.0);
+        card.setMinHeight(118.0);
 
         if (data == null) {
             card.getStyleClass().add("calendario-mes-dia-card-vazio");
@@ -159,14 +170,43 @@ public final class CalendarioMensalHelper {
             vazio.setWrapText(true);
             corpo.getChildren().add(vazio);
         } else {
-            for (String evento : eventosValidos) {
-                corpo.getChildren().add(criarCardEvento(evento));
+            for (String evento : eventosValidos.stream().limit(2).toList()) {
+                corpo.getChildren().add(criarLinhaResumoEvento(evento));
+            }
+            Label verDetalhe = new Label(eventosValidos.size() > 2
+                    ? "+" + (eventosValidos.size() - 2) + " turnos · abrir dia"
+                    : "Abrir detalhe do dia");
+            verDetalhe.getStyleClass().add("calendario-mes-dia-acao");
+            corpo.getChildren().add(verDetalhe);
+            if (aoSelecionarDia != null) {
+                card.getStyleClass().add("calendario-mes-dia-card-clicavel");
+                card.setOnMouseClicked(event -> aoSelecionarDia.accept(data));
             }
         }
 
         card.getChildren().addAll(topoDia, corpo);
         VBox.setVgrow(corpo, Priority.ALWAYS);
         return card;
+    }
+
+    private static HBox criarLinhaResumoEvento(String evento) {
+        EventoMensalDetalhado detalhe = decomporEvento(evento);
+        HBox linha = new HBox(8.0);
+        linha.getStyleClass().add("calendario-mes-evento-resumo");
+
+        Region ponto = new Region();
+        ponto.getStyleClass().add("calendario-mes-evento-ponto");
+
+        String texto = detalhe == null
+                ? evento
+                : detalhe.periodo() + " · " + detalhe.colaborador();
+        Label label = new Label(texto);
+        label.getStyleClass().add("calendario-mes-evento-resumo-texto");
+        label.setWrapText(true);
+        HBox.setHgrow(label, Priority.ALWAYS);
+
+        linha.getChildren().addAll(ponto, label);
+        return linha;
     }
 
     private static VBox criarCardEvento(String evento) {

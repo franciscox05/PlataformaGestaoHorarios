@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Levi's Staff Portal - Painel</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Space+Grotesk:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary": "#4e4d4d",
+                    "tertiary-fixed": "#e5e2e1",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "tertiary-container": "#666565",
+                    "primary-fixed-dim": "#ffb3af",
+                    "surface-bright": "#fdf8f8",
+                    "on-error": "#ffffff",
+                    "surface-container-high": "#ece7e7",
+                    "surface-tint": "#bf0522",
+                    "on-primary-fixed": "#410005",
+                    "on-secondary-container": "#636262",
+                    "inverse-surface": "#313030",
+                    "on-tertiary-container": "#e6e3e2",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#ffdcd9",
+                    "secondary-fixed-dim": "#c8c6c6",
+                    "on-tertiary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "on-surface": "#1c1b1b",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "primary-container": "#c91428",
+                    "error": "#ba1a1a",
+                    "surface-container": "#f1edec",
+                    "warning-amber": "#D97706",
+                    "inverse-on-surface": "#f4f0ef",
+                    "surface": "#FCF9F8",
+                    "on-surface-variant": "#5c403e",
+                    "on-secondary": "#ffffff",
+                    "background": "#fdf8f8",
+                    "on-secondary-fixed": "#1c1b1c",
+                    "on-primary-fixed-variant": "#930017",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "surface-dim": "#ddd9d8",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed": "#e5e2e1",
+                    "secondary": "#5f5e5e",
+                    "on-secondary-fixed-variant": "#474647",
+                    "outline-variant": "#e5bdba",
+                    "success-emerald": "#059669",
+                    "surface-variant": "#e6e1e1",
+                    "on-background": "#1c1b1b",
+                    "inverse-primary": "#ffb3af",
+                    "surface-container-highest": "#e6e1e1",
+                    "secondary-container": "#e2dfdf",
+                    "primary-fixed": "#ffdad7",
+                    "surface-container-low": "#f7f2f2",
+                    "outline": "#906f6d",
+                    "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                    "primary": "#9f001a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem",
+                    "custom": "14px"
+            },
+            "spacing": {
+                    "header-height": "5rem",
+                    "sidebar-width": "16rem",
+                    "gutter": "2.5rem",
+                    "container-max": "80rem",
+                    "stack-md": "1.5rem",
+                    "stack-lg": "4rem",
+                    "card-padding": "2rem",
+                    "stack-sm": "1rem"
+            },
+            "fontFamily": {
+                    "label-bold": [
+                            "Manrope"
+                    ],
+                    "body-lg": [
+                            "Manrope"
+                    ],
+                    "headline-md": [
+                            "Space Grotesk"
+                    ],
+                    "display-lg": [
+                            "Space Grotesk"
+                    ],
+                    "display-lg-mobile": [
+                            "Space Grotesk"
+                    ],
+                    "body-md": [
+                            "Manrope"
+                    ],
+                    "headline-sm": [
+                            "Space Grotesk"
+                    ],
+                    "label-caps": [
+                            "Manrope"
+                    ]
+            },
+            "fontSize": {
+                    "label-bold": [
+                            "14px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "1.6",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "display-lg": [
+                            "48px",
+                            {
+                                    "lineHeight": "1.1",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "display-lg-mobile": [
+                            "32px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "1.5",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-sm": [
+                            "18px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-caps": [
+                            "12px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #fdf8f8; /* fallback */
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex w-full min-h-screen selection:bg-primary-container selection:text-on-primary-container">
+<!-- Desktop SideNavBar -->
+<nav class="hidden md:flex bg-inverse-surface dark:bg-on-surface text-primary dark:text-primary-fixed-dim fixed left-0 top-0 h-screen w-sidebar-width shadow-[rgba(28,27,27,0.06)_4px_0_12px] shadow-lg flex-col py-stack-md px-4 z-50">
+<!-- Brand Area -->
+<div class="mb-stack-lg flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container shrink-0">
+<span class="material-symbols-outlined font-headline-md text-headline-md">local_mall</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary-container tracking-tighter leading-none">Levi's Staff</h1>
+<p class="font-label-caps text-label-caps text-secondary-fixed-dim mt-1">Portal de Gestão</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto pr-2 space-y-1 scrollbar-hide">
+<!-- Painel (Active) -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container bg-primary-container rounded-lg font-label-bold scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span>Painel</span>
+</a>
+<!-- Horários -->
+<a class="flex items-center gap-3 px-3 py-2 text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 rounded-lg scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">schedule</span>
+<span>Horários</span>
+</a>
+<!-- Funcionários -->
+<a class="flex items-center gap-3 px-3 py-2 text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 rounded-lg scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span>Funcionários</span>
+</a>
+<!-- Loja e Regras -->
+<a class="flex items-center gap-3 px-3 py-2 text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 rounded-lg scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">store</span>
+<span>Loja e Regras</span>
+</a>
+<!-- Pedidos -->
+<a class="flex items-center gap-3 px-3 py-2 text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 rounded-lg scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span>Pedidos</span>
+</a>
+<!-- Perfil -->
+<a class="flex items-center gap-3 px-3 py-2 text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 rounded-lg scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">person_outline</span>
+<span>Perfil</span>
+</a>
+<!-- Preferências -->
+<a class="flex items-center gap-3 px-3 py-2 text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 rounded-lg scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Preferências</span>
+</a>
+<!-- Relatórios -->
+<a class="flex items-center gap-3 px-3 py-2 text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 rounded-lg scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span>Relatórios</span>
+</a>
+<!-- Auditoria -->
+<a class="flex items-center gap-3 px-3 py-2 text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 rounded-lg scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+<span>Auditoria</span>
+</a>
+</div>
+<!-- Footer Actions -->
+<div class="mt-auto pt-stack-md border-t border-tertiary-container/30">
+<button class="w-full mb-4 px-4 py-2 bg-primary text-on-primary font-label-bold text-label-bold rounded-custom hover:shadow-lg hover:bg-primary/90 transition-all">
+                Ajuda e Suporte
+            </button>
+<div class="flex flex-col gap-2 px-2">
+<a class="flex items-center gap-2 text-secondary-fixed-dim font-label-caps text-label-caps hover:text-on-primary-container transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">description</span>
+                    Termos
+                </a>
+<a class="flex items-center gap-2 text-secondary-fixed-dim font-label-caps text-label-caps hover:text-on-primary-container transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">lock</span>
+                    Privacidade
+                </a>
+</div>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 md:ml-sidebar-width flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="hidden md:flex bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md text-primary dark:text-primary-fixed-dim fixed top-0 right-0 w-[calc(100%-16rem)] h-header-height z-40 border-b border-outline-variant/30 shadow-sm justify-between items-center px-gutter mx-auto transition-all duration-300">
+<!-- Left Side: Breadcrumbs & Title -->
+<div class="flex items-center gap-4">
+<div class="font-headline-sm text-headline-sm font-bold text-primary">Portal Staff</div>
+<div class="h-4 w-[1px] bg-outline-variant/50"></div>
+<nav aria-label="Breadcrumb" class="flex items-center space-x-2 text-on-surface-variant font-label-caps text-label-caps">
+<a class="hover:text-primary transition-colors" href="#">Home</a>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-primary font-semibold">Painel</span>
+</nav>
+</div>
+<!-- Middle: Search (on_left configuration usually implies left-aligned, but adjusting for layout balance) -->
+<div class="flex-1 max-w-md mx-6 focus-within:ring-2 focus-within:ring-primary/20 rounded-full transition-shadow">
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border-none rounded-full leading-5 bg-surface-container-low text-on-surface placeholder-outline focus:outline-none focus:ring-0 sm:text-sm font-body-md" placeholder="Pesquisar..." type="text"/>
+</div>
+</div>
+<!-- Right Side: Navigation & Actions -->
+<div class="flex items-center gap-6">
+<!-- Links -->
+<nav class="flex gap-4">
+<a class="font-label-caps text-label-caps text-primary border-b-2 border-primary pb-1 hover:text-primary transition-colors" href="#">Visão Geral</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors" href="#">Novidades</a>
+</nav>
+<!-- Actions -->
+<div class="flex items-center gap-3 border-l border-outline-variant/30 pl-6">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<button class="font-label-bold text-label-bold text-on-surface-variant hover:text-primary transition-colors ml-2 hidden lg:block">
+                        Suporte
+                    </button>
+<button class="bg-primary text-on-primary font-label-bold text-label-bold px-4 py-2 rounded-custom hover:shadow-lg hover:bg-primary/90 transition-all ml-2">
+                        Novo Pedido
+                    </button>
+<!-- Avatar -->
+<div class="ml-4 h-9 w-9 rounded-full bg-surface-container-highest border border-outline-variant/30 overflow-hidden cursor-pointer shadow-sm relative group">
+<img alt="Foto de Perfil do Utilizador" class="w-full h-full object-cover" data-alt="A professional headshot of a retail staff member, well-lit, friendly expression. The lighting is soft and studio-quality, emphasizing a clean, modern aesthetic suitable for a high-end enterprise portal. The background is a neutral light gray to maintain focus on the subject." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbuEx9FU7ej0VM-m9clymJKSz2EIyhYAsS_9kRlhjSTFAVaCtxHW-Fe_HswGGryP2RxfyK7BbmWusZuWXBjkUMzMj9NqGMgWFx9Gs7OFQ7V0RkH0uaPRKdXy1fK-2BTIfBPXx0azdJdODa3uKstKvMW5oj1cwTZwbPwS4SceYYTShibUgisW44Jwp-5W-C6DTAW7KwGF-LjfjLHf_Y2rPdC8dcBxToZ-KLWU78ZgHJli8WWwLseGNQsBCE_DqoL7gp1O_57TftWjY"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Canvas Area (Workspace) -->
+<main class="flex-1 pt-[calc(5rem+2rem)] px-gutter pb-stack-lg w-full max-w-container-max mx-auto">
+<!-- Welcome Header -->
+<div class="mb-8">
+<h2 class="font-display-lg text-display-lg text-on-surface mb-2">Bom dia, Equipa.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">O seu espaço de trabalho está pronto. Selecione uma ação ou reveja as métricas de atividade abaixo.</p>
+</div>
+<!-- Placeholder Grid (Ready for Bento) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Large Card Placeholder (Span 2) -->
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-[14px] p-card-padding border border-surface-variant shadow-[0_4px_24px_rgba(28,27,27,0.03)] min-h-[400px] flex items-center justify-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-container-low/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+<div class="text-center">
+<span class="material-symbols-outlined text-4xl text-outline-variant mb-4 block">space_dashboard</span>
+<p class="font-label-bold text-label-bold text-secondary">Área de Dados (Bento 2/3)</p>
+</div>
+</div>
+<!-- Small Card Placeholder (Span 1) -->
+<div class="lg:col-span-1 bg-surface-container-lowest rounded-[14px] p-card-padding border border-surface-variant shadow-[0_4px_24px_rgba(28,27,27,0.03)] min-h-[400px] flex items-center justify-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-container-low/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+<div class="text-center">
+<span class="material-symbols-outlined text-4xl text-outline-variant mb-4 block">tune</span>
+<p class="font-label-bold text-label-bold text-secondary">Parâmetros (Bento 1/3)</p>
+</div>
+</div>
+<!-- Bottom Row Placeholders -->
+<div class="lg:col-span-1 bg-surface-container-lowest rounded-[14px] p-card-padding border border-surface-variant shadow-[0_4px_24px_rgba(28,27,27,0.03)] min-h-[200px] flex items-center justify-center">
+<p class="font-label-bold text-label-bold text-secondary">Módulo Extra</p>
+</div>
+<div class="lg:col-span-1 bg-surface-container-lowest rounded-[14px] p-card-padding border border-surface-variant shadow-[0_4px_24px_rgba(28,27,27,0.03)] min-h-[200px] flex items-center justify-center">
+<p class="font-label-bold text-label-bold text-secondary">Módulo Extra</p>
+</div>
+<div class="lg:col-span-1 bg-surface-container-lowest rounded-[14px] p-card-padding border border-surface-variant shadow-[0_4px_24px_rgba(28,27,27,0.03)] min-h-[200px] flex items-center justify-center">
+<p class="font-label-bold text-label-bold text-secondary">Módulo Extra</p>
+</div>
+</div>
+</main>
+</div>
+</body></html>

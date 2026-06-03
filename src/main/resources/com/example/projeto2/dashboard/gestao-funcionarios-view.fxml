@@ -10,226 +10,281 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
 
-<ScrollPane fitToWidth="true" hbarPolicy="NEVER" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.GestaoFuncionariosController">
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+            styleClass="conteudo-scroll"
+            stylesheets="@dashboard.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.projeto2.Controller.GestaoFuncionariosController">
     <content>
-        <VBox alignment="TOP_CENTER" prefWidth="920.0" spacing="20.0">
+        <VBox spacing="0" styleClass="conteudo-pagina">
             <padding>
-                <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+                <Insets bottom="56.0" left="40.0" right="40.0" top="40.0" />
             </padding>
 
-            <children>
-                <Label styleClass="titulo-dashboard" text="Gestão de funcionários" />
-                <Label styleClass="subtitulo" text="Adiciona, atualiza e desativa colaboradores da tua loja sem sair do backoffice." wrapText="true" />
+            <!-- ═══════════════════════════════════════════════
+                 CABEÇALHO — ícone + título + subtítulo
+            ═══════════════════════════════════════════════ -->
+            <HBox alignment="CENTER_LEFT" spacing="16.0">
+                <SVGPath fill="#c41230" styleClass="section-icon"
+                         content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                <VBox spacing="3.0">
+                    <Label styleClass="titulo-dashboard" text="Gestão de funcionários" />
+                    <Label styleClass="subtitulo"
+                           text="Adiciona, atualiza e desativa colaboradores da tua loja sem sair do backoffice."
+                           wrapText="true" />
+                </VBox>
+            </HBox>
 
-                <VBox spacing="14.0" styleClass="info-card">
-                    <children>
-                        <Label styleClass="card-titulo" text="Contexto da loja" />
-                        <HBox spacing="20.0">
-                            <children>
-                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                                    <children>
-                                        <Label styleClass="meta-etiqueta" text="Loja" />
-                                        <Label fx:id="lblNomeLoja" styleClass="meta-valor" text="-" />
-                                    </children>
-                                </VBox>
+            <Region minHeight="28.0" />
 
-                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                                    <children>
-                                        <Label styleClass="meta-etiqueta" text="Localização" />
-                                        <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
-                                    </children>
-                                </VBox>
+            <!-- ═══════════════════════════════════════════════
+                 CONTEXT BAR — loja + localização + perfil
+            ═══════════════════════════════════════════════ -->
+            <HBox spacing="0.0" styleClass="context-bar">
+                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                    <Label styleClass="meta-etiqueta" text="LOJA" />
+                    <Label fx:id="lblNomeLoja" styleClass="meta-valor" text="-" />
+                </VBox>
+                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                    <Label styleClass="meta-etiqueta" text="LOCALIZAÇÃO" />
+                    <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
+                </VBox>
+                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                    <Label styleClass="meta-etiqueta" text="PERFIL DE ACESSO" />
+                    <Label fx:id="lblCargoGestor" styleClass="meta-valor" text="-" />
+                </VBox>
+            </HBox>
 
-                                <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                                    <children>
-                                        <Label styleClass="meta-etiqueta" text="Perfil de acesso" />
-                                        <Label fx:id="lblCargoGestor" styleClass="meta-valor" text="-" />
-                                    </children>
-                                </VBox>
-                            </children>
-                        </HBox>
-                    </children>
+            <Region minHeight="28.0" />
+
+            <!-- ═══════════════════════════════════════════════
+                 BENTO LAYOUT: Tabela (esq) + Formulário (dir)
+            ═══════════════════════════════════════════════ -->
+            <HBox alignment="TOP_LEFT" spacing="20.0">
+
+                <!-- ─── TABELA DA EQUIPA ─── -->
+                <VBox spacing="16.0" styleClass="info-card" HBox.hgrow="ALWAYS">
+
+                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                        <SVGPath fill="#c41230" styleClass="card-icon"
+                                 content="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                        <Label styleClass="card-titulo" text="Equipa da Loja" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="lblResumoTabela"
+                               styleClass="meta-etiqueta"
+                               text="0 colaborador(es)" />
+                    </HBox>
+
+                    <!-- Filtros inline -->
+                    <HBox spacing="10.0">
+                        <TextField fx:id="txtPesquisa"
+                                   promptText="Pesquisar por nome, email, telemovel ou cargo"
+                                   styleClass="campo-input"
+                                   HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cbFiltroEstado" styleClass="campo-combo" />
+                        <ComboBox fx:id="cbFiltroCargo"  styleClass="campo-combo" />
+                    </HBox>
+
+                    <!-- Atalhos de teclado -->
+                    <Label styleClass="texto-atalho"
+                           text="Enter seleciona o primeiro resultado  ·  Esc limpa  ·  Ctrl+S guardar  ·  Ctrl+N novo colaborador"
+                           wrapText="true" />
+
+                    <!-- Tabela -->
+                    <TableView fx:id="tabelaColaboradores" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                        <columns>
+                            <TableColumn fx:id="colNome"      text="Nome" />
+                            <TableColumn fx:id="colEmail"     text="Email" />
+                            <TableColumn fx:id="colTelemovel" text="Telemovel" />
+                            <TableColumn fx:id="colCargo"     text="Cargo" />
+                            <TableColumn fx:id="colEstado"    text="Estado" />
+                        </columns>
+                    </TableView>
+
                 </VBox>
 
-                <HBox alignment="TOP_LEFT" spacing="20.0">
-                    <children>
-                        <VBox prefWidth="560.0" spacing="14.0" styleClass="info-card" HBox.hgrow="ALWAYS">
-                            <children>
-                                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                                    <children>
-                                        <Label styleClass="card-titulo" text="Equipa da Loja" />
-                                        <Region HBox.hgrow="ALWAYS" />
-                                        <Label fx:id="lblResumoTabela" styleClass="subtitulo" text="0 colaborador(es) encontrado(s)" />
-                                    </children>
-                                </HBox>
+                <!-- ─── FORMULÁRIO DE COLABORADOR ─── -->
+                <VBox spacing="16.0" styleClass="info-card"
+                      HBox.hgrow="NEVER" minWidth="310.0">
 
-                                <HBox spacing="12.0">
-                                    <children>
-                                        <TextField fx:id="txtPesquisa" promptText="Pesquisar por nome, email, telemóvel ou cargo" styleClass="campo-input" HBox.hgrow="ALWAYS" />
-                                        <ComboBox fx:id="cbFiltroEstado" prefWidth="140.0" styleClass="campo-combo" />
-                                        <ComboBox fx:id="cbFiltroCargo" prefWidth="170.0" styleClass="campo-combo" />
-                                    </children>
-                                </HBox>
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <SVGPath fill="#c41230" styleClass="card-icon"
+                                 content="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        <Label fx:id="lblTituloFormulario"
+                               styleClass="card-titulo"
+                               text="Novo Colaborador" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button onAction="#onNovoClick"
+                                styleClass="botao-secundario"
+                                text="Novo" />
+                    </HBox>
 
-                                <TableView fx:id="tabelaColaboradores" prefHeight="420.0" VBox.vgrow="ALWAYS">
-                                    <columnResizePolicy>
-                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                    </columnResizePolicy>
-                                    <columns>
-                                        <TableColumn fx:id="colNome" prefWidth="150.0" text="Nome" />
-                                        <TableColumn fx:id="colEmail" prefWidth="180.0" text="Email" />
-                                        <TableColumn fx:id="colTelemovel" prefWidth="120.0" text="Telemóvel" />
-                                        <TableColumn fx:id="colCargo" prefWidth="120.0" text="Cargo" />
-                                        <TableColumn fx:id="colEstado" prefWidth="90.0" text="Estado" />
-                                    </columns>
-                                </TableView>
-                            </children>
-                        </VBox>
+                    <VBox spacing="5.0">
+                        <Label styleClass="campo-titulo" text="NOME" />
+                        <TextField fx:id="txtNome"
+                                   promptText="Nome completo do colaborador"
+                                   styleClass="campo-input" />
+                    </VBox>
 
-                        <VBox prefWidth="320.0" spacing="14.0" styleClass="info-card">
-                            <children>
-                                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                                    <children>
-                                        <Label fx:id="lblTituloFormulario" styleClass="card-titulo" text="Novo Colaborador" />
-                                        <Region HBox.hgrow="ALWAYS" />
-                                        <Button onAction="#onNovoClick" styleClass="botao-secundario" text="Novo" />
-                                    </children>
-                                </HBox>
+                    <VBox spacing="5.0">
+                        <Label styleClass="campo-titulo" text="EMAIL" />
+                        <TextField fx:id="txtEmail"
+                                   promptText="email@empresa.pt"
+                                   styleClass="campo-input" />
+                    </VBox>
 
-                                <VBox spacing="6.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Nome" />
-                                        <TextField fx:id="txtNome" promptText="Nome completo do colaborador" styleClass="campo-input" />
-                                    </children>
-                                </VBox>
+                    <VBox spacing="5.0">
+                        <Label styleClass="campo-titulo" text="TELEMOVEL" />
+                        <TextField fx:id="txtTelemovel"
+                                   promptText="9 digitos"
+                                   styleClass="campo-input" />
+                    </VBox>
 
-                                <VBox spacing="6.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Email" />
-                                        <TextField fx:id="txtEmail" promptText="email@empresa.pt" styleClass="campo-input" />
-                                    </children>
-                                </VBox>
+                    <VBox spacing="5.0">
+                        <Label styleClass="campo-titulo" text="PASSWORD" />
+                        <PasswordField fx:id="txtPassword"
+                                       promptText="Obrigatoria ao criar; opcional na edicao"
+                                       styleClass="campo-input" />
+                        <Label styleClass="texto-ajuda"
+                               text="Na edicao, deixa a password vazia para a manter."
+                               wrapText="true" />
+                    </VBox>
 
-                                <VBox spacing="6.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Telemóvel" />
-                                        <TextField fx:id="txtTelemovel" promptText="9 dígitos" styleClass="campo-input" />
-                                    </children>
-                                </VBox>
+                    <VBox spacing="5.0">
+                        <Label styleClass="campo-titulo" text="CARGO" />
+                        <ComboBox fx:id="cbCargo" maxWidth="Infinity" styleClass="campo-combo" />
+                    </VBox>
 
-                                <VBox spacing="6.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Password inicial / nova password" />
-                                        <PasswordField fx:id="txtPassword" promptText="Obrigatória ao criar; opcional na edição" styleClass="campo-input" />
-                                        <Label styleClass="texto-ajuda" text="Novos colaboradores são criados ativos. Na edição, deixa a password vazia para a manter." wrapText="true" />
-                                    </children>
-                                </VBox>
+                    <VBox spacing="5.0">
+                        <Label styleClass="campo-titulo" text="ESTADO" />
+                        <ComboBox fx:id="cbEstado" maxWidth="Infinity" styleClass="campo-combo" />
+                    </VBox>
 
-                                <VBox spacing="6.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Cargo" />
-                                        <ComboBox fx:id="cbCargo" maxWidth="1.7976931348623157E308" styleClass="campo-combo" />
-                                    </children>
-                                </VBox>
+                    <Label fx:id="lblMensagem" managed="false" styleClass="mensagem-feedback"
+                           text="" visible="false" wrapText="true" />
 
-                                <VBox spacing="6.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Estado" />
-                                        <ComboBox fx:id="cbEstado" maxWidth="1.7976931348623157E308" styleClass="campo-combo" />
-                                    </children>
-                                </VBox>
+                    <Region VBox.vgrow="ALWAYS" />
 
-                                <Label fx:id="lblMensagem" managed="false" styleClass="mensagem-feedback" text="" visible="false" wrapText="true" />
+                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                        <Button fx:id="btnDesativar"
+                                onAction="#onDesativarClick"
+                                styleClass="botao-secundario"
+                                text="Desativar" />
+                        <Button fx:id="btnGuardar"
+                                onAction="#onGuardarClick"
+                                styleClass="botao-acao"
+                                text="Guardar" />
+                    </HBox>
 
-                                <HBox alignment="CENTER_RIGHT" spacing="10.0">
-                                    <children>
-                                        <Button fx:id="btnDesativar" onAction="#onDesativarClick" styleClass="botao-secundario" text="Desativar" />
-                                        <Button fx:id="btnGuardar" onAction="#onGuardarClick" styleClass="botao-acao" text="Guardar" />
-                                    </children>
-                                </HBox>
-                            </children>
-                        </VBox>
-                    </children>
+                </VBox>
+
+            </HBox>
+
+            <Region minHeight="24.0" />
+
+            <!-- ═══════════════════════════════════════════════
+                 HORÁRIO SEMANAL DO COLABORADOR
+            ═══════════════════════════════════════════════ -->
+            <VBox spacing="16.0" styleClass="info-card">
+
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <SVGPath fill="#c41230" styleClass="card-icon"
+                             content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zm0-13H5V6h14v1zM7 11h5v5H7z" />
+                    <Label styleClass="card-titulo" text="Horario semanal do colaborador" />
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Button onAction="#onSemanaColaboradorAnteriorClick"
+                            styleClass="botao-nav" text="&#8249; Anterior" />
+                    <Label fx:id="lblSemanaColaborador"
+                           styleClass="campo-titulo" text="Semana" />
+                    <Button onAction="#onSemanaColaboradorSeguinteClick"
+                            styleClass="botao-nav" text="Seguinte &#8250;" />
                 </HBox>
 
-                <VBox spacing="14.0" styleClass="info-card">
-                    <children>
-                        <HBox alignment="CENTER_LEFT" spacing="12.0">
-                            <children>
-                                <Label styleClass="card-titulo" text="Horário semanal do colaborador" />
-                                <Region HBox.hgrow="ALWAYS" />
-                                <Button onAction="#onSemanaColaboradorAnteriorClick" styleClass="botao-secundario" text="Semana anterior" />
-                                <Label fx:id="lblSemanaColaborador" styleClass="campo-titulo" text="Semana" />
-                                <Button onAction="#onSemanaColaboradorSeguinteClick" styleClass="botao-secundario" text="Semana seguinte" />
-                            </children>
-                        </HBox>
+                <Label fx:id="lblResumoHorarioColaborador"
+                       styleClass="texto-ajuda"
+                       text="Seleciona um colaborador para veres o horario publicado da semana."
+                       wrapText="true" />
 
-                        <Label fx:id="lblResumoHorarioColaborador" styleClass="texto-ajuda" text="Seleciona um colaborador para veres o horário publicado da semana." wrapText="true" />
-                        <HBox fx:id="boxSemanaColaborador" spacing="10.0" styleClass="calendario-semana" />
-                    </children>
+                <HBox fx:id="boxSemanaColaborador" spacing="12.0" styleClass="calendario-semana" />
+
+            </VBox>
+
+            <Region minHeight="24.0" />
+
+            <!-- ═══════════════════════════════════════════════
+                 PERFIL OPERACIONAL
+            ═══════════════════════════════════════════════ -->
+            <VBox spacing="16.0" styleClass="info-card">
+
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <SVGPath fill="#c41230" styleClass="card-icon"
+                             content="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z" />
+                    <Label styleClass="card-titulo" text="Perfil operacional do colaborador" />
+                </HBox>
+
+                <Label fx:id="lblPerfilOperacionalResumo"
+                       styleClass="texto-ajuda"
+                       text="Seleciona um colaborador para veres folgas, preferencias, permutas e decisoes pendentes."
+                       wrapText="true" />
+
+                <!-- Folgas -->
+                <VBox spacing="6.0">
+                    <Label styleClass="campo-titulo" text="FOLGAS" />
+                    <TableView fx:id="tabelaFolgasColaborador" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                        <columns>
+                            <TableColumn fx:id="colFolgaData"   text="Data" />
+                            <TableColumn fx:id="colFolgaTipo"   text="Tipo" />
+                            <TableColumn fx:id="colFolgaEstado" text="Estado" />
+                            <TableColumn fx:id="colFolgaAcao"   text="Acao" />
+                        </columns>
+                    </TableView>
                 </VBox>
-                <VBox spacing="14.0" styleClass="info-card">
-                    <children>
-                        <Label styleClass="card-titulo" text="Perfil operacional do colaborador" />
-                        <Label fx:id="lblPerfilOperacionalResumo" styleClass="texto-ajuda" text="Seleciona um colaborador para veres folgas, preferencias, permutas e decisoes pendentes." wrapText="true" />
 
-                        <VBox spacing="10.0">
-                            <children>
-                                <Label styleClass="campo-titulo" text="Folgas" />
-                                <TableView fx:id="tabelaFolgasColaborador" prefHeight="180.0">
-                                    <columnResizePolicy>
-                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                    </columnResizePolicy>
-                                    <columns>
-                                        <TableColumn fx:id="colFolgaData" text="Data" />
-                                        <TableColumn fx:id="colFolgaTipo" text="Tipo" />
-                                        <TableColumn fx:id="colFolgaEstado" text="Estado" />
-                                        <TableColumn fx:id="colFolgaAcao" text="Acao" />
-                                    </columns>
-                                </TableView>
-                            </children>
-                        </VBox>
-
-                        <VBox spacing="10.0">
-                            <children>
-                                <Label styleClass="campo-titulo" text="Preferencias" />
-                                <TableView fx:id="tabelaPreferenciasColaborador" prefHeight="180.0">
-                                    <columnResizePolicy>
-                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                    </columnResizePolicy>
-                                    <columns>
-                                        <TableColumn fx:id="colPreferenciaTipo" text="Tipo" />
-                                        <TableColumn fx:id="colPreferenciaPeriodo" text="Periodo" />
-                                        <TableColumn fx:id="colPreferenciaEstado" text="Estado" />
-                                        <TableColumn fx:id="colPreferenciaAcao" text="Acao" />
-                                    </columns>
-                                </TableView>
-                            </children>
-                        </VBox>
-
-                        <VBox spacing="10.0">
-                            <children>
-                                <Label styleClass="campo-titulo" text="Permutas" />
-                                <TableView fx:id="tabelaPermutasColaborador" prefHeight="180.0">
-                                    <columnResizePolicy>
-                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                    </columnResizePolicy>
-                                    <columns>
-                                        <TableColumn fx:id="colPermutaData" text="Data turno" />
-                                        <TableColumn fx:id="colPermutaTurnos" text="Troca" />
-                                        <TableColumn fx:id="colPermutaEstado" text="Estado" />
-                                        <TableColumn fx:id="colPermutaAcao" text="Acao" />
-                                    </columns>
-                                </TableView>
-                            </children>
-                        </VBox>
-                    </children>
+                <!-- Preferências -->
+                <VBox spacing="6.0">
+                    <Label styleClass="campo-titulo" text="PREFERENCIAS" />
+                    <TableView fx:id="tabelaPreferenciasColaborador" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                        <columns>
+                            <TableColumn fx:id="colPreferenciaTipo"    text="Tipo" />
+                            <TableColumn fx:id="colPreferenciaPeriodo" text="Periodo" />
+                            <TableColumn fx:id="colPreferenciaEstado"  text="Estado" />
+                            <TableColumn fx:id="colPreferenciaAcao"    text="Acao" />
+                        </columns>
+                    </TableView>
                 </VBox>
-            </children>
+
+                <!-- Permutas -->
+                <VBox spacing="6.0">
+                    <Label styleClass="campo-titulo" text="PERMUTAS" />
+                    <TableView fx:id="tabelaPermutasColaborador" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                        <columns>
+                            <TableColumn fx:id="colPermutaData"   text="Data turno" />
+                            <TableColumn fx:id="colPermutaTurnos" text="Troca" />
+                            <TableColumn fx:id="colPermutaEstado" text="Estado" />
+                            <TableColumn fx:id="colPermutaAcao"   text="Acao" />
+                        </columns>
+                    </TableView>
+                </VBox>
+
+            </VBox>
+
         </VBox>
     </content>
 </ScrollPane>

@@ -1,147 +1,262 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Gestao Loja')}"></head>
-<body>
+<head th:replace="~{web/fragments :: head('Loja e Regras — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 <header th:replace="~{web/fragments :: shellHeader}"></header>
 
-<div class="web-shell">
-    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[82rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-5">
 
-    <main class="web-content">
-        <h1>Modulo Gestao Loja</h1>
-        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
-        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+    <!-- ── Header ── -->
+    <div class="fade-up">
+        <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Loja e Regras</h1>
+        <p class="font-body text-[14px] text-on-surface-variant mt-1">Ajusta o horário da loja, configura regras de planeamento e define períodos especiais.</p>
+    </div>
 
-        <section class="web-card" th:if="${resumo != null}">
-            <h2 th:text="${resumo.nomeLoja()}"></h2>
-            <p th:text="${resumo.localizacao()}"></p>
-            <p th:text="'Cargo atual: ' + ${resumo.cargoGestor()}"></p>
+    <!-- Feedback -->
+    <div th:if="${erro}"    class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    </div>
+    <div th:if="${sucesso}" class="fade-up flex items-center gap-2.5 bg-[#d1fae5] text-[#065f46] px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span><span th:text="${sucesso}"></span>
+    </div>
 
-            <form method="post" action="/web/gestao-loja/horario" class="web-inline-form">
-                <label for="horaAbertura">Abertura</label>
-                <input id="horaAbertura" name="horaAbertura" type="time" th:value="${resumo.horaAbertura()}" required>
+    <th:block th:if="${resumo != null}">
 
-                <label for="horaFecho">Fecho</label>
-                <input id="horaFecho" name="horaFecho" type="time" th:value="${resumo.horaFecho()}" required>
+    <!-- ── Contexto da loja ── -->
+    <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-6"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+        <h2 class="font-display font-bold text-[15px] text-on-surface mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined icon-fill text-primary-container text-[18px]">store</span>
+            Contexto da loja
+        </h2>
+        <div class="grid sm:grid-cols-3 gap-4">
+            <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25">
+                <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Loja</p>
+                <p class="font-body font-bold text-[14px] text-on-surface" th:text="${resumo.nomeLoja()}">–</p>
+            </div>
+            <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25">
+                <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Localização</p>
+                <p class="font-body font-bold text-[14px] text-on-surface" th:text="${resumo.localizacao()}">–</p>
+            </div>
+            <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25">
+                <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Perfil de acesso</p>
+                <p class="font-body font-bold text-[14px] text-on-surface" th:text="${resumo.cargoGestor()}">–</p>
+            </div>
+        </div>
+    </section>
 
-                <button type="submit">Atualizar horario base</button>
-            </form>
-        </section>
+    <!-- ── Horário de funcionamento ── -->
+    <section class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-6"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+        <h2 class="font-display font-bold text-[15px] text-on-surface mb-1 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[18px]">schedule</span>
+            Horário de funcionamento
+        </h2>
+        <p class="font-body text-[13px] text-on-surface-variant mb-5">Indica as horas no formato HH:mm. Se a loja fechar depois da meia-noite, a hora de fecho pode ser inferior à de abertura.</p>
+        <form method="post" action="/web/gestao-loja/horario" class="flex flex-wrap items-end gap-4">
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="horaAbertura">Hora de abertura</label>
+                <input id="horaAbertura" name="horaAbertura" type="time" th:value="${resumo.horaAbertura()}" required
+                       class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="horaFecho">Hora de fecho</label>
+                <input id="horaFecho" name="horaFecho" type="time" th:value="${resumo.horaFecho()}" required
+                       class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+            </div>
+            <button type="submit"
+                    class="flex items-center gap-2 bg-primary-container text-white font-body font-bold text-[13px] px-5 py-2.5 rounded-xl hover:bg-primary transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[16px]">save</span>
+                Guardar horário
+            </button>
+        </form>
+    </section>
 
-        <section class="web-card" th:if="${resumo != null}">
-            <h2>Regras da loja</h2>
-            <form method="post" action="/web/gestao-loja/regras" class="web-form">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Regra</th>
-                        <th>Tipo</th>
-                        <th>Valor base</th>
-                        <th>Valor loja</th>
-                        <th>Observacoes</th>
-                    </tr>
+    <!-- ── Regras específicas ── -->
+    <section class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/25 flex-wrap gap-3">
+            <h2 class="font-display font-bold text-[16px] text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary-container text-[18px]">tune</span>
+                Regras específicas da loja
+            </h2>
+            <button type="submit" form="formRegras"
+                    class="flex items-center gap-2 bg-primary-container text-white font-body font-bold text-[12px] px-4 py-2 rounded-xl hover:bg-primary transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[15px]">save</span>
+                Guardar configuração
+            </button>
+        </div>
+        <form id="formRegras" method="post" action="/web/gestao-loja/regras">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-surface-container-low">
+                        <tr>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Regra</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Valor base</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Valor específico</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Observações</th>
+                        </tr>
                     </thead>
-                    <tbody>
-                    <tr th:if="${#lists.isEmpty(resumo.regras())}">
-                        <td colspan="5">Sem regras configuradas para mostrar.</td>
-                    </tr>
-                    <tr th:each="regra : ${resumo.regras()}">
-                        <td th:text="${regra.descricao()}"></td>
-                        <td th:text="${regra.tipo()}"></td>
-                        <td th:text="${regra.valorPadrao()}"></td>
-                        <td>
-                            <input type="number"
-                                   min="0"
-                                   th:name="'regra_valor_' + ${regra.idRegra()}"
-                                   th:value="${regra.valorEspecifico() != null ? regra.valorEspecifico() : ''}">
-                        </td>
-                        <td>
-                            <input type="text"
-                                   th:name="'regra_obs_' + ${regra.idRegra()}"
-                                   th:value="${regra.observacoes() != null ? regra.observacoes() : ''}">
-                        </td>
-                    </tr>
+                    <tbody class="divide-y divide-outline-variant/25">
+                        <tr th:if="${#lists.isEmpty(resumo.regras())}">
+                            <td colspan="5" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem regras configuradas.</td>
+                        </tr>
+                        <tr th:each="regra : ${resumo.regras()}" class="hover:bg-surface-container-low/50 transition-colors">
+                            <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${regra.descricao()}"></td>
+                            <td class="px-6 py-3.5">
+                                <span class="badge-neu inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${regra.tipo()}"></span>
+                            </td>
+                            <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${regra.valorPadrao()}"></td>
+                            <td class="px-6 py-3.5">
+                                <input type="number" min="0"
+                                       th:name="'regra_valor_' + ${regra.idRegra()}"
+                                       th:value="${regra.valorEspecifico() != null ? regra.valorEspecifico() : ''}"
+                                       placeholder="Usar base"
+                                       class="w-28 bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface" style="outline:none">
+                            </td>
+                            <td class="px-6 py-3.5">
+                                <input type="text"
+                                       th:name="'regra_obs_' + ${regra.idRegra()}"
+                                       th:value="${regra.observacoes() != null ? regra.observacoes() : ''}"
+                                       placeholder="Notas internas…"
+                                       class="w-48 bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface" style="outline:none">
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
-                <button type="submit">Guardar regras</button>
-            </form>
-        </section>
+            </div>
+        </form>
+    </section>
 
-        <section class="web-card" th:if="${resumo != null}">
-            <h2>Horario especial</h2>
-            <form method="post" action="/web/gestao-loja/excecao" class="web-form">
-                <input type="hidden" name="idHorarioEspecial">
-                <label for="descricao">Descricao</label>
-                <input id="descricao" name="descricao" type="text" required>
+    <!-- ── Adicionar período especial ── -->
+    <section class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-6"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+        <h2 class="font-display font-bold text-[16px] text-on-surface mb-5 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[18px]">event_busy</span>
+            Adicionar período especial
+        </h2>
+        <form method="post" action="/web/gestao-loja/excecao" class="flex flex-col gap-5">
+            <input type="hidden" name="idHorarioEspecial">
 
-                <div class="web-grid-two">
-                    <div>
-                        <label for="dataInicio">Data inicio</label>
-                        <input id="dataInicio" name="dataInicio" type="date" required>
-                    </div>
-                    <div>
-                        <label for="dataFim">Data fim</label>
-                        <input id="dataFim" name="dataFim" type="date" required>
-                    </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="descricao">Descrição</label>
+                <input id="descricao" name="descricao" type="text" placeholder="Ex: Natal 2026" required
+                       class="max-w-md bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="dataInicio">Data início</label>
+                    <input id="dataInicio" name="dataInicio" type="date" required
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                 </div>
-
-                <label>
-                    <input type="checkbox" name="lojaEncerrada">
-                    Loja encerrada neste periodo
-                </label>
-
-                <div class="web-grid-three">
-                    <div>
-                        <label for="horaAberturaExcecao">Abertura especial</label>
-                        <input id="horaAberturaExcecao" name="horaAbertura" type="time">
-                    </div>
-                    <div>
-                        <label for="horaFechoExcecao">Fecho especial</label>
-                        <input id="horaFechoExcecao" name="horaFecho" type="time">
-                    </div>
-                    <div>
-                        <label for="minimoColaboradoresTurno">Minimo por turno</label>
-                        <input id="minimoColaboradoresTurno" name="minimoColaboradoresTurno" type="number" min="1">
-                    </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="dataFim">Data fim</label>
+                    <input id="dataFim" name="dataFim" type="date" required
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                 </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="horaAberturaExcecao">Abertura especial</label>
+                    <input id="horaAberturaExcecao" name="horaAbertura" type="time"
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="horaFechoExcecao">Fecho especial</label>
+                    <input id="horaFechoExcecao" name="horaFecho" type="time"
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                </div>
+            </div>
 
-                <label for="observacoesExcecao">Observacoes</label>
-                <textarea id="observacoesExcecao" name="observacoes" rows="2"></textarea>
-                <button type="submit">Guardar excecao</button>
-            </form>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="minimoColaboradoresTurno">Mínimo colaboradores/turno</label>
+                    <input id="minimoColaboradoresTurno" name="minimoColaboradoresTurno" type="number" min="1" placeholder="Ex: 2"
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                </div>
+                <div class="flex items-end pb-1">
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                        <div class="relative">
+                            <input type="checkbox" name="lojaEncerrada" class="sr-only peer">
+                            <div class="w-10 h-6 bg-outline-variant rounded-full peer-checked:bg-primary-container transition-colors"></div>
+                            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4"></div>
+                        </div>
+                        <span class="font-body font-semibold text-[13px] text-on-surface group-hover:text-primary transition-colors">Loja encerrada neste período</span>
+                    </label>
+                </div>
+            </div>
 
-            <table>
-                <thead>
-                <tr>
-                    <th>Periodo</th>
-                    <th>Operacao</th>
-                    <th>Horario</th>
-                    <th>Minimo</th>
-                    <th>Descricao</th>
-                    <th>Acao</th>
-                </tr>
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="observacoesExcecao">Observações</label>
+                <textarea id="observacoesExcecao" name="observacoes" rows="2" placeholder="Notas sobre este período especial…"
+                          class="max-w-lg bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
+            </div>
+
+            <div>
+                <button type="submit"
+                        class="flex items-center gap-2 bg-primary-container text-white font-body font-bold text-[13px] px-5 py-2.5 rounded-xl hover:bg-primary transition-colors shadow-sm">
+                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                    Guardar período especial
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- ── Períodos especiais configurados ── -->
+    <section class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+        <div class="px-6 py-4 border-b border-outline-variant/25">
+            <h2 class="font-display font-bold text-[16px] text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined icon-fill text-primary-container text-[18px]">event_note</span>
+                Períodos especiais configurados
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-surface-container-low">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Período</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Operação</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Horário</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Mínimo</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</th>
+                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
+                    </tr>
                 </thead>
-                <tbody>
-                <tr th:if="${#lists.isEmpty(resumo.horariosEspeciais())}">
-                    <td colspan="6">Sem horarios especiais configurados.</td>
-                </tr>
-                <tr th:each="item : ${resumo.horariosEspeciais()}">
-                    <td th:text="${item.periodo()}"></td>
-                    <td th:text="${item.tipoOperacao()}"></td>
-                    <td th:text="${item.horarioAplicado()}"></td>
-                    <td th:text="${item.minimoColaboradoresTurno() != null ? item.minimoColaboradoresTurno() : '-'}"></td>
-                    <td th:text="${item.descricao()}"></td>
-                    <td>
-                        <form method="post" action="/web/gestao-loja/excecao/remover">
-                            <input type="hidden" name="idHorarioEspecial" th:value="${item.idHorarioEspecial()}">
-                            <button type="submit" class="btn-danger">Remover</button>
-                        </form>
-                    </td>
-                </tr>
+                <tbody class="divide-y divide-outline-variant/25">
+                    <tr th:if="${#lists.isEmpty(resumo.horariosEspeciais())}">
+                        <td colspan="6" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem horários especiais configurados.</td>
+                    </tr>
+                    <tr th:each="item : ${resumo.horariosEspeciais()}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${item.periodo()}"></td>
+                        <td class="px-6 py-3.5">
+                            <span class="badge-neu inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${item.tipoOperacao()}"></span>
+                        </td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.horarioAplicado()}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.minimoColaboradoresTurno() != null ? item.minimoColaboradoresTurno() : '–'}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.descricao()}"></td>
+                        <td class="px-6 py-3.5">
+                            <form method="post" action="/web/gestao-loja/excecao/remover" class="flex justify-end">
+                                <input type="hidden" name="idHorarioEspecial" th:value="${item.idHorarioEspecial()}">
+                                <button type="submit"
+                                        class="flex items-center gap-1.5 bg-error/10 text-error font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-error hover:text-white transition-colors border border-error/20">
+                                    <span class="material-symbols-outlined text-[13px]">delete</span>
+                                    Remover
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
-        </section>
-    </main>
+        </div>
+    </section>
+
+    </th:block>
+
 </div>
+</main>
 </body>
 </html>

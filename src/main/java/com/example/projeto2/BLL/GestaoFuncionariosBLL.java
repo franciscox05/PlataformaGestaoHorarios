@@ -1,5 +1,6 @@
 package com.example.projeto2.BLL;
 
+import com.example.projeto2.Enums.EstadoUtilizador;
 import com.example.projeto2.Modules.Cargo;
 import com.example.projeto2.Modules.Loja;
 import com.example.projeto2.Modules.Lojautilizador;
@@ -191,7 +192,7 @@ public class GestaoFuncionariosBLL {
         colaborador.setEmail(email);
         colaborador.setTelemovel(telemovel);
         colaborador.setPasswordHash(password);
-        colaborador.setEstado("ativo");
+        colaborador.setEstado(EstadoUtilizador.ativo);
         Utilizador colaboradorGuardado = utilizadorRepository.save(colaborador);
 
         criarNovaLigacaoLoja(colaboradorGuardado, loja, cargoSelecionado);
@@ -252,7 +253,7 @@ public class GestaoFuncionariosBLL {
                     ligacaoAtivaNaLoja,
                     ligacaoAtivaGlobal
             );
-            colaborador.setEstado("ativo");
+            colaborador.setEstado(EstadoUtilizador.ativo);
         } else {
             manterOuDesativarColaborador(
                     ligacaoGestor.getIdLoja(),
@@ -304,7 +305,7 @@ public class GestaoFuncionariosBLL {
             throw new IllegalArgumentException("Para alterar o cargo de um colaborador inativo, ativa-o novamente primeiro.");
         }
 
-        colaborador.setEstado("inativo");
+        colaborador.setEstado(EstadoUtilizador.inativo);
     }
 
     private void desativarLigacaoDaLoja(Loja loja, Utilizador colaborador, Lojautilizador ligacaoAtiva) {
@@ -315,7 +316,7 @@ public class GestaoFuncionariosBLL {
         ligacaoAtiva.setDataFim(LocalDate.now());
         lojautilizadorRepository.save(ligacaoAtiva);
 
-        colaborador.setEstado(ligacoesAtivas <= 1 ? "inativo" : "ativo");
+        colaborador.setEstado(ligacoesAtivas <= 1 ? EstadoUtilizador.inativo : EstadoUtilizador.ativo);
     }
 
     private void validarLojaNaoFicaSemGestor(Integer idLoja, Cargo cargoAtual, Cargo cargoNovo, boolean vaiFicarInativo) {
@@ -405,7 +406,7 @@ public class GestaoFuncionariosBLL {
     }
 
     private String calcularEstadoNaLoja(Utilizador colaborador, Lojautilizador ligacao) {
-        boolean utilizadorAtivo = colaborador.getEstado() != null && "ativo".equalsIgnoreCase(colaborador.getEstado());
+        boolean utilizadorAtivo = colaborador.getEstado() == EstadoUtilizador.ativo;
         boolean ligacaoAtiva = ligacao.getDataFim() == null;
         return utilizadorAtivo && ligacaoAtiva ? "ativo" : "inativo";
     }

@@ -1,5 +1,6 @@
 package com.example.projeto2.Modules;
 
+import com.example.projeto2.Enums.EstadoUtilizador;
 import jakarta.persistence.*;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -27,8 +28,9 @@ public class Utilizador {
     private String passwordHash;
 
     @ColumnDefault("'ativo'")
+    @Enumerated(EnumType.STRING)
     @Column(name = "estado", columnDefinition = "estado_user_enum")
-    private String estado; // Mudámos de Object para String
+    private EstadoUtilizador estado;
 
     @OneToMany(mappedBy = "idUtilizador")
     private Set<DayOff> dayOffs = new LinkedHashSet<>();
@@ -79,9 +81,9 @@ public class Utilizador {
         this.passwordHash = passwordHash;
     }
 
-    public String getEstado() { return estado; }
+    public EstadoUtilizador getEstado() { return estado; }
 
-    public void setEstado(String estado) { this.estado = estado; }
+    public void setEstado(EstadoUtilizador estado) { this.estado = estado; }
 
     public Set<DayOff> getDayOffs() {
         return dayOffs;

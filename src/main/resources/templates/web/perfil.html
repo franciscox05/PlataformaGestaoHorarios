@@ -1,90 +1,272 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Perfil')}"></head>
-<body>
+<head th:replace="~{web/fragments :: head('Perfil — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 <header th:replace="~{web/fragments :: shellHeader}"></header>
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[86rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-6">
 
-<div class="web-shell">
-    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+    <!-- Header -->
+    <div class="fade-up">
+        <h1 class="font-display font-bold text-[28px] md:text-[32px] text-on-surface tracking-tight">Perfil</h1>
+        <p class="font-body text-[14px] text-on-surface-variant mt-1">Consulta os teus dados e atualiza informações pessoais.</p>
+    </div>
 
-    <main class="web-content">
-        <h1>Modulo Perfil</h1>
-        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
-        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+    <!-- Feedback -->
+    <div th:if="${erro}" class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    </div>
+    <div th:if="${sucesso}" class="fade-up flex items-center gap-2.5 bg-[#d1fae5] text-[#065f46] px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span><span th:text="${sucesso}"></span>
+    </div>
 
-        <section class="web-kpis" th:if="${resumo != null}">
-            <article class="web-kpi">
-                <h2>Horas este mes</h2>
-                <strong th:text="${resumo.horasEsteMes()}"></strong>
-            </article>
-            <article class="web-kpi">
-                <h2>Folgas pendentes</h2>
-                <strong th:text="${resumo.pedidosPendentes()}"></strong>
-            </article>
-            <article class="web-kpi">
-                <h2>Folgas aprovadas</h2>
-                <strong th:text="${resumo.pedidosAprovados()}"></strong>
-            </article>
-            <article class="web-kpi">
-                <h2>Turnos futuros</h2>
-                <strong th:text="${resumo.turnosFuturos()}"></strong>
-            </article>
+    <!-- KPIs -->
+    <div th:if="${resumo != null}" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="flex items-center justify-between">
+                <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Horas este mês</p>
+                <span class="material-symbols-outlined text-[18px] text-outline/40">timer</span>
+            </div>
+            <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
+                    th:text="${resumo.horasEsteMes()}">0</strong>
+        </article>
+        <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="flex items-center justify-between">
+                <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Pedidos pendentes</p>
+                <span class="material-symbols-outlined text-[18px] text-outline/40">hourglass_empty</span>
+            </div>
+            <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
+                    th:text="${resumo.pedidosPendentes()}">0</strong>
+        </article>
+        <article class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="flex items-center justify-between">
+                <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Folgas aprovadas</p>
+                <span class="material-symbols-outlined text-[18px] text-outline/40">beach_access</span>
+            </div>
+            <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
+                    th:text="${resumo.pedidosAprovados()}">0</strong>
+        </article>
+        <article class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="flex items-center justify-between">
+                <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Turnos futuros</p>
+                <span class="material-symbols-outlined text-[18px] text-outline/40">upcoming</span>
+            </div>
+            <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
+                    th:text="${resumo.turnosFuturos()}">0</strong>
+        </article>
+    </div>
+
+    <!-- Layout principal -->
+    <div class="grid lg:grid-cols-[300px_1fr] gap-5" th:if="${resumo != null}">
+
+        <!-- Cartão identidade -->
+        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+                 style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+            <!-- Banner topo -->
+            <div class="h-20 relative shrink-0"
+                 style="background:linear-gradient(135deg,#1a0005,#2a0a0f)">
+                <div class="absolute inset-0" style="background:radial-gradient(ellipse at right,rgba(192,0,31,.3),transparent 60%)"></div>
+            </div>
+            <!-- Avatar -->
+            <div class="px-6 pb-5 -mt-10 flex flex-col items-center text-center relative">
+                <div class="w-20 h-20 rounded-full flex items-center justify-center text-white font-display font-black text-3xl mb-3"
+                     style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 0 0 4px #fff,0 4px 16px rgba(192,0,31,.3)"
+                     th:text="${resumo.nome() != null && !resumo.nome().isEmpty() ? resumo.nome().substring(0,1).toUpperCase() : 'U'}">U</div>
+                <p class="font-display font-bold text-[20px] text-on-surface" th:text="${resumo.nome()}">–</p>
+                <p class="font-body text-[13px] text-on-surface-variant mt-0.5" th:text="${resumo.cargoAtual()}">–</p>
+                <span class="inline-flex items-center gap-1.5 font-body font-bold text-[10px] uppercase tracking-wider badge-ok px-3 py-1 rounded-full mt-3"
+                      th:text="${resumo.estado()}">Ativo</span>
+            </div>
+
+            <!-- Info -->
+            <div class="flex flex-col gap-1 px-5 pb-6 border-t border-outline-variant/25 pt-4">
+                <div class="flex items-center gap-3 py-2.5 rounded-xl hover:bg-surface-container-low px-2 transition-colors">
+                    <span class="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[15px] text-on-surface-variant">mail</span>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="font-body font-semibold text-[9px] uppercase tracking-wider text-on-surface-variant">Email</p>
+                        <p class="font-body text-[13px] text-on-surface truncate" th:text="${resumo.email()}">–</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 py-2.5 rounded-xl hover:bg-surface-container-low px-2 transition-colors">
+                    <span class="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[15px] text-on-surface-variant">phone_iphone</span>
+                    </span>
+                    <div>
+                        <p class="font-body font-semibold text-[9px] uppercase tracking-wider text-on-surface-variant">Telemóvel</p>
+                        <p class="font-body text-[13px] text-on-surface" th:text="${resumo.telemovel() != null ? resumo.telemovel() : '–'}">–</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 py-2.5 rounded-xl hover:bg-surface-container-low px-2 transition-colors">
+                    <span class="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[15px] text-on-surface-variant">store</span>
+                    </span>
+                    <div>
+                        <p class="font-body font-semibold text-[9px] uppercase tracking-wider text-on-surface-variant">Loja</p>
+                        <p class="font-body text-[13px] text-on-surface" th:text="${resumo.lojaAtual()}">–</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 py-2.5 rounded-xl hover:bg-surface-container-low px-2 transition-colors">
+                    <span class="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[15px] text-on-surface-variant">event</span>
+                    </span>
+                    <div>
+                        <p class="font-body font-semibold text-[9px] uppercase tracking-wider text-on-surface-variant">Data de entrada</p>
+                        <p class="font-body text-[13px] text-on-surface" th:text="${resumo.dataEntrada()}">–</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 py-2.5 rounded-xl px-2"
+                     style="background:rgba(192,0,31,.04);border:1px solid rgba(192,0,31,.1)">
+                    <span class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                          style="background:rgba(192,0,31,.1)">
+                        <span class="material-symbols-outlined text-[15px]" style="color:#c0001f">schedule</span>
+                    </span>
+                    <div>
+                        <p class="font-body font-semibold text-[9px] uppercase tracking-wider text-on-surface-variant">Próximo turno</p>
+                        <p class="font-body font-bold text-[13px]" style="color:#c0001f"
+                           th:text="${resumo.proximoTurno() != null ? resumo.proximoTurno() : '–'}">–</p>
+                    </div>
+                </div>
+            </div>
         </section>
 
-        <section class="web-card" th:if="${resumo != null}">
-            <h2>Dados do utilizador</h2>
-            <p><strong>Nome atual:</strong> <span th:text="${resumo.nome()}"></span></p>
-            <p><strong>Email atual:</strong> <span th:text="${resumo.email()}"></span></p>
-            <p><strong>Telemovel atual:</strong> <span th:text="${resumo.telemovel()}"></span></p>
-            <p><strong>Estado:</strong> <span th:text="${resumo.estado()}"></span></p>
-            <p><strong>Loja:</strong> <span th:text="${resumo.lojaAtual()}"></span></p>
-            <p><strong>Cargo:</strong> <span th:text="${resumo.cargoAtual()}"></span></p>
-            <p><strong>Data de entrada:</strong> <span th:text="${resumo.dataEntrada()}"></span></p>
-            <p><strong>Proximo turno:</strong> <span th:text="${resumo.proximoTurno()}"></span></p>
-        </section>
+        <!-- Formulários -->
+        <div class="grid sm:grid-cols-2 gap-4 content-start">
 
-        <section class="web-grid-two" th:if="${resumo != null}">
-            <article class="web-card">
-                <h2>Atualizar nome</h2>
-                <form method="post" action="/web/perfil/nome" class="web-form">
-                    <label for="nome">Novo nome</label>
-                    <input id="nome" name="nome" type="text" required>
-                    <button type="submit">Guardar nome</button>
+            <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4"
+                     style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
+                        <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">badge</span>
+                    </span>
+                    <h2 class="font-display font-bold text-[15px] text-on-surface">Atualizar nome</h2>
+                </div>
+                <form method="post" action="/web/perfil/nome" class="flex flex-col gap-3 flex-1">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="nome">Novo nome</label>
+                        <input id="nome" name="nome" type="text" placeholder="Nome completo" required
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
+                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
+                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                    </div>
+                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all"
+                            style="background:linear-gradient(135deg,#c0001f,#7a0014)">Guardar nome</button>
                 </form>
             </article>
 
-            <article class="web-card">
-                <h2>Atualizar email</h2>
-                <form method="post" action="/web/perfil/email" class="web-form">
-                    <label for="email">Novo email</label>
-                    <input id="email" name="email" type="email" required>
-                    <button type="submit">Guardar email</button>
+            <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4"
+                     style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
+                        <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">mail</span>
+                    </span>
+                    <h2 class="font-display font-bold text-[15px] text-on-surface">Atualizar email</h2>
+                </div>
+                <form method="post" action="/web/perfil/email" class="flex flex-col gap-3 flex-1">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="email">Novo email</label>
+                        <input id="email" name="email" type="email" placeholder="email@empresa.pt" required
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
+                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
+                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                    </div>
+                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all"
+                            style="background:linear-gradient(135deg,#c0001f,#7a0014)">Guardar email</button>
                 </form>
             </article>
 
-            <article class="web-card">
-                <h2>Atualizar telemovel</h2>
-                <form method="post" action="/web/perfil/telemovel" class="web-form">
-                    <label for="telemovel">Novo telemovel</label>
-                    <input id="telemovel" name="telemovel" type="text" maxlength="9" required>
-                    <button type="submit">Guardar telemovel</button>
+            <article class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4"
+                     style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
+                        <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">phone_iphone</span>
+                    </span>
+                    <h2 class="font-display font-bold text-[15px] text-on-surface">Atualizar telemóvel</h2>
+                </div>
+                <form method="post" action="/web/perfil/telemovel" class="flex flex-col gap-3 flex-1">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="telemovel">Número (9 dígitos)</label>
+                        <input id="telemovel" name="telemovel" type="text" maxlength="9" placeholder="9XXXXXXXX" required
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
+                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
+                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                    </div>
+                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all"
+                            style="background:linear-gradient(135deg,#c0001f,#7a0014)">Guardar telemóvel</button>
                 </form>
             </article>
 
-            <article class="web-card">
-                <h2>Atualizar palavra-passe</h2>
-                <form method="post" action="/web/perfil/password" class="web-form">
-                    <label for="passwordAtual">Password atual</label>
-                    <input id="passwordAtual" name="passwordAtual" type="password" required>
-                    <label for="novaPassword">Nova password</label>
-                    <input id="novaPassword" name="novaPassword" type="password" required>
-                    <label for="confirmarPassword">Confirmar password</label>
-                    <input id="confirmarPassword" name="confirmarPassword" type="password" required>
-                    <button type="submit">Atualizar password</button>
+            <article class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4"
+                     style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
+                        <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">lock</span>
+                    </span>
+                    <h2 class="font-display font-bold text-[15px] text-on-surface">Alterar palavra-passe</h2>
+                </div>
+                <form method="post" action="/web/perfil/password" class="flex flex-col gap-3 flex-1">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="passwordAtual">Atual</label>
+                        <input id="passwordAtual" name="passwordAtual" type="password" required placeholder="••••••••"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
+                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
+                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="novaPassword">Nova</label>
+                        <input id="novaPassword" name="novaPassword" type="password" required placeholder="••••••••"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
+                               oninput="updateStrength(this.value)"
+                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
+                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                        <!-- Indicador de força -->
+                        <div class="flex gap-1 mt-0.5" id="strengthBars">
+                            <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb1"></div>
+                            <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb2"></div>
+                            <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb3"></div>
+                            <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb4"></div>
+                        </div>
+                        <p id="strengthLabel" class="font-body text-[10px] text-on-surface-variant/50"></p>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="confirmarPassword">Confirmar</label>
+                        <input id="confirmarPassword" name="confirmarPassword" type="password" required placeholder="••••••••"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none"
+                               onfocus="this.style.borderColor='rgba(192,0,31,.5)';this.style.boxShadow='0 0 0 2px rgba(192,0,31,.1)'"
+                               onblur="this.style.borderColor='';this.style.boxShadow=''">
+                    </div>
+                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all"
+                            style="background:linear-gradient(135deg,#c0001f,#7a0014)">Atualizar palavra-passe</button>
                 </form>
             </article>
-        </section>
-    </main>
+        </div>
+    </div>
+
 </div>
+</main>
+
+<script>
+function updateStrength(val){
+    var score=0;
+    if(val.length>=8) score++;
+    if(/[A-Z]/.test(val)) score++;
+    if(/[0-9]/.test(val)) score++;
+    if(/[^A-Za-z0-9]/.test(val)) score++;
+    var colors=['','#ef4444','#f97316','#eab308','#22c55e'];
+    var labels=['','Fraca','Razoável','Boa','Forte'];
+    for(var i=1;i<=4;i++){
+        var el=document.getElementById('sb'+i);
+        if(el) el.style.background = i<=score ? colors[score] : 'rgba(144,111,109,.18)';
+    }
+    var lbl=document.getElementById('strengthLabel');
+    if(lbl){ lbl.textContent=val.length?labels[score]:''; lbl.style.color=colors[score]||''; }
+}
+</script>
 </body>
 </html>

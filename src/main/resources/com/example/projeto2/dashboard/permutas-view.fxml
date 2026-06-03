@@ -7,109 +7,251 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.shape.Circle?>
 
-<ScrollPane fitToWidth="true" hbarPolicy="NEVER" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PermutasController">
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+            styleClass="conteudo-scroll"
+            stylesheets="@dashboard.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.projeto2.Controller.PermutasController">
     <content>
-        <VBox alignment="TOP_CENTER" prefHeight="720.0" prefWidth="730.0" spacing="20.0">
+        <VBox spacing="0" styleClass="conteudo-pagina">
 
-            <padding>
-                <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
-            </padding>
-
-            <children>
-                <Label styleClass="titulo-dashboard" text="Trocar turno" />
-                <Label styleClass="subtitulo" text="Escolhe um dos teus turnos, seleciona uma opção elegível e acompanha o histórico dos teus pedidos." />
-
-                <HBox alignment="TOP_CENTER" spacing="20.0">
-                    <children>
-                        <VBox prefWidth="420.0" spacing="15.0" styleClass="info-card">
-                            <children>
-                                <Label styleClass="card-titulo" text="Novo pedido de permuta" />
-
-                                <VBox alignment="CENTER_LEFT" spacing="8.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="1. O teu turno a ceder" />
-                                        <ComboBox fx:id="cbMeuTurno" maxWidth="1.7976931348623157E308" promptText="Escolhe um dos teus turnos futuros" />
-                                    </children>
-                                </VBox>
-
-                                <VBox alignment="CENTER_LEFT" spacing="8.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="2. Colega eleg&#237;vel" />
-                                        <ComboBox fx:id="cbColegaElegivel" maxWidth="1.7976931348623157E308" promptText="Escolhe um colega eleg&#237;vel" />
-                                    </children>
-                                </VBox>
-
-                                <VBox alignment="CENTER_LEFT" spacing="8.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="3. Hor&#225;rio pretendido" />
-                                        <ComboBox fx:id="cbTurnoColega" maxWidth="1.7976931348623157E308" promptText="Escolhe um turno eleg&#237;vel para troca" />
-                                        <Label fx:id="lblTurnosElegiveis" styleClass="texto-apoio" text="Seleciona primeiro um dos teus turnos." wrapText="true" />
-                                    </children>
-                                </VBox>
-
-                                <Label fx:id="lblMensagem" styleClass="mensagem-feedback" text="Mensagem" visible="false" wrapText="true" />
-
-                                <Button fx:id="btnSubmeterTroca" maxWidth="1.7976931348623157E308" onAction="#onSubmeterTrocaClick" styleClass="botao-acao" text="Submeter pedido de troca" />
-                            </children>
-                        </VBox>
-
-                        <VBox prefWidth="280.0" spacing="10.0" styleClass="info-card">
-                            <children>
-                                <Label styleClass="card-titulo" text="Regras rápidas" />
-                                <Label styleClass="subtitulo" wrapText="true" text="Os turnos elegíveis são filtrados para a mesma data e loja do teu turno selecionado." />
-                                <Label styleClass="subtitulo" wrapText="true" text="Turnos envolvidos numa permuta pendente deixam de aparecer noutras trocas para evitar conflitos." />
-                                <Label styleClass="subtitulo" wrapText="true" text="Gestores podem aprovar ou rejeitar pedidos pendentes da sua loja diretamente neste ecrã." />
-                            </children>
-                        </VBox>
-                    </children>
-                </HBox>
-
-                <VBox spacing="10.0" VBox.vgrow="ALWAYS">
-                    <children>
-                        <Label styleClass="subtitulo" text="Histórico de pedidos enviados" />
-                        <TableView fx:id="tabelaPedidosPermuta" prefHeight="220.0" VBox.vgrow="ALWAYS">
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                            <columns>
-                                <TableColumn fx:id="colDataPedido" prefWidth="140.0" text="Pedido em" />
-                                <TableColumn fx:id="colTurnoOrigem" prefWidth="180.0" text="Meu turno" />
-                                <TableColumn fx:id="colTurnoDestino" prefWidth="280.0" text="Turno pretendido" />
-                                <TableColumn fx:id="colEstadoPermuta" prefWidth="120.0" text="Estado" />
-                            </columns>
-                        </TableView>
-                    </children>
+            <StackPane styleClass="page-banner" minHeight="190.0">
+                <VBox.margin><Insets left="32.0" right="32.0" bottom="0.0" top="0.0" /></VBox.margin>
+                <VBox alignment="CENTER" spacing="12.0">
+                    <StackPane styleClass="icon-badge-white-lg" prefWidth="64.0" prefHeight="64.0">
+                        <SVGPath styleClass="icon-svg-dark"
+                                 content="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"
+                                 scaleX="1.1" scaleY="1.1" />
+                    </StackPane>
+                    <VBox alignment="CENTER" spacing="6.0">
+                        <Label styleClass="banner-titulo" text="Trocar Turno" />
+                        <Label styleClass="banner-subtitulo"
+                               text="Prop&#245;e uma permuta com um colega eleg&#237;vel · Acompanha o hist&#243;rico"
+                               textAlignment="CENTER" wrapText="true" />
+                    </VBox>
                 </VBox>
+            </StackPane>
 
-                <VBox fx:id="painelAprovacao" managed="false" spacing="12.0" styleClass="info-card" visible="false" VBox.vgrow="ALWAYS">
-                    <children>
-                        <Label styleClass="card-titulo" text="Aprovar pedidos de permuta" />
-                        <Label styleClass="subtitulo" text="Pedidos pendentes da tua loja que podem ser tratados por um responsável." wrapText="true" />
+            <VBox spacing="32.0">
+                <padding>
+                    <Insets bottom="48.0" left="40.0" right="40.0" top="40.0" />
+                </padding>
 
-                        <TableView fx:id="tabelaPedidosPendentes" prefHeight="240.0" VBox.vgrow="ALWAYS">
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                            <columns>
-                                <TableColumn fx:id="colColaboradorPendente" prefWidth="150.0" text="Colaborador" />
-                                <TableColumn fx:id="colPedidoPendente" prefWidth="140.0" text="Pedido em" />
-                                <TableColumn fx:id="colOrigemPendente" prefWidth="160.0" text="Turno atual" />
-                                <TableColumn fx:id="colDestinoPendente" prefWidth="240.0" text="Turno pretendido" />
-                            </columns>
-                        </TableView>
+                <GridPane hgap="24.0" vgap="24.0">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="ALWAYS" percentWidth="62.0" />
+                        <ColumnConstraints hgrow="ALWAYS" percentWidth="38.0" />
+                    </columnConstraints>
 
-                        <HBox alignment="CENTER_RIGHT" spacing="10.0">
-                            <children>
-                                <Button fx:id="btnRejeitarPermuta" onAction="#onRejeitarPermutaClick" styleClass="botao-secundario" text="Rejeitar" />
-                                <Button fx:id="btnAprovarPermuta" onAction="#onAprovarPermutaClick" styleClass="botao-acao" text="Aprovar" />
-                            </children>
+                    <VBox spacing="24.0" styleClass="bento-card"
+                          GridPane.columnIndex="0" GridPane.rowIndex="0">
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                            <StackPane styleClass="icon-badge-blue" prefWidth="40.0" prefHeight="40.0">
+                                <SVGPath styleClass="icon-svg-white"
+                                         content="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
+                            </StackPane>
+                            <VBox spacing="2.0">
+                                <Label styleClass="bento-card-titulo" text="Novo Pedido de Permuta" />
+                                <Label styleClass="bento-card-subtitulo" text="3 passos simples" />
+                            </VBox>
                         </HBox>
-                    </children>
+
+                        <Region styleClass="card-divider" maxHeight="1.0" maxWidth="Infinity" />
+
+                        <VBox spacing="10.0" styleClass="step-container">
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <StackPane styleClass="step-badge" prefWidth="28.0" prefHeight="28.0">
+                                    <Label styleClass="step-numero" text="1" />
+                                </StackPane>
+                                <Label styleClass="campo-titulo" text="O teu turno a ceder" />
+                            </HBox>
+                            <ComboBox fx:id="cbMeuTurno"
+                                      maxWidth="Infinity"
+                                      promptText="Escolhe um dos teus turnos futuros..." />
+                        </VBox>
+
+                        <VBox spacing="10.0" styleClass="step-container">
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <StackPane styleClass="step-badge" prefWidth="28.0" prefHeight="28.0">
+                                    <Label styleClass="step-numero" text="2" />
+                                </StackPane>
+                                <Label styleClass="campo-titulo" text="Colega eleg&#237;vel" />
+                            </HBox>
+                            <ComboBox fx:id="cbColegaElegivel"
+                                      maxWidth="Infinity"
+                                      promptText="Escolhe um colega eleg&#237;vel..." />
+                        </VBox>
+
+                        <VBox spacing="10.0" styleClass="step-container">
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <StackPane styleClass="step-badge" prefWidth="28.0" prefHeight="28.0">
+                                    <Label styleClass="step-numero" text="3" />
+                                </StackPane>
+                                <Label styleClass="campo-titulo" text="Hor&#225;rio pretendido" />
+                            </HBox>
+                            <ComboBox fx:id="cbTurnoColega"
+                                      maxWidth="Infinity"
+                                      promptText="Escolhe um turno eleg&#237;vel para troca..." />
+                            <Label fx:id="lblTurnosElegiveis" styleClass="texto-ajuda"
+                                   text="Seleciona primeiro um dos teus turnos." wrapText="true" />
+                        </VBox>
+
+                        <Label fx:id="lblMensagem" styleClass="mensagem-feedback"
+                               text="Mensagem" visible="false" wrapText="true" />
+
+                        <Region VBox.vgrow="ALWAYS" />
+
+                        <Button fx:id="btnSubmeterTroca" maxWidth="Infinity"
+                                onAction="#onSubmeterTrocaClick"
+                                styleClass="botao-acao-primary"
+                                text="&#10003;  Submeter Pedido de Troca" />
+                    </VBox>
+
+                    <VBox spacing="20.0" styleClass="bento-card"
+                          GridPane.columnIndex="1" GridPane.rowIndex="0">
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                            <StackPane styleClass="icon-badge-red" prefWidth="40.0" prefHeight="40.0">
+                                <SVGPath styleClass="icon-svg-white"
+                                         content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" />
+                            </StackPane>
+                            <Label styleClass="bento-card-titulo" text="Regras R&#225;pidas" />
+                        </HBox>
+
+                        <Region styleClass="card-divider" maxHeight="1.0" maxWidth="Infinity" />
+
+                        <VBox spacing="16.0">
+                            <HBox spacing="12.0" alignment="TOP_LEFT">
+                                <StackPane styleClass="rule-icon-wrap" prefWidth="32.0" prefHeight="32.0">
+                                    <SVGPath styleClass="icon-svg-blue-sm"
+                                             content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                                </StackPane>
+                                <Label styleClass="texto-ajuda" wrapText="true" HBox.hgrow="ALWAYS"
+                                       text="Os turnos eleg&#237;veis s&#227;o filtrados para a mesma data e loja do teu turno selecionado." />
+                            </HBox>
+                            <HBox spacing="12.0" alignment="TOP_LEFT">
+                                <StackPane styleClass="rule-icon-wrap" prefWidth="32.0" prefHeight="32.0">
+                                    <SVGPath styleClass="icon-svg-orange-sm"
+                                             content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                                </StackPane>
+                                <Label styleClass="texto-ajuda" wrapText="true" HBox.hgrow="ALWAYS"
+                                       text="Turnos envolvidos numa permuta pendente n&#227;o aparecem noutras trocas para evitar conflitos." />
+                            </HBox>
+                            <HBox spacing="12.0" alignment="TOP_LEFT">
+                                <StackPane styleClass="rule-icon-wrap" prefWidth="32.0" prefHeight="32.0">
+                                    <SVGPath styleClass="icon-svg-green-sm"
+                                             content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                                </StackPane>
+                                <Label styleClass="texto-ajuda" wrapText="true" HBox.hgrow="ALWAYS"
+                                       text="Gestores podem aprovar ou rejeitar pedidos pendentes da sua loja neste mesmo ecr&#227;." />
+                            </HBox>
+                        </VBox>
+                    </VBox>
+                </GridPane>
+
+                <VBox spacing="16.0">
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <SVGPath styleClass="section-icon-accent"
+                                 content="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" />
+                        <Label styleClass="section-heading" text="Hist&#243;rico de Pedidos Enviados" />
+                    </HBox>
+
+                    <VBox styleClass="bento-card" spacing="0">
+                        <TableView fx:id="tabelaPedidosPermuta" VBox.vgrow="ALWAYS" minHeight="200.0"
+                                   styleClass="tabela-premium">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                            <columns>
+                                <TableColumn fx:id="colDataPedido"    text="Pedido em" />
+                                <TableColumn fx:id="colTurnoOrigem"   text="Meu turno" />
+                                <TableColumn fx:id="colTurnoDestino"  text="Turno pretendido" />
+                                <TableColumn fx:id="colEstadoPermuta" text="Estado" />
+                            </columns>
+                            <placeholder>
+                                <VBox alignment="CENTER" spacing="12.0">
+                                    <padding>
+                                        <Insets top="40.0" bottom="40.0" />
+                                    </padding>
+                                    <SVGPath styleClass="empty-state-icon"
+                                             content="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
+                                    <Label styleClass="empty-state-titulo" text="Sem pedidos de permuta" />
+                                    <Label styleClass="empty-state-descricao"
+                                           text="Ainda n&#227;o efetuaste nenhum pedido de troca de turno."
+                                           textAlignment="CENTER" wrapText="true" />
+                                </VBox>
+                            </placeholder>
+                        </TableView>
+                    </VBox>
                 </VBox>
-            </children>
+
+                <VBox fx:id="painelAprovacao" managed="false" spacing="16.0" visible="false">
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <SVGPath styleClass="section-icon-warning"
+                                 content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                        <Label styleClass="section-heading" text="Aprovar Permutas da Loja" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <StackPane styleClass="badge-pendente">
+                            <Label styleClass="badge-texto" text="GESTOR" />
+                        </StackPane>
+                    </HBox>
+
+                    <VBox styleClass="bento-card-warning" spacing="0">
+                        <VBox spacing="8.0">
+                            <padding>
+                                <Insets top="20.0" left="20.0" right="20.0" bottom="16.0" />
+                            </padding>
+                            <Label styleClass="bento-card-subtitulo"
+                                   text="Pedidos de permuta pendentes da tua loja que podem ser tratados por um respons&#225;vel."
+                                   wrapText="true" />
+                        </VBox>
+                        <TableView fx:id="tabelaPedidosPendentes" VBox.vgrow="ALWAYS" minHeight="180.0"
+                                   styleClass="tabela-premium">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                            <columns>
+                                <TableColumn fx:id="colColaboradorPendente" text="Colaborador" />
+                                <TableColumn fx:id="colPedidoPendente"      text="Pedido em" />
+                                <TableColumn fx:id="colOrigemPendente"      text="Turno atual" />
+                                <TableColumn fx:id="colDestinoPendente"     text="Turno pretendido" />
+                            </columns>
+                            <placeholder>
+                                <VBox alignment="CENTER" spacing="12.0">
+                                    <padding>
+                                        <Insets top="32.0" bottom="32.0" />
+                                    </padding>
+                                    <SVGPath styleClass="empty-state-icon-green"
+                                             content="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    <Label styleClass="empty-state-titulo" text="Sem permutas pendentes" />
+                                    <Label styleClass="empty-state-descricao"
+                                           text="Todos os pedidos de troca da tua loja est&#227;o tratados."
+                                           textAlignment="CENTER" wrapText="true" />
+                                </VBox>
+                            </placeholder>
+                        </TableView>
+                        <HBox alignment="CENTER_RIGHT" spacing="12.0">
+                            <padding>
+                                <Insets top="16.0" left="20.0" right="20.0" bottom="20.0" />
+                            </padding>
+                            <Button fx:id="btnRejeitarPermuta" onAction="#onRejeitarPermutaClick"
+                                    styleClass="botao-danger-sm" text="&#10007;  Rejeitar" />
+                            <Button fx:id="btnAprovarPermuta"  onAction="#onAprovarPermutaClick"
+                                    styleClass="botao-success-sm" text="&#10003;  Aprovar" />
+                        </HBox>
+                    </VBox>
+                </VBox>
+
+            </VBox>
         </VBox>
     </content>
 </ScrollPane>

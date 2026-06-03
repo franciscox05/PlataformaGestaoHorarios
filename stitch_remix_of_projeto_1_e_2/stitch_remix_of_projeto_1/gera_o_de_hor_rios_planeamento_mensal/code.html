@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Geração de Horários - Levi's Staff Portal</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Space Grotesk & Manrope -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config from Design System -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#930017",
+                    "on-primary": "#ffffff",
+                    "surface-container": "#f0eded",
+                    "on-primary-fixed": "#410005",
+                    "surface": "#fcf9f8",
+                    "background": "#fcf9f8",
+                    "secondary-fixed": "#e5e2e1",
+                    "error": "#ba1a1a",
+                    "tertiary": "#9f001a",
+                    "on-secondary-container": "#636262",
+                    "tertiary-fixed": "#ffdad7",
+                    "outline-variant": "#e5bdba",
+                    "on-primary-container": "#ffdcd9",
+                    "on-error": "#ffffff",
+                    "on-tertiary-fixed-variant": "#930017",
+                    "surface-container-high": "#eae7e7",
+                    "primary-fixed-dim": "#ffb3af",
+                    "on-tertiary-fixed": "#410005",
+                    "on-surface": "#1c1b1b",
+                    "on-tertiary-container": "#ffdcd9",
+                    "on-secondary": "#ffffff",
+                    "surface-variant": "#e5e2e1",
+                    "surface-container-highest": "#e5e2e1",
+                    "surface-bright": "#fcf9f8",
+                    "outline": "#906f6d",
+                    "inverse-primary": "#ffb3af",
+                    "on-background": "#1c1b1b",
+                    "primary-container": "#c91428",
+                    "tertiary-container": "#c91428",
+                    "error-container": "#ffdad6",
+                    "primary": "#9f001a",
+                    "tertiary-fixed-dim": "#ffb3af",
+                    "surface-dim": "#dcd9d9",
+                    "secondary-container": "#e2dfde",
+                    "inverse-on-surface": "#f3f0ef",
+                    "primary-fixed": "#ffdad7",
+                    "on-surface-variant": "#5c403e",
+                    "on-secondary-fixed-variant": "#474746",
+                    "on-error-container": "#93000a",
+                    "surface-container-low": "#f6f3f2",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "secondary": "#5f5e5e",
+                    "inverse-surface": "#313030",
+                    "surface-tint": "#bf0522",
+                    "on-secondary-fixed": "#1c1b1b",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-lowest": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": [
+                            "Space Grotesk"
+                    ],
+                    "display": [
+                            "Space Grotesk"
+                    ],
+                    "body": [
+                            "Manrope"
+                    ],
+                    "label": [
+                            "Manrope"
+                    ]
+            },
+            "fontSize": {}
+        },
+        },
+      }
+    </script>
+<style>
+        /* Custom Styles for Glassmorphism & Denim Grain */
+        .glass-overlay {
+            background: rgba(252, 249, 248, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        .denim-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+        }
+        .ambient-shadow {
+            box-shadow: 0 20px 40px rgba(28, 27, 27, 0.06);
+        }
+        .ghost-border {
+            border: 1px solid rgba(229, 189, 186, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar (Shared Component) -->
+<nav class="h-screen w-64 fixed left-0 top-0 bg-inverse-surface dark:bg-inverse-surface relative after:content-[''] after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:bg-white/5 shadow-none flex flex-col h-full py-8 z-50 denim-texture">
+<div class="px-6 mb-12">
+<h1 aria-label="Levi's Heritage Logo" class="font-display text-2xl font-bold tracking-tighter text-on-primary uppercase">Staff Portal</h1>
+<p class="text-secondary-fixed-dim text-sm mt-1">Premium Editorial</p>
+</div>
+<ul class="flex flex-col flex-grow">
+<li>
+<a class="text-secondary-fixed-dim flex items-center gap-3 px-6 py-4 hover:text-on-primary transition-colors hover:bg-white/5 duration-300" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<span class="font-display font-medium text-sm">Dashboard</span>
+</a>
+</li>
+<li>
+<!-- Active Navigation: Schedule maps best to 'Geração de Horários' / Monthly Planning -->
+<a aria-current="page" class="relative text-on-primary flex items-center gap-3 px-6 py-4 border-r-4 border-primary bg-white/5 hover:bg-white/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+<span class="font-display font-bold tracking-tight text-sm">Schedule</span>
+</a>
+</li>
+<li>
+<a class="text-secondary-fixed-dim flex items-center gap-3 px-6 py-4 hover:text-on-primary transition-colors hover:bg-white/5 duration-300" href="#">
+<span class="material-symbols-outlined text-xl">groups</span>
+<span class="font-display font-medium text-sm">Staff Directory</span>
+</a>
+</li>
+<li>
+<a class="text-secondary-fixed-dim flex items-center gap-3 px-6 py-4 hover:text-on-primary transition-colors hover:bg-white/5 duration-300" href="#">
+<span class="material-symbols-outlined text-xl">payments</span>
+<span class="font-display font-medium text-sm">Payroll</span>
+</a>
+</li>
+<li>
+<a class="text-secondary-fixed-dim flex items-center gap-3 px-6 py-4 hover:text-on-primary transition-colors hover:bg-white/5 duration-300" href="#">
+<span class="material-symbols-outlined text-xl">inventory_2</span>
+<span class="font-display font-medium text-sm">Archives</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 ml-64 flex flex-col h-screen overflow-y-auto">
+<!-- TopNavBar (Shared Component) -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-20 bg-surface/80 backdrop-blur-xl shadow-none z-40">
+<div class="flex justify-between items-center px-12 h-full">
+<div class="flex items-center gap-8">
+<h2 class="font-display text-xl font-black tracking-tight text-primary">Dashboard</h2>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
+<input class="bg-transparent border-0 border-b-2 border-outline pb-1 pl-10 pr-4 text-sm focus:ring-0 focus:border-primary transition-colors duration-300 w-64 font-body placeholder:text-on-surface-variant" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex gap-6">
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-sm font-body" href="#">Help Center</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 text-sm font-body" href="#">Internal News</a>
+</nav>
+<div class="flex items-center gap-4 border-l border-outline-variant/30 pl-6 ml-2">
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden ml-2 border-2 border-surface-container-low">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmCIJUkdVORySDWWF6Wc5vo_08Y9ExARGKzCeijygkwswlIFWF8gp5PRudX6yVPnBh4yY1orY05wtJf34H8mX8zf_QITnS6-SzYDJ_oUda3bEfeBodq-YWDYtoxuTCZjnAdN-p4_Y9hH4KpJnszoiTmUjIBVQMAWcC81mh99p8cZeBfXezoP2z8zK6NjjanMAjl6NDTwd5FMCpc64D79vcpPJqECq4u55K77AnyANngE1i3CieaibzT1flhP-kdfIYneCFWpz9qj0"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<main class="flex-1 pt-28 px-12 pb-16">
+<!-- Page Header (Editorial Lead) -->
+<div class="mb-12">
+<h1 class="font-display text-5xl font-black tracking-tighter text-on-surface mb-2">Geração de Horários</h1>
+<p class="font-body text-on-surface-variant text-lg max-w-2xl">Monthly operational planning and schedule generation engine. Configure parameters to calculate optimal staff distribution.</p>
+</div>
+<!-- Top Control Panel -->
+<section class="bg-surface-container-low p-6 rounded-xl flex flex-wrap items-end justify-between gap-6 mb-12 ghost-border">
+<div class="flex flex-wrap items-center gap-6">
+<!-- Dropdown: Mês -->
+<div class="flex flex-col gap-2">
+<label class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Mês</label>
+<div class="relative">
+<select class="appearance-none bg-surface-container-lowest font-body text-on-surface border-0 border-b-2 border-outline focus:ring-0 focus:border-primary py-2 pl-4 pr-10 w-48 transition-colors duration-300">
+<option>Outubro</option>
+<option>Novembro</option>
+<option selected="">Dezembro</option>
+<option>Janeiro</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Dropdown: Ano -->
+<div class="flex flex-col gap-2">
+<label class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Ano</label>
+<div class="relative">
+<select class="appearance-none bg-surface-container-lowest font-body text-on-surface border-0 border-b-2 border-outline focus:ring-0 focus:border-primary py-2 pl-4 pr-10 w-32 transition-colors duration-300">
+<option>2023</option>
+<option selected="">2024</option>
+<option>2025</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<button class="bg-primary-container hover:bg-primary text-on-primary font-display font-bold tracking-tight px-8 py-4 rounded-xl transition-all duration-300 flex items-center gap-2 ambient-shadow transform hover:-translate-y-1">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                    Gerar Planeamento
+                </button>
+</section>
+<!-- Bento Box Grid Layout -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+<!-- Left Block: Alternativas Geradas (Drafts) -->
+<section class="xl:col-span-4 flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<h3 class="font-display text-2xl font-bold tracking-tight text-on-surface">Alternativas Geradas</h3>
+<span class="material-symbols-outlined text-on-surface-variant">history</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl ambient-shadow overflow-hidden flex-1 ghost-border">
+<table class="w-full text-left font-body">
+<thead>
+<tr class="border-b border-surface-container-high bg-surface/50">
+<th class="py-4 px-6 font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Variante</th>
+<th class="py-4 px-6 font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Pontuação</th>
+<th class="py-4 px-6 font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr class="group hover:bg-surface-container-low transition-colors duration-200 cursor-pointer">
+<td class="py-5 px-6 font-medium text-on-surface">V1_Otimizada</td>
+<td class="py-5 px-6">
+<div class="flex items-center gap-2">
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[94%]"></div>
+</div>
+<span class="text-sm font-bold text-on-surface">94</span>
+</div>
+</td>
+<td class="py-5 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-primary-fixed-dim/20 text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Ativo
+                                        </span>
+</td>
+</tr>
+<tr class="group hover:bg-surface-container-low transition-colors duration-200 cursor-pointer">
+<td class="py-5 px-6 font-medium text-on-surface">V2_Balanceada</td>
+<td class="py-5 px-6">
+<div class="flex items-center gap-2">
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-[88%]"></div>
+</div>
+<span class="text-sm font-bold text-on-surface">88</span>
+</div>
+</td>
+<td class="py-5 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-surface-container-high text-on-surface-variant">
+                                            Rascunho
+                                        </span>
+</td>
+</tr>
+<tr class="group hover:bg-surface-container-low transition-colors duration-200 cursor-pointer">
+<td class="py-5 px-6 font-medium text-on-surface">V3_Fim_Semana</td>
+<td class="py-5 px-6">
+<div class="flex items-center gap-2">
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-[82%]"></div>
+</div>
+<span class="text-sm font-bold text-on-surface">82</span>
+</div>
+</td>
+<td class="py-5 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-surface-container-high text-on-surface-variant">
+                                            Rascunho
+                                        </span>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="p-6 bg-surface-container-low/50 border-t border-surface-container-high flex justify-center">
+<button class="text-on-surface border-b-2 border-on-surface font-display font-bold text-sm pb-0.5 hover:text-primary hover:border-primary transition-all duration-300">
+                                Ver Todo o Histórico
+                            </button>
+</div>
+</div>
+</section>
+<!-- Right/Bottom Block: Monthly Calendar View -->
+<section class="xl:col-span-8 flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<h3 class="font-display text-2xl font-bold tracking-tight text-on-surface">Visão Mensal</h3>
+<div class="flex items-center gap-4">
+<button class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-white ambient-shadow transition-all">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<span class="font-display font-bold text-on-surface">Dezembro 2024</span>
+<button class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-white ambient-shadow transition-all">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-6 ghost-border flex-1">
+<!-- Days of Week Header -->
+<div class="grid grid-cols-7 gap-4 mb-4 text-center">
+<div class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Seg</div>
+<div class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Ter</div>
+<div class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Qua</div>
+<div class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Qui</div>
+<div class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Sex</div>
+<div class="font-label text-xs font-bold uppercase tracking-wider text-primary">Sáb</div>
+<div class="font-label text-xs font-bold uppercase tracking-wider text-primary">Dom</div>
+</div>
+<!-- Calendar Grid -->
+<div class="grid grid-cols-7 gap-4 auto-rows-fr h-[calc(100%-2rem)]">
+<!-- Dummy padding for start of month (assuming Dec 1 is Sunday) -->
+<div class="bg-transparent rounded-xl"></div>
+<div class="bg-transparent rounded-xl"></div>
+<div class="bg-transparent rounded-xl"></div>
+<div class="bg-transparent rounded-xl"></div>
+<div class="bg-transparent rounded-xl"></div>
+<div class="bg-transparent rounded-xl"></div>
+<!-- Day Cells -->
+<!-- Example Day 1 (Sunday) -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-primary">1</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-sm w-max">12 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-on-surface">2</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-sm w-max">8 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-on-surface">3</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-sm w-max">8 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-8 h-8 bg-primary/10 rounded-bl-full flex items-start justify-end p-1">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+</div>
+<span class="font-display font-bold text-on-surface">4</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-sm w-max">9 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 5 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-on-surface">5</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-sm w-max">8 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 6 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-on-surface">6</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-sm w-max">10 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 7 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-primary">7</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-sm w-max">14 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 8 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-primary">8</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-sm w-max">14 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 9 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-on-surface">9</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-sm w-max">8 Colaboradores</div>
+</div>
+</div>
+<!-- Example Day 10 -->
+<div class="bg-surface-container-lowest rounded-xl p-3 ambient-shadow flex flex-col gap-2 min-h-[100px] hover:-translate-y-1 transition-transform duration-300 cursor-pointer border border-transparent hover:border-outline-variant/30">
+<span class="font-display font-bold text-on-surface">10</span>
+<div class="mt-auto flex flex-col gap-1">
+<div class="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-1 rounded-sm w-max">8 Colaboradores</div>
+</div>
+</div>
+<!-- Fill remaining with subtle blanks for visual balance -->
+<div class="bg-surface-container-lowest/50 rounded-xl p-3 opacity-50"><span class="font-display font-bold text-on-surface-variant">11</span></div>
+<div class="bg-surface-container-lowest/50 rounded-xl p-3 opacity-50"><span class="font-display font-bold text-on-surface-variant">12</span></div>
+<div class="bg-surface-container-lowest/50 rounded-xl p-3 opacity-50"><span class="font-display font-bold text-on-surface-variant">13</span></div>
+<div class="bg-surface-container-lowest/50 rounded-xl p-3 opacity-50"><span class="font-display font-bold text-on-surface-variant">14</span></div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

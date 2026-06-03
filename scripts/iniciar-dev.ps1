@@ -15,17 +15,57 @@ $rootDir = Split-Path -Parent $scriptDir
 function Set-Java {
     param([string]$JavaHomePath)
 
+    function Test-JavaHome {
+        param([string]$CandidateJavaHome)
+        if (-not $CandidateJavaHome) {
+            return $false
+        }
+        $javaExePath = Join-Path $CandidateJavaHome "bin\java.exe"
+        return (Test-Path $javaExePath)
+    }
+
+    function Add-JavaToPath {
+        param([string]$ResolvedJavaHome)
+        $env:JAVA_HOME = $ResolvedJavaHome
+        if ($env:Path -notlike "$ResolvedJavaHome\bin*") {
+            $env:Path = "$ResolvedJavaHome\bin;$env:Path"
+        }
+    }
+
     if ($JavaHomePath) {
-        $javaExe = Join-Path $JavaHomePath "bin\java.exe"
-        if (-not (Test-Path $javaExe)) {
+        if (-not (Test-JavaHome -CandidateJavaHome $JavaHomePath)) {
             throw "JAVA_HOME invalido: $JavaHomePath"
         }
-        $env:JAVA_HOME = $JavaHomePath
-        $env:Path = "$JavaHomePath\bin;$env:Path"
+        Add-JavaToPath -ResolvedJavaHome $JavaHomePath
+    }
+    elseif ($env:JAVA_HOME -and (Test-JavaHome -CandidateJavaHome $env:JAVA_HOME)) {
+        Add-JavaToPath -ResolvedJavaHome $env:JAVA_HOME
+    }
+    elseif (-not (Get-Command java -ErrorAction SilentlyContinue)) {
+        $searchRoots = @(
+            (Join-Path $env:USERPROFILE ".jdks"),
+            "C:\Program Files\Eclipse Adoptium",
+            "C:\Program Files\Java",
+            "C:\Program Files\Microsoft"
+        ) | Where-Object { $_ -and (Test-Path $_) }
+
+        $discoveredJdks = @()
+        foreach ($root in $searchRoots) {
+            $discoveredJdks += Get-ChildItem -Path $root -Directory -ErrorAction SilentlyContinue |
+                Where-Object { Test-JavaHome -CandidateJavaHome $_.FullName }
+        }
+
+        if ($discoveredJdks.Count -gt 0) {
+            $selectedJdk = $discoveredJdks |
+                Sort-Object Name -Descending |
+                Select-Object -First 1
+            Add-JavaToPath -ResolvedJavaHome $selectedJdk.FullName
+            Write-Host "JAVA_HOME detetado automaticamente: $($selectedJdk.FullName)" -ForegroundColor DarkCyan
+        }
     }
 
     if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
-        throw "Nao foi encontrado Java. Define JAVA_HOME ou instala Java 25."
+        throw "Nao foi encontrado Java. Define JAVA_HOME ou instala Java 21+."
     }
 }
 
@@ -71,7 +111,7 @@ function Start-Desktop {
     $commonArgs = Get-MavenCommonArgs
 
     Write-Host "A arrancar Desktop (porta $DesktopPort)..." -ForegroundColor Cyan
-    & $mavenExecutable @commonArgs spring-boot:run "-Dspring-boot.run.mainClass=com.example.projeto2.AppLauncher" "-Dspring-boot.run.arguments=--server.port=$DesktopPort"
+    & $mavenExecutable @commonArgs "-Dmaven.test.skip=true" spring-boot:run "-Dspring-boot.run.mainClass=com.example.projeto2.AppLauncher" "-Dspring-boot.run.arguments=--server.port=$DesktopPort"
 }
 
 function Start-Web {
@@ -80,11 +120,8 @@ function Start-Web {
     $webJarPath = Join-Path $rootDir "target\Projeto2-0.0.1-SNAPSHOT-web.jar"
 
     Write-Host "A arrancar Web (porta $WebPort)..." -ForegroundColor Cyan
-
-    if (-not (Test-Path $webJarPath)) {
-        Write-Host "JAR web nao encontrado. A gerar artefacto web..." -ForegroundColor Yellow
-        & $mavenExecutable @commonArgs "-DskipTests" package
-    }
+    Write-Host "A gerar artefacto web atualizado..." -ForegroundColor Yellow
+    & $mavenExecutable @commonArgs "-DskipTests" package
 
     if (-not (Test-Path $webJarPath)) {
         throw "Nao foi possivel gerar o JAR web em $webJarPath."

@@ -60,6 +60,9 @@ public class HomeController {
     private HBox painelAcoesGestao;
 
     @FXML
+    private VBox painelMetricasLoja;
+
+    @FXML
     private Button btnAtalhoPainelGerente;
 
     @FXML
@@ -266,7 +269,7 @@ public class HomeController {
         });
 
         colEstadoHoje.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
+                new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado() != null ? cellData.getValue().getEstado().name() : null)));
 
         tabelaEquipaHoje.setPlaceholder(new Label("Não há equipa escalada para hoje na tua loja."));
     }
@@ -463,6 +466,8 @@ public class HomeController {
         painelOperacaoLoja.setVisible(podeGerirLoja);
         painelAcoesGestao.setManaged(podeGerirLoja);
         painelAcoesGestao.setVisible(podeGerirLoja);
+        painelMetricasLoja.setManaged(podeGerirLoja);
+        painelMetricasLoja.setVisible(podeGerirLoja);
 
         if (podeGerirLoja) {
             carregarColaboradoresOperacao();

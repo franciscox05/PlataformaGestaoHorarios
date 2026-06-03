@@ -1,6 +1,7 @@
 package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Controller.support.CalendarioMensalHelper;
 import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
 import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Modules.Utilizador;
@@ -15,10 +16,14 @@ import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
@@ -27,6 +32,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -34,12 +40,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.time.YearMonth;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 @Component
 @Scope("prototype")
 public class GeracaoHorariosController {
+
+    private static final DateTimeFormatter FORMATO_DIA_DETALHE =
+            DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM yyyy", java.util.Locale.forLanguageTag("pt-PT"));
 
     @FXML
     private Label lblLoja;
@@ -221,6 +231,32 @@ public class GeracaoHorariosController {
     @FXML
     private HBox boxSemanaPlaneamento;
 
+    // ── Empty States (fx:id FXML declarados no FXML mas em falta no controller — fix crash) ──────
+    @FXML
+    private VBox emptyStatePropostas;
+
+    @FXML
+    private VBox emptyStateDistribuicao;
+
+    @FXML
+    private VBox emptyStateCalendario;
+
+    // ── Calendário Mensal (adicionado na reestruturação visual) ──────────────
+    @FXML
+    private Button btnMesAnterior;
+
+    @FXML
+    private Button btnMesSeguinte;
+
+    @FXML
+    private Label lblMesAtual;
+
+    @FXML
+    private VBox emptyStateCalendarioMensal;
+
+    @FXML
+    private GridPane calendarioMensalGrid;
+
     @FXML
     private TableView<GeracaoHorariosBLL.ResumoColaborador> tabelaResumoColaboradores;
 
@@ -245,6 +281,7 @@ public class GeracaoHorariosController {
     private LocalDate semanaPlaneamentoInicio;
     private Task<?> operacaoEmCurso;
     private boolean suprimirCarregamentoPorSelecao;
+    private YearMonth periodoMensalAtual = YearMonth.now();
     private final Map<Integer, CheckBox> selecaoColaboradoresGeracao = new LinkedHashMap<>();
 
     public GeracaoHorariosController(GeracaoHorariosBLL geracaoHorariosBLL) {
@@ -266,6 +303,23 @@ public class GeracaoHorariosController {
         tabelaResumoColaboradores.setPlaceholder(new Label("Ainda não existe proposta gerada para apresentar o resumo da equipa."));
         tabelaPropostas.setPlaceholder(new Label("Gera alternativas para as comparar antes da validação."));
         tabelaComparacao.setPlaceholder(new Label("Seleciona duas propostas para comparar a distribuição por colaborador."));
+
+        // Tooltips nos botões de ação
+        btnGerarProposta.setTooltip(new Tooltip("Gera uma alternativa com as definições atuais"));
+        btnGerarAlternativas.setTooltip(new Tooltip("Gera várias alternativas em lote para comparação"));
+        btnVerProposta.setTooltip(new Tooltip("Carrega o planeamento do período selecionado"));
+        btnEnviarSupervisor.setTooltip(new Tooltip("Envia as alternativas selecionadas para validação do supervisor"));
+        btnAprovarProposta.setTooltip(new Tooltip("Aprova e publica esta proposta — as restantes pendentes são rejeitadas automaticamente"));
+        btnRejeitarProposta.setTooltip(new Tooltip("Rejeita esta proposta de horário"));
+        configurarAtalhosRapidos();
+        // Inicializar o estado do calendário mensal (empty state visível, grid oculto até proposta)
+        javafx.application.Platform.runLater(() -> {
+            if (emptyStateCalendarioMensal != null) {
+                emptyStateCalendarioMensal.setVisible(true);
+                emptyStateCalendarioMensal.setManaged(true);
+            }
+            atualizarCalendarioMensal();
+        });
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -362,6 +416,125 @@ public class GeracaoHorariosController {
         aplicarFiltroColaborador();
     }
 
+    // ── Navegação Calendário Mensal ─────────────────────────────────────────────
+    @FXML
+    public void onMesAnteriorClick() {
+        periodoMensalAtual = periodoMensalAtual.minusMonths(1);
+        atualizarCalendarioMensal();
+    }
+
+    @FXML
+    public void onMesSeguinteClick() {
+        periodoMensalAtual = periodoMensalAtual.plusMonths(1);
+        atualizarCalendarioMensal();
+    }
+
+    private void atualizarCalendarioMensal() {
+        if (calendarioMensalGrid == null) return;
+        String[] MESES_PT = {
+            "Janeiro","Fevereiro","Marco","Abril","Maio","Junho",
+            "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+        };
+        if (lblMesAtual != null) {
+            lblMesAtual.setText(MESES_PT[periodoMensalAtual.getMonthValue() - 1]
+                + " " + periodoMensalAtual.getYear());
+        }
+        java.util.Map<java.time.LocalDate, java.util.List<String>> eventosMes =
+            obterEventosParaMes(periodoMensalAtual);
+        boolean temEventos = eventosMes != null && !eventosMes.isEmpty()
+            && eventosMes.values().stream().anyMatch(l -> !l.isEmpty());
+        if (emptyStateCalendarioMensal != null) {
+            emptyStateCalendarioMensal.setVisible(!temEventos);
+            emptyStateCalendarioMensal.setManaged(!temEventos);
+        }
+        CalendarioMensalHelper.preencherCalendario(
+            calendarioMensalGrid,
+            periodoMensalAtual,
+            eventosMes,
+            "Sem turnos atribuidos",
+            this::abrirDetalheDia
+        );
+    }
+
+    /** Devolve os eventos (turnos) do mes para o helper do calendario.
+     *  Retorna mapa vazio se nao houver proposta carregada. */
+    private java.util.Map<java.time.LocalDate, java.util.List<String>> obterEventosParaMes(YearMonth periodo) {
+        if (propostaAtual == null || propostaAtual.linhas() == null) {
+            return java.util.Collections.emptyMap();
+        }
+        java.util.Map<java.time.LocalDate, java.util.List<String>> mapa = new java.util.LinkedHashMap<>();
+        for (GeracaoHorariosBLL.HorarioLinha linha : propostaAtual.linhas()) {
+            if (linha == null || linha.data() == null) continue;
+            java.time.LocalDate data = linha.data();
+            if (!YearMonth.from(data).equals(periodo)) continue;
+            String desc = (linha.periodo() != null ? linha.periodo() : "?")
+                + " | " + (linha.colaborador() != null ? linha.colaborador() : "")
+                + " (" + (linha.cargo() != null ? linha.cargo() : "-") + ")";
+            mapa.computeIfAbsent(data, k -> new java.util.ArrayList<>()).add(desc);
+        }
+        return mapa;
+    }
+
+    private void abrirDetalheDia(LocalDate data) {
+        if (data == null || propostaAtual == null || propostaAtual.linhas() == null) {
+            return;
+        }
+
+        List<GeracaoHorariosBLL.HorarioLinha> turnosDia = propostaAtual.linhas().stream()
+                .filter(linha -> linha != null && data.equals(linha.data()))
+                .sorted(Comparator
+                        .comparing(GeracaoHorariosBLL.HorarioLinha::periodo, Comparator.nullsLast(String::compareToIgnoreCase))
+                        .thenComparing(GeracaoHorariosBLL.HorarioLinha::colaborador, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .toList();
+
+        if (turnosDia.isEmpty()) {
+            return;
+        }
+
+        VBox listaTurnos = new VBox(10.0);
+        listaTurnos.getStyleClass().add("detalhe-dia-lista");
+        for (GeracaoHorariosBLL.HorarioLinha turno : turnosDia) {
+            listaTurnos.getChildren().add(criarCardDetalheTurno(turno));
+        }
+
+        DialogosHelper.mostrarConteudo(
+                obterJanela(),
+                "DETALHE DO DIA",
+                capitalizar(data.format(FORMATO_DIA_DETALHE)),
+                turnosDia.size() + " turno(s) planeado(s). Revê a cobertura antes de enviar ao supervisor.",
+                listaTurnos
+        );
+    }
+
+    private VBox criarCardDetalheTurno(GeracaoHorariosBLL.HorarioLinha turno) {
+        VBox card = new VBox(5.0);
+        card.getStyleClass().add("detalhe-dia-turno-card");
+
+        Label periodo = new Label(valorOuTraco(turno.periodo()));
+        periodo.getStyleClass().add("detalhe-dia-periodo");
+
+        Label colaborador = new Label(valorOuTraco(turno.colaborador()));
+        colaborador.getStyleClass().add("detalhe-dia-colaborador");
+
+        Label cargo = new Label(valorOuTraco(turno.cargo()) + " · " + valorOuTraco(turno.estado()));
+        cargo.getStyleClass().add("detalhe-dia-cargo");
+        cargo.setWrapText(true);
+
+        card.getChildren().addAll(periodo, colaborador, cargo);
+        return card;
+    }
+
+    private String valorOuTraco(String valor) {
+        return valor == null || valor.isBlank() ? "-" : valor;
+    }
+
+    private String capitalizar(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return "";
+        }
+        return texto.substring(0, 1).toUpperCase(java.util.Locale.forLanguageTag("pt-PT")) + texto.substring(1);
+    }
+
     private void configurarFiltros() {
         cbMes.setItems(FXCollections.observableArrayList(
                 new MesOption(1, "Janeiro"),
@@ -389,18 +562,51 @@ public class GeracaoHorariosController {
         spQuantidadeAlternativas.setEditable(true);
 
         cbMes.valueProperty().addListener((observavel, antigo, novo) -> {
-            invalidarPropostaAtual();
-            carregarColaboradoresElegiveis();
+            onPeriodoAlterado();
         });
         spAno.valueProperty().addListener((observavel, antigo, novo) -> {
-            invalidarPropostaAtual();
-            carregarColaboradoresElegiveis();
+            onPeriodoAlterado();
         });
 
         cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
         cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
         cbFiltroColaborador.valueProperty().addListener((observavel, antigo, novo) -> aplicarFiltroColaborador());
         reposicionarSemanaPlaneamentoParaMesSelecionado();
+    }
+
+    private void onPeriodoAlterado() {
+        invalidarPropostaAtual();
+        carregarColaboradoresElegiveis();
+        if (utilizadorLogado != null && utilizadorLogado.getId() != null && (operacaoEmCurso == null || !operacaoEmCurso.isRunning())) {
+            carregarPlaneamentoDoPeriodo();
+        }
+    }
+
+    private void configurarAtalhosRapidos() {
+        lblLoja.sceneProperty().addListener((obs, antiga, nova) -> {
+            if (nova == null) {
+                return;
+            }
+            nova.setOnKeyPressed(evento -> {
+                if (!evento.isControlDown()) {
+                    return;
+                }
+                if (evento.getCode() == KeyCode.G) {
+                    onGerarPropostaClick();
+                    evento.consume();
+                    return;
+                }
+                if (evento.getCode() == KeyCode.L) {
+                    onGerarAlternativasClick();
+                    evento.consume();
+                    return;
+                }
+                if (evento.getCode() == KeyCode.ENTER) {
+                    onVerPropostaClick();
+                    evento.consume();
+                }
+            });
+        });
     }
 
     private void configurarTabelas() {
@@ -424,12 +630,43 @@ public class GeracaoHorariosController {
                 new SimpleStringProperty(cellData.getValue().rotulo()));
         colPropostaEstado.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().estado()));
+        colPropostaEstado.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String estado, boolean empty) {
+                super.updateItem(estado, empty);
+                if (empty || estado == null) { setGraphic(null); setText(null); return; }
+                Label badge = new Label(estado.toUpperCase());
+                badge.getStyleClass().add("badge-estado");
+                String normalizado = Normalizer.normalize(estado.toLowerCase(), Normalizer.Form.NFD)
+                        .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+                if (normalizado.contains("aprovad") || normalizado.contains("publicad")) badge.getStyleClass().add("badge-aprovado");
+                else if (normalizado.contains("rejeitad") || normalizado.contains("cancelad")) badge.getStyleClass().add("badge-rejeitado");
+                else if (normalizado.contains("pendente") || normalizado.contains("enviado")) badge.getStyleClass().add("badge-enviado");
+                else badge.getStyleClass().add("badge-rascunho");
+                setGraphic(badge);
+                setText(null);
+            }
+        });
         colPropostaData.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().dataGeracao()));
         colPropostaScore.setCellValueFactory(cellData ->
                 new SimpleStringProperty(String.valueOf(cellData.getValue().pontuacao())));
         colPropostaQualidade.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().qualidade()));
+        colPropostaQualidade.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String qualidade, boolean empty) {
+                super.updateItem(qualidade, empty);
+                if (empty || qualidade == null) { setGraphic(null); setText(null); return; }
+                Label chip = new Label(qualidade);
+                String q = qualidade.toLowerCase();
+                if (q.contains("alta") || q.contains("excelente") || q.contains("ótima")) chip.getStyleClass().add("chip-qualidade-alta");
+                else if (q.contains("média") || q.contains("media") || q.contains("razoável")) chip.getStyleClass().add("chip-qualidade-media");
+                else chip.getStyleClass().add("chip-qualidade-baixa");
+                setGraphic(chip);
+                setText(null);
+            }
+        });
         colPropostaTurnos.setCellValueFactory(cellData ->
                 new SimpleStringProperty(String.valueOf(cellData.getValue().turnos())));
 

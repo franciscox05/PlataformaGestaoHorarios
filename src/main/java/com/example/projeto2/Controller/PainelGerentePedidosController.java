@@ -14,9 +14,12 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
@@ -236,6 +239,19 @@ public class PainelGerentePedidosController {
         btnAprovarPreferencia.disableProperty().bind(Bindings.isNull(tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty()));
         btnRejeitarPreferencia.disableProperty().bind(Bindings.isNull(tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty()));
 
+        // Tooltips
+        btnAprovarFolga.setTooltip(new Tooltip("Aprovar o pedido de folga selecionado"));
+        btnRejeitarFolga.setTooltip(new Tooltip("Rejeitar o pedido de folga selecionado"));
+        btnAprovarPermuta.setTooltip(new Tooltip("Aprovar a permuta de turno selecionada"));
+        btnRejeitarPermuta.setTooltip(new Tooltip("Rejeitar a permuta de turno selecionada"));
+        btnAprovarPreferencia.setTooltip(new Tooltip("Aprovar a preferência selecionada"));
+        btnRejeitarPreferencia.setTooltip(new Tooltip("Rejeitar a preferência selecionada"));
+
+        btnAtalhoFolgas.setTooltip(new Tooltip("Abrir mÃ³dulo de folgas (Ctrl+1)"));
+        btnAtalhoPermutas.setTooltip(new Tooltip("Abrir mÃ³dulo de permutas (Ctrl+2)"));
+        btnAtalhoPreferencias.setTooltip(new Tooltip("Abrir mÃ³dulo de preferÃªncias (Ctrl+3)"));
+        btnAtalhoHorarios.setTooltip(new Tooltip("Abrir mÃ³dulo de horÃ¡rios (Ctrl+4)"));
+
         txtDecisaoPreferencia.textProperty().addListener((obs, oldValue, newValue) -> esconderFeedback(lblFeedbackPreferencias));
         tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
             txtDecisaoPreferencia.clear();
@@ -243,6 +259,7 @@ public class PainelGerentePedidosController {
         });
 
         configurarSelecaoContextual();
+        configurarAtalhosRapidos();
         limparContextoOperacional();
     }
 
@@ -313,6 +330,32 @@ public class PainelGerentePedidosController {
         }
     }
 
+    private void configurarAtalhosRapidos() {
+        lblLoja.sceneProperty().addListener((obs, antiga, nova) -> {
+            if (nova == null) {
+                return;
+            }
+            nova.setOnKeyPressed(evento -> {
+                if (!evento.isControlDown()) {
+                    return;
+                }
+                if (evento.getCode() == KeyCode.DIGIT1) {
+                    onAtalhoFolgasClick();
+                    evento.consume();
+                } else if (evento.getCode() == KeyCode.DIGIT2) {
+                    onAtalhoPermutasClick();
+                    evento.consume();
+                } else if (evento.getCode() == KeyCode.DIGIT3) {
+                    onAtalhoPreferenciasClick();
+                    evento.consume();
+                } else if (evento.getCode() == KeyCode.DIGIT4) {
+                    onAtalhoHorariosClick();
+                    evento.consume();
+                }
+            });
+        });
+    }
+
     private void configurarTabelaFolgas() {
         colFolgaColaborador.setCellValueFactory(cellData ->
                 new SimpleStringProperty(nomesFolgasPendentes.getOrDefault(
@@ -325,6 +368,18 @@ public class PainelGerentePedidosController {
 
         colFolgaTipo.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTipoFolga(cellData.getValue().getTipo())));
+        colFolgaTipo.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String tipo, boolean empty) {
+                super.updateItem(tipo, empty);
+                if (empty || tipo == null) { setGraphic(null); setText(null); return; }
+                Label badge = new Label(tipo);
+                badge.getStyleClass().addAll("badge-estado",
+                        tipo.toLowerCase().contains("folga") ? "badge-folga" : "badge-pendente");
+                setGraphic(badge);
+                setText(null);
+            }
+        });
 
         colFolgaMotivo.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTexto(cellData.getValue().getMotivo())));
@@ -350,12 +405,53 @@ public class PainelGerentePedidosController {
 
         colPreferenciaTipo.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTipoPreferencia(cellData.getValue().getTipo())));
+        colPreferenciaTipo.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String tipo, boolean empty) {
+                super.updateItem(tipo, empty);
+                if (empty || tipo == null || tipo.isBlank()) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Label badge = new Label(tipo.toUpperCase(LOCALE_PT));
+                badge.getStyleClass().addAll("badge-estado",
+                        (tipo.toLowerCase(LOCALE_PT).contains("folga") || tipo.toLowerCase(LOCALE_PT).contains("fer"))
+                                ? "badge-folga"
+                                : "badge-enviado");
+                setGraphic(badge);
+                setText(null);
+            }
+        });
 
         colPreferenciaPeriodo.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarPeriodo(cellData.getValue().getDataInicio(), cellData.getValue().getDataFim())));
 
         colPreferenciaPrioridade.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarVigencia(cellData.getValue())));
+        colPreferenciaPrioridade.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String vigencia, boolean empty) {
+                super.updateItem(vigencia, empty);
+                if (empty || vigencia == null || vigencia.isBlank()) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Label badge = new Label(vigencia.toUpperCase(LOCALE_PT));
+                badge.getStyleClass().add("badge-estado");
+                String normalizado = vigencia.toLowerCase(LOCALE_PT);
+                if (normalizado.contains("permanente")) {
+                    badge.getStyleClass().add("badge-aprovado");
+                } else if (normalizado.contains("tempor")) {
+                    badge.getStyleClass().add("badge-pendente");
+                } else {
+                    badge.getStyleClass().add("badge-rascunho");
+                }
+                setGraphic(badge);
+                setText(null);
+            }
+        });
 
         colPreferenciaDescricao.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTexto(cellData.getValue().getDescricao())));

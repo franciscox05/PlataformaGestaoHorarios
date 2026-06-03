@@ -1,106 +1,250 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Horarios')}"></head>
-<body>
+<head th:replace="~{web/fragments :: head('Horários — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 <header th:replace="~{web/fragments :: shellHeader}"></header>
 
-<div class="web-shell">
-    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[82rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-5">
 
-    <main class="web-content">
-        <h1>Modulo Horarios</h1>
+    <!-- ── Header ── -->
+    <div class="fade-up flex items-start justify-between gap-4 flex-wrap">
+        <div>
+            <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Horários da loja</h1>
+            <p class="font-body text-[14px] text-on-surface-variant mt-1"
+               th:if="${contexto}" th:text="${contexto.nomeLoja() + ' · ' + contexto.localizacao()}">Planeamento mensal</p>
+            <p class="font-body text-[14px] text-on-surface-variant mt-1" th:unless="${contexto}">Planeamento mensal da loja</p>
+        </div>
+    </div>
 
-        <section class="web-card">
-            <p th:if="${contexto}" th:text="'Loja: ' + ${contexto.nomeLoja()} + ' - ' + ${contexto.localizacao()}"></p>
+    <!-- Feedback -->
+    <div th:if="${erro}"    class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    </div>
+    <div th:if="${sucesso}" class="fade-up flex items-center gap-2.5 bg-[#d1fae5] text-[#065f46] px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span><span th:text="${sucesso}"></span>
+    </div>
 
-            <form method="get" action="/web/horarios" class="web-inline-form">
-                <label for="ano">Ano</label>
-                <select id="ano" name="ano">
+    <!-- ── Filtros ── -->
+    <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+        <h2 class="font-display font-bold text-[15px] text-on-surface mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[18px]">filter_list</span>
+            Consultar período
+        </h2>
+        <form id="filtroHorariosForm" method="get" action="/web/horarios" class="flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="ano">Ano</label>
+                <select id="ano" name="ano" onchange="document.getElementById('filtroHorariosForm').submit()"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[90px]" style="outline:none">
                     <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
                 </select>
-
-                <label for="mes">Mes</label>
-                <select id="mes" name="mes">
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="mes">Mês</label>
+                <select id="mes" name="mes" onchange="document.getElementById('filtroHorariosForm').submit()"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[140px]" style="outline:none">
                     <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
                 </select>
-                <button type="submit">Consultar</button>
-            </form>
-
-            <form method="post" action="/web/horarios/gerar" class="web-inline-form" th:if="${podeGerar}">
-                <input type="hidden" name="ano" th:value="${ano}">
-                <input type="hidden" name="mes" th:value="${mes}">
-                <button type="submit">Gerar proposta</button>
-            </form>
-
-            <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
-            <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
-        </section>
-
-        <section class="web-card">
-            <h2>Resumo da proposta atual</h2>
-            <div th:if="${proposta == null}">
-                <p>Sem proposta/planeamento para o periodo selecionado.</p>
             </div>
-            <div th:if="${proposta != null}">
-                <p><strong>ID:</strong> <span th:text="${proposta.idProposta()}"></span></p>
-                <p><strong>Estado:</strong> <span th:text="${proposta.estado()}"></span></p>
-                <p><strong>Origem:</strong> <span th:text="${proposta.origemPlaneamento()}"></span></p>
-                <p><strong>Gerado por:</strong> <span th:text="${proposta.geradoPor()}"></span></p>
-                <p><strong>Data:</strong> <span th:text="${proposta.dataGeracao()}"></span></p>
-                <p><strong>Resumo:</strong> <span th:text="${proposta.resumoGeracao()}"></span></p>
-                <p th:if="${proposta.resumo() != null}">
-                    <strong>Cobertura:</strong>
-                    <span th:text="${proposta.resumo().turnos()} + ' turnos - ' + ${proposta.resumo().diasCobertos()} + ' dias'"></span>
-                </p>
+            <div class="flex gap-2">
+                <button type="submit"
+                        class="flex items-center gap-2 bg-surface-container text-on-surface font-body font-bold text-[13px] px-4 py-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">search</span>
+                    Consultar
+                </button>
+                <button type="submit"
+                        th:if="${podeGerar}"
+                        formaction="/web/horarios/gerar"
+                        formmethod="post"
+                        class="flex items-center gap-2 bg-primary-container text-white font-body font-bold text-[13px] px-4 py-2.5 rounded-xl hover:bg-primary transition-colors shadow-sm">
+                    <span class="material-symbols-outlined text-[16px]">auto_fix_high</span>
+                    Gerar proposta
+                </button>
+            </div>
+        </form>
+    </section>
 
-                <div th:if="${podeValidar && proposta.podeSerDecidida()}" class="web-grid-two">
-                    <form method="post" th:action="@{'/web/horarios/' + ${proposta.idProposta()} + '/aprovar'}" class="web-form">
-                        <input type="hidden" name="ano" th:value="${ano}">
-                        <input type="hidden" name="mes" th:value="${mes}">
-                        <label for="obsAprovar">Observacoes (opcional)</label>
-                        <textarea id="obsAprovar" name="observacoes" rows="2"></textarea>
-                        <button type="submit">Aprovar proposta</button>
-                    </form>
-                    <form method="post" th:action="@{'/web/horarios/' + ${proposta.idProposta()} + '/rejeitar'}" class="web-form">
-                        <input type="hidden" name="ano" th:value="${ano}">
-                        <input type="hidden" name="mes" th:value="${mes}">
-                        <label for="obsRejeitar">Justificacao (opcional)</label>
-                        <textarea id="obsRejeitar" name="observacoes" rows="2"></textarea>
-                        <button type="submit" class="btn-danger">Rejeitar proposta</button>
-                    </form>
+    <!-- ── Sem proposta ── -->
+    <section th:if="${proposta == null}"
+             class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-12 flex flex-col items-center gap-4 text-center"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+        <div class="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
+            <span class="material-symbols-outlined text-[36px] text-outline/50">calendar_month</span>
+        </div>
+        <h2 class="font-display font-bold text-[20px] text-on-surface">Sem proposta para este período</h2>
+        <p class="font-body text-[14px] text-on-surface-variant max-w-md">
+            Não existe planeamento guardado. Usa o botão <strong>"Gerar proposta"</strong> para criar um novo.
+        </p>
+    </section>
+
+    <!-- ── Proposta atual ── -->
+    <section th:if="${proposta != null}"
+             class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+
+        <!-- Cabeçalho -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/25 flex-wrap gap-3">
+            <h2 class="font-display font-bold text-[18px] text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined icon-fill text-primary-container text-[20px]">event_note</span>
+                Proposta atual
+            </h2>
+            <!-- Badge de estado -->
+            <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider px-3.5 py-1.5 rounded-full"
+                  th:classappend="${proposta.estado() == 'APROVADO'} ? 'badge-ok' : (${proposta.estado() == 'REJEITADO'} ? 'badge-err' : 'badge-warn')"
+                  th:text="${proposta.estado()}">PENDENTE</span>
+        </div>
+
+        <div class="p-6 flex flex-col gap-5">
+
+            <!-- Meta info -->
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25">
+                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Gerado por</p>
+                    <p class="font-body font-bold text-[14px] text-on-surface" th:text="${proposta.geradoPor() != null ? proposta.geradoPor() : '–'}">–</p>
+                </div>
+                <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25">
+                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data de geração</p>
+                    <p class="font-body font-bold text-[14px] text-on-surface" th:text="${proposta.dataGeracao() != null ? proposta.dataGeracao() : '–'}">–</p>
+                </div>
+                <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25" th:if="${proposta.resumo() != null}">
+                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Turnos gerados</p>
+                    <p class="font-display font-bold text-[22px] text-on-surface" th:text="${proposta.resumo().turnos()}">0</p>
+                </div>
+                <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25" th:if="${proposta.resumo() != null}">
+                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Dias cobertos</p>
+                    <p class="font-display font-bold text-[22px] text-on-surface" th:text="${proposta.resumo().diasCobertos()}">0</p>
                 </div>
             </div>
-        </section>
 
-        <section class="web-card">
-            <h2>Alternativas do periodo</h2>
-            <table>
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Proposta</th>
-                    <th>Estado</th>
-                    <th>Pontuacao</th>
-                    <th>Qualidade</th>
-                    <th>Geracao</th>
-                </tr>
+            <!-- Barra de cobertura -->
+            <div th:if="${proposta.resumo() != null}" class="flex flex-col gap-2 p-4 rounded-xl border" style="background:rgba(192,0,31,.04);border-color:rgba(192,0,31,.15)">
+                <div class="flex items-center justify-between">
+                    <p class="font-body font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5" style="color:rgba(192,0,31,.7)">
+                        <span class="material-symbols-outlined text-[14px]">calendar_view_month</span>
+                        Cobertura do mês
+                    </p>
+                    <span id="coveragePct" class="font-body font-bold text-[12px]" style="color:#c0001f">–</span>
+                </div>
+                <div class="h-2 rounded-full overflow-hidden" style="background:rgba(192,0,31,.1)">
+                    <div id="coverageBar" class="h-full rounded-full" style="width:0%;background:linear-gradient(90deg,#c0001f,#e83a52);transition:width 1.1s cubic-bezier(.16,1,.3,1)"></div>
+                </div>
+                <p class="font-body text-[11px]" style="color:rgba(192,0,31,.5)"
+                   th:text="${proposta.resumo().diasCobertos()} + ' dias cobertos · ' + ${proposta.resumo().turnos()} + ' turnos gerados'">–</p>
+            </div>
+
+            <!-- Observações do supervisor -->
+            <div th:if="${proposta.resumoGeracao() != null}"
+                 class="flex items-start gap-3 p-4 bg-surface-container rounded-xl border border-outline-variant/25">
+                <span class="material-symbols-outlined text-[18px] text-on-surface-variant mt-0.5 shrink-0">info</span>
+                <div>
+                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">Observações do supervisor</p>
+                    <p class="font-body text-[13px] text-on-surface" th:text="${proposta.resumoGeracao()}">–</p>
+                </div>
+            </div>
+
+            <!-- Aprovação / Rejeição -->
+            <div th:if="${podeValidar && proposta.podeSerDecidida()}"
+                 class="grid sm:grid-cols-2 gap-4 pt-4 border-t border-outline-variant/25">
+                <form method="post" th:action="@{'/web/horarios/' + ${proposta.idProposta()} + '/aprovar'}" class="flex flex-col gap-3">
+                    <input type="hidden" name="ano"  th:value="${ano}">
+                    <input type="hidden" name="mes"  th:value="${mes}">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Observações (opcional)</label>
+                    <textarea name="observacoes" rows="2" placeholder="Notas de aprovação…"
+                              class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
+                    <button type="submit"
+                            class="flex items-center justify-center gap-2 bg-[#059669] text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-[#047857] transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                        Aprovar proposta
+                    </button>
+                </form>
+                <form method="post" th:action="@{'/web/horarios/' + ${proposta.idProposta()} + '/rejeitar'}" class="flex flex-col gap-3">
+                    <input type="hidden" name="ano"  th:value="${ano}">
+                    <input type="hidden" name="mes"  th:value="${mes}">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Justificação (opcional)</label>
+                    <textarea name="observacoes" rows="2" placeholder="Motivo de rejeição…"
+                              class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
+                    <button type="submit"
+                            class="flex items-center justify-center gap-2 bg-error text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-[#991b1b] transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">cancel</span>
+                        Rejeitar proposta
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Alternativas do período ── -->
+    <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/25">
+            <h2 class="font-display font-bold text-[17px] text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary-container text-[18px]">compare</span>
+                Alternativas do período
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-surface-container-low">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">ID</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Proposta</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Pontuação</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Qualidade</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Geração</th>
+                    </tr>
                 </thead>
-                <tbody>
-                <tr th:if="${propostas == null || #lists.isEmpty(propostas)}">
-                    <td colspan="6">Ainda nao existem alternativas para este periodo.</td>
-                </tr>
-                <tr th:each="item : ${propostas}">
-                    <td th:text="${item.idProposta()}"></td>
-                    <td th:text="${item.rotulo()}"></td>
-                    <td th:text="${item.estado()}"></td>
-                    <td th:text="${item.pontuacao()}"></td>
-                    <td th:text="${item.qualidade()}"></td>
-                    <td th:text="${item.dataGeracao()}"></td>
-                </tr>
+                <tbody class="divide-y divide-outline-variant/25">
+                    <tr th:if="${propostas == null || #lists.isEmpty(propostas)}">
+                        <td colspan="6" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Ainda não existem alternativas para este período.</td>
+                    </tr>
+                    <tr th:each="item : ${propostas}" class="hover:bg-surface-container-low/60 transition-colors">
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.idProposta()}"></td>
+                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${item.rotulo()}"></td>
+                        <td class="px-6 py-3.5">
+                            <span class="inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                  th:classappend="${item.estado() == 'APROVADO'} ? 'badge-ok' : (${item.estado() == 'REJEITADO'} ? 'badge-err' : 'badge-warn')"
+                                  th:text="${item.estado()}"></span>
+                        </td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.pontuacao()}"></td>
+                        <td class="px-6 py-3.5">
+                            <span class="inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                  th:classappend="${item.qualidade() == 'ALTA' || item.qualidade() == 'BOA'} ? 'badge-ok' : (${item.qualidade() == 'BAIXA' || item.qualidade() == 'MÁ'} ? 'badge-err' : 'badge-warn')"
+                                  th:text="${item.qualidade()}"></span>
+                        </td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.dataGeracao()}"></td>
+                    </tr>
                 </tbody>
             </table>
-        </section>
-    </main>
+        </div>
+    </section>
+
 </div>
+</main>
+
+<script>
+// ── Animar barra de cobertura ──
+document.addEventListener('DOMContentLoaded', function(){
+    var bar  = document.getElementById('coverageBar');
+    var pctEl= document.getElementById('coveragePct');
+    if(!bar) return;
+    // Ler dias cobertos do texto da legenda
+    var legend = bar.closest('.flex').nextElementSibling;
+    if(!legend) return;
+    var txt = legend ? legend.textContent : '';
+    var dias = txt.match(/^(\d+)/);
+    if(!dias) return;
+    var covered = +dias[1];
+    // Dias do mês atual (fallback 30)
+    var now = new Date();
+    var daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    var pct = Math.min(Math.round(covered/daysInMonth*100), 100);
+    if(pctEl) pctEl.textContent = pct + '%';
+    setTimeout(function(){ bar.style.width = pct + '%'; }, 200);
+});
+</script>
 </body>
 </html>

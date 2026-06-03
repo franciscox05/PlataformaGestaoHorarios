@@ -11,166 +11,163 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefHeight="600.0" prefWidth="730.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.PreferenciasController">
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+            styleClass="conteudo-scroll"
+            stylesheets="@dashboard.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.projeto2.Controller.PreferenciasController">
     <content>
-        <VBox alignment="TOP_CENTER" spacing="18.0">
+        <VBox spacing="0" styleClass="conteudo-pagina">
             <padding>
-                <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+                <Insets bottom="48.0" left="40.0" right="40.0" top="40.0" />
             </padding>
 
-            <children>
-                <Label styleClass="titulo-dashboard" text="Preferências" />
-                <Label styleClass="subtitulo" text="Regista as tuas preferências e, se tiveres perfil de gestão, decide também as preferências pendentes da tua loja." wrapText="true" />
+            <VBox spacing="6.0">
+                <Label styleClass="titulo-dashboard" text="Prefer&#234;ncias" />
+                <Label styleClass="subtitulo"
+                       text="Regista as tuas prefer&#234;ncias e, se tiveres perfil de gest&#227;o, decide as prefer&#234;ncias pendentes da tua loja."
+                       wrapText="true" />
+            </VBox>
 
-                <VBox fx:id="painelFormulario" spacing="12.0" styleClass="info-card">
-                    <children>
-                        <Label fx:id="lblTituloFormulario" styleClass="card-titulo" text="Nova Preferência" />
+            <Region minHeight="24.0" />
 
-                        <HBox spacing="12.0">
-                            <children>
-                                <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Tipo de preferência" />
-                                        <ComboBox fx:id="cbTipo" promptText="Seleciona o tipo" />
-                                    </children>
-                                </VBox>
-                            </children>
+            <HBox alignment="TOP_LEFT" spacing="16.0">
+                <VBox fx:id="painelFormulario" spacing="14.0" styleClass="bento-card" HBox.hgrow="ALWAYS">
+                    <Label fx:id="lblTituloFormulario" styleClass="card-titulo" text="Nova Prefer&#234;ncia" />
+
+                    <VBox spacing="5.0">
+                        <Label styleClass="campo-titulo" text="Tipo de prefer&#234;ncia" />
+                        <ComboBox fx:id="cbTipo" maxWidth="Infinity" promptText="Seleciona o tipo" styleClass="campo-combo" />
+                    </VBox>
+
+                    <VBox fx:id="painelColega" managed="false" spacing="5.0" visible="false">
+                        <Label styleClass="campo-titulo" text="Colega preferido" />
+                        <ComboBox fx:id="cbColegaPreferido" maxWidth="Infinity" promptText="Seleciona um colega" styleClass="campo-combo" />
+                    </VBox>
+
+                    <VBox fx:id="painelTurnos" managed="false" spacing="10.0" styleClass="bento-card-accent" visible="false">
+                        <Label styleClass="campo-titulo" text="Prefer&#234;ncia estruturada de turnos" />
+                        <Label styleClass="texto-ajuda"
+                               text="Escolhe os blocos de turno que preferes para o gerador respeitar melhor o teu pedido mensal."
+                               wrapText="true" />
+                        <HBox spacing="16.0">
+                            <CheckBox fx:id="chkTurnoManha" mnemonicParsing="false" text="Manh&#227; / abertura" />
+                            <CheckBox fx:id="chkTurnoIntermedio" mnemonicParsing="false" text="Interm&#233;dio / tarde" />
+                            <CheckBox fx:id="chkTurnoNoite" mnemonicParsing="false" text="Noite / fecho" />
                         </HBox>
-
-                        <VBox fx:id="painelColega" managed="false" spacing="5.0" visible="false">
-                            <children>
-                                <Label styleClass="campo-titulo" text="Colega preferido" />
-                                <ComboBox fx:id="cbColegaPreferido" promptText="Seleciona um colega" />
-                            </children>
-                        </VBox>
-
-                        <VBox fx:id="painelTurnos" managed="false" spacing="8.0" styleClass="painel-turnos-estruturados" visible="false">
-                            <children>
-                                <Label styleClass="campo-titulo" text="Prefer&#234;ncia estruturada de turnos" />
-                                <Label styleClass="texto-ajuda" text="Escolhe os blocos de turno que preferes para o gerador conseguir respeitar melhor o teu pedido mensal." wrapText="true" />
-                                <HBox spacing="18.0">
-                                    <children>
-                                        <CheckBox fx:id="chkTurnoManha" mnemonicParsing="false" text="Manh&#227; / abertura" />
-                                        <CheckBox fx:id="chkTurnoIntermedio" mnemonicParsing="false" text="Interm&#233;dio / tarde" />
-                                        <CheckBox fx:id="chkTurnoNoite" mnemonicParsing="false" text="Noite / fecho" />
-                                    </children>
-                                </HBox>
-                                <VBox spacing="5.0">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Dura&#231;&#227;o preferida" />
-                                        <ComboBox fx:id="cbDuracaoPreferida" promptText="Indiferente" styleClass="campo-combo" />
-                                    </children>
-                                </VBox>
-                            </children>
-                        </VBox>
-
-                        <HBox spacing="12.0">
-                            <children>
-                                <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Data inicial" />
-                                        <DatePicker fx:id="dpDataInicio" promptText="Selecionar data" />
-                                    </children>
-                                </VBox>
-
-                                <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                    <children>
-                                        <Label styleClass="campo-titulo" text="Data final" />
-                                        <DatePicker fx:id="dpDataFim" promptText="Opcional" />
-                                    </children>
-                                </VBox>
-                            </children>
-                        </HBox>
-
-                        <CheckBox fx:id="chkSemDataFim" mnemonicParsing="false" text="Aplica-se em permanência" />
-
                         <VBox spacing="5.0">
-                            <children>
-                                <Label styleClass="campo-titulo" text="Contexto adicional" />
-                                <TextArea fx:id="txtDescricao" prefRowCount="4" promptText="Explica a tua preferência com detalhe suficiente para ser analisada." wrapText="true" />
-                            </children>
+                            <Label styleClass="campo-titulo" text="Dura&#231;&#227;o preferida" />
+                            <ComboBox fx:id="cbDuracaoPreferida" maxWidth="Infinity" promptText="Indiferente" styleClass="campo-combo" />
                         </VBox>
+                    </VBox>
 
-                        <Label fx:id="lblFeedback" managed="false" visible="false" wrapText="true" />
+                    <HBox spacing="12.0">
+                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                            <Label styleClass="campo-titulo" text="Data inicial" />
+                            <DatePicker fx:id="dpDataInicio" maxWidth="Infinity" promptText="Selecionar data" styleClass="campo-input" />
+                        </VBox>
+                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                            <Label styleClass="campo-titulo" text="Data final" />
+                            <DatePicker fx:id="dpDataFim" maxWidth="Infinity" promptText="Opcional" styleClass="campo-input" />
+                        </VBox>
+                    </HBox>
 
-                        <HBox alignment="CENTER_LEFT" spacing="12.0">
-                            <children>
-                                <Button fx:id="btnGuardarPreferencia" onAction="#onGuardarPreferenciaClick" styleClass="botao-acao" text="Guardar preferência" />
-                                <Button fx:id="btnCancelarEdicao" disable="true" onAction="#onCancelarEdicaoClick" styleClass="botao-secundario" text="Cancelar edição" />
-                                <Button fx:id="btnRemoverPreferencia" onAction="#onRemoverPreferenciaClick" styleClass="botao-secundario" text="Remover selecionada" />
-                            </children>
-                        </HBox>
-                    </children>
+                    <CheckBox fx:id="chkSemDataFim" mnemonicParsing="false" text="Aplica-se em perman&#234;ncia" />
+
+                    <VBox spacing="5.0">
+                        <Label styleClass="campo-titulo" text="Contexto adicional" />
+                        <TextArea fx:id="txtDescricao" prefRowCount="4"
+                                  promptText="Explica a tua prefer&#234;ncia com detalhe suficiente para ser analisada."
+                                  wrapText="true" />
+                    </VBox>
+
+                    <Label fx:id="lblFeedback" managed="false" visible="false" wrapText="true" styleClass="mensagem-feedback" />
+
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <Button fx:id="btnGuardarPreferencia" onAction="#onGuardarPreferenciaClick"
+                                styleClass="botao-acao" text="Guardar prefer&#234;ncia" />
+                        <Button fx:id="btnCancelarEdicao" disable="true" onAction="#onCancelarEdicaoClick"
+                                styleClass="botao-secundario" text="Cancelar edi&#231;&#227;o" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button fx:id="btnRemoverPreferencia" onAction="#onRemoverPreferenciaClick"
+                                styleClass="botao-secundario" text="Remover selecionada" />
+                    </HBox>
                 </VBox>
 
-                <Label styleClass="subtitulo" text="Histórico das tuas preferências" />
+                <VBox spacing="10.0" styleClass="bento-card" HBox.hgrow="ALWAYS">
+                    <Label styleClass="card-titulo" text="As minhas prefer&#234;ncias" />
+                    <Label styleClass="subtitulo" text="Hist&#243;rico das prefer&#234;ncias que registaste." />
+                    <TableView fx:id="tabelaPreferencias" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                        <columns>
+                            <TableColumn fx:id="colTipo" text="Tipo" />
+                            <TableColumn fx:id="colPeriodo" text="Per&#237;odo" />
+                            <TableColumn fx:id="colPrioridade" text="Vig&#234;ncia" />
+                            <TableColumn fx:id="colEstado" text="Estado" />
+                            <TableColumn fx:id="colDescricao" text="Descri&#231;&#227;o" />
+                        </columns>
+                    </TableView>
+                </VBox>
+            </HBox>
 
-                <TableView fx:id="tabelaPreferencias" prefHeight="220.0">
+            <Region minHeight="20.0" />
+
+            <VBox fx:id="painelAprovacao" spacing="14.0" styleClass="bento-card">
+                <Label styleClass="card-titulo" text="Painel de Aprova&#231;&#227;o" />
+                <Label styleClass="subtitulo"
+                       text="Analisa as prefer&#234;ncias pendentes da tua loja e regista a decis&#227;o antes da gera&#231;&#227;o do hor&#225;rio."
+                       wrapText="true" />
+
+                <TableView fx:id="tabelaPreferenciasPendentes" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
                     <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                     </columnResizePolicy>
                     <columns>
-                        <TableColumn fx:id="colTipo" prefWidth="120.0" text="Tipo" />
-                        <TableColumn fx:id="colPeriodo" prefWidth="180.0" text="Período" />
-                        <TableColumn fx:id="colPrioridade" prefWidth="90.0" text="Vigência" />
-                        <TableColumn fx:id="colEstado" prefWidth="120.0" text="Estado" />
-                        <TableColumn fx:id="colDescricao" prefWidth="340.0" text="Descrição" />
+                        <TableColumn fx:id="colColaboradorPendente" text="Colaborador" />
+                        <TableColumn fx:id="colTipoPendente" text="Tipo" />
+                        <TableColumn fx:id="colPeriodoPendente" text="Per&#237;odo" />
+                        <TableColumn fx:id="colPrioridadePendente" text="Vig&#234;ncia" />
+                        <TableColumn fx:id="colDescricaoPendente" text="Descri&#231;&#227;o" />
                     </columns>
                 </TableView>
 
-                <VBox fx:id="painelAprovacao" spacing="14.0" styleClass="info-card">
-                    <children>
-                        <Label styleClass="card-titulo" text="Painel de Aprovação" />
-                        <Label styleClass="subtitulo" text="Analisa as preferências pendentes da tua loja e regista a decisão antes da geração do horário." wrapText="true" />
-
-                        <TableView fx:id="tabelaPreferenciasPendentes" prefHeight="220.0">
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                            <columns>
-                                <TableColumn fx:id="colColaboradorPendente" prefWidth="170.0" text="Colaborador" />
-                                <TableColumn fx:id="colTipoPendente" prefWidth="100.0" text="Tipo" />
-                                <TableColumn fx:id="colPeriodoPendente" prefWidth="170.0" text="Período" />
-                                <TableColumn fx:id="colPrioridadePendente" prefWidth="90.0" text="Vigência" />
-                                <TableColumn fx:id="colDescricaoPendente" prefWidth="330.0" text="Descrição" />
-                            </columns>
-                        </TableView>
-
-                        <VBox spacing="5.0">
-                            <children>
-                                <Label styleClass="campo-titulo" text="Observação da decisão" />
-                                <TextArea fx:id="txtDecisaoGestor" prefRowCount="3" promptText="Opcional: acrescenta uma observação para o histórico da decisão." wrapText="true" />
-                            </children>
-                        </VBox>
-
-                        <Label fx:id="lblFeedbackGestao" managed="false" visible="false" wrapText="true" />
-
-                        <HBox alignment="CENTER_LEFT" spacing="12.0">
-                            <children>
-                                <Button fx:id="btnRejeitarPreferencia" onAction="#onRejeitarPreferenciaClick" styleClass="botao-secundario" text="Rejeitar" />
-                                <Button fx:id="btnAprovarPreferencia" onAction="#onAprovarPreferenciaClick" styleClass="botao-acao" text="Aprovar" />
-                            </children>
-                        </HBox>
-
-                        <Label styleClass="subtitulo" text="Histórico de decisões da loja" />
-
-                        <TableView fx:id="tabelaHistoricoDecisoes" prefHeight="220.0">
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                            <columns>
-                                <TableColumn fx:id="colColaboradorHistorico" prefWidth="160.0" text="Colaborador" />
-                                <TableColumn fx:id="colEstadoHistorico" prefWidth="110.0" text="Estado" />
-                                <TableColumn fx:id="colDecisaoHistorico" prefWidth="270.0" text="Observação" />
-                                <TableColumn fx:id="colDecisorHistorico" prefWidth="150.0" text="Decisor" />
-                                <TableColumn fx:id="colDataDecisaoHistorico" prefWidth="150.0" text="Data da decisão" />
-                            </columns>
-                        </TableView>
-                    </children>
+                <VBox spacing="5.0">
+                    <Label styleClass="campo-titulo" text="Observa&#231;&#227;o da decis&#227;o" />
+                    <TextArea fx:id="txtDecisaoGestor" prefRowCount="3"
+                              promptText="Opcional: acrescenta uma observa&#231;&#227;o para o hist&#243;rico da decis&#227;o."
+                              wrapText="true" styleClass="campo-textarea" />
                 </VBox>
-            </children>
+
+                <Label fx:id="lblFeedbackGestao" managed="false" visible="false" wrapText="true" styleClass="mensagem-feedback" />
+
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Button fx:id="btnRejeitarPreferencia" onAction="#onRejeitarPreferenciaClick"
+                            styleClass="botao-secundario" text="Rejeitar" />
+                    <Button fx:id="btnAprovarPreferencia" onAction="#onAprovarPreferenciaClick"
+                            styleClass="botao-acao" text="Aprovar" />
+                </HBox>
+
+                <Label styleClass="card-titulo" text="Hist&#243;rico de decis&#245;es da loja" />
+                <TableView fx:id="tabelaHistoricoDecisoes" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                    </columnResizePolicy>
+                    <columns>
+                        <TableColumn fx:id="colColaboradorHistorico" text="Colaborador" />
+                        <TableColumn fx:id="colEstadoHistorico" text="Estado" />
+                        <TableColumn fx:id="colDecisaoHistorico" text="Observa&#231;&#227;o" />
+                        <TableColumn fx:id="colDecisorHistorico" text="Decisor" />
+                        <TableColumn fx:id="colDataDecisaoHistorico" text="Data da decis&#227;o" />
+                    </columns>
+                </TableView>
+            </VBox>
+
         </VBox>
     </content>
 </ScrollPane>

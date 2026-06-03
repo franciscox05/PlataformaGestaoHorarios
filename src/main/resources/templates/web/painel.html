@@ -1,96 +1,288 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Painel')}"></head>
-<body>
+<head th:replace="~{web/fragments :: head('Painel — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 <header th:replace="~{web/fragments :: shellHeader}"></header>
 
-<div class="web-shell">
-    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[86rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-6">
 
-    <main class="web-content">
-        <h1>Painel</h1>
-        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
-        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
+    <!-- ── Welcome Banner ── -->
+    <section class="fade-up relative overflow-hidden rounded-2xl p-8 md:p-10 flex items-center justify-between gap-6"
+             style="background:linear-gradient(135deg,#1a0005 0%,#2a0a0f 60%,#1a0005 100%);box-shadow:0 8px 40px rgba(0,0,0,.18)">
+        <!-- Decoração -->
+        <div class="absolute inset-0 pointer-events-none"
+             style="background:radial-gradient(ellipse at 85% 50%,rgba(192,0,31,.15) 0%,transparent 60%)"></div>
+        <div class="absolute top-0 right-0 w-80 h-80 rounded-full border border-white/[.04] pointer-events-none"
+             style="transform:translate(40%,-40%)"></div>
+        <div class="absolute bottom-0 right-20 w-40 h-40 rounded-full border border-white/[.03] pointer-events-none"
+             style="transform:translateY(40%)"></div>
+        <!-- Linha animada decorativa -->
+        <div class="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+             style="background:linear-gradient(90deg,transparent,rgba(192,0,31,.4),transparent)"></div>
 
-        <section class="web-kpis">
-            <article class="web-kpi">
-                <h2>Folgas pendentes</h2>
-                <strong th:text="${folgasPendentes}">0</strong>
-            </article>
-            <article class="web-kpi">
-                <h2>Preferencias pendentes</h2>
-                <strong th:text="${preferenciasPendentes}">0</strong>
-            </article>
-            <article class="web-kpi">
-                <h2>Permutas pendentes</h2>
-                <strong th:text="${permutasPendentes}">0</strong>
-            </article>
-            <article class="web-kpi" th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar()}">
-                <h2>Aprovar complementares</h2>
-                <strong th:text="${folgasParaAprovar + preferenciasParaAprovar + permutasParaAprovar}">0</strong>
-            </article>
-            <article class="web-kpi" th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}">
-                <h2>Equipa ativa hoje</h2>
-                <strong th:text="${totalEquipaHoje}">0</strong>
-            </article>
-        </section>
+        <div class="relative z-10">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="h-px w-6" style="background:linear-gradient(90deg,#c0001f,transparent)"></div>
+                <p class="font-body font-bold text-[9px] uppercase tracking-[.2em]" style="color:rgba(255,179,175,.5)">Portal de Staff</p>
+                <div class="h-px flex-1 max-w-16" style="background:linear-gradient(90deg,rgba(192,0,31,.3),transparent)"></div>
+            </div>
+            <h1 class="font-display font-bold text-white tracking-tight mb-2"
+                style="font-size:clamp(1.8rem,3.5vw,2.8rem);line-height:1.1"
+                th:text="${'Olá, ' + (webUtilizador != null && webUtilizador.nome != null ? webUtilizador.nome.split(' ')[0] : 'Utilizador') + '! 👋'}">Olá!</h1>
+            <p class="font-body text-[14px]" style="color:rgba(255,255,255,.38)">Resumo operacional da tua loja para hoje.</p>
+            <div class="flex items-center gap-3 mt-2 flex-wrap">
+                <p id="datahoje" class="font-body font-semibold text-[12px]" style="color:rgba(255,179,175,.35)"></p>
+                <span class="text-white/10 hidden sm:block">·</span>
+                <p id="clockhoje" class="font-body font-bold text-[13px] hidden sm:block" style="color:rgba(255,179,175,.45);font-variant-numeric:tabular-nums;letter-spacing:.06em;font-feature-settings:'tnum'"></p>
+            </div>
+        </div>
+        <div class="relative z-10 hidden lg:flex items-center gap-3 shrink-0">
+            <a href="/web/complementares"
+               class="flex items-center gap-2 text-white font-body font-bold text-[13px] px-5 py-3 rounded-xl transition-all"
+               style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 4px 16px rgba(192,0,31,.35)"
+               onmouseover="this.style.boxShadow='0 6px 24px rgba(192,0,31,.5)';this.style.transform='translateY(-1px)'"
+               onmouseout="this.style.boxShadow='0 4px 16px rgba(192,0,31,.35)';this.style.transform=''">
+                <span class="material-symbols-outlined text-[18px]">add_task</span>
+                Validar pedidos
+            </a>
+        </div>
+    </section>
+    <script>
+    (function(){
+        var dias   = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+        var meses  = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        function pad(n){ return String(n).padStart(2,'0'); }
+        function tick(){
+            var d = new Date();
+            var elDate  = document.getElementById('datahoje');
+            var elClock = document.getElementById('clockhoje');
+            if(elDate && !elDate._dateSet){
+                elDate.textContent = dias[d.getDay()] + ', ' + d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();
+                elDate._dateSet = true;
+            }
+            if(elClock) elClock.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+        }
+        tick();
+        setInterval(tick, 1000);
+    })();
+    </script>
 
-        <section class="web-card web-card-ops">
-            <h2>Operacoes Rapidas Web</h2>
-            <p>Fluxo otimizado para browser: valida pedidos, consulta escala e fecha relatorios sem sair desta vista.</p>
-            <div class="web-actions web-actions-wrap">
-                <a class="botao-acao" href="/web/complementares">Validar complementares</a>
-                <a class="botao-acao" href="/web/horarios">Atualizar horarios</a>
-                <a class="botao-acao" href="/web/relatorios">Fechar relatorio mensal</a>
+    <!-- Feedback -->
+    <div th:if="${erro}" class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    </div>
+    <div th:if="${sucesso}" class="fade-up flex items-center gap-2.5 bg-[#d1fae5] text-[#065f46] px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span><span th:text="${sucesso}"></span>
+    </div>
+
+    <!-- ── KPI Cards ── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-3 card-lift"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="flex items-start justify-between gap-2">
+                <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant leading-tight">Folgas pendentes</p>
+                <span class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[18px] text-on-surface-variant">beach_access</span>
+                </span>
+            </div>
+            <div>
+                <strong class="font-display font-bold text-on-surface block" style="font-size:2.8rem;line-height:1"
+                        th:attr="data-count=${folgasPendentes}"
+                        th:text="${folgasPendentes}">0</strong>
+                <p class="font-body text-[11px] text-on-surface-variant/60 mt-1">pedido(s)</p>
+            </div>
+        </article>
+
+        <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-3 card-lift"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="flex items-start justify-between gap-2">
+                <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant leading-tight">Preferências</p>
+                <span class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[18px] text-on-surface-variant">tune</span>
+                </span>
+            </div>
+            <div>
+                <strong class="font-display font-bold text-on-surface block" style="font-size:2.8rem;line-height:1"
+                        th:attr="data-count=${preferenciasPendentes}"
+                        th:text="${preferenciasPendentes}">0</strong>
+                <p class="font-body text-[11px] text-on-surface-variant/60 mt-1">pendente(s)</p>
+            </div>
+        </article>
+
+        <article class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-3 card-lift"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="flex items-start justify-between gap-2">
+                <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant leading-tight">Permutas</p>
+                <span class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[18px] text-on-surface-variant">swap_horiz</span>
+                </span>
+            </div>
+            <div>
+                <strong class="font-display font-bold text-on-surface block" style="font-size:2.8rem;line-height:1"
+                        th:attr="data-count=${permutasPendentes}"
+                        th:text="${permutasPendentes}">0</strong>
+                <p class="font-body text-[11px] text-on-surface-variant/60 mt-1">pedido(s)</p>
+            </div>
+        </article>
+
+        <article th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}"
+                 class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-3 card-lift"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="flex items-start justify-between gap-2">
+                <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant leading-tight">Equipa hoje</p>
+                <span class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[18px] text-on-surface-variant">groups</span>
+                </span>
+            </div>
+            <div>
+                <strong class="font-display font-bold text-on-surface block" style="font-size:2.8rem;line-height:1"
+                        th:attr="data-count=${totalEquipaHoje}"
+                        th:text="${totalEquipaHoje}">0</strong>
+                <p class="font-body text-[11px] text-on-surface-variant/60 mt-1">pessoa(s)</p>
+            </div>
+        </article>
+
+        <!-- Card destaque gestor -->
+        <article th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar()}"
+                 class="fade-up lg:col-span-4 rounded-2xl border p-5 md:p-6 flex items-center justify-between gap-5 flex-wrap"
+                 style="background:linear-gradient(135deg,rgba(192,0,31,.07) 0%,rgba(192,0,31,.03) 100%);border-color:rgba(192,0,31,.18);box-shadow:0 4px 20px rgba(192,0,31,.06)">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                     style="background:rgba(192,0,31,.1)">
+                    <span class="material-symbols-outlined icon-fill text-[24px]" style="color:#c0001f">pending_actions</span>
+                </div>
+                <div>
+                    <p class="font-body font-bold text-[10px] uppercase tracking-wider mb-1" style="color:#c0001f">Requerem atenção</p>
+                    <div class="flex items-baseline gap-2">
+                        <strong class="font-display font-bold text-[36px] leading-none" style="color:#c0001f"
+                                th:attr="data-count=${folgasParaAprovar + preferenciasParaAprovar + permutasParaAprovar}"
+                                th:text="${folgasParaAprovar + preferenciasParaAprovar + permutasParaAprovar}">0</strong>
+                        <span class="font-body text-[13px]" style="color:rgba(192,0,31,.55)">pedido(s) pendente(s)</span>
+                    </div>
+                </div>
+            </div>
+            <a href="/web/complementares"
+               class="flex items-center gap-2 text-white font-body font-bold text-[13px] px-5 py-3 rounded-xl transition-all shrink-0"
+               style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 4px 16px rgba(192,0,31,.3)">
+                <span class="material-symbols-outlined text-[18px]">fact_check</span>
+                Processar agora
+            </a>
+        </article>
+    </div>
+
+    <!-- ── Bento grid ── -->
+    <div class="grid lg:grid-cols-3 gap-5">
+
+        <!-- Próximos turnos -->
+        <section class="fade-up lg:col-span-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+                 style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/25">
+                <h2 class="font-display font-bold text-[16px] text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined icon-fill text-[18px]" style="color:#c0001f">schedule</span>
+                    Próximos turnos
+                </h2>
+            </div>
+            <div class="flex flex-col gap-2 p-4 flex-1">
+                <div th:if="${#lists.isEmpty(proximosTurnos)}"
+                     class="flex-1 flex flex-col items-center justify-center gap-3 py-10">
+                    <span class="material-symbols-outlined text-[40px] text-outline/25">event_busy</span>
+                    <p class="font-body text-[13px] text-on-surface-variant text-center">Sem turnos publicados.</p>
+                </div>
+                <div th:each="turno,iter : ${proximosTurnos}"
+                     class="p-3.5 rounded-xl flex flex-col gap-1 transition-all"
+                     th:classappend="${iter.index == 0} ? 'border-l-[3px] border-primary-container' : 'border border-outline-variant/25 hover:bg-surface-container-low'"
+                     th:style="${iter.index == 0} ? 'background:rgba(192,0,31,.05)' : ''">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-body font-bold text-[13px] text-on-surface" th:text="${turno.dataTurno}">–</span>
+                        <span th:if="${iter.index == 0}"
+                              class="font-body font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
+                              style="background:rgba(192,0,31,.12);color:#c0001f">Hoje</span>
+                    </div>
+                    <p class="font-body text-[12px] text-on-surface-variant"
+                       th:text="${turno.idTurno != null ? turno.idTurno.horaInicio + ' – ' + turno.idTurno.horaFim : '–'}">–</p>
+                </div>
+            </div>
+            <div class="px-4 pb-4">
+                <a href="/web/horarios"
+                   class="flex items-center justify-center gap-1.5 py-2.5 border border-outline-variant/35 rounded-xl font-body font-bold text-[13px] text-on-surface hover:bg-surface-container transition-colors">
+                    Ver calendário
+                    <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+                </a>
             </div>
         </section>
 
-        <section class="web-card">
-            <h2>Proximos turnos</h2>
-            <table>
-                <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Horario</th>
-                    <th>Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:if="${#lists.isEmpty(proximosTurnos)}">
-                    <td colspan="3">Sem turnos publicados para os proximos dias.</td>
-                </tr>
-                <tr th:each="turno : ${proximosTurnos}">
-                    <td th:text="${turno.dataTurno}"></td>
-                    <td th:text="${turno.idTurno != null ? turno.idTurno.horaInicio + ' - ' + turno.idTurno.horaFim : '-'}"></td>
-                    <td th:text="${turno.estado}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </section>
+        <!-- Coluna direita -->
+        <div class="lg:col-span-2 flex flex-col gap-5">
 
-        <section class="web-card" th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}">
-            <h2>Operacao da Loja Hoje</h2>
-            <table>
-                <thead>
-                <tr>
-                    <th>Colaborador</th>
-                    <th>Horario</th>
-                    <th>Tipo de turno</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:if="${#lists.isEmpty(equipaHoje)}">
-                    <td colspan="3">Sem equipa alocada para hoje.</td>
-                </tr>
-                <tr th:each="item : ${equipaHoje}">
-                    <td th:text="${item.idLojautilizador != null && item.idLojautilizador.idUtilizador != null ? item.idLojautilizador.idUtilizador.nome : '-'}"></td>
-                    <td th:text="${item.idTurno != null ? item.idTurno.horaInicio + ' - ' + item.idTurno.horaFim : '-'}"></td>
-                    <td th:text="${item.idTurno != null ? item.idTurno.tipo : '-'}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </section>
-    </main>
+            <!-- Ações rápidas -->
+            <section class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5"
+                     style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                <h2 class="font-display font-bold text-[16px] text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined icon-fill text-[18px]" style="color:#c0001f">bolt</span>
+                    Operações rápidas
+                </h2>
+                <div class="flex flex-wrap gap-2.5">
+                    <a href="/web/complementares"
+                       class="flex items-center gap-2 text-white font-body font-bold text-[13px] px-4 py-2.5 rounded-xl transition-all"
+                       style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 10px rgba(192,0,31,.25)">
+                        <span class="material-symbols-outlined text-[17px]">fact_check</span>
+                        Validar complementares
+                    </a>
+                    <a href="/web/horarios"
+                       class="flex items-center gap-2 bg-surface-container text-on-surface font-body font-bold text-[13px] px-4 py-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high transition-colors">
+                        <span class="material-symbols-outlined text-[17px]">calendar_month</span>
+                        Ver horários
+                    </a>
+                    <a href="/web/relatorios"
+                       th:if="${webPermissoes != null && webPermissoes.podeVerRelatorios()}"
+                       class="flex items-center gap-2 bg-surface-container text-on-surface font-body font-bold text-[13px] px-4 py-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high transition-colors">
+                        <span class="material-symbols-outlined text-[17px]">bar_chart</span>
+                        Relatório mensal
+                    </a>
+                </div>
+            </section>
+
+            <!-- Equipa hoje -->
+            <section th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}"
+                     class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex-1"
+                     style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/25">
+                    <h2 class="font-display font-bold text-[16px] text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined icon-fill text-[18px]" style="color:#c0001f">group</span>
+                        Equipa de serviço hoje
+                    </h2>
+                    <span class="font-body font-semibold text-[11px] text-on-surface-variant bg-surface-container px-3 py-1 rounded-full border border-outline-variant/30"
+                          th:text="${totalEquipaHoje} + ' pessoa(s)'">0</span>
+                </div>
+                <div class="p-5">
+                    <div th:if="${#lists.isEmpty(equipaHoje)}"
+                         class="flex flex-col items-center justify-center gap-3 py-8 text-center">
+                        <span class="material-symbols-outlined text-[40px] text-outline/25">person_off</span>
+                        <p class="font-body text-[13px] text-on-surface-variant">Sem equipa alocada para hoje.</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" th:if="${!#lists.isEmpty(equipaHoje)}">
+                        <div th:each="item : ${equipaHoje}"
+                             class="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+                            <div class="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center font-display font-bold text-sm text-on-surface shrink-0"
+                                 th:text="${item.idLojautilizador?.idUtilizador?.nome != null ? item.idLojautilizador.idUtilizador.nome.substring(0,1).toUpperCase() : '?'}">?</div>
+                            <div class="min-w-0">
+                                <p class="font-body font-bold text-[13px] text-on-surface truncate"
+                                   th:text="${item.idLojautilizador?.idUtilizador?.nome ?: '–'}">–</p>
+                                <p class="font-body text-[11px] text-on-surface-variant"
+                                   th:text="${item.idTurno != null ? item.idTurno.horaInicio + ' – ' + item.idTurno.horaFim : '–'}">–</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
 </div>
+</main>
 </body>
 </html>

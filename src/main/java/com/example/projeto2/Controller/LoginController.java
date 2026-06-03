@@ -2,6 +2,7 @@ package com.example.projeto2.Controller;
 
 import com.example.projeto2.BLL.UtilizadorBLL;
 import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.UIConstants;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -27,10 +28,6 @@ import java.io.InputStream;
 public class LoginController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
-    private static final double APP_WIDTH = 1480;
-    private static final double APP_HEIGHT = 920;
-    private static final double APP_MIN_WIDTH = 1280;
-    private static final double APP_MIN_HEIGHT = 780;
 
     @FXML
     private TextField txtEmail;
@@ -143,10 +140,10 @@ public class LoginController {
             dashboardController.setUtilizadorLogado(logado);
 
             Stage stage = (Stage) txtEmail.getScene().getWindow();
-            stage.setScene(new Scene(root, APP_WIDTH, APP_HEIGHT));
-            stage.setTitle("Levi's Staff Portal - Painel");
-            stage.setMinWidth(APP_MIN_WIDTH);
-            stage.setMinHeight(APP_MIN_HEIGHT);
+            stage.setScene(new Scene(root, UIConstants.APP_WIDTH, UIConstants.APP_HEIGHT));
+            stage.setTitle("Levi's Staff Portal - Painel (UI V2)");
+            stage.setMinWidth(UIConstants.APP_MIN_WIDTH);
+            stage.setMinHeight(UIConstants.APP_MIN_HEIGHT);
             stage.setResizable(false);
             stage.setFullScreenExitHint("");
             stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);

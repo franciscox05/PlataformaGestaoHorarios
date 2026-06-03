@@ -1,20 +1,49 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Levi's Staff Portal Web - Modulo</title>
-    <link rel="stylesheet" href="/web/css/app.css">
-</head>
-<body>
-<header th:replace="~{web/fragments/shell :: topbar(${webPaginaAtiva}, ${utilizadorNome}, ${webCargoAtual}, ${webPodeAcederHorarios}, ${webPodeGerirLoja}, ${webPodeRelatorios})}"></header>
+<head th:replace="~{web/fragments :: head('Em breve — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
 
-<main class="web-layout">
-    <section class="web-card">
-        <h1 th:text="${tituloModulo}"></h1>
-        <p class="web-subtitle">Modulo preparado para a migracao faseada da desktop para web.</p>
-        <p class="web-muted">Proximo passo: transportar fluxos, tabelas e validacoes desta area com paridade funcional.</p>
-    </section>
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<header th:replace="~{web/fragments :: shellHeader}"></header>
+
+<main class="md:ml-sidebar pt-topbar min-h-screen flex items-center justify-center px-5">
+    <div class="max-w-lg w-full text-center flex flex-col items-center gap-6 py-16">
+
+        <!-- Ícone animado -->
+        <div class="w-20 h-20 rounded-2xl flex items-center justify-center fade-up"
+             style="background:linear-gradient(135deg,rgba(192,0,31,.08),rgba(192,0,31,.04));border:1px solid rgba(192,0,31,.15)">
+            <span class="material-symbols-outlined text-[40px]" style="color:rgba(192,0,31,.4)">construction</span>
+        </div>
+
+        <!-- Texto -->
+        <div class="fade-up fade-up-1 flex flex-col gap-2">
+            <h1 class="font-display font-bold text-[26px] text-on-surface tracking-tight"
+                th:text="${tituloModulo != null ? tituloModulo : 'Módulo em desenvolvimento'}">Em breve</h1>
+            <p class="font-body text-[14px] text-on-surface-variant max-w-sm mx-auto">
+                Esta área está a ser preparada. Em breve estará disponível com todas as funcionalidades.
+            </p>
+        </div>
+
+        <!-- Divider -->
+        <div class="fade-up fade-up-2 flex items-center gap-3 w-full max-w-xs">
+            <div class="flex-1 h-px" style="background:linear-gradient(90deg,transparent,rgba(144,111,109,.2))"></div>
+            <span class="font-body text-[11px] uppercase tracking-wider text-on-surface-variant/40">Staff Portal</span>
+            <div class="flex-1 h-px" style="background:linear-gradient(90deg,rgba(144,111,109,.2),transparent)"></div>
+        </div>
+
+        <!-- Ação -->
+        <div class="fade-up fade-up-3">
+            <a href="/web/painel"
+               class="inline-flex items-center gap-2 text-white font-body font-bold text-[13px] px-6 py-3 rounded-xl transition-all"
+               style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 4px 16px rgba(192,0,31,.25)"
+               onmouseover="this.style.boxShadow='0 6px 20px rgba(192,0,31,.4)'"
+               onmouseout="this.style.boxShadow='0 4px 16px rgba(192,0,31,.25)'">
+                <span class="material-symbols-outlined text-[17px]">arrow_back</span>
+                Voltar ao painel
+            </a>
+        </div>
+
+    </div>
 </main>
 </body>
 </html>

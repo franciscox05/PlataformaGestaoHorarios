@@ -1,5 +1,6 @@
 package com.example.projeto2.Modules;
 
+import com.example.projeto2.Enums.EstadoPermuta;
 import jakarta.persistence.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -23,8 +24,9 @@ public class Permuta {
     @JoinColumn(name = "id_horario_destino", nullable = false)
     private Horario idHorarioDestino;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "estado", columnDefinition = "estado_permuta_enum")
-    private String estado;
+    private EstadoPermuta estado;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "data_pedido")
@@ -55,11 +57,11 @@ public class Permuta {
         this.idHorarioDestino = idHorarioDestino;
     }
 
-    public String getEstado() {
+    public EstadoPermuta getEstado() {
         return estado;
     }
 
-    public void setEstado(String estado) {
+    public void setEstado(EstadoPermuta estado) {
         this.estado = estado;
     }
 

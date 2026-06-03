@@ -131,7 +131,7 @@ public class PedirFolgaController {
             String tipoSelecionado = mapearTipoParaBaseDados(cbTipo.getValue());
 
             DayOff pedido = new DayOff();
-            pedido.setIdUtilizador(utilizadorLogado.getId());
+            pedido.setIdUtilizador(utilizadorLogado);
             pedido.setDataAusencia(dpData.getValue());
             pedido.setTipo(tipoSelecionado);
             pedido.setMotivo(txtMotivo.getText());
@@ -221,7 +221,7 @@ public class PedirFolgaController {
 
         List<DayOff> pedidosPendentes = dayOffBLL.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId());
         nomesPendentesPorUtilizador = dayOffBLL.listarNomesUtilizadores(
-                pedidosPendentes.stream().map(DayOff::getIdUtilizador).collect(Collectors.toSet())
+                pedidosPendentes.stream().map(d -> d.getIdUtilizador().getId()).collect(Collectors.toSet())
         );
         tabelaPedidosPendentes.setItems(FXCollections.observableArrayList(pedidosPendentes));
         tabelaPedidosPendentes.refresh();

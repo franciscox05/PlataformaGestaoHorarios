@@ -1,78 +1,209 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Relatorios')}"></head>
-<body>
+<head th:replace="~{web/fragments :: head('Relatórios — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 <header th:replace="~{web/fragments :: shellHeader}"></header>
 
-<div class="web-shell">
-    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[82rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-5">
 
-    <main class="web-content">
-        <h1>Relatorios Mensais</h1>
-        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+    <!-- ── Header ── -->
+    <div class="fade-up flex items-start justify-between gap-4 flex-wrap">
+        <div>
+            <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Relatórios mensais</h1>
+            <p class="font-body text-[14px] text-on-surface-variant mt-1"
+               th:if="${contexto != null}" th:text="'Loja: ' + ${contexto.nomeLoja()}">Consulta e exportação de dados da equipa.</p>
+            <p class="font-body text-[14px] text-on-surface-variant mt-1" th:unless="${contexto != null}">Consulta e exportação de dados da equipa.</p>
+        </div>
+    </div>
 
-        <section class="web-card" th:if="${contexto != null}">
-            <p th:text="'Loja: ' + ${contexto.nomeLoja()}"></p>
-            <form method="get" action="/web/relatorios" class="web-inline-form">
-                <label for="ano">Ano</label>
-                <select id="ano" name="ano">
+    <!-- Feedback -->
+    <div th:if="${erro}" class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    </div>
+
+    <!-- ── Filtros ── -->
+    <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5"
+             th:if="${contexto != null}"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+        <h2 class="font-display font-bold text-[15px] text-on-surface mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[18px]">filter_list</span>
+            Selecionar período e colaborador
+        </h2>
+        <form method="get" action="/web/relatorios" class="flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="ano">Ano</label>
+                <select id="ano" name="ano" onchange="this.form.submit()"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[90px]" style="outline:none">
                     <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
                 </select>
-
-                <label for="mes">Mes</label>
-                <select id="mes" name="mes">
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="mes">Mês</label>
+                <select id="mes" name="mes" onchange="this.form.submit()"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[140px]" style="outline:none">
                     <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
                 </select>
-
-                <label for="colaborador">Colaborador</label>
-                <select id="colaborador" name="colaborador">
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="colaborador">Colaborador</label>
+                <select id="colaborador" name="colaborador" onchange="this.form.submit()"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[200px]" style="outline:none">
                     <option value="">Todos</option>
                     <option th:each="colaborador : ${contexto.colaboradores()}"
                             th:value="${colaborador.id()}"
                             th:text="${colaborador.nome() + ' (' + colaborador.cargo() + ')'}"
                             th:selected="${colaboradorSelecionado != null && colaborador.id() == colaboradorSelecionado}"></option>
                 </select>
+            </div>
+            <button type="submit"
+                    class="flex items-center gap-2 bg-primary-container text-white font-body font-bold text-[13px] px-5 py-2.5 rounded-xl hover:bg-primary transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[16px]">bar_chart</span>
+                Gerar relatório
+            </button>
+        </form>
+    </section>
 
-                <button type="submit">Gerar</button>
-            </form>
-            <p class="web-muted">Versao web: consulta rapida e exportacao direta para CSV.</p>
-        </section>
+    <!-- ── Resultado ── -->
+    <th:block th:if="${resultado != null}">
 
-        <section class="web-card" th:if="${resultado != null}">
-            <h2 th:text="'Relatorio de ' + ${resultado.nomeMes()} + ' de ' + ${resultado.ano()}"></h2>
-            <p th:text="'Colaboradores: ' + ${resultado.resumo().colaboradores()} + ' - Turnos: ' + ${resultado.resumo().turnos()} + ' - Folgas aprovadas: ' + ${resultado.resumo().folgasAprovadas()} + ' - Horas: ' + ${resultado.resumo().horasFormatadas()}"></p>
-            <div class="web-actions">
-                <a class="botao-acao"
-                   th:href="@{/web/relatorios/exportar.csv(ano=${ano},mes=${mes},colaborador=${colaboradorSelecionado})}">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2"
+                     style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+                <div class="flex items-center justify-between">
+                    <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Colaboradores</p>
+                    <span class="material-symbols-outlined text-[18px] text-outline/50">group</span>
+                </div>
+                <strong class="font-display font-bold text-on-surface" style="font-size:2.2rem;line-height:1"
+                        th:text="${resultado.resumo().colaboradores()}">0</strong>
+            </article>
+            <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2"
+                     style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+                <div class="flex items-center justify-between">
+                    <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Turnos</p>
+                    <span class="material-symbols-outlined text-[18px] text-outline/50">schedule</span>
+                </div>
+                <strong class="font-display font-bold text-on-surface" style="font-size:2.2rem;line-height:1"
+                        th:text="${resultado.resumo().turnos()}">0</strong>
+            </article>
+            <article class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2"
+                     style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+                <div class="flex items-center justify-between">
+                    <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Folgas aprovadas</p>
+                    <span class="material-symbols-outlined text-[18px] text-outline/50">beach_access</span>
+                </div>
+                <strong class="font-display font-bold text-on-surface" style="font-size:2.2rem;line-height:1"
+                        th:text="${resultado.resumo().folgasAprovadas()}">0</strong>
+            </article>
+            <article class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2"
+                     style="box-shadow:0 4px 20px rgba(192,0,31,.08); border-color:rgba(192,0,31,.2)">
+                <div class="flex items-center justify-between">
+                    <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-primary-container">Total de horas</p>
+                    <span class="material-symbols-outlined text-[18px] text-primary-container/50">timer</span>
+                </div>
+                <strong class="font-display font-bold text-primary-container" style="font-size:2.2rem;line-height:1"
+                        th:text="${resultado.resumo().horasFormatadas()}">0h</strong>
+            </article>
+        </div>
+
+        <!-- Tabela detalhada -->
+        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                 style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/25 flex-wrap gap-3">
+                <h2 class="font-display font-bold text-[17px] text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined icon-fill text-primary-container text-[18px]">table_chart</span>
+                    <span th:text="'Relatório de ' + ${resultado.nomeMes()} + ' de ' + ${resultado.ano()}">Detalhado</span>
+                </h2>
+                <a th:href="@{/web/relatorios/exportar.csv(ano=${ano},mes=${mes},colaborador=${colaboradorSelecionado})}"
+                   class="flex items-center gap-1.5 bg-surface-container border border-outline-variant/40 text-on-surface font-body font-bold text-[12px] px-4 py-2 rounded-xl hover:bg-surface-container-high transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">download</span>
                     Exportar CSV
                 </a>
             </div>
-
-            <table>
-                <thead>
-                <tr>
-                    <th>Colaborador</th>
-                    <th>Cargo</th>
-                    <th>Turnos</th>
-                    <th>Folgas aprovadas</th>
-                    <th>Horas</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:if="${#lists.isEmpty(resultado.linhas())}">
-                    <td colspan="5">Sem dados para os filtros selecionados.</td>
-                </tr>
-                <tr th:each="linha : ${resultado.linhas()}">
-                    <td th:text="${linha.nomeColaborador()}"></td>
-                    <td th:text="${linha.cargo()}"></td>
-                    <td th:text="${linha.turnos()}"></td>
-                    <td th:text="${linha.folgasAprovadas()}"></td>
-                    <td th:text="${linha.horasFormatadas()}"></td>
-                </tr>
-                </tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-surface-container-low">
+                        <tr>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colaborador</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Cargo</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Turnos</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Folgas aprovadas</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Horas</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/25">
+                        <tr th:if="${#lists.isEmpty(resultado.linhas())}">
+                            <td colspan="5" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem dados para os filtros selecionados.</td>
+                        </tr>
+                        <tr th:each="linha : ${resultado.linhas()}" class="hover:bg-surface-container-low/50 transition-colors">
+                            <td class="px-6 py-3.5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center font-display font-bold text-xs text-on-surface shrink-0"
+                                         th:text="${linha.nomeColaborador() != null && !linha.nomeColaborador().isEmpty() ? linha.nomeColaborador().substring(0,1).toUpperCase() : '?'}">?</div>
+                                    <span class="font-body font-bold text-[13px] text-on-surface" th:text="${linha.nomeColaborador()}">–</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-3.5">
+                                <span class="badge-neu inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${linha.cargo()}">–</span>
+                            </td>
+                            <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${linha.turnos()}">0</td>
+                            <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${linha.folgasAprovadas()}">0</td>
+                            <td class="px-6 py-3.5 min-w-[160px]">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="font-body font-bold text-[13px] text-primary-container shrink-0 w-14 tabular-nums" th:text="${linha.horasFormatadas()}">0h</span>
+                                    <div class="flex-1 h-1.5 bg-primary-container/12 rounded-full overflow-hidden">
+                                        <div class="h-full rounded-full horas-bar" style="width:0%;background:linear-gradient(90deg,#c0001f,#e83a52);transition:width .8s cubic-bezier(.16,1,.3,1)"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
-    </main>
+
+    </th:block>
+
+    <!-- ── Estado vazio ── -->
+    <section th:if="${resultado == null && contexto != null}"
+             class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-14 flex flex-col items-center gap-4 text-center"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+        <div class="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
+            <span class="material-symbols-outlined text-[36px] text-outline/40">bar_chart</span>
+        </div>
+        <h2 class="font-display font-bold text-[20px] text-on-surface">Seleciona um período</h2>
+        <p class="font-body text-[14px] text-on-surface-variant max-w-md">Usa os filtros acima para gerar o relatório do mês pretendido.</p>
+    </section>
+
 </div>
+</main>
+
+<script>
+// ── Animar barras de horas ──
+document.addEventListener('DOMContentLoaded', function(){
+    function parseH(str){
+        if(!str) return 0;
+        var h=0, m=0;
+        var hm = str.match(/(\d+)h/); if(hm) h=+hm[1];
+        var mm = str.match(/(\d+)m/); if(mm) m=+mm[1];
+        return h*60+m;
+    }
+    var spans = document.querySelectorAll('.horas-bar');
+    if(!spans.length) return;
+    var vals = [];
+    spans.forEach(function(bar){
+        var label = bar.closest('td').querySelector('.tabular-nums');
+        vals.push(label ? parseH(label.textContent) : 0);
+    });
+    var max = Math.max.apply(null, vals) || 1;
+    spans.forEach(function(bar, i){
+        var pct = (vals[i]/max*92).toFixed(1);
+        setTimeout(function(){ bar.style.width = pct+'%'; }, 150 + i*60);
+    });
+});
+</script>
 </body>
 </html>

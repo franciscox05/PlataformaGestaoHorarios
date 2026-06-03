@@ -134,15 +134,15 @@ public class RelatorioHorasBLL {
                 continue;
             }
 
-            if (idColaborador != null && !idColaborador.equals(folga.getIdUtilizador())) {
+            if (idColaborador != null && !idColaborador.equals(folga.getIdUtilizador().getId())) {
                 continue;
             }
 
             LinhaAcumulada linha = acumuladoPorColaborador.computeIfAbsent(
-                    folga.getIdUtilizador(),
+                    folga.getIdUtilizador().getId(),
                     ignored -> LinhaAcumulada.fromDayOff(
                             folga,
-                            colaboradoresDaLoja.get(folga.getIdUtilizador())
+                            colaboradoresDaLoja.get(folga.getIdUtilizador().getId())
                     )
             );
             linha.folgasAprovadas++;
@@ -338,8 +338,8 @@ public class RelatorioHorasBLL {
 
         private static LinhaAcumulada fromDayOff(DayOff dayOff, FiltroColaborador colaborador) {
             return new LinhaAcumulada(
-                    dayOff.getIdUtilizador(),
-                    colaborador != null ? colaborador.nome() : "Utilizador #" + dayOff.getIdUtilizador(),
+                    dayOff.getIdUtilizador().getId(),
+                    colaborador != null ? colaborador.nome() : "Utilizador #" + dayOff.getIdUtilizador().getId(),
                     colaborador != null ? colaborador.cargo() : "-"
             );
         }

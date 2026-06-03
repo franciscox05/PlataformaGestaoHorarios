@@ -307,17 +307,17 @@ public class GestaoLojaController {
     }
 
     private VBox criarCardRegra(GestaoLojaBLL.RegraLojaResumo regra) {
-        VBox card = new VBox(10);
-        card.getStyleClass().add("regra-card");
-        card.setPadding(new Insets(16));
+        VBox card = new VBox(16);
+        card.getStyleClass().add("bento-card");
+        card.setPadding(new Insets(28));
 
         Label lblTitulo = new Label(regra.descricao());
-        lblTitulo.getStyleClass().add("card-titulo");
+        lblTitulo.getStyleClass().addAll("card-titulo", "config-card-titulo");
         lblTitulo.setWrapText(true);
 
         String valorPadrao = regra.valorPadrao() != null ? String.valueOf(regra.valorPadrao()) : "sem valor base";
         Label lblDetalhe = new Label("Tipo: " + formatarTipo(regra.tipo()) + " | Valor base: " + valorPadrao);
-        lblDetalhe.getStyleClass().add("subtitulo");
+        lblDetalhe.getStyleClass().addAll("subtitulo", "config-card-desc");
         lblDetalhe.setWrapText(true);
 
         Label lblValor = new Label("Valor específico da loja");

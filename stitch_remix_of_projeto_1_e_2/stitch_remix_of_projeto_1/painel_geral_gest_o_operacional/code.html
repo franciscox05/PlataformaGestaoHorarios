@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Levi's Portal - Painel Geral</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#313030",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#ddd9d8",
+                        "on-primary-fixed": "#410005",
+                        "primary-fixed": "#ffdad7",
+                        "success-emerald": "#059669",
+                        "surface": "#FCF9F8",
+                        "surface-bright": "#fdf8f8",
+                        "primary-container": "#c91428",
+                        "on-surface": "#1c1b1b",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#e5e2e1",
+                        "on-surface-variant": "#5c403e",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#fdf8f8",
+                        "on-secondary-fixed-variant": "#474647",
+                        "surface-container-high": "#ece7e7",
+                        "on-secondary-container": "#636262",
+                        "surface-container-highest": "#e6e1e1",
+                        "tertiary-container": "#666565",
+                        "on-background": "#1c1b1b",
+                        "on-tertiary": "#ffffff",
+                        "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                        "secondary": "#5f5e5e",
+                        "warning-amber": "#D97706",
+                        "surface-container": "#f1edec",
+                        "on-primary-fixed-variant": "#930017",
+                        "surface-container-low": "#f7f2f2",
+                        "primary": "#9f001a",
+                        "surface-variant": "#e6e1e1",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "on-tertiary-container": "#e6e3e2",
+                        "surface-tint": "#bf0522",
+                        "inverse-primary": "#ffb3af",
+                        "on-secondary-fixed": "#1c1b1c",
+                        "secondary-fixed": "#e5e2e1",
+                        "primary-fixed-dim": "#ffb3af",
+                        "secondary-container": "#e2dfdf",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "on-primary-container": "#ffdcd9",
+                        "outline": "#906f6d",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f4f0ef",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#c8c6c6",
+                        "tertiary": "#4e4d4d",
+                        "outline-variant": "#e5bdba"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.875rem", // Updated to approx 14px
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-md": "1.5rem",
+                        "sidebar-width": "16rem",
+                        "card-padding": "2rem",
+                        "gutter": "2.5rem",
+                        "stack-sm": "1rem",
+                        "container-max": "80rem",
+                        "stack-lg": "4rem",
+                        "header-height": "5rem"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Space Grotesk"],
+                        "display-lg-mobile": ["Space Grotesk"],
+                        "label-bold": ["Manrope"],
+                        "display-lg": ["Space Grotesk"],
+                        "label-caps": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "headline-sm": ["Space Grotesk"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "label-bold": ["14px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-caps": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-sm": ["18px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Custom scrollbar for bento content if needed */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e6e1e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ddd9d8;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
+<!-- SideNavBar -->
+<nav class="hidden md:flex w-sidebar-width h-screen fixed left-0 top-0 bg-inverse-surface dark:bg-on-surface shadow-[rgba(28,27,27,0.06)_10px_0px_15px_-3px] z-50 flex-col py-stack-md justify-between">
+<div class="flex flex-col">
+<!-- Header/Logo Area -->
+<div class="px-gutter mb-stack-md flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md">
+<span class="font-headline-md text-headline-md font-bold text-on-primary">L</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-on-secondary">Levi's Portal</h1>
+<p class="font-label-caps text-label-caps text-surface-dim opacity-80">Gestão de Staff</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex flex-col gap-1 px-2">
+<!-- Active Item -->
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary bg-primary rounded-xl mx-2 my-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-body-md text-body-md font-medium">Painel</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-surface-dim opacity-70 hover:opacity-100 hover:bg-white/5 rounded-xl mx-2 my-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">schedule</span>
+<span class="font-body-md text-body-md">Horários</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-surface-dim opacity-70 hover:opacity-100 hover:bg-white/5 rounded-xl mx-2 my-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-body-md text-body-md">Funcionários</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-surface-dim opacity-70 hover:opacity-100 hover:bg-white/5 rounded-xl mx-2 my-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">store</span>
+<span class="font-body-md text-body-md">Loja e Regras</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-surface-dim opacity-70 hover:opacity-100 hover:bg-white/5 rounded-xl mx-2 my-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-body-md text-body-md">Pedidos</span>
+</a>
+</li>
+</ul>
+</div>
+<div class="flex flex-col px-2 gap-1">
+<!-- CTA -->
+<button class="mx-4 mb-4 bg-primary text-on-primary font-label-bold text-label-bold py-3 rounded-xl hover:bg-surface-tint transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">add</span> Novo Turno
+            </button>
+<p class="px-6 py-2 text-label-caps font-label-caps text-surface-dim opacity-50 uppercase">Configurações</p>
+<ul>
+<li>
+<a class="flex items-center gap-3 px-4 py-2 text-surface-dim opacity-70 hover:opacity-100 hover:bg-white/5 rounded-xl mx-2 my-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md text-body-md">Perfil</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-2 text-surface-dim opacity-70 hover:opacity-100 hover:bg-white/5 rounded-xl mx-2 my-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Preferências</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-2 text-surface-dim opacity-70 hover:opacity-100 hover:bg-white/5 rounded-xl mx-2 my-1 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md text-body-md">Suporte</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-2 text-surface-dim opacity-70 hover:opacity-100 hover:bg-white/5 rounded-xl mx-2 my-1 transition-all duration-200 mt-2 border-t border-white/10 pt-3" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md text-body-md">Sair</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-sidebar-width flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="h-header-height sticky top-0 z-40 bg-surface/80 dark:bg-surface-container/80 backdrop-blur-md flex justify-between items-center px-gutter w-full border-b border-outline-variant/30">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-70 p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface hidden sm:block">Portal de Gestão</h2>
+</div>
+<div class="flex items-center gap-6">
+<!-- Search -->
+<div class="hidden lg:flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-surface-variant focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-on-surface-variant/60 outline-none w-64" placeholder="Procurar staff, turnos..." type="text"/>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-highest cursor-pointer relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border border-surface"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-highest cursor-pointer hidden sm:block">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+<!-- Profile -->
+<div class="flex items-center gap-3 pl-4 border-l border-surface-variant cursor-pointer group">
+<div class="hidden md:block text-right">
+<p class="font-label-bold text-label-bold text-on-surface group-hover:text-primary transition-colors">Ana Silva</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Store Manager</p>
+</div>
+<img alt="Fotografia de Perfil do Gestor" class="w-10 h-10 rounded-full object-cover border-2 border-surface-variant group-hover:border-primary transition-colors" data-alt="A professional headshot of a female store manager in her 30s. She has a confident, approachable expression, wearing a stylish denim shirt that subtly nods to the Levi's brand. The background is a clean, well-lit modern office setting. The lighting is soft and flattering, creating a premium corporate portrait aesthetic suitable for a modern industrial tech portal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2ttI1sPcC3G3RzmoGjdDC5LhK8DAy5nS4SHOHqjBY7ClNA9m6Wz6Nih7MJo7oUiaW1ZKb-IojRgfmYmxRUog-gaUKoXlkTsofFsGYXq9zpwrlY7qU5q-getaoGCV7ICwoTvOgOzdNwdgzyHXc0rLtEzlcOK_0fdhVGmBKsOLNMSntqb-_GU1X7mEupqwLv0Zqsv2OP2J3-fXdkXaLe3yswwnVvUxOBooiokO5gkS1TsvQuQF0tZg8f370QZW8J6E_X7VECjWfZfE"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-gutter max-w-container-max mx-auto w-full flex-1 flex flex-col gap-stack-md">
+<!-- Filters & Actions Row -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div class="flex flex-wrap items-center gap-2">
+<button class="px-4 py-2 rounded-full bg-inverse-surface text-on-secondary font-label-bold text-label-bold text-sm shadow-sm hover:bg-primary transition-colors">Todos</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-lowest text-on-surface border border-surface-variant font-label-bold text-label-bold text-sm hover:border-primary hover:text-primary transition-colors">Manhã</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-lowest text-on-surface border border-surface-variant font-label-bold text-label-bold text-sm hover:border-primary hover:text-primary transition-colors">Tarde</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-lowest text-on-surface border border-surface-variant font-label-bold text-label-bold text-sm hover:border-primary hover:text-primary transition-colors">Noite</button>
+<div class="h-6 w-px bg-surface-variant mx-1 hidden sm:block"></div>
+<select class="px-4 py-2 rounded-full bg-surface-container-lowest text-on-surface border border-surface-variant font-label-bold text-label-bold text-sm hover:border-outline outline-none appearance-none cursor-pointer pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231c1b1b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_10px_center] bg-[length:16px]">
+<option>Dep. Vendas</option>
+<option>Armazém</option>
+<option>Caixa</option>
+</select>
+</div>
+<div class="text-sm font-label-bold text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                    Terça-feira, 24 Outubro
+                </div>
+</div>
+<!-- Bento Box Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-stack-sm auto-rows-[minmax(180px,auto)]">
+<!-- 1. Bloco de Boas-vindas (Span 2 cols on LG) -->
+<div class="lg:col-span-2 row-span-1 bg-surface-container-lowest rounded-xl p-card-padding border border-surface-variant shadow-[rgba(28,27,27,0.03)_0px_4px_20px] flex flex-col justify-center relative overflow-hidden">
+<div class="absolute -right-20 -top-20 w-64 h-64 bg-primary-fixed rounded-full blur-3xl opacity-20 pointer-events-none"></div>
+<div class="relative z-10">
+<h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg font-bold text-on-surface mb-2 tracking-tight">Bom dia, Ana.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl">A loja encontra-se <span class="text-success-emerald font-medium">totalmente operacional</span>. Temos 12 colaboradores planeados para hoje, com 3 turnos críticos a necessitar de atenção no período da tarde.</p>
+</div>
+</div>
+<!-- 2. Próximos Turnos (Span 1 col, 2 rows) -->
+<div class="lg:col-span-1 lg:row-span-2 bg-inverse-surface rounded-xl p-card-padding text-on-secondary shadow-xl flex flex-col relative overflow-hidden group">
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555529733-0e67056058e1?auto=format&amp;fit=crop&amp;q=80&amp;w=600')] bg-cover bg-center opacity-10 mix-blend-overlay group-hover:opacity-20 transition-opacity duration-700" data-alt="Abstract macro shot of dark indigo denim fabric texture. The tight twill weave is visible, highlighting the rugged, industrial heritage of the brand. The lighting is moody and directional, creating deep shadows and subtle highlights across the textured surface, perfect for a subtle, premium dark-mode background element."></div>
+<div class="relative z-10 flex flex-col h-full">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-secondary">Próximos Turnos</h3>
+<button class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+<div class="flex-1 flex flex-col gap-4">
+<!-- Turno Item -->
+<div class="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-bold text-label-bold text-primary-fixed">14:00 - 22:00</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-warning-amber/20 text-warning-amber border border-warning-amber/30">Crítico</span>
+</div>
+<p class="font-body-md font-medium text-on-secondary mb-1">Caixa Principal</p>
+<p class="text-xs text-secondary-fixed-dim flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> Piso 1 - Entrada
+                                </p>
+</div>
+<!-- Turno Item -->
+<div class="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-bold text-label-bold text-on-secondary">15:30 - 20:00</span>
+</div>
+<p class="font-body-md font-medium text-on-secondary mb-1">Reposição Denim</p>
+<p class="text-xs text-secondary-fixed-dim flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> Armazém B
+                                </p>
+</div>
+<!-- Turno Item -->
+<div class="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-bold text-label-bold text-on-secondary">18:00 - 23:00</span>
+</div>
+<p class="font-body-md font-medium text-on-secondary mb-1">Atendimento Prova</p>
+<p class="text-xs text-secondary-fixed-dim flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> Provadores Femi.
+                                </p>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. Escala Semanal (Span 2 cols) -->
+<div class="lg:col-span-2 row-span-1 bg-surface-container-lowest rounded-xl p-card-padding border border-surface-variant shadow-[rgba(28,27,27,0.03)_0px_4px_20px]">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Cobertura Semanal</h3>
+<div class="flex items-center gap-2">
+<button class="p-1.5 rounded hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">chevron_left</span></button>
+<span class="font-label-caps text-label-caps text-on-surface-variant">23 OUT - 29 OUT</span>
+<button class="p-1.5 rounded hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">chevron_right</span></button>
+</div>
+</div>
+<!-- Simplistic Horizontal Bar Chart for Coverage -->
+<div class="flex items-end justify-between h-32 gap-2 mt-4 pb-6 border-b border-surface-variant">
+<!-- Day 1 -->
+<div class="flex flex-col items-center gap-2 flex-1 group">
+<div class="w-full max-w-[40px] bg-surface-container h-full rounded-t-sm relative flex items-end justify-center">
+<div class="w-full bg-primary/40 rounded-t-sm transition-all duration-300 group-hover:bg-primary/60" style="height: 60%;"></div>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">SEG</span>
+</div>
+<!-- Day 2 (Today) -->
+<div class="flex flex-col items-center gap-2 flex-1 group">
+<div class="w-full max-w-[40px] bg-surface-container h-full rounded-t-sm relative flex items-end justify-center">
+<div class="w-full bg-primary rounded-t-sm shadow-md transition-all duration-300" style="height: 85%;"></div>
+<span class="absolute -top-6 text-xs font-bold text-primary">85%</span>
+</div>
+<span class="font-label-caps text-label-caps font-bold text-primary">TER</span>
+</div>
+<!-- Day 3 -->
+<div class="flex flex-col items-center gap-2 flex-1 group">
+<div class="w-full max-w-[40px] bg-surface-container h-full rounded-t-sm relative flex items-end justify-center">
+<div class="w-full bg-outline-variant rounded-t-sm transition-all duration-300 group-hover:bg-outline" style="height: 40%;"></div>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">QUA</span>
+</div>
+<!-- Day 4 -->
+<div class="flex flex-col items-center gap-2 flex-1 group">
+<div class="w-full max-w-[40px] bg-surface-container h-full rounded-t-sm relative flex items-end justify-center">
+<div class="w-full bg-outline-variant rounded-t-sm transition-all duration-300 group-hover:bg-outline" style="height: 90%;"></div>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">QUI</span>
+</div>
+<!-- Day 5 -->
+<div class="flex flex-col items-center gap-2 flex-1 group">
+<div class="w-full max-w-[40px] bg-surface-container h-full rounded-t-sm relative flex items-end justify-center">
+<div class="w-full bg-outline-variant rounded-t-sm transition-all duration-300 group-hover:bg-outline" style="height: 75%;"></div>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">SEX</span>
+</div>
+<!-- Day 6 -->
+<div class="flex flex-col items-center gap-2 flex-1 group">
+<div class="w-full max-w-[40px] bg-surface-container h-full rounded-t-sm relative flex items-end justify-center">
+<div class="w-full bg-warning-amber/40 rounded-t-sm transition-all duration-300 group-hover:bg-warning-amber/60" style="height: 30%;"></div>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">SÁB</span>
+</div>
+<!-- Day 7 -->
+<div class="flex flex-col items-center gap-2 flex-1 group">
+<div class="w-full max-w-[40px] bg-surface-container h-full rounded-t-sm relative flex items-end justify-center">
+<div class="w-full bg-surface-container-high rounded-t-sm transition-all duration-300" style="height: 10%;"></div>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">DOM</span>
+</div>
+</div>
+</div>
+<!-- 4. Equipa de Hoje (Span 3 cols) -->
+<div class="lg:col-span-3 bg-surface-container-lowest rounded-xl p-card-padding border border-surface-variant shadow-[rgba(28,27,27,0.03)_0px_4px_20px]">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Equipa em Loja (Agora)</h3>
+<a class="text-sm font-label-bold text-primary hover:underline" href="#">Ver todos</a>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<!-- Card 1: Em Turno -->
+<div class="flex items-center gap-3 p-3 rounded-lg border border-surface-variant bg-surface hover:border-primary/30 transition-colors cursor-pointer">
+<div class="relative">
+<img alt="Foto Colaborador" class="w-12 h-12 rounded-full object-cover" data-alt="Headshot of a young male retail worker in his 20s, wearing a casual dark t-shirt. He has a friendly, approachable smile. The background is slightly blurred showing a modern retail store environment. Clean, natural lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDECRG8ggr4H6Q0H2dPuCOKKwKoemILdJmDhDnAYCI0LYtNIQxYeeAN1FFp14WQKy89KvsL3fkI73C4WKBbwLNxbL8J0uPkxKjPQ8a8dw94o6rWYzWbQpz3dsczCMf5DvqRmgv4WjRA8nca_WJAnlSdKBMKvEKogOkHrIO46_07_vG3HjUVKt717grOs-EE4_0D5jvC3JKo5008hfFLIkm-vHGKqGnX84_rc_BCn3WjaWKvJc4Ie0XXPWZuLnQg_fU3ojc5MRtFnFU"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-success-emerald border-2 border-surface rounded-full"></span>
+</div>
+<div>
+<p class="font-label-bold text-sm text-on-surface leading-tight mb-0.5">Tiago Costa</p>
+<p class="text-xs text-on-surface-variant">Vendas</p>
+</div>
+</div>
+<!-- Card 2: Pausa -->
+<div class="flex items-center gap-3 p-3 rounded-lg border border-surface-variant bg-surface hover:border-primary/30 transition-colors cursor-pointer">
+<div class="relative">
+<img alt="Foto Colaborador" class="w-12 h-12 rounded-full object-cover opacity-70" data-alt="Headshot of a young female retail worker with long dark hair, wearing a casual denim jacket. She has a professional yet relaxed expression. The lighting is bright and modern, typical of a well-lit store or office." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS4wWX7yu-rPLBTRhKYhv-s1x1uVj_JcJMp9zk4R1BQMagfioZn9kM4pF1MWUbxiMDvMxSm3RkxiYqWZx7lg6gyJz9r5B0CsgUJEcxzbwkTS64zeIGY9JBayskoyW6nOOa5gveTVwAs9SdYiPDThmM2UsLv8oKeTqDCSlaBVOiD2LUHNSaywhybHjwy6w43Q_17LfnChTD5T7ijkdNihhNxEXLnyuS43bgoha8tUHrou2ZkEzKMOH4CtaTdLAsKpC8y63iUMGDpMo"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-warning-amber border-2 border-surface rounded-full"></span>
+</div>
+<div>
+<p class="font-label-bold text-sm text-on-surface leading-tight mb-0.5">Sofia Mendes</p>
+<p class="text-xs text-warning-amber font-medium">Em Pausa (15m)</p>
+</div>
+</div>
+<!-- Card 3: Em Turno -->
+<div class="flex items-center gap-3 p-3 rounded-lg border border-surface-variant bg-surface hover:border-primary/30 transition-colors cursor-pointer">
+<div class="relative">
+<img alt="Foto Colaborador" class="w-12 h-12 rounded-full object-cover" data-alt="Headshot of a male retail worker in his late 20s with a neat beard, wearing a casual button-down shirt. The lighting is crisp and clear, creating a professional, trustworthy portrait suitable for an employee directory." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC823pDPeSNTZOByt-NuAhxFAMxHzImYx1n0LRV6O_O6uBl7viDSVT8fIVr6Mh6IUUK0fgHhqLkRRVnB9Z3eYcjMq5duQvsCKuglNdMl7hYYkVJ65U_GYiq-L7kg8wphaANuKuXA3jXBs3LvOO0lGwdwcwfoNldTbkRFaM40kwxeCrXE0JCuMsn6IwOcgqzSODy0_j3nN5T_pYL4sg3_8YoGNIvXTd_xJ6ZD80fjzZK8wqGRqIH4Jm5JEptcyBHsCj0nu7ixv9wfPg"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-success-emerald border-2 border-surface rounded-full"></span>
+</div>
+<div>
+<p class="font-label-bold text-sm text-on-surface leading-tight mb-0.5">Pedro Santos</p>
+<p class="text-xs text-on-surface-variant">Armazém</p>
+</div>
+</div>
+<!-- Card 4: Entrada em breve -->
+<div class="flex items-center gap-3 p-3 rounded-lg border border-surface-variant border-dashed bg-surface-container-low hover:border-primary/50 transition-colors cursor-pointer">
+<div class="relative">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant font-bold">
+                                    MR
+                                </div>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-surface-variant border-2 border-surface rounded-full"></span>
+</div>
+<div>
+<p class="font-label-bold text-sm text-on-surface leading-tight mb-0.5 text-on-surface-variant">Maria Ribeiro</p>
+<p class="text-xs text-on-surface-variant font-medium">Entra às 14:00</p>
+</div>
+</div>
+</div>
+</div>
+<!-- 5. Resumo por Colaborador (Span 3 cols) -->
+<div class="lg:col-span-3 bg-surface-container-lowest rounded-xl p-card-padding border border-surface-variant shadow-[rgba(28,27,27,0.03)_0px_4px_20px] overflow-x-auto">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Horas: Planeado vs. Realizado</h3>
+<button class="text-sm font-label-bold text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">download</span> Exportar
+                        </button>
+</div>
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b-2 border-surface-variant text-label-caps font-label-caps text-on-surface-variant uppercase tracking-wider">
+<th class="pb-3 pl-2 font-semibold">Colaborador</th>
+<th class="pb-3 font-semibold">Departamento</th>
+<th class="pb-3 text-center font-semibold">H. Planeadas</th>
+<th class="pb-3 text-center font-semibold">H. Realizadas</th>
+<th class="pb-3 text-right pr-2 font-semibold">Estado</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant/50 text-body-md">
+<tr class="hover:bg-surface-container-low/50 transition-colors group cursor-default">
+<td class="py-4 pl-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container/20 text-primary font-bold flex items-center justify-center text-xs">TC</div>
+<span class="font-medium text-on-surface group-hover:text-primary transition-colors">Tiago Costa</span>
+</div>
+</td>
+<td class="py-4 text-on-surface-variant">Vendas</td>
+<td class="py-4 text-center font-mono">38h 00m</td>
+<td class="py-4 text-center font-mono">38h 15m</td>
+<td class="py-4 text-right pr-2">
+<span class="inline-block px-2 py-1 rounded bg-success-emerald/10 text-success-emerald text-[11px] font-bold uppercase tracking-wider">Conforme</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors group cursor-default">
+<td class="py-4 pl-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant font-bold flex items-center justify-center text-xs">SM</div>
+<span class="font-medium text-on-surface group-hover:text-primary transition-colors">Sofia Mendes</span>
+</div>
+</td>
+<td class="py-4 text-on-surface-variant">Vendas</td>
+<td class="py-4 text-center font-mono">40h 00m</td>
+<td class="py-4 text-center font-mono text-warning-amber font-medium">35h 30m</td>
+<td class="py-4 text-right pr-2">
+<span class="inline-block px-2 py-1 rounded bg-warning-amber/10 text-warning-amber text-[11px] font-bold uppercase tracking-wider">Abaixo</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors group cursor-default">
+<td class="py-4 pl-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant font-bold flex items-center justify-center text-xs">PS</div>
+<span class="font-medium text-on-surface group-hover:text-primary transition-colors">Pedro Santos</span>
+</div>
+</td>
+<td class="py-4 text-on-surface-variant">Armazém</td>
+<td class="py-4 text-center font-mono">35h 00m</td>
+<td class="py-4 text-center font-mono text-primary font-medium">39h 45m</td>
+<td class="py-4 text-right pr-2">
+<span class="inline-block px-2 py-1 rounded bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider">Extra</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div> <!-- End Bento Grid -->
+</div> <!-- End Dashboard Content -->
+</main>
+</body></html>

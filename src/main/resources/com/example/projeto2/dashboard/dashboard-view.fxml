@@ -10,99 +10,193 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.shape.SVGPath?>
 
-<BorderPane fx:id="mainContainer" prefHeight="920.0" prefWidth="1480.0" stylesheets="@dashboard.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.DashboardController">
+<BorderPane fx:id="mainContainer"
+            styleClass="page-shell"
+            stylesheets="@dashboard.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.projeto2.Controller.DashboardController">
 
     <top>
-        <HBox alignment="CENTER_LEFT" styleClass="top-header" BorderPane.alignment="CENTER">
+        <HBox alignment="CENTER_LEFT" spacing="18.0" styleClass="top-header">
             <padding>
-                <Insets bottom="20.0" left="36.0" right="36.0" top="22.0" />
+                <Insets top="14.0" right="28.0" bottom="14.0" left="28.0" />
             </padding>
-            <children>
-                <Label fx:id="lblTopPageTitle" styleClass="top-header-page-title" text="OS MEUS PRÓXIMOS TURNOS" />
-                <Region HBox.hgrow="ALWAYS" />
-                <HBox alignment="CENTER" spacing="26.0">
-                    <children>
-                        <Button fx:id="btnTopoVisaoGeral" mnemonicParsing="false" onAction="#onTopVisaoGeralClick" styleClass="top-nav-button, top-nav-button-ativo" text="Visão geral" />
-                        <Button fx:id="btnTopoPedidos" mnemonicParsing="false" onAction="#onTopPedidosClick" styleClass="top-nav-button" text="Pedidos" />
-                        <Button fx:id="btnTopoPerfil" mnemonicParsing="false" onAction="#onTopPerfilClick" styleClass="top-nav-button" text="Perfil" />
-                    </children>
+
+            <VBox spacing="2.0" minWidth="142.0">
+                <Label styleClass="top-header-brand" text="Portal de Gestão" />
+                <HBox alignment="CENTER_LEFT" spacing="7.0">
+                    <Label styleClass="top-breadcrumb-muted" text="Home" />
+                    <Label styleClass="top-breadcrumb-muted" text="›" />
+                    <Label fx:id="lblTopPageTitle"
+                           styleClass="top-header-page-title"
+                           text="Painel" />
                 </HBox>
-                <Region minWidth="24.0" />
-                <HBox fx:id="boxPesquisa" alignment="CENTER_LEFT" prefWidth="320.0" styleClass="pesquisa-shell">
-                    <children>
-                        <StackPane styleClass="pesquisa-icone-box">
-                            <children>
-                                <SVGPath content="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" styleClass="pesquisa-icone" />
-                            </children>
-                        </StackPane>
-                        <TextField fx:id="txtPesquisa" promptText="Procurar ações, páginas ou tarefas" styleClass="pesquisa-input" HBox.hgrow="ALWAYS" />
-                    </children>
-                </HBox>
-                <Region minWidth="16.0" />
-                <Button onAction="#onLogoutClick" styleClass="botao-logout" text="Terminar sessão" />
-            </children>
+            </VBox>
+
+            <HBox spacing="6.0" styleClass="top-nav-group">
+                <Button fx:id="btnTopoVisaoGeral"
+                        onAction="#onTopVisaoGeralClick"
+                        styleClass="top-nav-button, top-nav-button-ativo"
+                        text="Vis&#227;o Geral" />
+                <Button fx:id="btnTopoPedidos"
+                        onAction="#onTopPedidosClick"
+                        styleClass="top-nav-button"
+                        text="Pedidos" />
+                <Button fx:id="btnTopoPerfil"
+                        onAction="#onTopPerfilClick"
+                        styleClass="top-nav-button"
+                        text="Perfil" />
+            </HBox>
+
+            <HBox fx:id="boxPesquisa"
+                  alignment="CENTER_LEFT"
+                  prefWidth="430.0"
+                  styleClass="pesquisa-shell">
+                <TextField fx:id="txtPesquisa"
+                           promptText="Pesquisar módulos e ações"
+                           styleClass="pesquisa-input"
+                           HBox.hgrow="ALWAYS" />
+            </HBox>
+
+            <Region HBox.hgrow="ALWAYS" />
+
+            <Button styleClass="top-icon-btn" text="&#128276;" />
+            <Button styleClass="top-icon-btn" text="?" />
+            <Button onAction="#onPedirFolgaClick"
+                    styleClass="top-primary-action"
+                    text="Novo Pedido" />
+            <Region prefWidth="10.0" />
+            <VBox alignment="CENTER_RIGHT" spacing="2.0">
+                <Label fx:id="lblTopUserName" styleClass="top-user-name" text="Staff" />
+                <Label fx:id="lblTopUserRole" styleClass="top-user-role" text="Portal interno" />
+            </VBox>
+
+            <Button onAction="#onLogoutClick"
+                    styleClass="botao-logout"
+                    text="Terminar sess&#227;o" />
         </HBox>
     </top>
 
     <left>
-        <BorderPane prefWidth="286.0" styleClass="sidebar" BorderPane.alignment="CENTER">
+        <BorderPane styleClass="sidebar">
+
             <top>
                 <VBox>
-                    <children>
-                        <VBox spacing="6.0" styleClass="sidebar-brand">
-                            <children>
-                                <Label styleClass="sidebar-titulo" text="LEVI'S" />
-                                <Label styleClass="sidebar-subtitulo" text="Portal interno" />
-                            </children>
+                    <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-brand">
+                        <StackPane styleClass="sidebar-brand-icon">
+                            <Label styleClass="sidebar-brand-icon-text" text="_" />
+                        </StackPane>
+                        <VBox spacing="2.0">
+                            <Label styleClass="sidebar-titulo" text="Levi's Staff" />
+                            <Label styleClass="sidebar-subtitulo" text="Portal de Gest&#227;o" />
                         </VBox>
+                    </HBox>
 
-                        <HBox alignment="CENTER_LEFT" onMouseClicked="#onTopPerfilClick" spacing="12.0" styleClass="sidebar-user-row sidebar-user-row-clickable">
-                            <children>
-                                <StackPane styleClass="sidebar-avatar">
-                                    <children>
-                                        <Label fx:id="lblAvatarInicial" styleClass="sidebar-avatar-text" text="L" />
-                                    </children>
-                                </StackPane>
-                                <Label fx:id="lblUtilizadorSidebar" styleClass="sidebar-user-greeting" text="Olá, Staff!" />
-                            </children>
-                        </HBox>
-                    </children>
+                    <HBox alignment="CENTER_LEFT"
+                          onMouseClicked="#onTopPerfilClick"
+                          spacing="12.0"
+                          styleClass="sidebar-user-row, sidebar-user-row-clickable">
+                        <StackPane styleClass="sidebar-avatar">
+                            <Label fx:id="lblAvatarInicial"
+                                   styleClass="sidebar-avatar-text"
+                                   text="L" />
+                        </StackPane>
+                        <Label fx:id="lblUtilizadorSidebar"
+                               styleClass="sidebar-user-greeting"
+                               text="Ol&#225;, Staff!" />
+                    </HBox>
                 </VBox>
             </top>
 
             <center>
-                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="sidebar-scroll" vbarPolicy="AS_NEEDED">
-                    <content>
-                        <VBox spacing="2.0" styleClass="sidebar-menu">
-                            <children>
-                                <Button fx:id="btnDashboard" maxWidth="1.7976931348623157E308" onAction="#onDashboardHomeClick" styleClass="sidebar-btn, sidebar-btn-ativo" text="Painel" />
-                                <Button fx:id="btnGestaoLoja" managed="false" maxWidth="1.7976931348623157E308" onAction="#onGestaoLojaClick" styleClass="sidebar-btn" text="Loja e regras" visible="false" />
-                                <Button fx:id="btnGestaoFuncionarios" managed="false" maxWidth="1.7976931348623157E308" onAction="#onGestaoFuncionariosClick" styleClass="sidebar-btn" text="Funcionários" visible="false" />
-                                <Button fx:id="btnHorarios" managed="false" maxWidth="1.7976931348623157E308" onAction="#onHorariosClick" styleClass="sidebar-btn" text="Horários" visible="false" />
-                                <Button fx:id="btnPainelGerente" managed="false" maxWidth="1.7976931348623157E308" onAction="#onPainelGerentePedidosClick" styleClass="sidebar-btn" text="Painel do gerente" visible="false" />
-                                <Button fx:id="btnAuditoria" managed="false" maxWidth="1.7976931348623157E308" onAction="#onPainelAuditoriaClick" styleClass="sidebar-btn" text="Auditoria" visible="false" />
-                                <Button fx:id="btnFolgas" maxWidth="1.7976931348623157E308" onAction="#onPedirFolgaClick" styleClass="sidebar-btn" text="Pedir folga" />
-                                <Button fx:id="btnPermutas" maxWidth="1.7976931348623157E308" onAction="#onTrocarTurnoClick" styleClass="sidebar-btn" text="Trocar turno" />
-                                <Button fx:id="btnPerfil" maxWidth="1.7976931348623157E308" onAction="#onPerfilClick" styleClass="sidebar-btn" text="Perfil" />
-                                <Button fx:id="btnPreferencias" maxWidth="1.7976931348623157E308" onAction="#onPreferenciasClick" styleClass="sidebar-btn" text="Preferências" />
-                                <Button fx:id="btnRelatorios" managed="false" maxWidth="1.7976931348623157E308" onAction="#onRelatoriosHorasClick" styleClass="sidebar-btn" text="Relatórios" visible="false" />
-                            </children>
-                        </VBox>
-                    </content>
+                <ScrollPane fitToWidth="true"
+                            hbarPolicy="NEVER"
+                            styleClass="sidebar-scroll"
+                            vbarPolicy="AS_NEEDED">
+                    <VBox spacing="2.0" styleClass="sidebar-menu">
+                        <Button fx:id="btnDashboard"
+                                onAction="#onDashboardHomeClick"
+                                maxWidth="Infinity"
+                                styleClass="sidebar-btn, sidebar-btn-ativo"
+                                text="▦   Painel" />
+
+                        <Button fx:id="btnGestaoLoja"
+                                onAction="#onGestaoLojaClick"
+                                managed="false" maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="▤   Loja e Regras"
+                                visible="false" />
+                        <Button fx:id="btnGestaoFuncionarios"
+                                onAction="#onGestaoFuncionariosClick"
+                                managed="false" maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="👥   Funcion&#225;rios"
+                                visible="false" />
+                        <Button fx:id="btnHorarios"
+                                onAction="#onHorariosClick"
+                                managed="false" maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="◷   Hor&#225;rios"
+                                visible="false" />
+                        <Button fx:id="btnPainelGerente"
+                                onAction="#onPainelGerentePedidosClick"
+                                managed="false" maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="🛒   Pedidos"
+                                visible="false" />
+                        <Button fx:id="btnAuditoria"
+                                onAction="#onPainelAuditoriaClick"
+                                managed="false" maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="🛡   Auditoria"
+                                visible="false" />
+
+                        <Button fx:id="btnFolgas"
+                                onAction="#onPedirFolgaClick"
+                                maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="☕   Folgas" />
+                        <Button fx:id="btnPermutas"
+                                onAction="#onTrocarTurnoClick"
+                                maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="⇄   Permutas" />
+                        <Button fx:id="btnPerfil"
+                                onAction="#onPerfilClick"
+                                maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="♙   Perfil" />
+                        <Button fx:id="btnPreferencias"
+                                onAction="#onPreferenciasClick"
+                                maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="⚙   Prefer&#234;ncias" />
+                        <Button fx:id="btnRelatorios"
+                                onAction="#onRelatoriosHorasClick"
+                                managed="false" maxWidth="Infinity"
+                                styleClass="sidebar-btn"
+                                text="▥   Relat&#243;rios"
+                                visible="false" />
+                    </VBox>
                 </ScrollPane>
             </center>
 
             <bottom>
-                <VBox spacing="14.0" styleClass="sidebar-footer">
-                    <children>
-                        <Label styleClass="sidebar-footer-title" text="Fluxo editorial" />
-                        <Label styleClass="sidebar-footer-copy" text="Centraliza horários, equipa, pedidos e auditoria num único espaço de operação." wrapText="true" />
-                        <Button fx:id="btnFecharAplicacao" onAction="#onFecharAplicacaoClick" styleClass="botao-fechar-app" text="Fechar aplicação" />
-                    </children>
+                <VBox spacing="10.0" styleClass="sidebar-footer">
+                    <Label styleClass="sidebar-footer-title" text="FLUXO EDITORIAL" />
+                    <Label styleClass="sidebar-footer-copy"
+                           text="Centraliza hor&#225;rios, equipa, pedidos e auditoria."
+                           wrapText="true" />
+                    <Button fx:id="btnFecharAplicacao"
+                            onAction="#onFecharAplicacaoClick"
+                            maxWidth="Infinity"
+                            styleClass="botao-fechar-app"
+                            text="Fechar aplica&#231;&#227;o" />
                 </VBox>
             </bottom>
+
         </BorderPane>
     </left>
 

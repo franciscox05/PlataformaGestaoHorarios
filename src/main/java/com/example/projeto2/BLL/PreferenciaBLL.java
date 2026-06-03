@@ -91,7 +91,7 @@ public class PreferenciaBLL {
                 .filter(ligacao -> !Objects.equals(ligacao.getIdUtilizador().getId(), idUtilizador))
                 .filter(ligacao -> ligacao.getDataFim() == null)
                 .filter(ligacao -> ligacao.getIdUtilizador().getEstado() != null
-                        && "ativo".equalsIgnoreCase(ligacao.getIdUtilizador().getEstado()))
+                        && com.example.projeto2.Enums.EstadoUtilizador.ativo == ligacao.getIdUtilizador().getEstado())
                 .map(ligacao -> ligacao.getIdUtilizador().getNome())
                 .filter(nome -> nome != null && !nome.isBlank())
                 .map(String::trim)

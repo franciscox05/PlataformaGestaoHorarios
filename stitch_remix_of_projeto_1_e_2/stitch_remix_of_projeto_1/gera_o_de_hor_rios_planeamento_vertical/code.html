@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<html lang="pt"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Geração de Horários - LEVI'S</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#930017",
+                        "tertiary-container": "#c91428",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e5e2e1",
+                        "on-secondary-fixed-variant": "#474746",
+                        "primary-fixed": "#ffdad7",
+                        "tertiary-fixed-dim": "#ffb3af",
+                        "tertiary-fixed": "#ffdad7",
+                        "secondary": "#5f5e5e",
+                        "outline-variant": "#e5bdba",
+                        "on-background": "#1c1b1b",
+                        "surface-variant": "#e5e2e1",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-dim": "#dcd9d9",
+                        "surface-container-low": "#f6f3f2",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#c91428",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#930017",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#eae7e7",
+                        "surface-bright": "#fcf9f8",
+                        "error-container": "#ffdad6",
+                        "inverse-on-surface": "#f3f0ef",
+                        "primary-fixed-dim": "#ffb3af",
+                        "primary": "#9f001a",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-primary-container": "#ffdcd9",
+                        "surface": "#fcf9f8",
+                        "tertiary": "#9f001a",
+                        "background": "#fcf9f8",
+                        "on-tertiary-fixed": "#410005",
+                        "on-primary": "#ffffff",
+                        "on-surface": "#1c1b1b",
+                        "on-secondary-container": "#636262",
+                        "on-primary-fixed": "#410005",
+                        "inverse-primary": "#ffb3af",
+                        "surface-container": "#f0eded",
+                        "on-tertiary-container": "#ffdcd9",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#bf0522",
+                        "inverse-surface": "#313030",
+                        "on-surface-variant": "#5c403e",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "secondary-container": "#e2dfde",
+                        "outline": "#906f6d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Space Grotesk", "sans-serif"],
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Manrope", "sans-serif"],
+                        "label": ["Manrope", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["4.5rem", { lineHeight: "4.5rem", letterSpacing: "-0.02em" }],
+                        "display-md": ["3rem", { lineHeight: "3.25rem", letterSpacing: "-0.02em" }],
+                        "headline-lg": ["2rem", { lineHeight: "2.5rem", letterSpacing: "-0.01em" }],
+                        "body-md": ["1rem", { lineHeight: "1.5rem" }],
+                        "body-sm": ["0.875rem", { lineHeight: "1.25rem" }],
+                        "label-md": ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.05em", fontWeight: "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-headline { font-family: 'Space Grotesk', sans-serif; }
+        
+        /* Editorial Table Styling */
+        .editorial-table th {
+            border-bottom: 2px solid var(--tw-colors-outline-variant);
+            opacity: 0.8;
+        }
+        .editorial-table td {
+            border-bottom: 1px solid var(--tw-colors-surface-variant);
+        }
+        .editorial-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Glass effect for active item */
+        .glass-active {
+            background: linear-gradient(90deg, rgba(201, 20, 40, 0.1) 0%, rgba(201, 20, 40, 0) 100%);
+        }
+        
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 1px;
+            background-color: var(--tw-colors-surface-variant);
+            border: 1px solid var(--tw-colors-surface-variant);
+        }
+        .calendar-cell {
+            background-color: var(--tw-colors-surface-container-lowest);
+            aspect-ratio: 1 / 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        .calendar-cell:hover {
+            background-color: var(--tw-colors-surface-container-low);
+        }
+        
+        /* Custom Input Underline */
+        .editorial-input {
+            border: none;
+            border-bottom: 2px solid var(--tw-colors-outline);
+            background-color: transparent;
+            border-radius: 0;
+        }
+        .editorial-input:focus {
+            box-shadow: none;
+            border-color: var(--tw-colors-primary);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+<!-- SIDEBAR -->
+<nav class="fixed left-0 top-0 h-full flex flex-col py-8 bg-inverse-surface dark:bg-inverse-surface border-r-0 docked left-0 h-full w-64 z-50">
+<!-- Brand -->
+<div class="px-6 mb-12">
+<h2 class="text-2xl font-headline font-bold tracking-tighter text-on-primary dark:text-on-primary mb-1">LEVI'S</h2>
+<p class="text-label-md font-label text-on-primary/60 uppercase tracking-widest">Shift Management</p>
+</div>
+<!-- Links -->
+<div class="flex flex-col space-y-2 mt-4">
+<a class="flex items-center gap-3 px-6 py-3 text-surface-variant/60 hover:text-on-primary transition-colors hover:bg-primary/5 hover:text-on-primary transition-all duration-200 scale-98 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+<span class="text-body-md font-body">Painel</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-surface-variant/60 hover:text-on-primary transition-colors hover:bg-primary/5 hover:text-on-primary transition-all duration-200 scale-98 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="group">group</span>
+<span class="text-body-md font-body">Funcionários</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-primary border-r-4 border-primary bg-primary/10 transition-all scale-98 active:scale-95 transition-transform duration-150 glass-active" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="schedule" data-weight="fill" style="font-variation-settings: 'FILL' 1;">schedule</span>
+<span class="text-body-md font-body font-bold">Horários</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-surface-variant/60 hover:text-on-primary transition-colors hover:bg-primary/5 hover:text-on-primary transition-all duration-200 scale-98 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="shopping_cart">shopping_cart</span>
+<span class="text-body-md font-body">Pedidos</span>
+</a>
+</div>
+<!-- CTA -->
+<div class="px-6 mt-12 mb-auto">
+<button class="w-full py-3 bg-inverse-surface border border-outline/30 text-on-primary font-label text-label-md uppercase tracking-wider hover:bg-surface-variant/10 transition-colors">
+                New Shift
+            </button>
+</div>
+<!-- Footer Links -->
+<div class="mt-auto px-6 flex flex-col space-y-2">
+<a class="flex items-center gap-3 py-3 text-surface-variant/60 hover:text-on-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">settings</span>
+<span class="text-body-sm">Configurações</span>
+</a>
+<a class="flex items-center gap-3 py-3 text-surface-variant/60 hover:text-on-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+<span class="text-body-sm">Sair</span>
+</a>
+</div>
+</nav>
+<!-- MAIN CANVAS -->
+<main class="ml-64 flex-1 flex flex-col p-16">
+<!-- HEADER -->
+<header class="mb-16">
+<h1 class="text-display-md font-headline text-on-surface mb-4">Geração de Horários</h1>
+<p class="text-body-md text-on-surface-variant max-w-2xl">
+                Configure os parâmetros e utilize o nosso motor de IA para gerar o planeamento mensal ideal para a sua equipa, respeitando as regras laborais e necessidades da loja.
+            </p>
+</header>
+<!-- CONTROLS SECTION (Directly on canvas) -->
+<section class="flex flex-wrap items-end gap-8 mb-16 pb-8 border-b-2 border-surface-variant/50">
+<div class="flex-1 min-w-[200px]">
+<label class="block text-label-md text-on-surface-variant mb-2 uppercase tracking-widest">Mês</label>
+<select class="editorial-input w-full py-3 px-0 text-body-md text-on-surface focus:ring-0">
+<option>Novembro</option>
+<option>Dezembro</option>
+<option>Janeiro</option>
+</select>
+</div>
+<div class="flex-1 min-w-[200px]">
+<label class="block text-label-md text-on-surface-variant mb-2 uppercase tracking-widest">Ano</label>
+<select class="editorial-input w-full py-3 px-0 text-body-md text-on-surface focus:ring-0">
+<option>2023</option>
+<option>2024</option>
+</select>
+</div>
+<div class="flex-none">
+<button class="bg-primary-container text-on-primary px-10 py-4 font-label text-label-md uppercase tracking-wider rounded-DEFAULT hover:bg-primary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">magic_button</span>
+                    Gerar Planeamento
+                </button>
+</div>
+</section>
+<!-- CONTENT STACK -->
+<div class="space-y-16">
+<!-- CARD 1: Alternativas Geradas -->
+<section class="bg-surface-container-lowest p-10 shadow-[0_20px_40px_rgba(28,27,27,0.06)] rounded-lg">
+<div class="flex justify-between items-center mb-10">
+<h2 class="text-headline-lg font-headline text-on-surface">Alternativas Geradas</h2>
+<span class="text-label-md text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">Última Geração: Há 5 min</span>
+</div>
+<table class="w-full editorial-table text-left border-collapse">
+<thead>
+<tr>
+<th class="py-4 text-label-md text-on-surface-variant uppercase tracking-widest w-1/3">Variante</th>
+<th class="py-4 text-label-md text-on-surface-variant uppercase tracking-widest w-1/3">Pontuação</th>
+<th class="py-4 text-label-md text-on-surface-variant uppercase tracking-widest w-1/3 text-right">Estado</th>
+</tr>
+</thead>
+<tbody class="text-body-md text-on-surface">
+<tr class="hover:bg-surface-container-low transition-colors group cursor-pointer">
+<td class="py-6 font-semibold">Variante A (Equilibrada)</td>
+<td class="py-6">
+<div class="flex items-center gap-3">
+<span class="w-16 h-2 bg-surface-container-high rounded-full overflow-hidden">
+<span class="block h-full bg-primary w-[92%]"></span>
+</span>
+<span class="text-label-md font-bold text-on-surface-variant">92/100</span>
+</div>
+</td>
+<td class="py-6 text-right">
+<span class="inline-flex items-center gap-2 text-primary">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+                                    Selecionada
+                                </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors cursor-pointer">
+<td class="py-6">Variante B (Foco Custo)</td>
+<td class="py-6">
+<div class="flex items-center gap-3">
+<span class="w-16 h-2 bg-surface-container-high rounded-full overflow-hidden">
+<span class="block h-full bg-secondary w-[85%]"></span>
+</span>
+<span class="text-label-md font-bold text-on-surface-variant">85/100</span>
+</div>
+</td>
+<td class="py-6 text-right">
+<button class="text-label-md uppercase tracking-wider text-on-surface-variant hover:text-primary underline decoration-2 underline-offset-4">Aplicar</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors cursor-pointer">
+<td class="py-6">Variante C (Foco Fim de Semana)</td>
+<td class="py-6">
+<div class="flex items-center gap-3">
+<span class="w-16 h-2 bg-surface-container-high rounded-full overflow-hidden">
+<span class="block h-full bg-secondary w-[78%]"></span>
+</span>
+<span class="text-label-md font-bold text-on-surface-variant">78/100</span>
+</div>
+</td>
+<td class="py-6 text-right">
+<button class="text-label-md uppercase tracking-wider text-on-surface-variant hover:text-primary underline decoration-2 underline-offset-4">Aplicar</button>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<!-- CARD 2: Calendar View -->
+<section class="bg-surface-container-lowest p-10 shadow-[0_20px_40px_rgba(28,27,27,0.06)] rounded-lg">
+<div class="flex justify-between items-end mb-10">
+<h2 class="text-headline-lg font-headline text-on-surface">Pré-visualização: Novembro</h2>
+<div class="flex gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Days of Week -->
+<div class="grid grid-cols-7 gap-1 mb-4 text-label-md text-on-surface-variant uppercase tracking-widest text-center">
+<div>Seg</div>
+<div>Ter</div>
+<div>Qua</div>
+<div>Qui</div>
+<div>Sex</div>
+<div>Sáb</div>
+<div>Dom</div>
+</div>
+<!-- Calendar Grid -->
+<div class="calendar-grid">
+<!-- Week 1 -->
+<div class="calendar-cell opacity-40">
+<span class="text-body-md font-bold">30</span>
+<span class="text-label-md text-on-surface-variant mt-4">8 Colab.</span>
+</div>
+<div class="calendar-cell opacity-40">
+<span class="text-body-md font-bold">31</span>
+<span class="text-label-md text-on-surface-variant mt-4">8 Colab.</span>
+</div>
+<div class="calendar-cell border-t-2 border-primary">
+<span class="text-body-md font-bold">1</span>
+<span class="text-label-md text-on-surface-variant mt-4">9 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">2</span>
+<span class="text-label-md text-on-surface-variant mt-4">9 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">3</span>
+<span class="text-label-md text-on-surface-variant mt-4">12 Colab.</span>
+</div>
+<div class="calendar-cell bg-surface-container-low">
+<span class="text-body-md font-bold">4</span>
+<span class="text-label-md text-primary mt-4">15 Colab.</span>
+</div>
+<div class="calendar-cell bg-surface-container-low">
+<span class="text-body-md font-bold">5</span>
+<span class="text-label-md text-primary mt-4">15 Colab.</span>
+</div>
+<!-- Week 2 -->
+<div class="calendar-cell">
+<span class="text-body-md font-bold">6</span>
+<span class="text-label-md text-on-surface-variant mt-4">8 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">7</span>
+<span class="text-label-md text-on-surface-variant mt-4">8 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">8</span>
+<span class="text-label-md text-on-surface-variant mt-4">9 Colab.</span>
+</div>
+<div class="calendar-cell relative">
+<span class="text-body-md font-bold">9</span>
+<span class="absolute top-4 right-4 w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-label-md text-on-surface-variant mt-4">9 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">10</span>
+<span class="text-label-md text-on-surface-variant mt-4">12 Colab.</span>
+</div>
+<div class="calendar-cell bg-surface-container-low">
+<span class="text-body-md font-bold">11</span>
+<span class="text-label-md text-primary mt-4">16 Colab.</span>
+</div>
+<div class="calendar-cell bg-surface-container-low">
+<span class="text-body-md font-bold">12</span>
+<span class="text-label-md text-primary mt-4">15 Colab.</span>
+</div>
+<!-- Week 3 (Truncated for layout brevity, but establishing pattern) -->
+<div class="calendar-cell">
+<span class="text-body-md font-bold">13</span>
+<span class="text-label-md text-on-surface-variant mt-4">8 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">14</span>
+<span class="text-label-md text-on-surface-variant mt-4">8 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">15</span>
+<span class="text-label-md text-on-surface-variant mt-4">9 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">16</span>
+<span class="text-label-md text-on-surface-variant mt-4">9 Colab.</span>
+</div>
+<div class="calendar-cell">
+<span class="text-body-md font-bold">17</span>
+<span class="text-label-md text-on-surface-variant mt-4">12 Colab.</span>
+</div>
+<div class="calendar-cell bg-surface-container-low">
+<span class="text-body-md font-bold">18</span>
+<span class="text-label-md text-primary mt-4">15 Colab.</span>
+</div>
+<div class="calendar-cell bg-surface-container-low">
+<span class="text-body-md font-bold">19</span>
+<span class="text-label-md text-primary mt-4">14 Colab.</span>
+</div>
+</div>
+</section>
+</div>
+</main>
+</body></html>

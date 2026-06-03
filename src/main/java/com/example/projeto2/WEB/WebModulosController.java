@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/web")
+@RequestMapping("/web/modulos")
 public class WebModulosController {
 
     private final WebLayoutService webLayoutService;

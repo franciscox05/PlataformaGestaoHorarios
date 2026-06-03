@@ -1,9 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Desktop" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
-    <module name="Projeto2" />
-    <option name="SPRING_BOOT_MAIN_CLASS" value="com.example.projeto2.Projeto2Application" />
-    <method v="2">
-      <option name="Make" enabled="true" />
-    </method>
-  </configuration>
-</component>

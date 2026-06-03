@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Levi's Staff Portal - Painel de Controlo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#1c1b1c",
+                        "on-secondary-container": "#636262",
+                        "tertiary": "#4e4d4d",
+                        "surface-container-highest": "#e6e1e1",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "surface-container-low": "#f7f2f2",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#fdf8f8",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#c91428",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#e2dfdf",
+                        "inverse-on-surface": "#f4f0ef",
+                        "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                        "tertiary-container": "#666565",
+                        "on-surface-variant": "#5c403e",
+                        "on-primary-fixed": "#410005",
+                        "on-secondary": "#ffffff",
+                        "warning-amber": "#D97706",
+                        "surface-dim": "#ddd9d8",
+                        "surface": "#FCF9F8",
+                        "surface-container": "#f1edec",
+                        "primary-fixed-dim": "#ffb3af",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "inverse-primary": "#ffb3af",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#e5e2e1",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-container": "#e6e3e2",
+                        "success-emerald": "#059669",
+                        "secondary-fixed": "#e5e2e1",
+                        "surface-container-high": "#ece7e7",
+                        "outline": "#906f6d",
+                        "on-surface": "#1c1b1b",
+                        "on-primary-fixed-variant": "#930017",
+                        "outline-variant": "#e5bdba",
+                        "inverse-surface": "#313030",
+                        "secondary-fixed-dim": "#c8c6c6",
+                        "secondary": "#5f5e5e",
+                        "background": "#fdf8f8",
+                        "surface-variant": "#e6e1e1",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "surface-tint": "#bf0522",
+                        "on-secondary-fixed-variant": "#474647",
+                        "primary": "#9f001a",
+                        "primary-fixed": "#ffdad7",
+                        "on-primary-container": "#ffdcd9"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "14px",
+                        "lg": "14px",
+                        "xl": "18px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "1rem",
+                        "stack-lg": "4rem",
+                        "header-height": "5rem",
+                        "container-max": "80rem",
+                        "card-padding": "2rem",
+                        "gutter": "2.5rem",
+                        "stack-md": "1.5rem",
+                        "sidebar-width": "16rem"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Manrope"],
+                        "display-lg": ["Space Grotesk"],
+                        "label-bold": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "headline-sm": ["Space Grotesk"],
+                        "headline-md": ["Space Grotesk"],
+                        "body-lg": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-effect {
+            background: rgba(252, 249, 248, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: #FCF9F8;
+        }
+        .sidebar-active {
+            box-shadow: inset 4px 0 0 0 #c91428;
+        }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- Global Layout Wrapper -->
+<div class="flex min-h-screen">
+<!-- Sidebar Component (Shared: SideNavBar) -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width bg-inverse-surface dark:bg-on-surface shadow-lg z-50 flex flex-col px-4 py-6">
+<!-- Brand Logo -->
+<div class="mb-10 px-4 flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container rounded flex items-center justify-center">
+<span class="text-white font-display-lg text-headline-md font-bold">L</span>
+</div>
+<div>
+<h1 class="font-display-lg text-headline-md font-bold text-white leading-none">Red Tab</h1>
+<p class="font-body-md text-[10px] text-secondary-fixed-dim uppercase tracking-widest mt-1">Management Portal</p>
+</div>
+</div>
+<!-- Primary Navigation -->
+<nav class="flex-1 space-y-1">
+<!-- Painel (Active) -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary bg-primary rounded-lg font-bold transition-all active:opacity-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-body-md">Painel</span>
+</a>
+<!-- Horários -->
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">schedule</span>
+<span class="font-body-md">Horários</span>
+</a>
+<!-- Funcionários -->
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">badge</span>
+<span class="font-body-md">Funcionários</span>
+</a>
+<!-- Loja e Regras -->
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">storefront</span>
+<span class="font-body-md">Loja e Regras</span>
+</a>
+<!-- Pedidos -->
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-body-md">Pedidos</span>
+</a>
+<!-- Perfil -->
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md">Perfil</span>
+</a>
+<!-- Preferências -->
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md">Preferências</span>
+</a>
+<!-- Relatórios -->
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md">Relatórios</span>
+</a>
+<!-- Auditoria -->
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">history_edu</span>
+<span class="font-body-md">Auditoria</span>
+</a>
+</nav>
+<!-- Footer Navigation -->
+<div class="pt-6 border-t border-tertiary-container/30 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">support_agent</span>
+<span class="font-body-md">Suporte</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:bg-tertiary-container hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md">Sair</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-sidebar-width min-h-screen pb-12">
+<!-- TopAppBar (Shared: TopNavBar) -->
+<header class="glass-effect fixed top-0 right-0 w-[calc(100%-16rem)] h-header-height z-40 border-b border-surface-variant flex items-center justify-between px-gutter">
+<div class="flex items-center gap-8">
+<h2 class="font-headline-sm text-headline-sm text-primary">Painel de Controle</h2>
+<!-- Search Bar -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-secondary-container group-focus-within:text-primary transition-colors">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-72 text-body-md focus:ring-2 focus:ring-primary/20 transition-all outline-none" placeholder="Pesquisar funcionários ou pedidos..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 border-r border-surface-variant pr-6">
+<button class="relative text-on-surface hover:text-primary transition-all">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full border-2 border-surface"></span>
+</button>
+<button class="text-on-surface hover:text-primary transition-all">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+<!-- Profile Menu -->
+<div class="flex items-center gap-3 cursor-pointer group">
+<div class="text-right">
+<p class="font-label-bold text-label-bold text-on-surface">Ricardo Silva</p>
+<p class="font-body-md text-[12px] text-on-secondary-container">Store Manager</p>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-surface-variant group-hover:border-primary transition-all">
+<img alt="Manager Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged man with a friendly smile, styled for a corporate fashion setting. The lighting is bright and clean, characteristic of a premium brand's internal portal. He wears a classic denim shirt, reflecting the industrial heritage of the brand. The background is a soft, out-of-focus retail environment with warm wood tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFEhniywSfUJ7edYv8BtN1BOVk01Q7xQRqkqtNwGBZq-RX042wWl_ocZi8MBFPdIobH4XKQpmJ4ReSBDDp0iYhrCz3JvDTMXM08lR8R7YazYbU93Dhu1HG1z8SeTMXWeLSG4NyB9KR1JM9hbeD3IvE-TTUpDtbP82qf9L5dYFzQBU4Q1hFmjE6f87OlEuzem2REeHoC8hgAC4_GZxmyoGvdSW7cXMBhchkP-gBaS_QwYVAFrOttljUpVC5UyZOE7NDAIZ4tYHo6Lw"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="mt-24 px-gutter max-w-container-max mx-auto space-y-gutter">
+<!-- Welcome Header -->
+<div class="flex justify-between items-end">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Bom dia, Ricardo.</h3>
+<p class="font-body-lg text-on-secondary-container">Aqui está o resumo da loja para hoje, 24 de Outubro.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2.5 border border-outline text-on-surface font-label-bold hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">file_download</span>
+                            Exportar
+                        </button>
+<button class="px-6 py-2.5 bg-primary-container text-white font-label-bold shadow-lg hover:opacity-90 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                            Novo Registro
+                        </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Widget: Próximos Turnos (1/3 Width) -->
+<div class="col-span-12 lg:col-span-4 bg-surface-container-lowest p-card-padding rounded-xl shadow-[rgba(28,27,27,0.03)_0px_4px_12px] border border-surface-variant">
+<div class="flex justify-between items-center mb-6">
+<h4 class="font-headline-sm text-headline-sm">Próximos Turnos</h4>
+<span class="material-symbols-outlined text-secondary">calendar_today</span>
+</div>
+<div class="space-y-4">
+<!-- Turno 1 -->
+<div class="flex items-center gap-4 p-3 bg-surface-container-low rounded-lg border-l-4 border-primary">
+<div class="flex-1">
+<p class="font-label-bold text-on-surface">Ana Martins</p>
+<p class="font-body-md text-on-secondary-container">Abertura / Vendas</p>
+</div>
+<div class="text-right">
+<p class="font-label-bold text-primary">09:00 - 18:00</p>
+<span class="text-[10px] font-label-caps bg-primary/10 text-primary px-2 py-0.5 rounded">HOJE</span>
+</div>
+</div>
+<!-- Turno 2 -->
+<div class="flex items-center gap-4 p-3 hover:bg-surface-container-low transition-colors rounded-lg">
+<div class="flex-1">
+<p class="font-label-bold text-on-surface">Carlos Santos</p>
+<p class="font-body-md text-on-secondary-container">Fecho / Logística</p>
+</div>
+<div class="text-right">
+<p class="font-label-bold text-on-surface">14:00 - 23:00</p>
+<span class="text-[10px] font-label-caps bg-secondary/10 text-secondary px-2 py-0.5 rounded">HOJE</span>
+</div>
+</div>
+<!-- Turno 3 -->
+<div class="flex items-center gap-4 p-3 hover:bg-surface-container-low transition-colors rounded-lg">
+<div class="flex-1">
+<p class="font-label-bold text-on-surface">Inês Ferreira</p>
+<p class="font-body-md text-on-secondary-container">Intermédio / Apoio</p>
+</div>
+<div class="text-right">
+<p class="font-label-bold text-on-surface">11:00 - 20:00</p>
+<span class="text-[10px] font-label-caps bg-secondary/10 text-secondary px-2 py-0.5 rounded">HOJE</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-3 text-primary font-label-bold text-sm hover:bg-primary-container/5 rounded transition-all">Ver Escala Completa</button>
+</div>
+<!-- Widget: Estado de Equipa (2/3 Width) -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-lowest p-card-padding rounded-xl shadow-[rgba(28,27,27,0.03)_0px_4px_12px] border border-surface-variant">
+<div class="flex justify-between items-center mb-6">
+<h4 class="font-headline-sm text-headline-sm">Estado da Equipa</h4>
+<div class="flex gap-2">
+<span class="flex items-center gap-1.5 px-3 py-1 bg-success-emerald/10 text-success-emerald text-[12px] font-label-bold rounded-full">
+<span class="w-1.5 h-1.5 bg-success-emerald rounded-full"></span> 12 Ativos
+                                </span>
+<span class="flex items-center gap-1.5 px-3 py-1 bg-warning-amber/10 text-warning-amber text-[12px] font-label-bold rounded-full">
+<span class="w-1.5 h-1.5 bg-warning-amber rounded-full"></span> 2 Pausa
+                                </span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Team List Table -->
+<div class="space-y-4">
+<h5 class="font-label-caps text-on-secondary-container tracking-wider">PRESENÇA ATUAL</h5>
+<div class="divide-y divide-surface-variant">
+<div class="py-3 flex items-center justify-between group hover:bg-surface-container-low/50 transition-all rounded px-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container overflow-hidden">
+<img alt="Staff" class="w-full h-full object-cover" data-alt="Close up portrait of a young professional woman with a confident expression, wearing a minimalist black t-shirt. High-end portrait photography with soft natural lighting and a clean, neutral background that fits the professional aesthetic of a corporate portal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhXTkoRutdBqF0IWxoQKxVlNZLrIKnGkP7M2AMK2-ILJKWQP_z_FsMtbVn61egI2_SQrfKuRA8JLgvCkoEYvh8L9wl6-sZCVrIW97XerVRp78rs0Y7YnyDddv14XO7pZjcvKuGOaW2yyJ3_1uDzErPcDWXBXFg6FEC-FTZedG_NJar_8J6GA1Pbm3gHnW27VqZ9bweRKyb8bt2KtNr2hhEqbnsMKu7SyTwm79965pzYXZPz9CQZvCOyluYLiFyWWrEjJeHLuOaSRc"/>
+</div>
+<span class="font-body-md font-medium">Sofia Gomes</span>
+</div>
+<span class="text-[12px] text-success-emerald font-label-bold">EM SERVIÇO</span>
+</div>
+<div class="py-3 flex items-center justify-between group hover:bg-surface-container-low/50 transition-all rounded px-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container overflow-hidden">
+<img alt="Staff" class="w-full h-full object-cover" data-alt="Portrait of a young man with glasses, looking focused and friendly. He is wearing a dark grey sweatshirt. The photo is professionally shot in a studio with soft-key lighting, maintaining a high-fidelity look for a modern UI management system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsGX6mqmzzXCsxR7lyWhgtqQ_ihGvv3VwZ8mRmtPLb-maQNop6FQMkAKI9uVCZ_u7Vs7OMys6HVrjrwbjKkTw4nugbYYUBBx8r_ULPmK2C6ZyrvE6y773IJBDULoVo3AYVnpsbMg-6ykNWRNBgBF1rRhTBanyRYDILY07QYrmDhQ_xa91MGSUGq0vSty4AmRo5b3Q_myRkD3f7GK3YR8yfVRFZFay-QZ1bvEFuP8OeVVONIDTit2nzJjT5KxGSIBFjzlVsXYc8kPg"/>
+</div>
+<span class="font-body-md font-medium">Pedro Lima</span>
+</div>
+<span class="text-[12px] text-warning-amber font-label-bold">EM PAUSA</span>
+</div>
+<div class="py-3 flex items-center justify-between group hover:bg-surface-container-low/50 transition-all rounded px-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container overflow-hidden">
+<img alt="Staff" class="w-full h-full object-cover" data-alt="A professional woman of color with a bright smile, wearing a structured blazer. The lighting is elegant and soft, creating a premium feel for an internal employee management dashboard. High resolution and clear focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlSYfucfCavZXR-J2d5-XLkRe6klo5pL6_Vwy_Lekt7wf5YvudoWBfh8HtlU90l_NFjYS_Hzmy7PpRneS3-ZE9goolLVtlvtfzflPDlWq1ARRcc2ga9D5ja8xD6_p2r77fl6CZEA_nt7ssOxef10hPRyWm75bFM259ipLY7d8bOo_yqBjqVPWVF052kkJ19wjRxhbF3AM1KdoHm7gFw-aIrlHWF683hAX3C5UWiKmMDLekeD2qNjq45_8ymxbxbAxWwaQEg2at0CM"/>
+</div>
+<span class="font-body-md font-medium">Marta Vaz</span>
+</div>
+<span class="text-[12px] text-success-emerald font-label-bold">EM SERVIÇO</span>
+</div>
+</div>
+</div>
+<!-- Quick Stats -->
+<div class="bg-surface-container-low p-6 rounded-lg flex flex-col justify-between">
+<div>
+<h5 class="font-label-caps text-on-secondary-container tracking-wider mb-4">MÉTRICAS DA LOJA</h5>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-sm mb-2">
+<span class="font-body-md text-on-surface">Capacidade de Staff</span>
+<span class="font-label-bold">85%</span>
+</div>
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 85%"></div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="p-3 bg-white rounded-lg shadow-sm border border-surface-variant flex-1">
+<p class="text-[10px] font-label-caps text-on-secondary-container">PENDENTES</p>
+<p class="text-headline-sm font-display-lg text-primary">04</p>
+</div>
+<div class="p-3 bg-white rounded-lg shadow-sm border border-surface-variant flex-1">
+<p class="text-[10px] font-label-caps text-on-secondary-container">AVISOS</p>
+<p class="text-headline-sm font-display-lg text-warning-amber">01</p>
+</div>
+</div>
+</div>
+</div>
+<button class="mt-6 w-full py-3 bg-inverse-surface text-white font-label-bold text-sm hover:opacity-90 transition-all rounded">Gerir Alocações</button>
+</div>
+</div>
+</div>
+<!-- Row 2 Widgets -->
+<div class="col-span-12 lg:col-span-3 bg-surface-container-lowest p-card-padding rounded-xl shadow-[rgba(28,27,27,0.03)_0px_4px_12px] border border-surface-variant flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-[32px]">store</span>
+</div>
+<h4 class="font-label-bold text-on-surface mb-2">Estado da Loja</h4>
+<p class="text-body-md text-on-secondary-container mb-6">Sincronização com o inventário central concluída há 10 min.</p>
+<div class="mt-auto w-full pt-4 border-t border-surface-variant flex justify-between items-center">
+<span class="text-[11px] font-label-caps text-success-emerald flex items-center gap-1">
+<span class="w-2 h-2 bg-success-emerald rounded-full"></span> ONLINE
+                            </span>
+<span class="material-symbols-outlined text-on-secondary-container cursor-pointer hover:text-primary">sync</span>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-9 bg-primary-container text-white p-card-padding rounded-xl relative overflow-hidden flex items-center">
+<!-- Decorative Denim Texture Overlay Simulation -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0); background-size: 16px 16px;"></div>
+<div class="relative z-10 max-w-lg">
+<h4 class="font-headline-md text-headline-md mb-2">Formação Levi's Original®</h4>
+<p class="font-body-md opacity-90 mb-6">A nova coleção de Inverno requer certificação de produto para todos os assistentes de vendas. Verifique o progresso da sua equipa.</p>
+<button class="px-8 py-3 bg-white text-primary font-bold rounded shadow-lg hover:bg-surface transition-all">Ver Currículo</button>
+</div>
+<div class="absolute right-[-20px] bottom-[-20px] opacity-20 transform -rotate-12">
+<span class="material-symbols-outlined text-[180px]">apparel</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Micro-interactions Script -->
+<script>
+        // Simple search bar focus effect
+        const searchInput = document.querySelector('input[type="text"]');
+        const searchContainer = searchInput.parentElement;
+        
+        searchInput.addEventListener('focus', () => {
+            searchContainer.classList.add('ring-2', 'ring-primary/10');
+        });
+        
+        searchInput.addEventListener('blur', () => {
+            searchContainer.classList.remove('ring-2', 'ring-primary/10');
+        });
+
+        // Hover animation for cards
+        const cards = document.querySelectorAll('.bg-surface-container-lowest');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.transition = 'all 0.3s ease';
+                card.classList.replace('shadow-[rgba(28,27,27,0.03)_0px_4px_12px]', 'shadow-[rgba(28,27,27,0.08)_0px_8px_24px]');
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+                card.classList.replace('shadow-[rgba(28,27,27,0.08)_0px_8px_24px]', 'shadow-[rgba(28,27,27,0.03)_0px_4px_12px]');
+            });
+        });
+    </script>
+</body></html>

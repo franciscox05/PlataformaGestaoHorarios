@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#fdf8f8",
+                        "secondary-container": "#e2dfdf",
+                        "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                        "surface-tint": "#bf0522",
+                        "inverse-primary": "#ffb3af",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-surface": "#1c1b1b",
+                        "on-background": "#1c1b1b",
+                        "success-emerald": "#059669",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#5f5e5e",
+                        "on-secondary-fixed": "#1c1b1c",
+                        "inverse-surface": "#313030",
+                        "tertiary-fixed": "#e5e2e1",
+                        "primary-fixed-dim": "#ffb3af",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#e6e3e2",
+                        "warning-amber": "#D97706",
+                        "surface-variant": "#e6e1e1",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#ffdcd9",
+                        "tertiary": "#4e4d4d",
+                        "surface-container": "#f1edec",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#930017",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#ece7e7",
+                        "on-surface-variant": "#5c403e",
+                        "background": "#fdf8f8",
+                        "surface-container-low": "#f7f2f2",
+                        "outline": "#906f6d",
+                        "surface": "#FCF9F8",
+                        "primary": "#9f001a",
+                        "inverse-on-surface": "#f4f0ef",
+                        "tertiary-container": "#666565",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "primary-container": "#c91428",
+                        "on-primary-fixed": "#410005",
+                        "surface-container-highest": "#e6e1e1",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "on-secondary-container": "#636262",
+                        "on-secondary-fixed-variant": "#474647",
+                        "primary-fixed": "#ffdad7",
+                        "outline-variant": "#e5bdba",
+                        "secondary-fixed-dim": "#c8c6c6",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#ddd9d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.875rem", // 14px as requested
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "1rem",
+                        "header-height": "5rem",
+                        "container-max": "80rem",
+                        "stack-md": "1.5rem",
+                        "card-padding": "2rem",
+                        "gutter": "2.5rem",
+                        "stack-lg": "4rem",
+                        "sidebar-width": "16rem"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Space Grotesk"],
+                        "headline-md": ["Space Grotesk"],
+                        "headline-sm": ["Space Grotesk"],
+                        "label-caps": ["Manrope"],
+                        "label-bold": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "headline-sm": ["18px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "label-bold": ["14px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', sans-serif; background-color: #FCF9F8; }
+        .font-headline { font-family: 'Space Grotesk', sans-serif; }
+        .glass-header { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .sidebar-shadow { box-shadow: 4px 0 24px rgba(28, 27, 27, 0.06); }
+        .card-shadow { box-shadow: 0 4px 12px rgba(28, 27, 27, 0.03); }
+        .active-tab { background-color: #9f001a; color: white; }
+    </style>
+</head>
+<body class="text-on-background">
+<!-- Sidebar -->
+<aside class="fixed left-0 top-0 h-screen w-sidebar-width bg-inverse-surface flex flex-col py-6 z-50 sidebar-shadow">
+<div class="px-6 mb-10">
+<h1 class="font-headline text-headline-md uppercase tracking-widest text-on-primary">Levi's</h1>
+<p class="text-label-caps text-secondary-fixed-dim">Global Operations</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary hover:bg-tertiary-container/20 rounded-lg mx-2 transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-bold text-label-bold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary hover:bg-tertiary-container/20 rounded-lg mx-2 transition-all" href="#">
+<span class="material-symbols-outlined">article</span>
+<span class="font-label-bold text-label-bold">Editorial Feed</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary hover:bg-tertiary-container/20 rounded-lg mx-2 transition-all" href="#">
+<span class="material-symbols-outlined">badge</span>
+<span class="font-label-bold text-label-bold">Staff Directory</span>
+</a>
+<!-- Active Tab: Preferences maps to settings/ops context -->
+<a class="flex items-center gap-3 px-4 py-3 bg-primary text-on-primary rounded-lg mx-2 shadow-lg scale-[1.02]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-bold text-label-bold">Preferências</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary hover:bg-tertiary-container/20 rounded-lg mx-2 transition-all" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-label-bold text-label-bold">Asset Library</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary hover:bg-tertiary-container/20 rounded-lg mx-2 transition-all" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span class="font-label-bold text-label-bold">Analytics</span>
+</a>
+</nav>
+<div class="px-2 mt-auto space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span class="font-label-bold text-label-bold">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-sidebar-width min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="sticky top-0 h-header-height w-full bg-surface/80 glass-header border-b border-surface-variant/30 flex justify-between items-center px-gutter z-40">
+<div class="flex items-center gap-4">
+<h2 class="font-headline text-headline-sm text-primary tracking-tight">Red Tab Editorial</h2>
+<div class="h-6 w-px bg-surface-variant"></div>
+<span class="text-body-md text-secondary">Portal de Staff</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined text-secondary hover:text-primary cursor-pointer">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></span>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="font-label-bold text-label-bold text-on-surface">Ricardo Silva</p>
+<p class="text-[10px] uppercase tracking-wider text-secondary">Store Manager</p>
+</div>
+<img alt="Staff member avatar" class="w-10 h-10 rounded-full border-2 border-primary-container shadow-sm object-cover" data-alt="A professional headshot of a middle-aged man with a friendly smile, wearing a dark denim Levi's jacket. The background is a blurred high-end retail environment with warm, focused lighting that emphasizes a modern industrial aesthetic. The image is clean, sharp, and reflects a professional leadership role within a global brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEMOJRpqBbflx6pOftLSMmDr5od9j8AAJDVJfcf2jbqGGsoLHVbyndKdcg25bY2UXJIA9cz_WpJJxQ40KN2bZh1XxXeYeQY3GixwNw4Vo3HbZFmR5wDMYPjXamt9iTQudMgp_yGQ_-zFSdBK4Ja4BScyKQbyl4fchrkLsYL2Jwmt2fMm8I388Dy4EiC4Z_ig0VkXfvhXd1nf-0IzHgIHMwbQsCoO37W8GufMTZwlLBoRjabWasrN9Grv8m0Src99ok48tRH8ax5Q8"/>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="max-w-container-max mx-auto w-full p-gutter space-y-stack-md">
+<div class="flex justify-between items-end pb-4">
+<div>
+<h3 class="font-headline text-display-lg text-on-surface">Preferências</h3>
+<p class="text-body-lg text-secondary">Faça a gestão dos seus turnos e colaborações preferidas.</p>
+</div>
+<div class="flex gap-3">
+<button class="bg-surface-container-high px-4 py-2 rounded-lg font-label-bold text-secondary hover:bg-surface-variant transition-all">Exportar Log</button>
+<button class="bg-primary px-6 py-2 rounded-lg font-label-bold text-on-primary shadow-lg hover:brightness-110 active:scale-95 transition-all">Nova Preferência</button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-stack-md">
+<!-- Zona A: Registo/Edição -->
+<section class="lg:col-span-1">
+<div class="bg-surface-container-lowest p-card-padding rounded-lg border border-surface-variant/50 card-shadow h-full">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">edit_note</span>
+<h4 class="font-headline text-headline-sm">Registar Preferência</h4>
+</div>
+<form class="space-y-5">
+<div class="space-y-1">
+<label class="text-label-caps text-secondary">Tipo de Preferência</label>
+<select class="w-full bg-surface-container-low border-b-2 border-outline/30 focus:border-primary border-t-0 border-x-0 rounded-t-sm focus:ring-0 text-body-md">
+<option>Colaboração com Colega</option>
+<option>Restrição de Turno</option>
+<option>Disponibilidade Extra</option>
+</select>
+</div>
+<div class="space-y-1">
+<label class="text-label-caps text-secondary">Colega Preferido</label>
+<select class="w-full bg-surface-container-low border-b-2 border-outline/30 focus:border-primary border-t-0 border-x-0 rounded-t-sm focus:ring-0 text-body-md">
+<option>Ana Martins (Sales)</option>
+<option>João Pereira (Stock)</option>
+<option>Carla Santos (Visual)</option>
+</select>
+</div>
+<div class="space-y-3">
+<label class="text-label-caps text-secondary block">Preferência de Turnos</label>
+<div class="flex gap-2">
+<button class="flex-1 py-2 px-1 text-[11px] font-label-bold rounded-lg border border-surface-variant hover:border-primary hover:text-primary transition-all" type="button">Manhã</button>
+<button class="flex-1 py-2 px-1 text-[11px] font-label-bold rounded-lg border border-surface-variant hover:border-primary hover:text-primary transition-all" type="button">Intermédio</button>
+<button class="flex-1 py-2 px-1 text-[11px] font-label-bold rounded-lg bg-primary/10 border border-primary text-primary" type="button">Noite</button>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<label class="text-label-caps text-secondary">Data Início</label>
+<input class="w-full bg-surface-container-low border-b-2 border-outline/30 focus:border-primary border-t-0 border-x-0 rounded-t-sm focus:ring-0 text-body-md" type="date"/>
+</div>
+<div class="space-y-1">
+<label class="text-label-caps text-secondary">Data Fim</label>
+<input class="w-full bg-surface-container-low border-b-2 border-outline/30 focus:border-primary border-t-0 border-x-0 rounded-t-sm focus:ring-0 text-body-md" type="date"/>
+</div>
+</div>
+<div class="flex items-center justify-between py-2">
+<span class="text-body-md font-medium">Aplica-se em permanência</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+</div>
+<div class="space-y-1">
+<label class="text-label-caps text-secondary">Contexto adicional</label>
+<textarea class="w-full bg-surface-container-low border-b-2 border-outline/30 focus:border-primary border-t-0 border-x-0 rounded-t-sm focus:ring-0 text-body-md resize-none" placeholder="Ex: Necessidade de boleia partilhada..." rows="3"></textarea>
+</div>
+<div class="pt-4 space-y-3">
+<button class="w-full bg-primary text-on-primary font-label-bold py-3 rounded-lg shadow-md hover:brightness-110 active:scale-[0.98] transition-all" type="submit">Guardar preferência</button>
+<div class="grid grid-cols-2 gap-3">
+<button class="bg-inverse-surface text-on-primary font-label-bold py-2 rounded-lg hover:opacity-90 transition-all" type="button">Cancelar</button>
+<button class="border border-error text-error font-label-bold py-2 rounded-lg hover:bg-error/5 transition-all" type="button">Remover</button>
+</div>
+</div>
+</form>
+</div>
+</section>
+<!-- Zona B: As minhas preferências -->
+<section class="lg:col-span-2">
+<div class="bg-surface-container-lowest rounded-lg border border-surface-variant/50 card-shadow h-full flex flex-col">
+<div class="p-card-padding flex justify-between items-center border-b border-surface-variant/20">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">history</span>
+<h4 class="font-headline text-headline-sm">As minhas preferências</h4>
+</div>
+<span class="bg-surface-container px-3 py-1 rounded-full text-label-caps text-secondary">3 Registos</span>
+</div>
+<div class="flex-1 overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low border-b border-surface-variant/30">
+<tr>
+<th class="px-6 py-4 text-label-caps text-secondary">Tipo</th>
+<th class="px-6 py-4 text-label-caps text-secondary">Período</th>
+<th class="px-6 py-4 text-label-caps text-secondary">Vigência</th>
+<th class="px-6 py-4 text-label-caps text-secondary">Estado</th>
+<th class="px-6 py-4 text-label-caps text-secondary">Acção</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant/20">
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-body-md font-bold">Colaboração</span>
+<span class="text-label-caps text-secondary">Ana Martins</span>
+</div>
+</td>
+<td class="px-6 py-5 text-body-md">Manhã</td>
+<td class="px-6 py-5">
+<span class="bg-surface-container text-on-surface px-2 py-1 rounded text-[11px] font-bold">Permanente</span>
+</td>
+<td class="px-6 py-5">
+<span class="bg-success-emerald/10 text-success-emerald px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider">Ativo</span>
+</td>
+<td class="px-6 py-5">
+<button class="material-symbols-outlined text-secondary hover:text-primary opacity-0 group-hover:opacity-100 transition-all">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-body-md font-bold">Turno</span>
+<span class="text-label-caps text-secondary">Sem Noites</span>
+</div>
+</td>
+<td class="px-6 py-5 text-body-md">Noite</td>
+<td class="px-6 py-5 text-body-md">Até 31 Dez</td>
+<td class="px-6 py-5">
+<span class="bg-warning-amber/10 text-warning-amber px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider">Pendente</span>
+</td>
+<td class="px-6 py-5">
+<button class="material-symbols-outlined text-secondary hover:text-primary opacity-0 group-hover:opacity-100 transition-all">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-body-md font-bold">Disponibilidade</span>
+<span class="text-label-caps text-secondary">Reforço Natal</span>
+</div>
+</td>
+<td class="px-6 py-5 text-body-md">Fim de Semana</td>
+<td class="px-6 py-5 text-body-md">Até 24 Dez</td>
+<td class="px-6 py-5">
+<span class="bg-error/10 text-error px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider">Rejeitado</span>
+</td>
+<td class="px-6 py-5">
+<button class="material-symbols-outlined text-secondary hover:text-primary opacity-0 group-hover:opacity-100 transition-all">more_vert</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Zona C: Painel de Aprovação (Gestão) -->
+<section class="lg:col-span-3 mt-4">
+<div class="bg-surface-container-lowest rounded-lg border border-surface-variant/50 card-shadow overflow-hidden">
+<div class="bg-inverse-surface p-6 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed">admin_panel_settings</span>
+<div>
+<h4 class="font-headline text-headline-sm text-on-primary">Aprovações da Loja</h4>
+<p class="text-label-caps text-secondary-fixed-dim">Painel de Gestão Editorial</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="bg-white/10 px-4 py-2 rounded border border-white/10 text-center">
+<p class="text-primary-fixed font-bold text-lg">04</p>
+<p class="text-[9px] uppercase text-white/60">Pendentes</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12">
+<!-- Pending Approvals Table -->
+<div class="xl:col-span-8 p-6 border-r border-surface-variant/20">
+<h5 class="text-label-bold text-on-surface mb-4 flex items-center gap-2">
+<span class="w-2 h-2 bg-warning-amber rounded-full"></span>
+                                    Pedidos Aguardando Decisão
+                                </h5>
+<div class="overflow-x-auto">
+<table class="w-full">
+<thead class="text-label-caps text-secondary border-b border-surface-variant/30">
+<tr>
+<th class="pb-3 font-semibold text-left">Colaborador</th>
+<th class="pb-3 font-semibold text-left">Tipo</th>
+<th class="pb-3 font-semibold text-left">Detalhes</th>
+<th class="pb-3 font-semibold text-left">Data Pedido</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant/20">
+<tr class="hover:bg-surface-container-low transition-all cursor-pointer">
+<td class="py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-white flex items-center justify-center text-[10px] font-bold">MS</div>
+<span class="text-body-md font-medium">Miguel Soares</span>
+</div>
+</td>
+<td class="py-4 text-body-md">Turno Extra</td>
+<td class="py-4 text-body-md">Noites, Nov/Dez</td>
+<td class="py-4 text-body-md text-secondary">Hoje, 09:45</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-all cursor-pointer bg-primary/5 border-l-4 border-primary">
+<td class="py-4 pl-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-[10px] font-bold">LC</div>
+<span class="text-body-md font-medium">Lúcia Costa</span>
+</div>
+</td>
+<td class="py-4 text-body-md">Colaboração</td>
+<td class="py-4 text-body-md">Equipa Ricardo</td>
+<td class="py-4 text-body-md text-secondary">Ontem, 18:20</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Decision Area -->
+<div class="xl:col-span-4 p-6 bg-surface-container-low/30">
+<div class="bg-white p-6 rounded-lg border border-surface-variant shadow-sm space-y-4">
+<h5 class="text-label-bold text-primary">Decisão: Lúcia Costa</h5>
+<div class="space-y-1">
+<label class="text-label-caps text-secondary">Observações do Gestor</label>
+<textarea class="w-full bg-surface-container-low border border-surface-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary outline-none" placeholder="Indique o motivo da decisão..." rows="4"></textarea>
+</div>
+<div class="flex gap-3">
+<button class="flex-1 bg-success-emerald text-white py-3 rounded-lg font-label-bold shadow-md hover:brightness-110 active:scale-95 transition-all">Aprovar</button>
+<button class="flex-1 bg-error text-white py-3 rounded-lg font-label-bold shadow-md hover:brightness-110 active:scale-95 transition-all">Rejeitar</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Decision History -->
+<div class="p-6 border-t border-surface-variant/30">
+<h5 class="text-label-bold text-on-surface mb-4">Histórico de Decisões Recentes</h5>
+<div class="overflow-x-auto">
+<table class="w-full">
+<thead class="text-label-caps text-secondary bg-surface-container-low">
+<tr>
+<th class="px-4 py-2 font-semibold text-left">Colaborador</th>
+<th class="px-4 py-2 font-semibold text-left">Estado</th>
+<th class="px-4 py-2 font-semibold text-left">Observação</th>
+<th class="px-4 py-2 font-semibold text-left">Decisor</th>
+<th class="px-4 py-2 font-semibold text-left">Data</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant/20">
+<tr class="text-body-md">
+<td class="px-4 py-3">Tiago Neves</td>
+<td class="px-4 py-3"><span class="text-success-emerald font-bold">Aprovado</span></td>
+<td class="px-4 py-3 italic text-secondary">"Ajuste necessário para o inventário."</td>
+<td class="px-4 py-3">Ricardo S.</td>
+<td class="px-4 py-3 text-secondary">02 Out 2023</td>
+</tr>
+<tr class="text-body-md">
+<td class="px-4 py-3">Sofia Lima</td>
+<td class="px-4 py-3"><span class="text-error font-bold">Rejeitado</span></td>
+<td class="px-4 py-3 italic text-secondary">"Sobreposição com escala de vendas."</td>
+<td class="px-4 py-3">Admin Levi's</td>
+<td class="px-4 py-3 text-secondary">01 Out 2023</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Footer / Technical info -->
+<footer class="mt-auto py-8 px-gutter border-t border-surface-variant/20 flex justify-between items-center opacity-60">
+<p class="text-label-caps">© 2023 Levi Strauss &amp; Co. | Red Tab Editorial Staff Portal</p>
+<div class="flex gap-6">
+<a class="text-label-caps hover:text-primary" href="#">Privacidade</a>
+<a class="text-label-caps hover:text-primary" href="#">Termos de Uso</a>
+<span class="text-label-caps">v4.2.1-industrial</span>
+</div>
+</footer>
+</main>
+<!-- Overlay / FAB (Suppressed based on context: Details/Settings screen) -->
+<script>
+        // Micro-interactions
+        document.querySelectorAll('button, a').forEach(elem => {
+            elem.addEventListener('mousedown', () => elem.classList.add('scale-95'));
+            elem.addEventListener('mouseup', () => elem.classList.remove('scale-95'));
+            elem.addEventListener('mouseleave', () => elem.classList.remove('scale-95'));
+        });
+
+        // Tab simulation
+        const navItems = document.querySelectorAll('nav a');
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                navItems.forEach(i => {
+                    i.classList.remove('bg-primary', 'text-on-primary', 'shadow-lg', 'scale-[1.02]');
+                    i.classList.add('text-secondary-fixed-dim', 'hover:text-on-primary', 'hover:bg-tertiary-container/20');
+                    if(i.querySelector('.material-symbols-outlined')) i.querySelector('.material-symbols-outlined').style.fontVariationSettings = "'FILL' 0";
+                });
+                item.classList.remove('text-secondary-fixed-dim', 'hover:text-on-primary', 'hover:bg-tertiary-container/20');
+                item.classList.add('bg-primary', 'text-on-primary', 'shadow-lg', 'scale-[1.02]');
+                if(item.querySelector('.material-symbols-outlined')) item.querySelector('.material-symbols-outlined').style.fontVariationSettings = "'FILL' 1";
+            });
+        });
+    </script>
+</body></html>

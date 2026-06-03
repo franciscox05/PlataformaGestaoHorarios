@@ -1,328 +1,359 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Equipa')}"></head>
-<body>
+<head th:replace="~{web/fragments :: head('Equipa — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 <header th:replace="~{web/fragments :: shellHeader}"></header>
 
-<div class="web-shell">
-    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[82rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-5">
 
-    <main class="web-content">
-        <section class="web-page-head">
-            <div>
-                <h1>Equipa</h1>
-                <p>Pesquisa utilizadores, abre o perfil individual e gere operacoes no mesmo contexto.</p>
+    <!-- ── Header ── -->
+    <div class="fade-up flex items-start justify-between gap-4 flex-wrap">
+        <div>
+            <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Gestão de Funcionários</h1>
+            <p class="font-body text-[14px] text-on-surface-variant mt-1">Consulta, aprova pedidos e gere a equipa da tua loja.</p>
+        </div>
+        <span th:if="${totalUtilizadores != null}"
+              class="hidden sm:inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant bg-surface-container border border-outline-variant/40 px-3 py-1.5 rounded-full self-start mt-1">
+            <span class="material-symbols-outlined text-[14px]">group</span>
+            <span th:text="${totalUtilizadores} + ' colaborador(es)'"></span>
+        </span>
+    </div>
+
+    <!-- Feedback -->
+    <div th:if="${erro}"    class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    </div>
+    <div th:if="${sucesso}" class="fade-up flex items-center gap-2.5 bg-[#d1fae5] text-[#065f46] px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span><span th:text="${sucesso}"></span>
+    </div>
+
+    <!-- ── Master-detail ── -->
+    <div class="grid lg:grid-cols-[320px_1fr] gap-5 items-start">
+
+        <!-- ── Lista colaboradores ── -->
+        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+                 style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+            <div class="px-5 py-4 border-b border-outline-variant/25">
+                <h2 class="font-display font-bold text-[15px] text-on-surface">Equipa da loja</h2>
             </div>
-            <div class="web-kpi">
-                <h2>Total visivel</h2>
-                <strong th:text="${totalUtilizadores}">0</strong>
-            </div>
-        </section>
 
-        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
-        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
-
-        <section class="web-card">
-            <form method="get" action="/web/equipa" class="web-form-inline web-search-inline">
-                <input type="text"
-                       name="q"
-                       placeholder="Pesquisar por nome, email ou telemovel"
-                       th:value="${pesquisa}">
-                <button type="submit">Pesquisar</button>
-                <a class="botao-acao btn-ghost" href="/web/equipa">Limpar</a>
-            </form>
-        </section>
-
-        <section class="web-card" th:if="${#lists.isEmpty(utilizadores)}">
-            <h2>Sem resultados</h2>
-            <p>Nao foram encontrados utilizadores com os filtros atuais.</p>
-        </section>
-
-        <div class="web-master-detail" th:if="${!#lists.isEmpty(utilizadores)}">
-            <section class="web-card web-users-panel">
-                <h2>Utilizadores registados</h2>
-                <div class="web-user-list">
-                    <a th:each="item : ${utilizadores}"
-                       class="web-user-row"
-                       th:classappend="${temSelecao and utilizadorSelecionado != null and utilizadorSelecionado.id == item.idUtilizador()} ? 'ativo' : ''"
-                       th:href="@{/web/equipa/{id}(id=${item.idUtilizador()}, q=${pesquisa})}">
-                        <div>
-                            <strong th:text="${item.nome()}">Nome</strong>
-                            <p th:text="${item.email()}">email</p>
-                        </div>
-                        <div class="web-user-tags">
-                            <span th:classappend="${item.daMinhaLoja()} ? 'ok' : ''"
-                                  th:text="${item.daMinhaLoja()} ? 'Minha loja' : 'Outra loja'">Minha loja</span>
-                            <span th:text="${item.cargoAtual() != null and !item.cargoAtual().isBlank() ? item.cargoAtual() : '-'}">Cargo</span>
-                            <span th:text="${item.estado() != null ? item.estado() : '-'}">Estado</span>
-                        </div>
+            <!-- Pesquisa -->
+            <div class="px-4 py-3 border-b border-outline-variant/25">
+                <form method="get" action="/web/equipa" class="flex gap-2">
+                    <div class="relative flex-1">
+                        <span class="material-symbols-outlined text-[17px] text-on-surface-variant/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+                        <input type="text" name="q" placeholder="Nome, email ou telemóvel"
+                               th:value="${pesquisa}"
+                               class="w-full bg-surface-container-low border border-outline-variant rounded-xl pl-9 pr-3 py-2 font-body text-[13px] text-on-surface placeholder:text-on-surface-variant/40" style="outline:none">
+                    </div>
+                    <button type="submit"
+                            class="bg-primary-container text-white font-body font-bold text-[12px] px-3 py-2 rounded-xl hover:bg-primary transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">search</span>
+                    </button>
+                    <a href="/web/equipa"
+                       class="flex items-center justify-center w-9 h-9 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors shrink-0">
+                        <span class="material-symbols-outlined text-[17px]">close</span>
                     </a>
-                </div>
-            </section>
+                </form>
+            </div>
 
-            <section class="web-card web-user-detail" th:if="${!temSelecao}">
-                <h2>Seleciona um utilizador</h2>
-                <p>Abre um perfil para veres horario publicado, preferencias, folgas e permutas no mesmo ecrã.</p>
-            </section>
+            <!-- Lista -->
+            <div class="flex flex-col overflow-y-auto" style="max-height:560px">
+                <p th:if="${#lists.isEmpty(utilizadores)}"
+                   class="px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">Nenhum colaborador encontrado.</p>
 
-            <section class="web-user-detail" th:if="${temSelecao}">
-                <article class="web-card">
-                    <div class="web-user-hero">
-                        <div>
-                            <h2 th:text="${utilizadorSelecionado.nome}">Utilizador</h2>
-                            <p th:text="${utilizadorSelecionado.email}">email</p>
-                        </div>
-                        <div class="web-user-tags">
-                            <span th:text="${utilizadorSelecionado.estado != null ? utilizadorSelecionado.estado : '-'}">estado</span>
-                            <span th:if="${ligacaoAtiva != null and ligacaoAtiva.idCargo != null}"
-                                  th:text="${ligacaoAtiva.idCargo.nome}">Cargo</span>
-                            <span th:if="${ligacaoAtiva == null}">Sem ligacao ativa</span>
+                <a th:each="item : ${utilizadores}"
+                   th:href="@{/web/equipa/{id}(id=${item.idUtilizador()}, q=${pesquisa})}"
+                   th:classappend="${temSelecao and utilizadorSelecionado != null and utilizadorSelecionado.id == item.idUtilizador()} ? 'bg-primary-container/8 border-l-[3px] border-primary-container' : 'border-l-[3px] border-transparent hover:bg-surface-container-low'"
+                   class="flex items-center gap-3 px-4 py-3 border-b border-outline-variant/20 transition-colors cursor-pointer">
+                    <!-- Avatar -->
+                    <div class="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center font-display font-bold text-sm text-on-surface shrink-0"
+                         th:text="${item.nome() != null && !item.nome().isEmpty() ? item.nome().substring(0,1).toUpperCase() : '?'}">?</div>
+                    <div class="min-w-0 flex-1">
+                        <p class="font-body font-bold text-[13px] text-on-surface truncate" th:text="${item.nome()}">–</p>
+                        <p class="font-body text-[11px] text-on-surface-variant truncate" th:text="${item.email()}">–</p>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            <span class="inline-flex font-body font-semibold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                  th:classappend="${item.daMinhaLoja()} ? 'badge-ok' : 'badge-neu'"
+                                  th:text="${item.daMinhaLoja()} ? 'Minha loja' : 'Outra loja'"></span>
+                            <span th:if="${item.cargoAtual() != null && !item.cargoAtual().isBlank()}"
+                                  class="badge-neu inline-flex font-body font-semibold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                  th:text="${item.cargoAtual()}"></span>
                         </div>
                     </div>
+                    <span class="material-symbols-outlined text-[15px] text-on-surface-variant/30 shrink-0">chevron_right</span>
+                </a>
+            </div>
+        </section>
 
-                    <div class="web-grid-two">
-                        <div>
-                            <h3>Dados pessoais</h3>
-                            <p><strong>Nome:</strong> <span th:text="${utilizadorSelecionado.nome}"></span></p>
-                            <p><strong>Email:</strong> <span th:text="${utilizadorSelecionado.email}"></span></p>
-                            <p><strong>Telemovel:</strong> <span th:text="${utilizadorSelecionado.telemovel != null and !utilizadorSelecionado.telemovel.isBlank() ? utilizadorSelecionado.telemovel : '-'}"></span></p>
-                        </div>
-                        <div>
-                            <h3>Contexto profissional</h3>
-                            <p><strong>Cargo atual:</strong> <span th:text="${ligacaoAtiva != null and ligacaoAtiva.idCargo != null ? ligacaoAtiva.idCargo.nome : '-'}"></span></p>
-                            <p><strong>Loja atual:</strong> <span th:text="${ligacaoAtiva != null and ligacaoAtiva.idLoja != null ? ligacaoAtiva.idLoja.nome : '-'}"></span></p>
-                            <p><strong>Estado de gestao:</strong> <span th:text="${colaboradorDaLoja ? 'Gerivel nesta loja' : 'Fora da loja atual'}"></span></p>
+        <!-- ── Detalhe colaborador ── -->
+        <div class="flex flex-col gap-5">
+
+            <!-- Placeholder -->
+            <section th:if="${!temSelecao}"
+                     class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-14 flex flex-col items-center gap-4 text-center"
+                     style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                <div class="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[36px] text-outline/40">person_search</span>
+                </div>
+                <h2 class="font-display font-bold text-[20px] text-on-surface">Seleciona um colaborador</h2>
+                <p class="font-body text-[14px] text-on-surface-variant max-w-sm">Clica num colaborador à esquerda para ver o perfil completo, horário e pedidos pendentes.</p>
+            </section>
+
+            <th:block th:if="${temSelecao}">
+
+                <!-- Hero card -->
+                <article class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-6"
+                         style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                    <div class="flex items-start gap-5">
+                        <div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-white font-display font-black text-2xl shrink-0"
+                             style="box-shadow:0 0 0 3px rgba(192,0,31,.15)"
+                             th:text="${utilizadorSelecionado.nome != null && !utilizadorSelecionado.nome.isEmpty() ? utilizadorSelecionado.nome.substring(0,1).toUpperCase() : 'U'}">U</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-3 flex-wrap">
+                                <div>
+                                    <h2 class="font-display font-bold text-[20px] text-on-surface" th:text="${utilizadorSelecionado.nome}">–</h2>
+                                    <p class="font-body text-[13px] text-on-surface-variant" th:text="${utilizadorSelecionado.email}">–</p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="badge-ok inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full"
+                                          th:if="${utilizadorSelecionado.estado != null}"
+                                          th:text="${utilizadorSelecionado.estado}">Ativo</span>
+                                    <span class="badge-neu inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full"
+                                          th:if="${ligacaoAtiva != null && ligacaoAtiva.idCargo != null}"
+                                          th:text="${ligacaoAtiva.idCargo.nome}">Cargo</span>
+                                    <span class="badge-warn inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full"
+                                          th:if="${ligacaoAtiva == null}">Sem ligação ativa</span>
+                                </div>
+                            </div>
+
+                            <!-- Dados inline -->
+                            <div class="grid sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-outline-variant/25">
+                                <div>
+                                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant mb-0.5">Telemóvel</p>
+                                    <p class="font-body text-[13px] text-on-surface"
+                                       th:text="${utilizadorSelecionado.telemovel != null && !utilizadorSelecionado.telemovel.isBlank() ? utilizadorSelecionado.telemovel : '–'}">–</p>
+                                </div>
+                                <div>
+                                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant mb-0.5">Loja atual</p>
+                                    <p class="font-body text-[13px] text-on-surface"
+                                       th:text="${ligacaoAtiva != null && ligacaoAtiva.idLoja != null ? ligacaoAtiva.idLoja.nome : '–'}">–</p>
+                                </div>
+                                <div>
+                                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant mb-0.5">Gestão</p>
+                                    <p class="font-body text-[13px] text-on-surface"
+                                       th:text="${colaboradorDaLoja ? 'Gerível nesta loja' : 'Fora da loja atual'}">–</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </article>
 
-                <article class="web-card">
-                    <div class="web-section-head">
-                        <h3>Horario publicado</h3>
-                        <form method="get"
-                              th:action="@{/web/equipa/{id}(id=${utilizadorSelecionado.id})}"
-                              class="web-form-inline">
+                <!-- Horário publicado -->
+                <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                         style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/25 flex-wrap gap-3">
+                        <h2 class="font-display font-bold text-[15px] text-on-surface flex items-center gap-2">
+                            <span class="material-symbols-outlined icon-fill text-primary-container text-[18px]">calendar_month</span>
+                            Horário publicado
+                        </h2>
+                        <form method="get" th:action="@{/web/equipa/{id}(id=${utilizadorSelecionado.id})}" class="flex items-center gap-2">
                             <input type="hidden" name="q" th:value="${pesquisa}">
-                            <select name="mes" required>
-                                <option th:each="mesOption : ${meses}"
-                                        th:value="${mesOption.valor()}"
-                                        th:selected="${mesOption.valor() == mes}"
-                                        th:text="${mesOption.nome()}"></option>
+                            <select name="mes" onchange="this.form.submit()"
+                                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-1.5 font-body text-[12px] text-on-surface" style="outline:none">
+                                <option th:each="mesOption : ${meses}" th:value="${mesOption.valor()}" th:selected="${mesOption.valor() == mes}" th:text="${mesOption.nome()}"></option>
                             </select>
-                            <select name="ano" required>
-                                <option th:each="anoOption : ${anos}"
-                                        th:value="${anoOption}"
-                                        th:selected="${anoOption == ano}"
-                                        th:text="${anoOption}"></option>
+                            <select name="ano" onchange="this.form.submit()"
+                                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-1.5 font-body text-[12px] text-on-surface" style="outline:none">
+                                <option th:each="anoOption : ${anos}" th:value="${anoOption}" th:selected="${anoOption == ano}" th:text="${anoOption}"></option>
                             </select>
-                            <button type="submit">Atualizar periodo</button>
                         </form>
                     </div>
-
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Turno</th>
-                            <th>Horario</th>
-                            <th>Estado</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:if="${#lists.isEmpty(horariosPublicados)}">
-                            <td colspan="4">Sem horarios publicados para este periodo.</td>
-                        </tr>
-                        <tr th:each="item : ${horariosPublicados}">
-                            <td th:text="${item.dataTurno}"></td>
-                            <td th:text="${item.idTurno != null and item.idTurno.tipo != null ? item.idTurno.tipo : '-'}"></td>
-                            <td th:text="${item.idTurno != null ? (item.idTurno.horaInicio + ' - ' + item.idTurno.horaFim) : '-'}"></td>
-                            <td th:text="${item.estado != null ? item.estado : '-'}"></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </article>
-
-                <article class="web-card" th:if="${!colaboradorDaLoja}">
-                    <h3>Operacoes de gestao</h3>
-                    <p class="web-muted">Este utilizador nao pertence a tua loja ativa, por isso as acoes de aprovacao ficam bloqueadas neste perfil.</p>
-                </article>
-
-                <article class="web-card" th:if="${podeAprovarItens}">
-                    <h3>Pendentes para aprovar deste colaborador</h3>
-
-                    <h4>Folgas</h4>
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Tipo</th>
-                            <th>Motivo</th>
-                            <th>Acao</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:if="${#lists.isEmpty(pendentesFolga)}">
-                            <td colspan="4">Sem pedidos de folga pendentes.</td>
-                        </tr>
-                        <tr th:each="item : ${pendentesFolga}">
-                            <td th:text="${item.dataAusencia}"></td>
-                            <td th:text="${item.tipo}"></td>
-                            <td th:text="${item.motivo != null ? item.motivo : '-'}"></td>
-                            <td>
-                                <div class="web-actions">
-                                    <form method="post" th:action="@{/web/equipa/{idUtilizador}/folgas/{idDayOff}/aprovar(idUtilizador=${utilizadorSelecionado.id}, idDayOff=${item.idDayoff})}">
-                                        <button type="submit">Aprovar</button>
-                                    </form>
-                                    <form method="post" th:action="@{/web/equipa/{idUtilizador}/folgas/{idDayOff}/rejeitar(idUtilizador=${utilizadorSelecionado.id}, idDayOff=${item.idDayoff})}">
-                                        <button type="submit" class="btn-danger">Rejeitar</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-
-                    <h4>Preferencias</h4>
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Periodo</th>
-                            <th>Descricao</th>
-                            <th>Acao</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:if="${#lists.isEmpty(pendentesPreferencia)}">
-                            <td colspan="4">Sem preferencias pendentes.</td>
-                        </tr>
-                        <tr th:each="item : ${pendentesPreferencia}">
-                            <td th:text="${item.tipo}"></td>
-                            <td th:text="|${item.dataInicio != null ? item.dataInicio : '-'} -> ${item.dataFim != null ? item.dataFim : '-'}|"></td>
-                            <td th:text="${item.descricao}"></td>
-                            <td>
-                                <div class="web-actions">
-                                    <form method="post" th:action="@{/web/equipa/{idUtilizador}/preferencias/{idPreferencia}/aprovar(idUtilizador=${utilizadorSelecionado.id}, idPreferencia=${item.id})}">
-                                        <button type="submit">Aprovar</button>
-                                    </form>
-                                    <form method="post" th:action="@{/web/equipa/{idUtilizador}/preferencias/{idPreferencia}/rejeitar(idUtilizador=${utilizadorSelecionado.id}, idPreferencia=${item.id})}">
-                                        <button type="submit" class="btn-danger">Rejeitar</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-
-                    <h4>Permutas</h4>
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Origem</th>
-                            <th>Destino</th>
-                            <th>Acao</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:if="${#lists.isEmpty(pendentesPermuta)}">
-                            <td colspan="4">Sem permutas pendentes.</td>
-                        </tr>
-                        <tr th:each="item : ${pendentesPermuta}">
-                            <td th:text="${item.idHorarioOrigem != null ? item.idHorarioOrigem.dataTurno : '-'}"></td>
-                            <td th:text="${item.idHorarioOrigem != null and item.idHorarioOrigem.idTurno != null ? (item.idHorarioOrigem.idTurno.horaInicio + ' - ' + item.idHorarioOrigem.idTurno.horaFim) : '-'}"></td>
-                            <td th:text="${item.idHorarioDestino != null and item.idHorarioDestino.idTurno != null ? (item.idHorarioDestino.idTurno.horaInicio + ' - ' + item.idHorarioDestino.idTurno.horaFim) : '-'}"></td>
-                            <td>
-                                <div class="web-actions">
-                                    <form method="post" th:action="@{/web/equipa/{idUtilizador}/permutas/{idPermuta}/aprovar(idUtilizador=${utilizadorSelecionado.id}, idPermuta=${item.id})}">
-                                        <button type="submit">Aprovar</button>
-                                    </form>
-                                    <form method="post" th:action="@{/web/equipa/{idUtilizador}/permutas/{idPermuta}/rejeitar(idUtilizador=${utilizadorSelecionado.id}, idPermuta=${item.id})}">
-                                        <button type="submit" class="btn-danger">Rejeitar</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </article>
-
-                <article class="web-card">
-                    <h3>Historico rapido</h3>
-                    <div class="web-grid-two">
-                        <div>
-                            <h4>Folgas</h4>
-                            <table>
-                                <thead>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-surface-container-low">
                                 <tr>
-                                    <th>Data</th>
-                                    <th>Tipo</th>
-                                    <th>Estado</th>
+                                    <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</th>
+                                    <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Turno</th>
+                                    <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Horário</th>
+                                    <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
                                 </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:if="${#lists.isEmpty(historicoFolgas)}">
-                                    <td colspan="3">Sem registos.</td>
-                                </tr>
-                                <tr th:each="item : ${historicoFolgas}">
-                                    <td th:text="${item.dataAusencia}"></td>
-                                    <td th:text="${item.tipo}"></td>
-                                    <td th:text="${item.estado != null ? item.estado : '-'}"></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div>
-                            <h4>Preferencias</h4>
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th>Tipo</th>
-                                    <th>Prioridade</th>
-                                    <th>Estado</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:if="${#lists.isEmpty(historicoPreferencias)}">
-                                    <td colspan="3">Sem registos.</td>
-                                </tr>
-                                <tr th:each="item : ${historicoPreferencias}">
-                                    <td th:text="${item.tipo}"></td>
-                                    <td th:text="${item.prioridade != null ? item.prioridade : '-'}"></td>
-                                    <td th:text="${item.estado != null ? item.estado : '-'}"></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h4>Permutas</h4>
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>Data pedido</th>
-                                <th>Data turno</th>
-                                <th>Estado</th>
-                            </tr>
                             </thead>
-                            <tbody>
-                            <tr th:if="${#lists.isEmpty(historicoPermutas)}">
-                                <td colspan="3">Sem registos.</td>
-                            </tr>
-                            <tr th:each="item : ${historicoPermutas}">
-                                <td th:text="${item.dataPedido != null ? #temporals.format(item.dataPedido, 'yyyy-MM-dd HH:mm') : '-'}"></td>
-                                <td th:text="${item.idHorarioOrigem != null ? item.idHorarioOrigem.dataTurno : '-'}"></td>
-                                <td th:text="${item.estado != null ? item.estado : '-'}"></td>
-                            </tr>
+                            <tbody class="divide-y divide-outline-variant/25">
+                                <tr th:if="${#lists.isEmpty(horariosPublicados)}">
+                                    <td colspan="4" class="px-6 py-8 text-center font-body text-[13px] text-on-surface-variant">Sem horários publicados para este período.</td>
+                                </tr>
+                                <tr th:each="item : ${horariosPublicados}" class="hover:bg-surface-container-low/50 transition-colors">
+                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.dataTurno}"></td>
+                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface-variant" th:text="${item.idTurno != null && item.idTurno.tipo != null ? item.idTurno.tipo : '–'}"></td>
+                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.idTurno != null ? (item.idTurno.horaInicio + ' – ' + item.idTurno.horaFim) : '–'}"></td>
+                                    <td class="px-6 py-3">
+                                        <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                              th:classappend="${item.estado != null && item.estado.toString().contains('APROV')} ? 'badge-ok' : 'badge-neu'"
+                                              th:text="${item.estado != null ? item.estado : '–'}"></span>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </article>
-            </section>
+
+                <!-- Aviso fora da loja -->
+                <article th:if="${!colaboradorDaLoja}"
+                         class="fade-up flex items-center gap-3 bg-surface-container rounded-2xl border border-outline-variant/25 p-4">
+                    <span class="material-symbols-outlined text-[20px] text-on-surface-variant shrink-0">info</span>
+                    <p class="font-body text-[13px] text-on-surface-variant">Este utilizador não pertence à tua loja ativa — as ações de aprovação não estão disponíveis.</p>
+                </article>
+
+                <!-- Pendentes para aprovação -->
+                <article th:if="${podeAprovarItens}"
+                         class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                         style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                    <div class="px-6 py-4 border-b border-outline-variant/25 flex items-center gap-2">
+                        <span class="material-symbols-outlined icon-fill text-primary-container text-[20px]">pending_actions</span>
+                        <h2 class="font-display font-bold text-[16px] text-on-surface">Pedidos pendentes para aprovar</h2>
+                    </div>
+
+                    <!-- Folgas -->
+                    <div class="border-b border-outline-variant/25">
+                        <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[14px] text-on-surface-variant">beach_access</span>
+                            <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Folgas</p>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-surface-container-low/50">
+                                <tr>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</th>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Motivo</th>
+                                    <th class="text-right px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-outline-variant/25">
+                                <tr th:if="${#lists.isEmpty(pendentesFolga)}">
+                                    <td colspan="4" class="px-6 py-5 text-center font-body text-[13px] text-on-surface-variant">Sem folgas pendentes.</td>
+                                </tr>
+                                <tr th:each="item : ${pendentesFolga}" class="hover:bg-surface-container-low/50 transition-colors">
+                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.dataAusencia}"></td>
+                                    <td class="px-6 py-3">
+                                        <span class="badge-warn inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${item.tipo}"></span>
+                                    </td>
+                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface-variant" th:text="${item.motivo != null ? item.motivo : '–'}"></td>
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <form method="post" th:action="@{/web/equipa/{u}/folgas/{d}/aprovar(u=${utilizadorSelecionado.id},d=${item.idDayoff})}">
+                                                <button type="submit" class="flex items-center gap-1 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
+                                                    <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
+                                                </button>
+                                            </form>
+                                            <form method="post" th:action="@{/web/equipa/{u}/folgas/{d}/rejeitar(u=${utilizadorSelecionado.id},d=${item.idDayoff})}">
+                                                <button type="submit" class="flex items-center gap-1 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
+                                                    <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Preferências -->
+                    <div class="border-b border-outline-variant/25">
+                        <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[14px] text-on-surface-variant">tune</span>
+                            <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Preferências</p>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-surface-container-low/50">
+                                <tr>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Período</th>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</th>
+                                    <th class="text-right px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-outline-variant/25">
+                                <tr th:if="${#lists.isEmpty(pendentesPreferencia)}">
+                                    <td colspan="4" class="px-6 py-5 text-center font-body text-[13px] text-on-surface-variant">Sem preferências pendentes.</td>
+                                </tr>
+                                <tr th:each="item : ${pendentesPreferencia}" class="hover:bg-surface-container-low/50 transition-colors">
+                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.tipo}"></td>
+                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant"
+                                        th:text="${(item.dataInicio != null ? item.dataInicio : '–') + ' → ' + (item.dataFim != null ? item.dataFim : '–')}"></td>
+                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant max-w-[160px] truncate" th:text="${item.descricao}"></td>
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <form method="post" th:action="@{/web/equipa/{u}/preferencias/{p}/aprovar(u=${utilizadorSelecionado.id},p=${item.id})}">
+                                                <button type="submit" class="flex items-center gap-1 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
+                                                    <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
+                                                </button>
+                                            </form>
+                                            <form method="post" th:action="@{/web/equipa/{u}/preferencias/{p}/rejeitar(u=${utilizadorSelecionado.id},p=${item.id})}">
+                                                <button type="submit" class="flex items-center gap-1 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
+                                                    <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Permutas -->
+                    <div>
+                        <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[14px] text-on-surface-variant">swap_horiz</span>
+                            <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Permutas</p>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-surface-container-low/50">
+                                <tr>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data origem</th>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Horário origem</th>
+                                    <th class="text-left px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Horário destino</th>
+                                    <th class="text-right px-6 py-2.5 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-outline-variant/25">
+                                <tr th:if="${#lists.isEmpty(pendentesPermuta)}">
+                                    <td colspan="4" class="px-6 py-5 text-center font-body text-[13px] text-on-surface-variant">Sem permutas pendentes.</td>
+                                </tr>
+                                <tr th:each="item : ${pendentesPermuta}" class="hover:bg-surface-container-low/50 transition-colors">
+                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.idHorarioOrigem != null ? item.idHorarioOrigem.dataTurno : '–'}"></td>
+                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant"
+                                        th:text="${item.idHorarioOrigem != null && item.idHorarioOrigem.idTurno != null ? (item.idHorarioOrigem.idTurno.horaInicio + ' – ' + item.idHorarioOrigem.idTurno.horaFim) : '–'}"></td>
+                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant"
+                                        th:text="${item.idHorarioDestino != null && item.idHorarioDestino.idTurno != null ? (item.idHorarioDestino.idTurno.horaInicio + ' – ' + item.idHorarioDestino.idTurno.horaFim) : '–'}"></td>
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <form method="post" th:action="@{/web/equipa/{u}/permutas/{p}/aprovar(u=${utilizadorSelecionado.id},p=${item.id})}">
+                                                <button type="submit" class="flex items-center gap-1 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
+                                                    <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
+                                                </button>
+                                            </form>
+                                            <form method="post" th:action="@{/web/equipa/{u}/permutas/{p}/rejeitar(u=${utilizadorSelecionado.id},p=${item.id})}">
+                                                <button type="submit" class="flex items-center gap-1 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
+                                                    <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+            </th:block>
         </div>
-    </main>
+    </div>
+
 </div>
+</main>
 </body>
 </html>

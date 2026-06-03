@@ -5,6 +5,7 @@ import com.example.projeto2.BLL.HorarioBLL;
 import com.example.projeto2.BLL.PermutaBLL;
 import com.example.projeto2.BLL.PreferenciaBLL;
 import com.example.projeto2.Modules.DayOff;
+import com.example.projeto2.Modules.Utilizador;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Permuta;
 import com.example.projeto2.Modules.Preferencia;
@@ -71,7 +72,7 @@ public class WebComplementaresController {
                 : List.of();
 
         Map<Integer, String> nomesFolgasPendentes = dayOffBLL.listarNomesUtilizadores(
-                folgasPendentes.stream().map(DayOff::getIdUtilizador).collect(Collectors.toSet())
+                folgasPendentes.stream().map(d -> d.getIdUtilizador().getId()).collect(Collectors.toSet())
         );
 
         Set<Integer> idsPreferencias = preferenciasPendentes.stream()
@@ -118,7 +119,9 @@ public class WebComplementaresController {
 
         try {
             DayOff pedido = new DayOff();
-            pedido.setIdUtilizador(utilizadorId);
+            Utilizador utilizadorProxy = new Utilizador();
+            utilizadorProxy.setId(utilizadorId);
+            pedido.setIdUtilizador(utilizadorProxy);
             pedido.setDataAusencia(parseData(dataAusencia, "ausencia"));
             pedido.setTipo(normalizarTipoFolga(tipo));
             pedido.setMotivo(motivo);

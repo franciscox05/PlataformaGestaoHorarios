@@ -230,7 +230,7 @@ public class PermutasController {
                 new SimpleStringProperty(formatarTurnoColega(cellData.getValue().getIdHorarioDestino())));
 
         colEstadoPermuta.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
+                new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado() != null ? cellData.getValue().getEstado().name() : null)));
     }
 
     private void configurarTabelaPendentes() {

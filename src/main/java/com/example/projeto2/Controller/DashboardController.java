@@ -6,6 +6,7 @@ import com.example.projeto2.BLL.SessaoBLL;
 import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Controller.support.TabelaHelper;
 import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.UIConstants;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
@@ -48,10 +49,6 @@ import java.util.Locale;
 public class DashboardController implements DashboardNavigator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DashboardController.class);
-    private static final double APP_WIDTH = 1480;
-    private static final double APP_HEIGHT = 920;
-    private static final double APP_MIN_WIDTH = 1280;
-    private static final double APP_MIN_HEIGHT = 780;
 
     @FXML
     private BorderPane mainContainer;
@@ -91,6 +88,12 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     private Label lblTopPageTitle;
+
+    @FXML
+    private Label lblTopUserName;
+
+    @FXML
+    private Label lblTopUserRole;
 
     @FXML
     private Label lblUtilizadorSidebar;
@@ -141,7 +144,27 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void initialize() {
+        aplicarTemaDashboard();
         configurarPesquisaGlobal();
+    }
+
+    private void aplicarTemaDashboard() {
+        if (mainContainer == null) {
+            return;
+        }
+
+        String css = "/com/example/projeto2/dashboard/dashboard.css";
+        var recursoCss = getClass().getResource(css);
+        if (recursoCss != null) {
+            String urlCss = recursoCss.toExternalForm();
+            if (mainContainer.getStylesheets().stream().noneMatch(urlCss::equals)) {
+                mainContainer.getStylesheets().add(urlCss);
+            }
+        }
+
+        if (!mainContainer.getStyleClass().contains("page-shell")) {
+            mainContainer.getStyleClass().add("page-shell");
+        }
     }
 
     public void setUtilizadorLogado(Utilizador utilizador) {
@@ -154,7 +177,7 @@ public class DashboardController implements DashboardNavigator {
         if (!abrirDashboardHome()) {
             sessaoBLL.terminarSessaoManual();
             utilizadorLogado = null;
-            throw new IllegalStateException("Não foi possível carregar a página inicial do painel.");
+            throw new IllegalStateException("Nao foi possivel carregar a pagina inicial do painel.");
         }
     }
 
@@ -164,7 +187,7 @@ public class DashboardController implements DashboardNavigator {
     }
 
     private boolean abrirDashboardHome() {
-        atualizarTituloTopo("OS MEUS PRÓXIMOS TURNOS");
+        atualizarTituloTopo("Painel de Controlo");
         atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnDashboard.getStyleClass().add("sidebar-btn-ativo");
@@ -173,7 +196,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPedirFolgaClick() {
-        atualizarTituloTopo("PEDIR FOLGA");
+        atualizarTituloTopo("Pedir folga");
         atualizarAtalhosTopo(btnTopoPedidos);
         limparBotoesAtivos();
         btnFolgas.getStyleClass().add("sidebar-btn-ativo");
@@ -182,7 +205,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onGestaoLojaClick() {
-        atualizarTituloTopo("LOJA E REGRAS");
+        atualizarTituloTopo("Loja e regras");
         atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnGestaoLoja.getStyleClass().add("sidebar-btn-ativo");
@@ -191,7 +214,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onGestaoFuncionariosClick() {
-        atualizarTituloTopo("GESTÃO DE FUNCIONÁRIOS");
+        atualizarTituloTopo("Gest\u00E3o de funcion\u00E1rios");
         atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnGestaoFuncionarios.getStyleClass().add("sidebar-btn-ativo");
@@ -200,7 +223,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onHorariosClick() {
-        atualizarTituloTopo("HORÁRIOS DA LOJA");
+        atualizarTituloTopo("Hor\u00E1rios da loja");
         atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnHorarios.getStyleClass().add("sidebar-btn-ativo");
@@ -209,7 +232,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPainelGerentePedidosClick() {
-        atualizarTituloTopo("PAINEL DO GERENTE");
+        atualizarTituloTopo("Painel do gerente");
         atualizarAtalhosTopo(btnTopoPedidos);
         limparBotoesAtivos();
         btnPainelGerente.getStyleClass().add("sidebar-btn-ativo");
@@ -218,7 +241,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPainelAuditoriaClick() {
-        atualizarTituloTopo("AUDITORIA");
+        atualizarTituloTopo("Auditoria");
         atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnAuditoria.getStyleClass().add("sidebar-btn-ativo");
@@ -227,7 +250,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onTrocarTurnoClick() {
-        atualizarTituloTopo("TROCAR TURNO");
+        atualizarTituloTopo("Trocar turno");
         atualizarAtalhosTopo(btnTopoPedidos);
         limparBotoesAtivos();
         btnPermutas.getStyleClass().add("sidebar-btn-ativo");
@@ -236,7 +259,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPerfilClick() {
-        atualizarTituloTopo("PERFIL");
+        atualizarTituloTopo("Perfil");
         atualizarAtalhosTopo(btnTopoPerfil);
         limparBotoesAtivos();
         btnPerfil.getStyleClass().add("sidebar-btn-ativo");
@@ -245,7 +268,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onPreferenciasClick() {
-        atualizarTituloTopo("PREFERÊNCIAS");
+        atualizarTituloTopo("Prefer\u00EAncias");
         atualizarAtalhosTopo(btnTopoPedidos);
         limparBotoesAtivos();
         btnPreferencias.getStyleClass().add("sidebar-btn-ativo");
@@ -254,7 +277,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onRelatoriosHorasClick() {
-        atualizarTituloTopo("RELATÓRIOS");
+        atualizarTituloTopo("Relat\u00F3rios");
         atualizarAtalhosTopo(btnTopoVisaoGeral);
         limparBotoesAtivos();
         btnRelatorios.getStyleClass().add("sidebar-btn-ativo");
@@ -285,9 +308,9 @@ public class DashboardController implements DashboardNavigator {
     public void onLogoutClick() {
         if (!DialogosHelper.confirmarAcao(
                 obterJanelaAtual(),
-                "Terminar sessão",
-                "Deseja terminar sessão?",
-                "Vais sair do painel atual e regressar ao ecrã de autenticação."
+                "Terminar sessao",
+                "Deseja terminar sessao?",
+                "Vais sair do painel atual e regressar ao ecra de autenticacao."
         )) {
             return;
         }
@@ -431,6 +454,15 @@ public class DashboardController implements DashboardNavigator {
             String inicial = primeiroNome.isBlank() ? "S" : primeiroNome.substring(0, 1).toUpperCase();
             lblAvatarInicial.setText(inicial);
         }
+
+        if (lblTopUserName != null) {
+            lblTopUserName.setText(nome.isBlank() ? "Staff" : nome);
+        }
+
+        if (lblTopUserRole != null) {
+            String email = utilizadorLogado.getEmail() != null ? utilizadorLogado.getEmail().trim() : "";
+            lblTopUserRole.setText(email.isBlank() ? "Portal interno" : email);
+        }
     }
 
     private void configurarMonitorizacaoSessao() {
@@ -505,10 +537,10 @@ public class DashboardController implements DashboardNavigator {
             Parent root = loader.load();
 
             Stage stage = (Stage) mainContainer.getScene().getWindow();
-            stage.setScene(new Scene(root, APP_WIDTH, APP_HEIGHT));
+            stage.setScene(new Scene(root, UIConstants.APP_WIDTH, UIConstants.APP_HEIGHT));
             stage.setTitle("Levi's Staff Portal - Autenticação");
-            stage.setMinWidth(APP_MIN_WIDTH);
-            stage.setMinHeight(APP_MIN_HEIGHT);
+            stage.setMinWidth(UIConstants.APP_MIN_WIDTH);
+            stage.setMinHeight(UIConstants.APP_MIN_HEIGHT);
             stage.setResizable(false);
             stage.setFullScreenExitHint("");
             stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);

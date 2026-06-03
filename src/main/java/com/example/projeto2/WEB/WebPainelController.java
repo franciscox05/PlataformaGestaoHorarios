@@ -4,6 +4,7 @@ import com.example.projeto2.BLL.DayOffBLL;
 import com.example.projeto2.BLL.HorarioBLL;
 import com.example.projeto2.BLL.PermutaBLL;
 import com.example.projeto2.BLL.PreferenciaBLL;
+import com.example.projeto2.Enums.EstadoPermuta;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Permuta;
@@ -60,7 +61,7 @@ public class WebPainelController {
 
         long folgasPendentes = folgas.stream().filter(item -> estadoEquals(item.getEstado(), "pendente")).count();
         long preferenciasPendentes = preferencias.stream().filter(item -> estadoEquals(item.getEstado(), "pendente")).count();
-        long permutasPendentes = permutas.stream().filter(item -> estadoEquals(item.getEstado(), "pendente")).count();
+        long permutasPendentes = permutas.stream().filter(item -> estadoEqualsEnum(item.getEstado(), "pendente")).count();
 
         WebAppService.WebPermissoes permissoes = webAppService.obterPermissoes(utilizadorId);
         long folgasParaAprovar = permissoes.podeAprovarFolgas()
@@ -94,5 +95,12 @@ public class WebPainelController {
             return false;
         }
         return atual.trim().toLowerCase(Locale.ROOT).equals(esperado.trim().toLowerCase(Locale.ROOT));
+    }
+
+    private boolean estadoEqualsEnum(EstadoPermuta atual, String esperado) {
+        if (atual == null || esperado == null) {
+            return false;
+        }
+        return atual.name().toLowerCase(Locale.ROOT).equals(esperado.trim().toLowerCase(Locale.ROOT));
     }
 }

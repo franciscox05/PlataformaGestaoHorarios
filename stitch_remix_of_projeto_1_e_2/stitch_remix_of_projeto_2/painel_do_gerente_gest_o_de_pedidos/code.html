@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Painel do Gerente (Gestão de Pedidos)</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Space+Grotesk:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed-variant": "#474746",
+                      "surface-container-high": "#ece7e7",
+                      "on-secondary-fixed-variant": "#474647",
+                      "on-error": "#ffffff",
+                      "tertiary-fixed-dim": "#c8c6c5",
+                      "inverse-on-surface": "#f4f0ef",
+                      "secondary-fixed-dim": "#c8c6c6",
+                      "on-error-container": "#93000a",
+                      "on-primary-container": "#ffdcd9",
+                      "on-tertiary-container": "#e6e3e2",
+                      "error": "#ba1a1a",
+                      "primary-fixed": "#ffdad7",
+                      "inverse-surface": "#313030",
+                      "secondary-fixed": "#e5e2e1",
+                      "on-surface-variant": "#5c403e",
+                      "surface-container-lowest": "#ffffff",
+                      "outline": "#906f6d",
+                      "on-primary-fixed-variant": "#930017",
+                      "surface-container-low": "#f7f2f2",
+                      "surface-container-highest": "#e6e1e1",
+                      "primary-container": "#c91428",
+                      "surface-container": "#f1edec",
+                      "primary": "#9f001a",
+                      "tertiary-fixed": "#e5e2e1",
+                      "tertiary": "#4e4d4d",
+                      "surface-dim": "#ddd9d8",
+                      "outline-variant": "#e5bdba",
+                      "tertiary-container": "#666565",
+                      "surface-variant": "#e6e1e1",
+                      "on-primary": "#ffffff",
+                      "secondary-container": "#e2dfdf",
+                      "on-tertiary": "#ffffff",
+                      "secondary": "#5f5e5e",
+                      "on-secondary": "#ffffff",
+                      "surface-bright": "#fdf8f8",
+                      "on-surface": "#1c1b1b",
+                      "surface": "#FCF9F8",
+                      "on-secondary-container": "#636262",
+                      "warning-amber": "#D97706",
+                      "surface-tint": "#bf0522",
+                      "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                      "on-secondary-fixed": "#1c1b1c",
+                      "on-tertiary-fixed": "#1c1b1b",
+                      "on-primary-fixed": "#410005",
+                      "success-emerald": "#059669",
+                      "primary-fixed-dim": "#ffb3af",
+                      "error-container": "#ffdad6",
+                      "background": "#fdf8f8",
+                      "inverse-primary": "#ffb3af",
+                      "on-background": "#1c1b1b"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "stack-sm": "1rem",
+                      "stack-md": "1.5rem",
+                      "header-height": "5rem",
+                      "gutter": "2.5rem",
+                      "stack-lg": "4rem",
+                      "container-max": "80rem",
+                      "card-padding": "2rem",
+                      "sidebar-width": "16rem"
+              },
+              "fontFamily": {
+                      "label-bold": [
+                              "Manrope"
+                      ],
+                      "display-lg-mobile": [
+                              "Space Grotesk"
+                      ],
+                      "label-caps": [
+                              "Manrope"
+                      ],
+                      "headline-md": [
+                              "Space Grotesk"
+                      ],
+                      "headline-sm": [
+                              "Space Grotesk"
+                      ],
+                      "display-lg": [
+                              "Space Grotesk"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "label-bold": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg-mobile": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        [data-weight="fill"] .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        body {
+            background-color: #fdf8f8; /* fallback */
+            color: #1c1b1b;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased flex">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-sidebar-width z-40 py-stack-md flex-col bg-inverse-surface shadow-[rgba(28,27,27,0.06)_4px_0px_10px_0px] shadow-lg">
+<!-- Header -->
+<div class="px-6 mb-8 flex flex-col items-center">
+<div class="font-display-lg text-display-lg text-primary uppercase tracking-tighter mb-4 text-center">
+                BRAND
+             </div>
+<div class="flex items-center gap-3 w-full p-3 bg-white/5 rounded-lg border border-white/10">
+<img alt="Manager Profile Picture" class="w-10 h-10 rounded-full object-cover border border-surface-variant/20" data-alt="A professional headshot of a modern corporate manager in a sharply tailored suit against a neutral studio background. The lighting is crisp and even, highlighting a confident expression. The image embodies a professional, authoritative, yet approachable aesthetic, matching the high-end industrial-chic style of the broader interface design with deep contrasts." src="https://lh3.googleusercontent.com/aida-public/AB6AXuADDe21_ofuePDxykKoj1vXAW33DJUhK1bO3wnxMJeGsvEY4ZBt9mz6g1pkDU77fCOn_npk69v0eNfUpfPKYKfLfgOTD_UefdMgfKfUdnctVeCIG8lIpzRKzKguXLxzjRku3Wur_R1D4qLJuLFlCNTLky1hPO_2xlw65uj2fd4tHcItI16cnK3W0eSv38GxmD77JP39V1vi_LKJ0CM89pvMx3AMmbmZAa7LC0_cBnRab1GPBAYvgeJyPjRbPcnQWBIawcJopLngVSA"/>
+<div>
+<p class="font-headline-sm text-headline-sm text-primary-fixed truncate">Staff Portal</p>
+<p class="font-body-md text-body-md text-secondary-fixed-dim truncate">Operational Control</p>
+</div>
+</div>
+</div>
+<!-- Main Navigation Tabs -->
+<ul class="flex-1 px-4 space-y-2 overflow-y-auto">
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-surface-bright hover:bg-on-surface-variant/10 transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">dashboard</span>
+<span class="font-label-bold text-label-bold">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-surface-bright hover:bg-on-surface-variant/10 transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">group</span>
+<span class="font-label-bold text-label-bold">Staff Management</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-surface-bright hover:bg-on-surface-variant/10 transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">analytics</span>
+<span class="font-label-bold text-label-bold">Operational KPIs</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary text-on-primary rounded-lg transition-colors scale-[0.98] duration-150" href="#">
+<span class="material-symbols-outlined">list_alt</span>
+<span class="font-label-bold text-label-bold">Request Queue</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-surface-bright hover:bg-on-surface-variant/10 transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">verified_user</span>
+<span class="font-label-bold text-label-bold">Approvals</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-surface-bright hover:bg-on-surface-variant/10 transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">assessment</span>
+<span class="font-label-bold text-label-bold">Reporting</span>
+</a>
+</li>
+</ul>
+<!-- Footer Actions -->
+<div class="px-4 mt-auto pt-4 border-t border-white/10 space-y-4">
+<button class="w-full py-2.5 px-4 bg-primary text-on-primary rounded font-label-bold text-label-bold shadow hover:bg-primary/90 transition-colors">
+                Generate Report
+            </button>
+<ul class="space-y-1">
+<li>
+<a class="flex items-center gap-3 px-4 py-2 text-secondary-fixed-dim hover:text-surface-bright hover:bg-on-surface-variant/10 transition-all rounded-lg text-sm" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="font-label-caps text-label-caps">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-2 text-secondary-fixed-dim hover:text-surface-bright hover:bg-on-surface-variant/10 transition-all rounded-lg text-sm" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+<span class="font-label-caps text-label-caps">Support</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 min-h-screen md:ml-sidebar-width w-full bg-surface">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-30 h-header-height flex justify-between items-center px-gutter w-full bg-surface/80 backdrop-blur-md">
+<!-- Mobile Brand/Menu Toggle (Hidden on Desktop) -->
+<div class="md:hidden flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="font-headline-md text-headline-md font-bold text-on-surface">
+                    Manager Dashboard
+                </div>
+</div>
+<!-- Desktop Product Name -->
+<div class="hidden md:flex font-headline-md text-headline-md font-bold text-on-surface items-center">
+                Manager Dashboard
+            </div>
+<!-- Trailing Actions & Search -->
+<div class="flex items-center gap-6">
+<!-- Search -->
+<div class="relative hidden sm:block focus-within:ring-2 focus-within:ring-primary/20 rounded-full bg-surface-container-low border-b-2 border-surface-variant overflow-hidden group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="bg-transparent border-none focus:ring-0 py-2 pl-10 pr-4 text-sm w-48 transition-all group-focus-within:w-64 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant" placeholder="Search..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer rounded-full hover:bg-surface-variant/50">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer rounded-full hover:bg-surface-variant/50">
+<span class="material-symbols-outlined">apps</span>
+</button>
+</div>
+<div class="hidden md:block w-px h-8 bg-outline-variant/30"></div>
+<!-- Avatar Mobile/Desktop -->
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-surface-variant cursor-pointer hover:border-primary transition-colors">
+<img alt="Manager Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a modern corporate manager in a sharply tailored suit against a neutral studio background. The lighting is crisp and even, highlighting a confident expression. The image embodies a professional, authoritative, yet approachable aesthetic, matching the high-end industrial-chic style of the broader interface design with deep contrasts." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRi6EKJP2ReHTWmo5KzTDqxnWaVeVSZKEWugTXBznLD9bZnLex14j4i9u4HkUl7AKIOfZK5HlwD0_rLc5c9CtbVFKLxbae3lKYYSsWkSPk50aitg2P72n9gJMRo-eNVQn8mW6nf_s7BDWsLQSLxYkvoc9t6PEoG80y29m7Ma4l_ct0pTNXG7dumBZ4rF_r1fYFXzdp3SknIaXHlPMNNt0VPCnaoGzaaK2h7H8xeW-KZce7KfVq9El1GPOxcLlH8GtLxFM59r70qno"/>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="max-w-container-max mx-auto px-4 sm:px-gutter py-8 space-y-12">
+<!-- Page Header -->
+<section class="space-y-4">
+<nav aria-label="Breadcrumb" class="flex text-sm text-on-surface-variant font-label-caps text-label-caps">
+<ol class="inline-flex items-center space-x-1 md:space-x-2">
+<li class="inline-flex items-center">
+<a class="hover:text-primary transition-colors" href="#">Painel</a>
+</li>
+<li>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-[16px] mx-1">chevron_right</span>
+<span class="text-on-surface">Gestão de Pedidos</span>
+</div>
+</li>
+</ol>
+</nav>
+<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface">Gestão de Pedidos Pendentes</h1>
+</section>
+<!-- KPIs -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- KPI Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0_4px_20px_-4px_rgba(28,27,27,0.05)] border border-surface-variant flex flex-col justify-between">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Férias Pendentes</span>
+<div class="p-2 bg-primary/10 rounded-lg text-primary" data-weight="fill">
+<span class="material-symbols-outlined">beach_access</span>
+</div>
+</div>
+<div>
+<div class="text-5xl font-headline-md font-bold text-on-surface mb-1">4</div>
+<div class="font-body-md text-body-md text-secondary">A aguardar validação</div>
+</div>
+</div>
+<!-- KPI Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0_4px_20px_-4px_rgba(28,27,27,0.05)] border border-surface-variant flex flex-col justify-between">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Trocas de Turno</span>
+<div class="p-2 bg-warning-amber/10 rounded-lg text-warning-amber" data-weight="fill">
+<span class="material-symbols-outlined">swap_horiz</span>
+</div>
+</div>
+<div>
+<div class="text-5xl font-headline-md font-bold text-on-surface mb-1">2</div>
+<div class="font-body-md text-body-md text-secondary">Pedidos abertos</div>
+</div>
+</div>
+<!-- KPI Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0_4px_20px_-4px_rgba(28,27,27,0.05)] border border-surface-variant flex flex-col justify-between">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Folgas Especiais</span>
+<div class="p-2 bg-success-emerald/10 rounded-lg text-success-emerald" data-weight="fill">
+<span class="material-symbols-outlined">event_available</span>
+</div>
+</div>
+<div>
+<div class="text-5xl font-headline-md font-bold text-on-surface mb-1">1</div>
+<div class="font-body-md text-body-md text-secondary">A aguardar validação</div>
+</div>
+</div>
+</section>
+<!-- Main Bento Grid Area -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Left Column: Data Table (2/3 width on LG) -->
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_-4px_rgba(28,27,27,0.05)] border border-surface-variant overflow-hidden flex flex-col">
+<div class="p-6 border-b border-surface-variant flex justify-between items-center bg-surface-container-low/30">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Fila de Pedidos</h2>
+<button class="text-sm font-label-bold text-label-bold text-primary hover:text-primary-container transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">filter_list</span> Filtrar
+                        </button>
+</div>
+<div class="overflow-x-auto flex-1">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-variant bg-surface-container-low/50 font-label-caps text-label-caps text-on-surface-variant">
+<th class="p-4 font-semibold">Colaborador</th>
+<th class="p-4 font-semibold">Tipo de Pedido</th>
+<th class="p-4 font-semibold">Datas</th>
+<th class="p-4 font-semibold">Submissão</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant font-body-md text-body-md text-on-surface">
+<!-- Selected Row -->
+<tr class="hover:bg-primary-container/5 transition-colors cursor-pointer bg-primary-container/10 border-l-4 border-l-primary">
+<td class="p-4 flex items-center gap-3">
+<img alt="Ana Silva" class="w-8 h-8 rounded-full object-cover" data-alt="Headshot of a young professional woman with dark hair tied back, wearing a neat casual shirt. She has a warm, confident expression. The lighting is soft and natural, typical of a modern corporate directory photo, matching the clean industrial-chic aesthetic of the interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7dNTRTHQFzvtTpEtxdls_9lRpO2FaC8Z5uw66VK2a51elR6m5pnyWYxeNjO2Ls_edBaeyXdKBfiVWXnFGPywUunESro-XQXUkiu2N3pgTYQw3A5Ef_9Hb4ZAXHwWqy1x1YHNn-OyoC1ZvFpwv47p_KHYNsdvWYLXwQL58J73vPcRpJDMmIJ8vuggbBgn2yScccvA5B88oUiWLkNCtT7xXe0HpXWfqLbk0_FxJv7HZmXiZSI7KusibwNKhKZF4-LbBoXfFXjat7YY"/>
+<span class="font-medium">Ana Silva</span>
+</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                                            Férias
+                                        </span>
+</td>
+<td class="p-4 text-secondary">15 Ago - 22 Ago</td>
+<td class="p-4 text-secondary">Há 2 horas</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer border-l-4 border-l-transparent">
+<td class="p-4 flex items-center gap-3">
+<img alt="Carlos Mendes" class="w-8 h-8 rounded-full object-cover" data-alt="Headshot of a middle-aged professional man with short dark hair and glasses, wearing a smart polo shirt. He looks directly at the camera with a neutral, professional expression. Soft studio lighting on a light background, fitting a modern digital workspace aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFepLoo2L8XGTFStqvqVmYOcllWdnx6WCpAqjZ_RpJbP43QAdjrJk0DKwliUMpWS85xlHRqU1gNQbwHNHQqVTWD9DSAwNovkXaddI1fbWPm_HJhH0_1avxzhD9v9I_DBlvIsgtoPFz38MbtluYhA1r_0jecBgBzZbC518hUnxCL86FrkI94qw6F903oAGNUbQiPLNCO8tgKtPrvshtzGqZtzgavTt9zds-eHB9ill1lXBjDtSM8-nnBSWjNs3s_DNz7hwvv4Uxf1U"/>
+<span class="font-medium">Carlos Mendes</span>
+</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning-amber/10 text-warning-amber">
+                                            Troca de Turno
+                                        </span>
+</td>
+<td class="p-4 text-secondary">10 Set</td>
+<td class="p-4 text-secondary">Ontem, 14:30</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer border-l-4 border-l-transparent">
+<td class="p-4 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-xs">
+                                            MR
+                                        </div>
+<span class="font-medium">Marta Rocha</span>
+</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-emerald/10 text-success-emerald">
+                                            Folga Especial
+                                        </span>
+</td>
+<td class="p-4 text-secondary">24 Dez</td>
+<td class="p-4 text-secondary">Ontem, 09:15</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer border-l-4 border-l-transparent">
+<td class="p-4 flex items-center gap-3">
+<img alt="Tiago Fernandes" class="w-8 h-8 rounded-full object-cover" data-alt="Headshot of a young professional man with a short beard and styled hair, wearing a dark casual jacket. Natural, bright lighting highlights his features against a slightly blurred outdoor background, conveying a fresh, modern corporate identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBS0tFPR2QglJ_HLv_Aq5oQmXj2eLL_iv-Uw8t78jwVoaAMafUivY-JOGqjvja-Ghg_TMwu52XI4rSmt1cner-hlhnJsRWwpRhovK5f5TrikIJcijBrPRGzIzPSNbVtV7f5Gg2TKORXNyrnmXuzvyjcTSIDAluR8La255WCGHc3rEjRMcVkntKZzcttV6uRoi428iTTRF8H94igw663R6XBjkPfBIeBj-NbjzQVH8_FEHqQKEWJNZ40iKprZTPq9lz2WnFFp9fAO0c"/>
+<span class="font-medium">Tiago Fernandes</span>
+</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                                            Férias
+                                        </span>
+</td>
+<td class="p-4 text-secondary">01 Nov - 05 Nov</td>
+<td class="p-4 text-secondary">25 Jul</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Right Column: Detail Card (1/3 width on LG) -->
+<div class="lg:col-span-1 bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_-4px_rgba(28,27,27,0.05)] border border-surface-variant flex flex-col overflow-hidden relative">
+<!-- Glassy header effect -->
+<div class="p-6 border-b border-surface-variant bg-surface-container-lowest/80 backdrop-blur-sm z-10">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-4">Detalhe do Pedido</h2>
+<div class="flex items-center gap-4">
+<img alt="Ana Silva Large" class="w-14 h-14 rounded-full object-cover shadow-sm border border-surface-variant/50" data-alt="Headshot of a young professional woman with dark hair tied back, wearing a neat casual shirt. She has a warm, confident expression. The lighting is soft and natural, typical of a modern corporate directory photo, matching the clean industrial-chic aesthetic of the interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDM76j1IUUydR9beVXQlryJR13yYDUxXJHezHw5uAJUOVUbcSrNZH6Wn_3oBITWRK9jFt5hDd1d1odwwEr7W23ReC2lRPlGLN3Xlz5o7vxETT7w3t_ocwCe2_MHEcoC6NJusM6qreEDi22sgyte2dVXXlikRVWjLIEPfk_gPOqRS9xYhpT1JN_P6ympkcGJwaBi9Cqlvs_Rd79K-iqWVnNyhBqZpKlmtFeN-KbQ5rCzSu5WYcTteZ5qUCFrtUmw39ShW_ycozsFxp0"/>
+<div>
+<h3 class="font-label-bold text-label-bold text-on-surface text-lg">Ana Silva</h3>
+<p class="font-body-md text-body-md text-secondary">Operadora de Linha A</p>
+</div>
+</div>
+</div>
+<div class="p-6 flex-1 space-y-6 overflow-y-auto bg-surface/30">
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface-variant mb-2">Detalhes</h4>
+<div class="bg-surface-container-low rounded-lg p-4 space-y-3 border border-surface-variant/50">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-secondary">Tipo</span>
+<span class="font-label-bold text-label-bold text-on-surface">Férias Anuais</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-secondary">Dias Úteis</span>
+<span class="font-label-bold text-label-bold text-on-surface">6 dias</span>
+</div>
+</div>
+</div>
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface-variant mb-2">Motivo / Notas</h4>
+<div class="font-body-md text-body-md text-on-surface bg-surface-container-lowest p-4 rounded-lg border-l-2 border-primary shadow-sm text-sm italic">
+                                "Gostaria de tirar uma semana de férias em Agosto para acompanhar as férias escolares dos meus filhos e visitar a família no norte."
+                            </div>
+</div>
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface-variant mb-2">Calendário (Agosto)</h4>
+<!-- Dummy Calendar UI -->
+<div class="bg-surface-container-lowest rounded-lg p-4 border border-surface-variant/50 shadow-sm">
+<div class="grid grid-cols-7 gap-1 text-center font-label-caps text-[10px] text-secondary mb-2">
+<div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+</div>
+<div class="grid grid-cols-7 gap-1 text-center font-body-md text-xs text-on-surface">
+<!-- Empty slots -->
+<div class="text-secondary-fixed-dim">30</div>
+<div class="text-secondary-fixed-dim">31</div>
+<div class="p-1 rounded">1</div><div class="p-1 rounded">2</div><div class="p-1 rounded">3</div><div class="p-1 rounded">4</div><div class="p-1 rounded text-secondary">5</div>
+<div class="p-1 rounded text-secondary">6</div><div class="p-1 rounded">7</div><div class="p-1 rounded">8</div><div class="p-1 rounded">9</div><div class="p-1 rounded">10</div><div class="p-1 rounded">11</div><div class="p-1 rounded text-secondary">12</div>
+<div class="p-1 rounded text-secondary">13</div><div class="p-1 rounded">14</div>
+<!-- Highlighted vacation days -->
+<div class="p-1 rounded bg-primary/20 text-primary font-bold">15</div>
+<div class="p-1 rounded bg-primary/20 text-primary font-bold">16</div>
+<div class="p-1 rounded bg-primary/20 text-primary font-bold">17</div>
+<div class="p-1 rounded bg-primary/20 text-primary font-bold">18</div>
+<div class="p-1 rounded bg-primary/20 text-primary font-bold">19</div>
+<div class="p-1 rounded bg-primary/20 text-primary font-bold">20</div>
+<div class="p-1 rounded bg-primary/20 text-primary font-bold">21</div>
+<div class="p-1 rounded bg-primary/20 text-primary font-bold">22</div>
+<div class="p-1 rounded">23</div><div class="p-1 rounded">24</div><div class="p-1 rounded">25</div><div class="p-1 rounded text-secondary">26</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="p-6 border-t border-surface-variant bg-surface-container-lowest grid grid-cols-2 gap-4">
+<button class="px-4 py-3 border-2 border-outline text-on-surface font-label-bold text-label-bold rounded-lg hover:border-primary hover:text-primary transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">close</span>
+                            REJEITAR
+                        </button>
+<button class="px-4 py-3 bg-[#c91428] text-white font-label-bold text-label-bold rounded-lg shadow-md hover:bg-primary transition-all flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">check</span>
+                            APROVAR PEDIDO
+                        </button>
+</div>
+</div>
+</section>
+<!-- Bottom Section: History -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_-4px_rgba(28,27,27,0.05)] border border-surface-variant p-card-padding">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">history</span>
+                    Histórico Recente
+                </h3>
+<ul class="space-y-4">
+<li class="flex items-start gap-4">
+<div class="mt-1 w-2 h-2 rounded-full bg-success-emerald ring-4 ring-success-emerald/10"></div>
+<div>
+<p class="font-body-md text-body-md text-on-surface">
+<span class="font-bold">João Pedro</span> - Férias Aprovadas por Admin Manager
+                            </p>
+<p class="font-label-caps text-label-caps text-secondary mt-1">Há 2 horas</p>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<div class="mt-1 w-2 h-2 rounded-full bg-warning-amber ring-4 ring-warning-amber/10"></div>
+<div>
+<p class="font-body-md text-body-md text-on-surface">
+<span class="font-bold">Sofia Costa</span> - Troca de Turno Rejeitada por Admin Manager
+                            </p>
+<p class="font-label-caps text-label-caps text-secondary mt-1">Ontem, 16:45</p>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<div class="mt-1 w-2 h-2 rounded-full bg-success-emerald ring-4 ring-success-emerald/10"></div>
+<div>
+<p class="font-body-md text-body-md text-on-surface">
+<span class="font-bold">Manuel Silva</span> - Folga Especial Aprovada por Admin Manager
+                            </p>
+<p class="font-label-caps text-label-caps text-secondary mt-1">Ontem, 09:30</p>
+</div>
+</li>
+</ul>
+</section>
+</div>
+</main>
+</body></html>

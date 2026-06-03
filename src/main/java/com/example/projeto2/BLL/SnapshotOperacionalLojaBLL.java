@@ -1,5 +1,7 @@
 package com.example.projeto2.BLL;
 
+import com.example.projeto2.Enums.EstadoHorario;
+import com.example.projeto2.Enums.EstadoPermuta;
 import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Lojautilizador;
@@ -200,7 +202,7 @@ public class SnapshotOperacionalLojaBLL {
                 pedido,
                 dataReferencia,
                 dataReferencia,
-                List.of(dayOff.getIdUtilizador())
+                List.of(dayOff.getIdUtilizador().getId())
         );
     }
 
@@ -208,7 +210,7 @@ public class SnapshotOperacionalLojaBLL {
         Permuta permuta = permutaRepository.findDetalhadaById(idPedido)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido de permuta nao encontrado."));
 
-        if (!"pendente".equalsIgnoreCase(permuta.getEstado())) {
+        if (com.example.projeto2.Enums.EstadoPermuta.pendente != permuta.getEstado()) {
             throw new IllegalArgumentException("Este pedido de permuta ja nao esta pendente.");
         }
 
@@ -346,7 +348,7 @@ public class SnapshotOperacionalLojaBLL {
                     horario.getDataTurno(),
                     capitalizar(textoOuTraco(horario.getIdTurno().getTipo())),
                     formatarPeriodo(horario),
-                    valorOuTraco(horario.getEstado())
+                    valorOuTraco(horario.getEstado() != null ? horario.getEstado().name() : null)
             ));
         }
 
@@ -361,11 +363,11 @@ public class SnapshotOperacionalLojaBLL {
     }
 
     private AusenciaOperacional mapAusencia(DayOff dayOff, Map<Integer, ColaboradorBase> colaboradoresAtivos) {
-        ColaboradorBase colaborador = colaboradoresAtivos.get(dayOff.getIdUtilizador());
+        ColaboradorBase colaborador = colaboradoresAtivos.get(dayOff.getIdUtilizador().getId());
         return new AusenciaOperacional(
                 dayOff.getIdDayoff(),
-                dayOff.getIdUtilizador(),
-                colaborador != null ? colaborador.nome() : "Utilizador #" + dayOff.getIdUtilizador(),
+                dayOff.getIdUtilizador().getId(),
+                colaborador != null ? colaborador.nome() : "Utilizador #" + dayOff.getIdUtilizador().getId(),
                 dayOff.getDataAusencia(),
                 capitalizar(valorOuTraco(dayOff.getTipo())),
                 valorOuTraco(dayOff.getMotivo()),
@@ -383,7 +385,7 @@ public class SnapshotOperacionalLojaBLL {
         return new PermutaOperacional(
                 permuta.getId(),
                 horarioOrigem.getDataTurno(),
-                valorOuTraco(permuta.getEstado()),
+                valorOuTraco(permuta.getEstado() != null ? permuta.getEstado().name() : null),
                 valorOuFallback(nomeSolicitante, "Solicitante"),
                 valorOuFallback(nomeColega, "Colega"),
                 formatarPeriodo(horarioOrigem),
@@ -392,8 +394,8 @@ public class SnapshotOperacionalLojaBLL {
     }
 
     private PedidoPendenteOperacional mapPedidoFolga(DayOff dayOff, Map<Integer, ColaboradorBase> colaboradoresAtivos) {
-        ColaboradorBase colaborador = colaboradoresAtivos.get(dayOff.getIdUtilizador());
-        String nome = colaborador != null ? colaborador.nome() : "Utilizador #" + dayOff.getIdUtilizador();
+        ColaboradorBase colaborador = colaboradoresAtivos.get(dayOff.getIdUtilizador().getId());
+        String nome = colaborador != null ? colaborador.nome() : "Utilizador #" + dayOff.getIdUtilizador().getId();
 
         return new PedidoPendenteOperacional(
                 dayOff.getIdDayoff(),
@@ -403,7 +405,7 @@ public class SnapshotOperacionalLojaBLL {
                 nome,
                 "Pedido de " + valorOuFallback(dayOff.getTipo(), "folga")
                         + " para " + formatarData(dayOff.getDataAusencia()),
-                List.of(dayOff.getIdUtilizador())
+                List.of(dayOff.getIdUtilizador().getId())
         );
     }
 

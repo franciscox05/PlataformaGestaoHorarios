@@ -1,272 +1,455 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{web/fragments :: head('Levis Staff Portal Web - Complementares')}"></head>
-<body>
+<head th:replace="~{web/fragments :: head('Pedidos — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 <header th:replace="~{web/fragments :: shellHeader}"></header>
 
-<div class="web-shell">
-    <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[82rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-5">
 
-    <main class="web-content">
-        <h1>Modulo Complementares</h1>
-        <p class="web-feedback web-feedback-success" th:if="${sucesso}" th:text="${sucesso}"></p>
-        <p class="web-feedback web-feedback-error" th:if="${erro}" th:text="${erro}"></p>
+    <!-- ── Header ── -->
+    <div class="fade-up">
+        <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Complementares</h1>
+        <p class="font-body text-[14px] text-on-surface-variant mt-1">Folgas, preferências e permutas de turno.</p>
+    </div>
 
-        <section class="web-grid-two">
-            <article class="web-card">
-                <h2>Novo pedido de folga</h2>
-                <form method="post" action="/web/complementares/folgas" class="web-form">
-                    <label for="dataAusencia">Data</label>
-                    <input id="dataAusencia" name="dataAusencia" type="date" required>
+    <!-- Feedback -->
+    <div th:if="${erro}"    class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    </div>
+    <div th:if="${sucesso}" class="fade-up flex items-center gap-2.5 bg-[#d1fae5] text-[#065f46] px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span><span th:text="${sucesso}"></span>
+    </div>
 
-                    <label for="tipoFolga">Tipo</label>
-                    <select id="tipoFolga" name="tipo" required>
-                        <option value="ferias">Ferias</option>
+    <!-- ── Formulários de submissão ── -->
+    <div class="grid lg:grid-cols-3 gap-5">
+
+        <!-- Pedir folga -->
+        <section class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-primary-container/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary-container text-[18px]">beach_access</span>
+                </span>
+                <h2 class="font-display font-bold text-[15px] text-on-surface">Pedir folga</h2>
+            </div>
+            <form method="post" action="/web/complementares/folgas" class="flex flex-col gap-4 p-5 flex-1">
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</label>
+                    <input name="dataAusencia" type="date" required
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</label>
+                    <select name="tipo" required
+                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                        <option value="ferias">Férias</option>
                         <option value="folgas">Folgas</option>
                         <option value="baixa">Baixa</option>
                     </select>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Motivo (opcional)</label>
+                    <textarea name="motivo" rows="2" placeholder="Descreve o motivo…"
+                              class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
+                </div>
+                <button type="submit"
+                        class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-primary transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[17px]">send</span>
+                    Submeter pedido
+                </button>
+            </form>
+        </section>
 
-                    <label for="motivoFolga">Motivo</label>
-                    <textarea id="motivoFolga" name="motivo" rows="2"></textarea>
-                    <button type="submit">Submeter pedido</button>
-                </form>
-            </article>
-
-            <article class="web-card">
-                <h2>Nova preferencia</h2>
-                <form method="post" action="/web/complementares/preferencias" class="web-form">
-                    <label for="tipoPreferencia">Tipo</label>
-                    <select id="tipoPreferencia" name="tipo" required>
+        <!-- Nova preferência -->
+        <section class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-primary-container/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary-container text-[18px]">tune</span>
+                </span>
+                <h2 class="font-display font-bold text-[15px] text-on-surface">Nova preferência</h2>
+            </div>
+            <form method="post" action="/web/complementares/preferencias" class="flex flex-col gap-4 p-5 flex-1">
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</label>
+                    <select name="tipo" required
+                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                         <option th:each="tipo : ${tiposPreferencia}" th:value="${tipo}" th:text="${tipo}"></option>
                     </select>
-
-                    <div class="web-grid-two">
-                        <div>
-                            <label for="dataInicioPreferencia">Data inicio</label>
-                            <input id="dataInicioPreferencia" name="dataInicio" type="date">
-                        </div>
-                        <div>
-                            <label for="dataFimPreferencia">Data fim</label>
-                            <input id="dataFimPreferencia" name="dataFim" type="date">
-                        </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data início</label>
+                        <input name="dataInicio" type="date"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                     </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data fim</label>
+                        <input name="dataFim" type="date"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Prioridade (1–5)</label>
+                    <input name="prioridade" type="number" min="1" max="5" placeholder="3"
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</label>
+                    <textarea name="descricao" rows="2" required placeholder="Explica a preferência…"
+                              class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
+                </div>
+                <button type="submit"
+                        class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-primary transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[17px]">save</span>
+                    Guardar preferência
+                </button>
+            </form>
+        </section>
 
-                    <label for="prioridadePreferencia">Prioridade (1-5)</label>
-                    <input id="prioridadePreferencia" name="prioridade" type="number" min="1" max="5">
-
-                    <label for="descricaoPreferencia">Descricao</label>
-                    <textarea id="descricaoPreferencia" name="descricao" rows="2" required></textarea>
-                    <button type="submit">Guardar preferencia</button>
+        <!-- Permuta -->
+        <section class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-primary-container/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary-container text-[18px]">swap_horiz</span>
+                </span>
+                <h2 class="font-display font-bold text-[15px] text-on-surface">Trocar turno</h2>
+            </div>
+            <div class="p-5 flex flex-col gap-4 flex-1">
+                <!-- Passo 1 -->
+                <form method="get" action="/web/complementares">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-4 h-4 rounded-full bg-primary-container text-white text-[9px] flex items-center justify-center font-bold">1</span>
+                                O meu turno
+                            </span>
+                        </label>
+                        <select name="origemPermuta" onchange="this.form.submit()"
+                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                            <option value="">Selecionar turno…</option>
+                            <option th:each="turno : ${meusTurnosPermutaveis}"
+                                    th:value="${turno.id}"
+                                    th:text="${turno.dataTurno} + ' | ' + ${turno.idTurno.horaInicio} + ' – ' + ${turno.idTurno.horaFim}"
+                                    th:selected="${origemPermutaSelecionada != null && origemPermutaSelecionada == turno.id}"></option>
+                        </select>
+                    </div>
                 </form>
-            </article>
+
+                <!-- Divisor -->
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 h-px bg-outline-variant/40"></div>
+                    <span class="material-symbols-outlined text-[18px] text-on-surface-variant/40">arrow_downward</span>
+                    <div class="flex-1 h-px bg-outline-variant/40"></div>
+                </div>
+
+                <!-- Passo 2 -->
+                <form method="post" action="/web/complementares/permutas" class="flex flex-col gap-4 flex-1">
+                    <input type="hidden" name="idHorarioOrigem" th:value="${origemPermutaSelecionada}">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-4 h-4 rounded-full bg-primary-container text-white text-[9px] flex items-center justify-center font-bold">2</span>
+                                Turno de destino
+                            </span>
+                        </label>
+                        <select name="idHorarioDestino" required
+                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                            <option value="">Selecionar colega…</option>
+                            <option th:each="turno : ${turnosElegiveis}"
+                                    th:value="${turno.id}"
+                                    th:text="${turno.idLojautilizador.idUtilizador.nome} + ' | ' + ${turno.idTurno.horaInicio} + ' – ' + ${turno.idTurno.horaFim}"></option>
+                        </select>
+                    </div>
+                    <button type="submit"
+                            class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-primary transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[17px]">sync_alt</span>
+                        Submeter permuta
+                    </button>
+                </form>
+            </div>
         </section>
+    </div>
 
-        <section class="web-card">
-            <h2>Novo pedido de permuta</h2>
-            <form method="get" action="/web/complementares" class="web-inline-form">
-                <label for="origemPermuta">Meu turno de origem</label>
-                <select id="origemPermuta" name="origemPermuta">
-                    <option value="">Selecionar</option>
-                    <option th:each="turno : ${meusTurnosPermutaveis}"
-                            th:value="${turno.id}"
-                            th:text="${turno.dataTurno} + ' | ' + ${turno.idTurno.horaInicio} + ' - ' + ${turno.idTurno.horaFim}"
-                            th:selected="${origemPermutaSelecionada != null && origemPermutaSelecionada == turno.id}">
-                    </option>
-                </select>
-                <button type="submit">Carregar opcoes</button>
-            </form>
+    <!-- ── Histórico pessoal (tabs) ── -->
+    <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+        <div class="px-6 py-4 border-b border-outline-variant/25 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[18px]">history</span>
+            <h2 class="font-display font-bold text-[17px] text-on-surface">O meu histórico</h2>
+        </div>
 
-            <form method="post" action="/web/complementares/permutas" class="web-inline-form">
-                <input type="hidden" name="idHorarioOrigem" th:value="${origemPermutaSelecionada}">
-                <label for="idHorarioDestino">Turno de destino</label>
-                <select id="idHorarioDestino" name="idHorarioDestino" required>
-                    <option value="">Selecionar</option>
-                    <option th:each="turno : ${turnosElegiveis}"
-                            th:value="${turno.id}"
-                            th:text="${turno.idLojautilizador.idUtilizador.nome} + ' | ' + ${turno.idTurno.horaInicio} + ' - ' + ${turno.idTurno.horaFim}">
-                    </option>
-                </select>
-                <button type="submit">Submeter permuta</button>
-            </form>
-        </section>
+        <!-- Tabs -->
+        <div class="border-b border-outline-variant/25 px-6 flex gap-1" id="histTabs">
+            <button onclick="showTab('tab-folgas')"   id="btn-folgas"
+                    class="tab-btn font-body font-bold text-[13px] px-4 py-3 border-b-2 border-primary-container text-primary-container transition-all rounded-t-lg">
+                Folgas
+            </button>
+            <button onclick="showTab('tab-pref')"     id="btn-pref"
+                    class="tab-btn font-body font-bold text-[13px] px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all rounded-t-lg hover:bg-surface-container-low/50">
+                Preferências
+            </button>
+            <button onclick="showTab('tab-permutas')" id="btn-permutas"
+                    class="tab-btn font-body font-bold text-[13px] px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all rounded-t-lg hover:bg-surface-container-low/50">
+                Permutas
+            </button>
+        </div>
 
-        <section class="web-card">
-            <h2>Historico pessoal</h2>
-
-            <h3>Folgas</h3>
-            <table>
-                <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Tipo</th>
-                    <th>Motivo</th>
-                    <th>Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:if="${#lists.isEmpty(minhasFolgas)}">
-                    <td colspan="4">Sem pedidos registados.</td>
-                </tr>
-                <tr th:each="item : ${minhasFolgas}">
-                    <td th:text="${item.dataAusencia}"></td>
-                    <td th:text="${item.tipo}"></td>
-                    <td th:text="${item.motivo != null ? item.motivo : '-'}"></td>
-                    <td th:text="${item.estado}"></td>
-                </tr>
-                </tbody>
-            </table>
-
-            <h3>Preferencias</h3>
-            <table>
-                <thead>
-                <tr>
-                    <th>Tipo</th>
-                    <th>Periodo</th>
-                    <th>Prioridade</th>
-                    <th>Descricao</th>
-                    <th>Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:if="${#lists.isEmpty(minhasPreferencias)}">
-                    <td colspan="5">Sem preferencias registadas.</td>
-                </tr>
-                <tr th:each="item : ${minhasPreferencias}">
-                    <td th:text="${item.tipo}"></td>
-                    <td th:text="${(item.dataInicio != null ? item.dataInicio : '-') + ' -> ' + (item.dataFim != null ? item.dataFim : '-')}"></td>
-                    <td th:text="${item.prioridade}"></td>
-                    <td th:text="${item.descricao}"></td>
-                    <td th:text="${item.estado}"></td>
-                </tr>
-                </tbody>
-            </table>
-
-            <h3>Permutas</h3>
-            <table>
-                <thead>
-                <tr>
-                    <th>Pedido</th>
-                    <th>Origem</th>
-                    <th>Destino</th>
-                    <th>Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:if="${#lists.isEmpty(minhasPermutas)}">
-                    <td colspan="4">Sem pedidos de permuta registados.</td>
-                </tr>
-                <tr th:each="item : ${minhasPermutas}">
-                    <td th:text="${item.dataPedido}"></td>
-                    <td th:text="${item.idHorarioOrigem.dataTurno} + ' | ' + ${item.idHorarioOrigem.idTurno.horaInicio} + ' - ' + ${item.idHorarioOrigem.idTurno.horaFim}"></td>
-                    <td th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioDestino.idTurno.horaInicio} + ' - ' + ${item.idHorarioDestino.idTurno.horaFim}"></td>
-                    <td th:text="${item.estado}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </section>
-
-        <section class="web-card" th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar()}">
-            <h2>Pendentes para aprovacao</h2>
-
-            <div th:if="${webPermissoes.podeAprovarFolgas()}">
-                <h3>Folgas pendentes</h3>
-                <table>
-                    <thead>
+        <!-- Tab: Folgas -->
+        <div id="tab-folgas" class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-surface-container-low">
                     <tr>
-                        <th>Colaborador</th>
-                        <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Acao</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Motivo</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
                     </tr>
-                    </thead>
-                    <tbody>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/25">
+                    <tr th:if="${#lists.isEmpty(minhasFolgas)}">
+                        <td colspan="4" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem pedidos registados.</td>
+                    </tr>
+                    <tr th:each="item : ${minhasFolgas}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.dataAusencia}"></td>
+                        <td class="px-6 py-3.5">
+                            <span class="badge-neu inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${item.tipo}"></span>
+                        </td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.motivo != null ? item.motivo : '–'}"></td>
+                        <td class="px-6 py-3.5">
+                            <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                  th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('APROV')} ? 'badge-ok' : (${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'badge-err' : 'badge-warn')"
+                                  th:text="${item.estado}"></span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tab: Preferências -->
+        <div id="tab-pref" class="hidden overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-surface-container-low">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Período</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Prioridade</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/25">
+                    <tr th:if="${#lists.isEmpty(minhasPreferencias)}">
+                        <td colspan="5" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem preferências registadas.</td>
+                    </tr>
+                    <tr th:each="item : ${minhasPreferencias}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.tipo}"></td>
+                        <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant" th:text="${(item.dataInicio != null ? item.dataInicio : '–') + ' → ' + (item.dataFim != null ? item.dataFim : '–')}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.prioridade}"></td>
+                        <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant max-w-[200px] truncate" th:text="${item.descricao}"></td>
+                        <td class="px-6 py-3.5">
+                            <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                  th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('APROV')} ? 'badge-ok' : (${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'badge-err' : 'badge-warn')"
+                                  th:text="${item.estado}"></span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tab: Permutas -->
+        <div id="tab-permutas" class="hidden overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-surface-container-low">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Pedido</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Origem</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Destino</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/25">
+                    <tr th:if="${#lists.isEmpty(minhasPermutas)}">
+                        <td colspan="4" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem permutas registadas.</td>
+                    </tr>
+                    <tr th:each="item : ${minhasPermutas}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant" th:text="${item.dataPedido}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.idHorarioOrigem.dataTurno} + ' | ' + ${item.idHorarioOrigem.idTurno.horaInicio} + ' – ' + ${item.idHorarioOrigem.idTurno.horaFim}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioDestino.idTurno.horaInicio} + ' – ' + ${item.idHorarioDestino.idTurno.horaFim}"></td>
+                        <td class="px-6 py-3.5">
+                            <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                  th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('APROV')} ? 'badge-ok' : (${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'badge-err' : 'badge-warn')"
+                                  th:text="${item.estado}"></span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ── Pendentes para aprovação (gerente) ── -->
+    <section th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar()}"
+             class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+        <div class="px-6 py-4 border-b border-outline-variant/25 flex items-center gap-2">
+            <span class="material-symbols-outlined icon-fill text-primary-container text-[20px]">pending_actions</span>
+            <h2 class="font-display font-bold text-[17px] text-on-surface">Pendentes para aprovação</h2>
+        </div>
+
+        <!-- Folgas pendentes -->
+        <div th:if="${webPermissoes.podeAprovarFolgas()}" class="border-b border-outline-variant/25">
+            <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
+                <span class="material-symbols-outlined text-[14px] text-on-surface-variant">beach_access</span>
+                <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Folgas</p>
+            </div>
+            <table class="w-full">
+                <thead class="bg-surface-container-low/50">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colaborador</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
+                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/25">
                     <tr th:if="${#lists.isEmpty(folgasPendentes)}">
-                        <td colspan="4">Sem folgas pendentes.</td>
+                        <td colspan="4" class="px-6 py-6 text-center font-body text-[13px] text-on-surface-variant">Sem folgas pendentes.</td>
                     </tr>
-                    <tr th:each="item : ${folgasPendentes}">
-                        <td th:text="${nomesFolgasPendentes[item.idUtilizador]}"></td>
-                        <td th:text="${item.dataAusencia}"></td>
-                        <td th:text="${item.tipo}"></td>
-                        <td class="web-actions">
-                            <form method="post" th:action="@{'/web/complementares/folgas/' + ${item.idDayoff} + '/aprovar'}">
-                                <button type="submit">Aprovar</button>
-                            </form>
-                            <form method="post" th:action="@{'/web/complementares/folgas/' + ${item.idDayoff} + '/rejeitar'}">
-                                <button type="submit" class="btn-danger">Rejeitar</button>
-                            </form>
+                    <tr th:each="item : ${folgasPendentes}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${nomesFolgasPendentes[item.idUtilizador]}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.dataAusencia}"></td>
+                        <td class="px-6 py-3.5">
+                            <span class="badge-warn inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${item.tipo}"></span>
+                        </td>
+                        <td class="px-6 py-3.5">
+                            <div class="flex items-center justify-end gap-2">
+                                <form method="post" th:action="@{'/web/complementares/folgas/' + ${item.idDayoff} + '/aprovar'}">
+                                    <button type="submit" class="flex items-center gap-1.5 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
+                                        <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
+                                    </button>
+                                </form>
+                                <form method="post" th:action="@{'/web/complementares/folgas/' + ${item.idDayoff} + '/rejeitar'}">
+                                    <button type="submit" class="flex items-center gap-1.5 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
+                                        <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
+        </div>
 
-            <div th:if="${webPermissoes.podeAprovarPreferencias()}">
-                <h3>Preferencias pendentes</h3>
-                <table>
-                    <thead>
+        <!-- Preferências pendentes -->
+        <div th:if="${webPermissoes.podeAprovarPreferencias()}" class="border-b border-outline-variant/25">
+            <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
+                <span class="material-symbols-outlined text-[14px] text-on-surface-variant">tune</span>
+                <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Preferências</p>
+            </div>
+            <table class="w-full">
+                <thead class="bg-surface-container-low/50">
                     <tr>
-                        <th>Colaborador</th>
-                        <th>Tipo</th>
-                        <th>Descricao</th>
-                        <th>Decisao</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colaborador</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</th>
+                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Decisão</th>
                     </tr>
-                    </thead>
-                    <tbody>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/25">
                     <tr th:if="${#lists.isEmpty(preferenciasPendentes)}">
-                        <td colspan="4">Sem preferencias pendentes.</td>
+                        <td colspan="4" class="px-6 py-6 text-center font-body text-[13px] text-on-surface-variant">Sem preferências pendentes.</td>
                     </tr>
-                    <tr th:each="item : ${preferenciasPendentes}">
-                        <td th:text="${nomesPreferencias[item.idUtilizador.id]}"></td>
-                        <td th:text="${item.tipo}"></td>
-                        <td th:text="${item.descricao}"></td>
-                        <td>
-                            <form method="post" th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/aprovar'}" class="web-form-inline">
-                                <input type="text" name="decisao" placeholder="Observacao opcional">
-                                <button type="submit">Aprovar</button>
-                            </form>
-                            <form method="post" th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/rejeitar'}" class="web-form-inline">
-                                <input type="text" name="decisao" placeholder="Observacao opcional">
-                                <button type="submit" class="btn-danger">Rejeitar</button>
-                            </form>
+                    <tr th:each="item : ${preferenciasPendentes}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${nomesPreferencias[item.idUtilizador.id]}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.tipo}"></td>
+                        <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant max-w-[180px] truncate" th:text="${item.descricao}"></td>
+                        <td class="px-6 py-3.5">
+                            <div class="flex flex-col items-end gap-2">
+                                <form method="post" th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/aprovar'}" class="flex items-center gap-1.5">
+                                    <input type="text" name="decisao" placeholder="Nota" class="bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1.5 font-body text-[12px] text-on-surface w-28" style="outline:none">
+                                    <button type="submit" class="flex items-center gap-1 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors whitespace-nowrap">
+                                        <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
+                                    </button>
+                                </form>
+                                <form method="post" th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/rejeitar'}" class="flex items-center gap-1.5">
+                                    <input type="text" name="decisao" placeholder="Nota" class="bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1.5 font-body text-[12px] text-on-surface w-28" style="outline:none">
+                                    <button type="submit" class="flex items-center gap-1 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors whitespace-nowrap">
+                                        <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
+        </div>
 
-            <div th:if="${webPermissoes.podeAprovarPermutas()}">
-                <h3>Permutas pendentes</h3>
-                <table>
-                    <thead>
+        <!-- Permutas pendentes -->
+        <div th:if="${webPermissoes.podeAprovarPermutas()}">
+            <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
+                <span class="material-symbols-outlined text-[14px] text-on-surface-variant">swap_horiz</span>
+                <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Permutas</p>
+            </div>
+            <table class="w-full">
+                <thead class="bg-surface-container-low/50">
                     <tr>
-                        <th>Solicitante</th>
-                        <th>Origem</th>
-                        <th>Destino</th>
-                        <th>Acao</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Solicitante</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Origem</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Destino</th>
+                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
                     </tr>
-                    </thead>
-                    <tbody>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/25">
                     <tr th:if="${#lists.isEmpty(permutasPendentes)}">
-                        <td colspan="4">Sem permutas pendentes.</td>
+                        <td colspan="4" class="px-6 py-6 text-center font-body text-[13px] text-on-surface-variant">Sem permutas pendentes.</td>
                     </tr>
-                    <tr th:each="item : ${permutasPendentes}">
-                        <td th:text="${item.idHorarioOrigem.idLojautilizador.idUtilizador.nome}"></td>
-                        <td th:text="${item.idHorarioOrigem.dataTurno} + ' | ' + ${item.idHorarioOrigem.idTurno.horaInicio} + ' - ' + ${item.idHorarioOrigem.idTurno.horaFim}"></td>
-                        <td th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioDestino.idTurno.horaInicio} + ' - ' + ${item.idHorarioDestino.idTurno.horaFim}"></td>
-                        <td class="web-actions">
-                            <form method="post" th:action="@{'/web/complementares/permutas/' + ${item.id} + '/aprovar'}">
-                                <button type="submit">Aprovar</button>
-                            </form>
-                            <form method="post" th:action="@{'/web/complementares/permutas/' + ${item.id} + '/rejeitar'}">
-                                <button type="submit" class="btn-danger">Rejeitar</button>
-                            </form>
+                    <tr th:each="item : ${permutasPendentes}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${item.idHorarioOrigem.idLojautilizador.idUtilizador.nome}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.idHorarioOrigem.dataTurno} + ' | ' + ${item.idHorarioOrigem.idTurno.horaInicio} + ' – ' + ${item.idHorarioOrigem.idTurno.horaFim}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioDestino.idTurno.horaInicio} + ' – ' + ${item.idHorarioDestino.idTurno.horaFim}"></td>
+                        <td class="px-6 py-3.5">
+                            <div class="flex items-center justify-end gap-2">
+                                <form method="post" th:action="@{'/web/complementares/permutas/' + ${item.id} + '/aprovar'}">
+                                    <button type="submit" class="flex items-center gap-1.5 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
+                                        <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
+                                    </button>
+                                </form>
+                                <form method="post" th:action="@{'/web/complementares/permutas/' + ${item.id} + '/rejeitar'}">
+                                    <button type="submit" class="flex items-center gap-1.5 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
+                                        <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
 </div>
+</main>
+
+<script>
+function showTab(id) {
+    ['tab-folgas','tab-pref','tab-permutas'].forEach(t => {
+        document.getElementById(t).classList.add('hidden');
+    });
+    ['btn-folgas','btn-pref','btn-permutas'].forEach(b => {
+        const btn = document.getElementById(b);
+        btn.classList.remove('border-primary-container','text-primary-container');
+        btn.classList.add('border-transparent','text-on-surface-variant');
+    });
+    document.getElementById(id).classList.remove('hidden');
+    const btnId = id.replace('tab-','btn-');
+    const activeBtn = document.getElementById(btnId);
+    activeBtn.classList.add('border-primary-container','text-primary-container');
+    activeBtn.classList.remove('border-transparent','text-on-surface-variant');
+}
+</script>
 </body>
 </html>

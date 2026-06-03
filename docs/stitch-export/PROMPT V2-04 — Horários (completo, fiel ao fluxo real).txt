@@ -1,0 +1,544 @@
+<!DOCTYPE html><html class="light" lang="pt-PT"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Staff Portal - Geração de Horários</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-low": "#f7f2f2",
+                      "on-primary-fixed-variant": "#930017",
+                      "on-background": "#1c1b1b",
+                      "inverse-surface": "#313030",
+                      "secondary-container": "#e2dfdf",
+                      "secondary": "#5f5e5e",
+                      "on-secondary-fixed-variant": "#474647",
+                      "on-secondary-container": "#636262",
+                      "success-emerald": "#059669",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed-dim": "#c8c6c6",
+                      "tertiary-fixed-dim": "#c8c6c5",
+                      "primary-container": "#c91428",
+                      "surface-variant": "#e6e1e1",
+                      "primary-fixed": "#ffdad7",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-container": "#e6e3e2",
+                      "secondary-fixed": "#e5e2e1",
+                      "warning-amber": "#D97706",
+                      "on-surface-variant": "#5c403e",
+                      "tertiary-container": "#666565",
+                      "outline-variant": "#e5bdba",
+                      "surface-container-highest": "#e6e1e1",
+                      "tertiary": "#4e4d4d",
+                      "background": "#fdf8f8",
+                      "on-secondary": "#ffffff",
+                      "inverse-on-surface": "#f4f0ef",
+                      "primary-fixed-dim": "#ffb3af",
+                      "surface-container": "#f1edec",
+                      "on-primary-container": "#ffdcd9",
+                      "inverse-primary": "#ffb3af",
+                      "outline": "#906f6d",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#1c1b1b",
+                      "surface-bright": "#fdf8f8",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                      "surface-container-high": "#ece7e7",
+                      "on-primary-fixed": "#410005",
+                      "error": "#ba1a1a",
+                      "primary": "#9f001a",
+                      "surface-dim": "#ddd9d8",
+                      "on-tertiary-fixed": "#1c1b1b",
+                      "surface-tint": "#bf0522",
+                      "tertiary-fixed": "#e5e2e1",
+                      "surface": "#FCF9F8",
+                      "on-tertiary-fixed-variant": "#474746",
+                      "on-secondary-fixed": "#1c1b1c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-max": "80rem",
+                      "header-height": "5rem",
+                      "gutter": "2.5rem",
+                      "stack-lg": "4rem",
+                      "stack-sm": "1rem",
+                      "stack-md": "1.5rem",
+                      "card-padding": "2rem",
+                      "sidebar-width": "16rem"
+              },
+              "fontFamily": {
+                      "headline-md": ["Space Grotesk"],
+                      "headline-sm": ["Space Grotesk"],
+                      "body-md": ["Manrope"],
+                      "body-lg": ["Manrope"],
+                      "label-caps": ["Manrope"],
+                      "label-bold": ["Manrope"],
+                      "display-lg": ["Space Grotesk"]
+              },
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+        }
+        .red-tab-shadow {
+            box-shadow: 0 4px 20px -2px rgba(159, 0, 26, 0.1);
+        }
+        .sidebar-mask {
+            mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e6e1e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-sidebar bg-inverse-surface text-secondary-fixed-dim flex flex-col p-stack-md z-50 shadow-[rgba(28,27,27,0.06)_8px_0_15px_-3px]" style="width: 16rem;">
+<div class="mb-10 px-2">
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary">Staff Portal</h1>
+<p class="text-body-md opacity-60">Edição Red Tab</p>
+</div>
+<nav class="flex-1 space-y-2 sidebar-mask overflow-y-auto">
+<a class="flex items-center gap-3 p-3 transition-colors hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="">Painel</span>
+</a>
+<a class="flex items-center gap-3 p-3 text-on-primary bg-primary rounded-xl" href="#">
+<span class="material-symbols-outlined">schedule</span>
+<span class="">Horários</span>
+</a>
+<a class="flex items-center gap-3 p-3 transition-colors hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="">Funcionários</span>
+</a>
+<a class="flex items-center gap-3 p-3 transition-colors hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl" href="#">
+<span class="material-symbols-outlined">store</span>
+<span class="">Loja e Regras</span>
+</a>
+<a class="flex items-center gap-3 p-3 transition-colors hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl" href="#">
+<span class="material-symbols-outlined">shopping_bag</span>
+<span class="">Pedidos</span>
+</a>
+<a class="flex items-center gap-3 p-3 transition-colors hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="">Perfil</span>
+</a>
+<a class="flex items-center gap-3 p-3 transition-colors hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="">Preferências</span>
+</a>
+<a class="flex items-center gap-3 p-3 transition-colors hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="">Relatórios</span>
+</a>
+<a class="flex items-center gap-3 p-3 transition-colors hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl" href="#">
+<span class="material-symbols-outlined">verified_user</span>
+<span class="">Auditoria</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-secondary/20 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary font-bold">L</div>
+<div class="overflow-hidden">
+<p class="text-on-primary font-label-bold truncate">Levi's Store</p>
+<p class="text-[10px] uppercase tracking-wider opacity-50">Admin Account</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-sidebar min-h-screen pl-0 relative">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-40 w-full bg-surface/80 backdrop-blur-md border-b border-surface-variant h-header-height flex items-center px-gutter">
+<div class="flex-1 flex items-center">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-body-md focus:ring-2 focus:ring-primary-fixed" placeholder="Procurar funcionário ou turno..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="relative hover:text-primary transition-opacity">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+<button class="hover:text-primary transition-opacity">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-[1px] bg-surface-variant"></div>
+<div class="flex items-center gap-3">
+<span class="text-right">
+<p class="text-label-bold">Francisco Rodrigues</p>
+<p class="text-[10px] text-secondary">Store Manager</p>
+</span>
+<img alt="User Profile" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAani2fqo9bxRtmfAD5VLF8zIL7P6Fg-ptMxRGNm8KiP5zAT02WNXDMkJA2Zb4hKzFD_eiAtD29TgozwCE2L2I_eckH3hb3veaWF_9iEwRtC5yiEZzL4GNDa37Jvzc3YHmq6hFl1wBjUisAiqY7FECNaZ_1UdW4MPPgoU7uUB5QcrDjl6e5ZinNyQxNazkChf8PVdacVkQjGSyhUeAgotS5ZI-vHFZW0a5B_y_dlQ9NDZIcPgxUsKWaNV_vQkF4rQIGh8SgjRNRexk">
+</div>
+</div>
+</header>
+<div class="p-gutter max-w-container-max mx-auto space-y-stack-md">
+<!-- Hero Header -->
+<section class="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-surface-variant pb-stack-sm">
+<div>
+<h2 class="font-headline-md text-display-lg text-primary tracking-tight">Geração de Horários</h2>
+<div class="flex items-center gap-2 text-secondary mt-1">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span class="font-label-bold uppercase tracking-widest text-[11px]">Flagship Store - Lisboa | Dezembro 2023</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2.5 rounded-xl border border-outline text-on-surface font-label-bold hover:bg-surface-container-low transition-all">Ver Planeamento</button>
+<button class="px-6 py-2.5 rounded-xl bg-primary text-on-primary font-label-bold red-tab-shadow hover:scale-[1.02] active:scale-95 transition-all">Gerar Lote de Alternativas</button>
+</div>
+</section>
+<!-- Main Layout Grid (Bento) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Left Sidebar: Parameters & Team -->
+<aside class="lg:col-span-4 space-y-6">
+<!-- Configuração -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl border border-surface-variant shadow-sm">
+<h3 class="font-headline-sm mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">settings_input_component</span>
+                            Parâmetros
+                        </h3>
+<div class="space-y-4">
+<div>
+<label class="text-[11px] font-label-caps text-secondary block mb-1">MÊS</label>
+<select class="w-full bg-surface-container-low border-b-2 border-outline-variant p-2 rounded-t-lg focus:border-primary outline-none transition-colors">
+<option>Dezembro</option>
+<option>Janeiro (2024)</option>
+</select>
+</div>
+<div>
+<label class="text-[11px] font-label-caps text-secondary block mb-1">ANO</label>
+<select class="w-full bg-surface-container-low border-b-2 border-outline-variant p-2 rounded-t-lg focus:border-primary outline-none transition-colors">
+<option>2023</option>
+<option>2024</option>
+</select>
+</div>
+<div>
+<label class="text-[11px] font-label-caps text-secondary block mb-1">Nº ALTERNATIVAS IA</label>
+<input class="w-full bg-surface-container-low border-b-2 border-outline-variant p-2 rounded-t-lg focus:border-primary outline-none transition-colors" type="number" value="3">
+</div>
+<button class="w-full py-3 mt-4 border border-inverse-surface bg-inverse-surface text-on-primary rounded-xl font-label-bold hover:opacity-90 transition-opacity">Gerar 1 Alternativa</button>
+</div>
+</div>
+<!-- Seleção de Equipa -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl border border-surface-variant shadow-sm">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline-sm">Equipa (14)</h3>
+<div class="flex gap-2">
+<button class="text-[10px] font-label-caps text-primary hover:underline">TODOS</button>
+<button class="text-[10px] font-label-caps text-secondary hover:underline">LIMPAR</button>
+</div>
+</div>
+<div class="max-h-64 overflow-y-auto space-y-2 pr-2">
+<!-- Colaborador Item -->
+<div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded-lg group transition-colors">
+<div class="flex items-center gap-3">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary" type="checkbox">
+<span class="text-body-md font-medium">Ana Martins</span>
+</div>
+<span class="text-[10px] font-label-caps bg-secondary-container px-2 py-0.5 rounded text-secondary">Full-time</span>
+</div>
+<div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded-lg group transition-colors">
+<div class="flex items-center gap-3">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary" type="checkbox">
+<span class="text-body-md font-medium">Bruno Sousa</span>
+</div>
+<span class="text-[10px] font-label-caps bg-secondary-container px-2 py-0.5 rounded text-secondary">Part-time</span>
+</div>
+<div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded-lg group transition-colors">
+<div class="flex items-center gap-3">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary" type="checkbox">
+<span class="text-body-md font-medium">Catarina Silva</span>
+</div>
+<span class="text-[10px] font-label-caps bg-secondary-container px-2 py-0.5 rounded text-secondary">Reforço</span>
+</div>
+<div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded-lg group transition-colors">
+<div class="flex items-center gap-3">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary" type="checkbox">
+<span class="text-body-md font-medium">David Costa</span>
+</div>
+<span class="text-[10px] font-label-caps bg-secondary-container px-2 py-0.5 rounded text-secondary">Full-time</span>
+</div>
+</div>
+</div>
+<!-- Diagnóstico de Geração -->
+<div class="bg-error-container/30 p-card-padding rounded-xl border border-error/20 flex gap-4">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div>
+<h4 class="font-label-bold text-on-error-container">Alertas de Geração</h4>
+<p class="text-body-md text-on-error-container/80 mt-1">Falta de cobertura no turno da tarde no dia 15 de Dezembro (Sexta-feira).</p>
+<button class="mt-2 text-[11px] font-label-caps text-error underline decoration-2 underline-offset-4">AJUSTAR REGRAS</button>
+</div>
+</div>
+</aside>
+<!-- Right Canvas: KPIs, Alternatives, Details -->
+<div class="lg:col-span-8 space-y-6">
+<!-- KPI Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-variant flex items-center gap-4">
+<div class="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">groups</span>
+</div>
+<div>
+<p class="text-[10px] font-label-caps text-secondary">COLABORADORES</p>
+<p class="font-headline-sm text-2xl">14</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-variant flex items-center gap-4">
+<div class="w-12 h-12 bg-success-emerald/10 text-success-emerald rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">event_available</span>
+</div>
+<div>
+<p class="text-[10px] font-label-caps text-secondary">TURNOS GERADOS</p>
+<p class="font-headline-sm text-2xl">156</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-variant flex items-center gap-4">
+<div class="w-12 h-12 bg-warning-amber/10 text-warning-amber rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">verified</span>
+</div>
+<div>
+<p class="text-[10px] font-label-caps text-secondary">COBERTURA MENSAL</p>
+<p class="font-headline-sm text-2xl">100%</p>
+</div>
+</div>
+</div>
+<!-- Gestão de Alternativas -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-variant shadow-sm overflow-hidden">
+<div class="p-6 border-b border-surface-variant flex justify-between items-center">
+<h3 class="font-headline-sm">Alternativas Propostas</h3>
+<button class="flex items-center gap-2 text-primary font-label-bold text-sm hover:underline">
+                                Enviar selecionadas ao supervisor
+                                <span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low/50 text-[11px] font-label-caps text-secondary">
+<tr>
+<th class="px-6 py-4">PROPOSTA</th>
+<th class="px-6 py-4">ESTADO</th>
+<th class="px-6 py-4">GERADA EM</th>
+<th class="px-6 py-4">SCORE</th>
+<th class="px-6 py-4 text-center">AÇÕES</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant">
+<tr class="hover:bg-surface-container-low transition-colors cursor-pointer group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<input class="rounded border-outline" type="checkbox">
+<span class="font-label-bold">v1 (Principal)</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded bg-secondary-container text-secondary text-[10px] font-bold">RASCUNHO</span>
+</td>
+<td class="px-6 py-4 text-body-md">22 Out, 14:35</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="font-bold text-success-emerald">94%</span>
+<div class="w-12 h-1.5 bg-surface-variant rounded-full overflow-hidden">
+<div class="bg-success-emerald h-full" style="width: 94%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-center">
+<span class="material-symbols-outlined text-secondary hover:text-primary transition-colors">visibility</span>
+</td>
+</tr>
+<tr class="bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer group border-l-4 border-l-primary">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<input checked="" class="rounded border-outline text-primary" type="checkbox">
+<span class="font-label-bold">v2 (Otimizada)</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold">SELECIONADA</span>
+</td>
+<td class="px-6 py-4 text-body-md">22 Out, 14:42</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="font-bold text-primary">98%</span>
+<div class="w-12 h-1.5 bg-surface-variant rounded-full overflow-hidden">
+<div class="bg-primary h-full" style="width: 98%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-center">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Detalhe da Proposta Selecionada & Validação -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-surface-container-lowest p-card-padding rounded-xl border border-surface-variant shadow-sm space-y-4">
+<h3 class="font-headline-sm">Detalhes da v2</h3>
+<div class="grid grid-cols-2 gap-y-4 gap-x-2">
+<div>
+<p class="text-[10px] font-label-caps text-secondary">ORIGEM</p>
+<p class="text-body-md font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">auto_awesome</span> 
+                                        IA Engine v4
+                                    </p>
+</div>
+<div>
+<p class="text-[10px] font-label-caps text-secondary">GERADO POR</p>
+<p class="text-body-md font-bold">Francisco R.</p>
+</div>
+<div class="col-span-2">
+<p class="text-[10px] font-label-caps text-secondary">OBSERVAÇÕES IA</p>
+<p class="text-body-md text-secondary leading-relaxed">Priorizados períodos de maior afluência (17h-20h) conforme histórico de vendas Lisboa-Chiado.</p>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-card-padding rounded-xl border border-primary/20 shadow-sm space-y-4">
+<h3 class="font-headline-sm">Validação de Supervisor</h3>
+<textarea class="w-full bg-surface-container-low border-none rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary h-24 resize-none" placeholder="Adicionar notas para a equipa..."></textarea>
+<div class="flex gap-3">
+<button class="flex-1 py-2.5 rounded-lg border border-outline text-on-surface font-label-bold text-sm hover:bg-error/5 hover:text-error transition-all">Rejeitar</button>
+<button class="flex-[2] py-2.5 rounded-lg bg-primary text-on-primary font-label-bold text-sm red-tab-shadow hover:scale-[1.01] transition-all">Aprovar e Publicar</button>
+</div>
+</div>
+</div>
+<!-- Tab View Container -->
+<div class="bg-surface-container-lowest rounded-xl border border-surface-variant shadow-sm overflow-hidden">
+<div class="flex border-b border-surface-variant bg-surface-container-low/30">
+<button class="px-8 py-4 text-primary border-b-2 border-primary font-label-bold text-sm">Distribuição</button>
+<button class="px-8 py-4 text-secondary hover:text-on-surface transition-colors font-label-bold text-sm">Calendário Semanal</button>
+<button class="px-8 py-4 text-secondary hover:text-on-surface transition-colors font-label-bold text-sm">Mensal (Apple Style)</button>
+</div>
+<div class="p-6">
+<!-- Comparison Table (Base vs V2) -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-[10px] font-label-caps text-secondary border-b border-surface-variant">
+<th class="py-3 pr-4">COLABORADOR</th>
+<th class="py-3 px-4">STATUS ATUAL</th>
+<th class="py-3 px-4 bg-primary/5 text-primary">PROPOSTA V2</th>
+<th class="py-3 px-4">DELTA HORAS</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant">
+<tr class="text-body-md">
+<td class="py-4 pr-4">
+<div class="flex items-center gap-3">
+<img alt="Staff" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTZ781yPV6ZXGlyVI80N7BcplI09MXomHFbcrz42TPgHCP7T0v-8IpVdBgMnaPnmCenFqikstI3_gmTWQtcN_1G1TvYVtPuX-LPVaB8OZ5w6ZDiV-jNHZPXJh4pZ1P_5BAMfe_xz5PrI5jVCOpSlA4uewACG1BvlRI2Q0dNWFAkf3X3tAmkimkC1R_xQtCTfbgDdeE0Wv6K0Mc5A7iWlk98fOkaFJp9Xp9h6FWf-ekHu05zDb2FJUcJStH9CSJBeU2EmvHbwz2m2c">
+<span class="font-medium">Ana Martins</span>
+</div>
+</td>
+<td class="py-4 px-4 text-secondary">09:00 - 18:00</td>
+<td class="py-4 px-4 bg-primary/5 font-bold text-primary">10:00 - 19:00</td>
+<td class="py-4 px-4"><span class="text-success-emerald">+0h</span></td>
+</tr>
+<tr class="text-body-md">
+<td class="py-4 pr-4">
+<div class="flex items-center gap-3">
+<img alt="Staff" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBE7VQlIois4AHrZbNLhv_hLyM2zpWoH11GFwEFLrxN_qoX4AOU3u927NcdQmccWSLleTdmQF7aLNE9CjAraWNx53nIkMApGl2z4u2wXyGah0Uof_5wtMVpUvFVfDAwkijYpVdqSUULIDZCdxIWaMVQ2BlK8m_V1KkauaY4nDv_YyUcBFUTD0pRIgE-j0E9mgLbw87J16jUBnhGOiQhKjsa97Eof5DefSfEmr9_oDOvb4BvP29At5mSrJZJ8N_T5LS0bV6nJs1lhsE">
+<span class="font-medium">Bruno Sousa</span>
+</div>
+</td>
+<td class="py-4 px-4 text-secondary">Folga</td>
+<td class="py-4 px-4 bg-primary/5 font-bold text-primary">15:00 - 21:00</td>
+<td class="py-4 px-4"><span class="text-primary font-bold">+6h</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Empty State Example (Skeleton) -->
+<div class="mt-8 pt-8 border-t border-surface-variant/50">
+<p class="text-[11px] font-label-caps text-secondary mb-6">OUTRAS VISUALIZAÇÕES EM RASCUNHO</p>
+<div class="grid grid-cols-7 gap-2 animate-pulse">
+<div class="h-32 bg-surface-container-low rounded-lg"></div>
+<div class="h-32 bg-surface-container-low rounded-lg"></div>
+<div class="h-32 bg-surface-container-low rounded-lg"></div>
+<div class="h-32 bg-surface-container-low rounded-lg border-2 border-dashed border-surface-variant flex flex-col items-center justify-center gap-2">
+<span class="material-symbols-outlined text-surface-variant">calendar_today</span>
+</div>
+<div class="h-32 bg-surface-container-low rounded-lg"></div>
+<div class="h-32 bg-surface-container-low rounded-lg"></div>
+<div class="h-32 bg-surface-container-low rounded-lg"></div>
+</div>
+<div class="mt-4 text-center">
+<p class="text-secondary font-body-md italic opacity-50">Gere as alternativas para visualizar o calendário completo.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating AI Assistant Button -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-inverse-surface text-on-primary rounded-full flex items-center justify-center red-tab-shadow hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</button>
+<script>
+        // Micro-interactions and Tab Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.flex.border-b button');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => {
+                        t.classList.remove('text-primary', 'border-b-2', 'border-primary');
+                        t.classList.add('text-secondary');
+                    });
+                    tab.classList.add('text-primary', 'border-b-2', 'border-primary');
+                    tab.classList.remove('text-secondary');
+                });
+            });
+
+            // Simulated Generation Interaction
+            const generateBtn = document.querySelector('button.bg-primary.red-tab-shadow');
+            generateBtn.addEventListener('click', function() {
+                const originalContent = this.innerHTML;
+                this.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Gerando...';
+                this.disabled = true;
+                this.style.opacity = '0.7';
+                
+                setTimeout(() => {
+                    this.innerHTML = originalContent;
+                    this.disabled = false;
+                    this.style.opacity = '1';
+                    // Trigger toast simulation
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed top-10 right-10 bg-success-emerald text-on-primary px-6 py-4 rounded-xl shadow-lg z-[100] transition-all transform translate-y-0 opacity-100 flex items-center gap-3';
+                    toast.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Alternativas geradas com sucesso!';
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(-20px)';
+                        setTimeout(() => toast.remove(), 500);
+                    }, 3000);
+                }, 2000);
+            });
+        });
+    </script>
+
+
+</body></html>

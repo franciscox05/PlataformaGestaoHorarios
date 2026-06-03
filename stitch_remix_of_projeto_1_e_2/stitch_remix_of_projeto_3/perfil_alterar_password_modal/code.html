@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Levi's Staff Portal - Alterar Password</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#FCF9F8",
+                    "secondary-fixed-dim": "#c8c6c6",
+                    "on-background": "#1c1b1b",
+                    "secondary-container": "#e2dfdf",
+                    "surface-container": "#f1edec",
+                    "error-container": "#ffdad6",
+                    "surface-dim": "#ddd9d8",
+                    "inverse-surface": "#313030",
+                    "success-emerald": "#059669",
+                    "on-tertiary": "#ffffff",
+                    "surface-tint": "#bf0522",
+                    "background": "#fdf8f8",
+                    "surface-container-low": "#f7f2f2",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "tertiary-fixed": "#e5e2e1",
+                    "inverse-primary": "#ffb3af",
+                    "outline": "#906f6d",
+                    "on-primary": "#ffffff",
+                    "on-surface": "#1c1b1b",
+                    "inverse-on-surface": "#f4f0ef",
+                    "primary-container": "#c91428",
+                    "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                    "on-secondary": "#ffffff",
+                    "surface-variant": "#e6e1e1",
+                    "primary-fixed": "#ffdad7",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "primary-fixed-dim": "#ffb3af",
+                    "on-secondary-fixed": "#1c1b1c",
+                    "tertiary-container": "#666565",
+                    "surface-container-highest": "#e6e1e1",
+                    "on-secondary-container": "#636262",
+                    "on-error": "#ffffff",
+                    "on-primary-container": "#ffdcd9",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#4e4d4d",
+                    "outline-variant": "#e5bdba",
+                    "surface-container-high": "#ece7e7",
+                    "secondary-fixed": "#e5e2e1",
+                    "error": "#ba1a1a",
+                    "warning-amber": "#D97706",
+                    "on-primary-fixed": "#410005",
+                    "secondary": "#5f5e5e",
+                    "on-surface-variant": "#5c403e",
+                    "primary": "#9f001a",
+                    "on-tertiary-container": "#e6e3e2",
+                    "surface-bright": "#fdf8f8",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "on-primary-fixed-variant": "#930017",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed-variant": "#474647"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem",
+                    "modal": "0.875rem" // 14px as requested
+            },
+            "spacing": {
+                    "container-max": "80rem",
+                    "card-padding": "2rem",
+                    "stack-sm": "1rem",
+                    "stack-md": "1.5rem",
+                    "header-height": "5rem",
+                    "stack-lg": "4rem",
+                    "sidebar-width": "16rem",
+                    "gutter": "2.5rem"
+            },
+            "fontFamily": {
+                    "label-caps": ["Manrope"],
+                    "headline-md": ["Space Grotesk"],
+                    "body-md": ["Manrope"],
+                    "headline-sm": ["Space Grotesk"],
+                    "display-lg": ["Space Grotesk"],
+                    "label-bold": ["Manrope"],
+                    "body-lg": ["Manrope"],
+                    "display-lg-mobile": ["Space Grotesk"]
+            },
+            "fontSize": {
+                    "label-caps": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-sm": ["18px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-bold": ["14px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "display-lg-mobile": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-bg {
+        background: rgba(252, 249, 248, 0.8);
+        backdrop-filter: blur(20px);
+      }
+      .industrial-shadow {
+        box-shadow: 0 20px 50px rgba(28, 27, 27, 0.12);
+      }
+      .input-underline {
+        border-bottom: 2px solid #e6e1e1;
+        transition: border-color 0.3s ease;
+      }
+      .input-underline:focus-within {
+        border-bottom-color: #9f001a;
+      }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface overflow-hidden">
+<!-- Background Simulation (Screen Context) -->
+<div class="fixed inset-0 z-0">
+<div class="flex h-full">
+<!-- Side Navigation Anchor -->
+<aside class="w-sidebar-width h-screen fixed left-0 top-0 bg-inverse-surface shadow-[rgba(28,27,27,0.06)_4px_0px_10px] flex flex-col py-stack-md z-10">
+<div class="px-6 mb-10">
+<div class="font-display-lg text-display-lg text-primary uppercase tracking-tighter">LEVI'S</div>
+<div class="font-headline-sm text-headline-sm text-on-tertiary-container mt-1">Portal de Staff</div>
+</div>
+<nav class="flex-1 space-y-1">
+<div class="text-on-tertiary-container hover:bg-tertiary-container/20 rounded-xl mx-2 my-1 transition-colors px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-bold text-label-bold">Painel</span>
+</div>
+<div class="text-on-primary bg-primary rounded-xl mx-2 my-1 px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-bold text-label-bold">Preferências</span>
+</div>
+</nav>
+</aside>
+<!-- Main Content Area with Backdrop Blur Overlay -->
+<main class="ml-sidebar-width flex-1 bg-surface-container-lowest p-gutter relative">
+<div class="max-w-container-max mx-auto h-full flex flex-col">
+<header class="h-header-height flex justify-between items-center mb-8">
+<h1 class="font-headline-md text-headline-md">Preferências do Sistema</h1>
+</header>
+<div class="grid grid-cols-3 gap-6">
+<div class="bg-surface p-card-padding rounded-xl border border-surface-variant h-64"></div>
+<div class="col-span-2 bg-surface p-card-padding rounded-xl border border-surface-variant h-64"></div>
+</div>
+</div>
+</main>
+</div>
+</div>
+<!-- MODAL OVERLAY: Centered over backdrop blur -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-background/40 backdrop-blur-md transition-opacity duration-300" id="modal-container">
+<!-- Modal Content -->
+<div class="bg-surface-container-lowest industrial-shadow w-full max-w-md rounded-modal overflow-hidden flex flex-col relative animate-in fade-in zoom-in duration-300">
+<!-- Modal Header -->
+<div class="pt-8 pb-4 flex flex-col items-center text-center px-card-padding">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="lock" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Alterar Password</h2>
+<p class="font-body-md text-secondary mt-2">Atualize as suas credenciais de acesso ao portal.</p>
+</div>
+<!-- Form Body -->
+<form class="px-card-padding py-6 space-y-6">
+<!-- Field 1: Password Atual -->
+<div class="space-y-1.5 group">
+<label class="font-label-bold text-label-bold text-secondary uppercase tracking-wider block">Password Atual</label>
+<div class="relative input-underline bg-surface-container-low px-3 py-3 rounded-t-sm flex items-center">
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-md text-on-surface placeholder:text-outline/50 p-0" id="current-password" placeholder="••••••••" type="password"/>
+<button class="text-secondary hover:text-primary transition-colors ml-2" onclick="togglePassword('current-password', this)" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Field 2: Nova Password -->
+<div class="space-y-1.5 group">
+<label class="font-label-bold text-label-bold text-secondary uppercase tracking-wider block">Nova Password</label>
+<div class="relative input-underline bg-surface-container-low px-3 py-3 rounded-t-sm flex items-center">
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-md text-on-surface placeholder:text-outline/50 p-0" id="new-password" placeholder="••••••••" type="password"/>
+<button class="text-secondary hover:text-primary transition-colors ml-2" onclick="togglePassword('new-password', this)" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Field 3: Confirmar Nova Password -->
+<div class="space-y-1.5 group">
+<label class="font-label-bold text-label-bold text-secondary uppercase tracking-wider block">Confirmar Nova Password</label>
+<div class="relative input-underline bg-surface-container-low px-3 py-3 rounded-t-sm flex items-center">
+<input class="bg-transparent border-none focus:ring-0 w-full font-body-md text-on-surface placeholder:text-outline/50 p-0" id="confirm-password" placeholder="••••••••" type="password"/>
+<button class="text-secondary hover:text-primary transition-colors ml-2" onclick="togglePassword('confirm-password', this)" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Validation Feedback -->
+<div class="bg-surface-container p-3 rounded-lg border-l-4 border-primary/40">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-sm mt-0.5">info</span>
+<p class="font-body-md text-[13px] leading-tight text-on-surface-variant">
+                            A password deve conter pelo menos 8 caracteres, uma letra maiúscula e um número.
+                        </p>
+</div>
+</div>
+</form>
+<!-- Footer Buttons -->
+<div class="flex items-center justify-between px-card-padding py-6 bg-surface-container-low">
+<button class="font-label-bold text-label-bold px-6 py-3 border border-outline/30 rounded-modal text-on-surface-variant hover:bg-surface-variant/50 transition-all uppercase tracking-wide" onclick="closeModal()" type="button">
+                    CANCELAR
+                </button>
+<button class="font-label-bold text-label-bold px-8 py-3 bg-primary-container text-on-primary rounded-modal shadow-lg hover:bg-primary transition-all active:scale-95 uppercase tracking-wide" type="submit">
+                    GUARDAR
+                </button>
+</div>
+<!-- Branding Accent -->
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary-container to-primary"></div>
+</div>
+</div>
+<!-- Micro-interactions Script -->
+<script>
+        function togglePassword(id, btn) {
+            const input = document.getElementById(id);
+            const icon = btn.querySelector('.material-symbols-outlined');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.textContent = "visibility_off";
+            } else {
+                input.type = "password";
+                icon.textContent = "visibility";
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal-container');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Close on ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Simple input focus effects handled by Tailwind focus-within
+    </script>
+</body></html>

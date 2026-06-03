@@ -62,7 +62,7 @@ public class PainelGerenteBLL {
 
         Map<Integer, String> nomesFolgas = dayOffBLL.listarNomesUtilizadores(
                 folgasPendentes.stream()
-                        .map(DayOff::getIdUtilizador)
+                        .map(d -> d.getIdUtilizador().getId())
                         .collect(Collectors.toSet())
         );
 

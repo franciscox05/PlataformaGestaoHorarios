@@ -1,5 +1,6 @@
 package com.example.projeto2.Modules;
 
+import com.example.projeto2.Enums.EstadoHorario;
 import jakarta.persistence.*;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -31,8 +32,9 @@ public class Horario {
     private LocalDate dataTurno;
 
     @ColumnDefault("'pendente'")
+    @Enumerated(EnumType.STRING)
     @Column(name = "estado", columnDefinition = "estado_horario_enum")
-    private String estado;
+    private EstadoHorario estado;
 
     @OneToMany(mappedBy = "idHorario")
     private Set<HistoricoHorarioEstado> historicoHorarioEstados = new LinkedHashSet<>();
@@ -83,11 +85,11 @@ public class Horario {
         this.idPropostaHorario = idPropostaHorario;
     }
 
-    public String getEstado() {
+    public EstadoHorario getEstado() {
         return estado;
     }
 
-    public void setEstado(String estado) {
+    public void setEstado(EstadoHorario estado) {
         this.estado = estado;
     }
 

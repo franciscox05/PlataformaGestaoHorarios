@@ -14,11 +14,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 @SpringBootApplication
 public class Projeto2Application extends Application {
 
-    private static final double APP_WIDTH = 1480;
-    private static final double APP_HEIGHT = 920;
-    private static final double APP_MIN_WIDTH = 1280;
-    private static final double APP_MIN_HEIGHT = 780;
-
     private ConfigurableApplicationContext springContext;
 
     @Override
@@ -36,12 +31,12 @@ public class Projeto2Application extends Application {
 
         fxmlLoader.setControllerFactory(springContext::getBean);
 
-        Scene scene = new Scene(fxmlLoader.load(), APP_WIDTH, APP_HEIGHT);
+        Scene scene = new Scene(fxmlLoader.load(), UIConstants.APP_WIDTH, UIConstants.APP_HEIGHT);
 
         primaryStage.setTitle("Levi's Staff Portal - Autenticação");
         primaryStage.setScene(scene);
-        primaryStage.setMinWidth(APP_MIN_WIDTH);
-        primaryStage.setMinHeight(APP_MIN_HEIGHT);
+        primaryStage.setMinWidth(UIConstants.APP_MIN_WIDTH);
+        primaryStage.setMinHeight(UIConstants.APP_MIN_HEIGHT);
         primaryStage.setResizable(false);
         primaryStage.setFullScreenExitHint("");
         primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);

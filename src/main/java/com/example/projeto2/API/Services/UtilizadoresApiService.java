@@ -56,7 +56,7 @@ public class UtilizadoresApiService {
                 utilizador.getNome(),
                 utilizador.getEmail(),
                 utilizador.getTelemovel(),
-                utilizador.getEstado()
+                utilizador.getEstado() != null ? utilizador.getEstado().name() : null
         );
     }
 }

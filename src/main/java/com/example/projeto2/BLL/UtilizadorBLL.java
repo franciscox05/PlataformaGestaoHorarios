@@ -1,5 +1,6 @@
 package com.example.projeto2.BLL;
 
+import com.example.projeto2.Enums.EstadoUtilizador;
 import com.example.projeto2.Modules.Utilizador;
 import com.example.projeto2.Repositories.UtilizadorRepository;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,7 @@ public class UtilizadorBLL {
             return null;
         }
 
-        if (utilizador.getEstado() == null || !"ativo".equalsIgnoreCase(utilizador.getEstado())) {
+        if (utilizador.getEstado() == null || utilizador.getEstado() != EstadoUtilizador.ativo) {
             auditoriaBLL.registarFalhaLogin(emailNormalizado, "Conta sem permissao para autenticar.");
             return null;
         }

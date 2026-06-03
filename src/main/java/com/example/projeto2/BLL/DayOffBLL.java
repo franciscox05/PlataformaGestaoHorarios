@@ -56,7 +56,7 @@ public class DayOffBLL {
             throw new IllegalArgumentException("O pedido de folga nao pode ser nulo.");
         }
 
-        if (pedido.getIdUtilizador() == null) {
+        if (pedido.getIdUtilizador().getId() == null) {
             throw new IllegalArgumentException("O utilizador do pedido e obrigatorio.");
         }
 
@@ -76,7 +76,7 @@ public class DayOffBLL {
             pedido.setMotivo(null);
         }
 
-        validarAntecedenciaMinimaDoTurno(pedido.getIdUtilizador(), pedido.getDataAusencia());
+        validarAntecedenciaMinimaDoTurno(pedido.getIdUtilizador().getId(), pedido.getDataAusencia());
 
         pedido.setEstado("pendente");
 
@@ -89,7 +89,7 @@ public class DayOffBLL {
             throw new IllegalArgumentException("O id do utilizador e obrigatorio.");
         }
 
-        return dayOffRepository.findByIdUtilizador(idUtilizador).stream()
+        return dayOffRepository.findByIdUtilizadorId(idUtilizador).stream()
                 .sorted(Comparator
                         .comparing(DayOff::getDataAusencia, Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(DayOff::getIdDayoff, Comparator.nullsLast(Comparator.reverseOrder())))
@@ -194,7 +194,7 @@ public class DayOffBLL {
 
     private void retirarTurnosDoColaboradorNoDia(DayOff pedido, Lojautilizador ligacaoAprovador) {
         List<Horario> horariosAfetados = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
-                pedido.getIdUtilizador(),
+                pedido.getIdUtilizador().getId(),
                 pedido.getDataAusencia(),
                 pedido.getDataAusencia()
         ).stream()
@@ -215,10 +215,10 @@ public class DayOffBLL {
                 -1,
                 idsHorariosAfetados
         );
-        permutasConflitantes.forEach(permuta -> permuta.setEstado("rejeitado"));
+        permutasConflitantes.forEach(permuta -> permuta.setEstado(com.example.projeto2.Enums.EstadoPermuta.rejeitado));
         permutaRepository.saveAll(permutasConflitantes);
 
-        horariosAfetados.forEach(horario -> horario.setEstado("recusado"));
+        horariosAfetados.forEach(horario -> horario.setEstado(com.example.projeto2.Enums.EstadoHorario.recusado));
         horarioRepository.saveAll(horariosAfetados);
 
         List<HistoricoHorarioEstado> historicos = horariosAfetados.stream()

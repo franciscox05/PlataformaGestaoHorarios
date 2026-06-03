@@ -60,7 +60,7 @@ public class PerfilBLL {
                 .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador."));
 
         List<Horario> turnos = horarioRepository.findTurnosPorUtilizador(utilizador.getId());
-        List<DayOff> pedidosFolga = dayOffRepository.findByIdUtilizador(utilizador.getId());
+        List<DayOff> pedidosFolga = dayOffRepository.findByIdUtilizadorId(utilizador.getId());
 
         Horario proximoTurno = turnos.stream()
                 .filter(horario -> horario.getDataTurno() != null && !horario.getDataTurno().isBefore(LocalDate.now()))
@@ -93,7 +93,7 @@ public class PerfilBLL {
                 utilizador.getNome(),
                 valorOuTraco(utilizador.getEmail()),
                 valorOuTraco(utilizador.getTelemovel()),
-                capitalizar(utilizador.getEstado()),
+                capitalizar(utilizador.getEstado() != null ? utilizador.getEstado().name() : null),
                 ligacaoAtiva.getIdLoja() != null ? valorOuTraco(ligacaoAtiva.getIdLoja().getNome()) : "-",
                 ligacaoAtiva.getIdCargo() != null ? valorOuTraco(ligacaoAtiva.getIdCargo().getNome()) : "-",
                 ligacaoAtiva.getDataInicio() != null ? ligacaoAtiva.getDataInicio().format(DATA_FORMATTER) : "-",

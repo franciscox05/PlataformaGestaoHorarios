@@ -36,3 +36,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Seguranca - ficheiros de configuracao local com credenciais ###
+**/application-local.properties
+**/application-local.yml

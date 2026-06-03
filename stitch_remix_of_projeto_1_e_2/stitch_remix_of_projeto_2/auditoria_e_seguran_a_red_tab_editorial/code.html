@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Auditoria e Segurança - Red Tab Editorial</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Space+Grotesk:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#930017",
+                        "on-secondary-container": "#636262",
+                        "inverse-surface": "#313030",
+                        "surface-variant": "#e6e1e1",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#c8c6c6",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#5c403e",
+                        "success-emerald": "#059669",
+                        "warning-amber": "#D97706",
+                        "tertiary-fixed": "#e5e2e1",
+                        "on-background": "#1c1b1b",
+                        "surface-container-high": "#ece7e7",
+                        "tertiary": "#4e4d4d",
+                        "secondary-container": "#e2dfdf",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e6e1e1",
+                        "on-primary-container": "#ffdcd9",
+                        "primary-container": "#c91428",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "on-primary-fixed": "#410005",
+                        "surface-container": "#f1edec",
+                        "surface-tint": "#bf0522",
+                        "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#ffb3af",
+                        "secondary": "#5f5e5e",
+                        "surface": "#FCF9F8",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#e5e2e1",
+                        "primary-fixed-dim": "#ffb3af",
+                        "surface-dim": "#ddd9d8",
+                        "on-surface": "#1c1b1b",
+                        "tertiary-container": "#666565",
+                        "outline": "#906f6d",
+                        "on-tertiary-container": "#e6e3e2",
+                        "surface-container-low": "#f7f2f2",
+                        "surface-bright": "#fdf8f8",
+                        "primary-fixed": "#ffdad7",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#e5bdba",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "background": "#fdf8f8",
+                        "inverse-on-surface": "#f4f0ef",
+                        "on-secondary-fixed-variant": "#474647",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#1c1b1c",
+                        "primary": "#9f001a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-md": "1.5rem",
+                        "stack-lg": "4rem",
+                        "gutter": "2.5rem",
+                        "sidebar-width": "16rem",
+                        "container-max": "80rem",
+                        "stack-sm": "1rem",
+                        "card-padding": "2rem",
+                        "header-height": "5rem"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "headline-md": ["Space Grotesk"],
+                        "display-lg": ["Space Grotesk"],
+                        "body-lg": ["Manrope"],
+                        "label-bold": ["Manrope"],
+                        "headline-sm": ["Space Grotesk"],
+                        "display-lg-mobile": ["Space Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "label-caps": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-bold": ["14px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "headline-sm": ["18px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased overflow-hidden flex h-screen">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-full py-6 fixed left-0 top-0 h-screen w-sidebar-width bg-inverse-surface dark:bg-inverse-surface shadow-[6px_0_24px_rgba(28,27,27,0.06)] shadow-md z-40">
+<div class="px-6 mb-8">
+<h1 class="font-display-lg text-display-lg text-primary-container dark:text-primary-container leading-none">Red Tab Editorial</h1>
+<p class="font-label-caps text-label-caps text-secondary-fixed-dim mt-1">Portal Interno Levi's</p>
+</div>
+<button class="mx-4 mb-6 bg-primary-container hover:bg-primary text-on-primary font-label-bold text-label-bold py-3 px-4 rounded-full flex justify-center items-center gap-2 transition-all shadow-sm">
+<span class="material-symbols-outlined">add</span>
+            Novo Artigo
+        </button>
+<div class="flex-1 flex flex-col gap-1 px-2">
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary-fixed hover:bg-tertiary-container/20 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-bold text-label-bold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary-fixed hover:bg-tertiary-container/20 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-label-bold text-label-bold">Equipa</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary-fixed hover:bg-tertiary-container/20 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="article">article</span>
+<span class="font-label-bold text-label-bold">Editorial</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary bg-primary-container border-r-4 border-primary rounded-l-lg opacity-90 scale-[0.99] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="policy" data-weight="fill">policy</span>
+<span class="font-label-bold text-label-bold">Auditoria</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary-fixed hover:bg-tertiary-container/20 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+<span class="font-label-bold text-label-bold">Segurança</span>
+</a>
+</div>
+<div class="mt-auto px-2 flex flex-col gap-1 border-t border-surface-variant/10 pt-4">
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary-fixed hover:bg-tertiary-container/20 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-bold text-label-bold">Definições</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary-fixed-dim hover:text-on-primary-fixed hover:bg-tertiary-container/20 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-bold text-label-bold">Sair</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 ml-0 md:ml-sidebar-width flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center px-gutter h-header-height fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-b border-surface-variant/30 z-30">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="font-body-md text-body-md">Painel</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+<span class="font-headline-sm text-headline-sm text-primary">Auditoria e Segurança</span>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden lg:flex items-center gap-4">
+<a class="font-label-bold text-label-bold text-on-surface-variant hover:text-primary transition-all" href="#">Eventos</a>
+<a class="font-label-bold text-label-bold text-on-surface-variant hover:text-primary transition-all" href="#">Logs</a>
+<a class="font-label-bold text-label-bold text-on-surface-variant hover:text-primary transition-all" href="#">Acessos</a>
+</nav>
+<div class="flex items-center gap-3 border-l border-surface-variant/50 pl-6">
+<button class="text-on-surface-variant hover:text-primary transition-all focus:ring-2 ring-primary/20 rounded-full p-1">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-all focus:ring-2 ring-primary/20 rounded-full p-1">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant ml-2">
+<img alt="Avatar do Utilizador" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB17bFRBk5qlOzu4CEUoUP988YsFpnmSz7USd8LLny0B5QqfbUGZQUJH5V9eoi1kSRgWpviQslhzpcPb9SjZfEuI17mBKcZeN1MesKyCwRLPS4nRW91SXb41XwbQrb9NASri4DZzUtXmawAL2TSkRchtWxQexBOMHzf9niM72QilWJiHnNa5k-5tXNDaYWm7IkrkD87KQMG9lfYb3gf_rRTc4rDoV23BV3GMtzNPEmLo5xLYK_VaoGc0jC60apAQoNTzchK-qfBubY"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 overflow-y-auto pt-header-height px-gutter pb-gutter">
+<div class="max-w-container-max mx-auto h-full flex flex-col gap-6 pt-6">
+<!-- Filters Area -->
+<section class="bg-surface-container-lowest rounded-xl p-4 shadow-[0_2px_12px_rgba(28,27,27,0.03)] border border-surface-variant flex flex-wrap gap-4 items-end">
+<div class="flex-1 min-w-[200px]">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Data (Intervalo)</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">calendar_today</span>
+<input class="w-full bg-surface-container-low border-b-2 border-surface-variant focus:border-primary-container px-10 py-2 font-body-md text-body-md text-on-surface outline-none transition-colors" placeholder="01 Out - 07 Out 2023" type="text"/>
+</div>
+</div>
+<div class="flex-1 min-w-[150px]">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Utilizador</label>
+<select class="w-full bg-surface-container-low border-b-2 border-surface-variant focus:border-primary-container px-3 py-2 font-body-md text-body-md text-on-surface outline-none transition-colors appearance-none">
+<option>Todos os Utilizadores</option>
+<option>João Silva</option>
+<option>Maria Costa</option>
+</select>
+</div>
+<div class="flex-1 min-w-[150px]">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Ação</label>
+<select class="w-full bg-surface-container-low border-b-2 border-surface-variant focus:border-primary-container px-3 py-2 font-body-md text-body-md text-on-surface outline-none transition-colors appearance-none">
+<option>Todas as Ações</option>
+<option>Login</option>
+<option>Alteração de Horário</option>
+<option>Aprovação</option>
+</select>
+</div>
+<div class="flex-1 min-w-[150px]">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Módulo</label>
+<select class="w-full bg-surface-container-low border-b-2 border-surface-variant focus:border-primary-container px-3 py-2 font-body-md text-body-md text-on-surface outline-none transition-colors appearance-none">
+<option>Todos os Módulos</option>
+<option>Equipa</option>
+<option>Editorial</option>
+</select>
+</div>
+<button class="bg-inverse-surface hover:bg-tertiary text-on-tertiary font-label-bold text-label-bold py-2 px-6 rounded transition-colors shadow-sm h-[42px]">
+                        Filtrar
+                    </button>
+</section>
+<!-- Bento Grid Content -->
+<div class="flex flex-1 gap-6 overflow-hidden min-h-[500px]">
+<!-- Events Table -->
+<div class="flex-[2] bg-surface-container-lowest rounded-xl border border-surface-variant shadow-[0_2px_12px_rgba(28,27,27,0.03)] flex flex-col overflow-hidden">
+<div class="px-6 py-4 border-b border-surface-variant flex justify-between items-center bg-surface-bright">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Registo de Eventos</h2>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">download</span>
+</button>
+</div>
+<div class="overflow-y-auto flex-1">
+<table class="w-full text-left border-collapse">
+<thead class="sticky top-0 bg-surface-container-low border-b border-surface-variant z-10">
+<tr>
+<th class="px-6 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Data/Hora</th>
+<th class="px-6 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Utilizador</th>
+<th class="px-6 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Ação</th>
+<th class="px-6 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Módulo</th>
+<th class="px-6 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Severidade</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant font-body-md text-body-md">
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer bg-surface-container-low/30 border-l-4 border-primary">
+<td class="px-6 py-4 whitespace-nowrap text-on-surface">07 Out, 14:32</td>
+<td class="px-6 py-4 whitespace-nowrap text-on-surface font-label-bold text-label-bold">Marta Sousa</td>
+<td class="px-6 py-4 text-on-surface">Alteração de Permissões</td>
+<td class="px-6 py-4 whitespace-nowrap text-on-surface-variant">Segurança</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-label-caps text-label-caps bg-primary-container/10 text-primary-container uppercase border border-primary-container/20">Crítico</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer">
+<td class="px-6 py-4 whitespace-nowrap text-on-surface">07 Out, 11:15</td>
+<td class="px-6 py-4 whitespace-nowrap text-on-surface font-label-bold text-label-bold">João Silva</td>
+<td class="px-6 py-4 text-on-surface">Aprovação Artigo #402</td>
+<td class="px-6 py-4 whitespace-nowrap text-on-surface-variant">Editorial</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-label-caps text-label-caps bg-success-emerald/10 text-success-emerald uppercase border border-success-emerald/20">Info</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer">
+<td class="px-6 py-4 whitespace-nowrap text-on-surface">06 Out, 09:45</td>
+<td class="px-6 py-4 whitespace-nowrap text-on-surface font-label-bold text-label-bold">Sistema</td>
+<td class="px-6 py-4 text-on-surface">Backup Automático Concluído</td>
+<td class="px-6 py-4 whitespace-nowrap text-on-surface-variant">Sistema</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-label-caps text-label-caps bg-success-emerald/10 text-success-emerald uppercase border border-success-emerald/20">Info</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer">
+<td class="px-6 py-4 whitespace-nowrap text-on-surface">05 Out, 18:20</td>
+<td class="px-6 py-4 whitespace-nowrap text-on-surface font-label-bold text-label-bold">Pedro Alves</td>
+<td class="px-6 py-4 text-on-surface">Falha de Login (x3)</td>
+<td class="px-6 py-4 whitespace-nowrap text-on-surface-variant">Autenticação</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-label-caps text-label-caps bg-warning-amber/10 text-warning-amber uppercase border border-warning-amber/20">Aviso</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Detail Panel -->
+<aside class="flex-1 bg-surface-container-lowest rounded-xl border border-surface-variant shadow-[0_2px_12px_rgba(28,27,27,0.03)] flex flex-col overflow-hidden max-w-sm">
+<div class="px-6 py-4 border-b border-surface-variant bg-surface-bright flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Detalhe do Evento</h3>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">ID: EVT-9824-LX</p>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 overflow-y-auto flex-1 flex flex-col gap-6 font-body-md text-body-md">
+<!-- Context -->
+<div class="bg-surface-container-low rounded-lg p-4 border border-surface-variant/50">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined">admin_panel_settings</span>
+</div>
+<div>
+<p class="font-label-bold text-label-bold text-on-surface">Marta Sousa</p>
+<p class="text-on-surface-variant text-sm">Administrador</p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-y-2 text-sm mt-4">
+<div class="text-on-surface-variant">Data:</div>
+<div class="text-on-surface font-medium">07 Out 2023, 14:32:05</div>
+<div class="text-on-surface-variant">IP Origem:</div>
+<div class="text-on-surface font-medium font-mono text-xs">192.168.1.105</div>
+<div class="text-on-surface-variant">Dispositivo:</div>
+<div class="text-on-surface font-medium">Mac OS X / Chrome</div>
+</div>
+</div>
+<!-- Action Details -->
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Descrição da Ação</h4>
+<p class="text-on-surface leading-relaxed border-l-2 border-primary-container pl-3 py-1">
+                                    O utilizador alterou as permissões do grupo "Editores Juniores", concedendo acesso de publicação direta no módulo Editorial.
+                                </p>
+</div>
+<!-- Diff View -->
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-3">Alteração de Valores</h4>
+<div class="border border-surface-variant rounded overflow-hidden text-sm">
+<div class="grid grid-cols-2 bg-surface-container-low border-b border-surface-variant font-label-bold text-label-bold">
+<div class="p-2 border-r border-surface-variant text-on-surface-variant">Anterior</div>
+<div class="p-2 text-on-surface-variant">Novo</div>
+</div>
+<div class="grid grid-cols-2 font-mono text-xs">
+<div class="p-3 border-r border-surface-variant bg-error-container/20 text-on-surface break-words">
+                                            "can_publish": false<br/>
+                                            "requires_approval": true
+                                        </div>
+<div class="p-3 bg-success-emerald/10 text-on-surface break-words">
+                                            "can_publish": true<br/>
+                                            "requires_approval": false
+                                        </div>
+</div>
+</div>
+</div>
+</div>
+<div class="px-6 py-4 border-t border-surface-variant bg-surface-bright flex gap-3">
+<button class="flex-1 border border-outline text-on-surface font-label-bold text-label-bold py-2 rounded hover:text-primary hover:border-primary transition-colors">Reverter</button>
+<button class="flex-1 bg-inverse-surface text-on-tertiary font-label-bold text-label-bold py-2 rounded hover:bg-tertiary transition-colors">Exportar Log</button>
+</div>
+</aside>
+</div>
+</div>
+</main>
+</div>
+</body></html>

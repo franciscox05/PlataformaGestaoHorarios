@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html lang="pt"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gestão de Pedidos - Editorial Heritage</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#1c1b1b",
+                    "surface": "#fcf9f8",
+                    "tertiary-container": "#c91428",
+                    "on-error": "#ffffff",
+                    "tertiary": "#9f001a",
+                    "background": "#fcf9f8",
+                    "on-surface-variant": "#5c403e",
+                    "surface-variant": "#e5e2e1",
+                    "inverse-on-surface": "#f3f0ef",
+                    "surface-container-high": "#eae7e7",
+                    "on-secondary-container": "#636262",
+                    "tertiary-fixed-dim": "#ffb3af",
+                    "surface-tint": "#bf0522",
+                    "secondary-fixed": "#e5e2e1",
+                    "tertiary-fixed": "#ffdad7",
+                    "primary-fixed": "#ffdad7",
+                    "surface-container-low": "#f6f3f2",
+                    "outline": "#906f6d",
+                    "on-tertiary-fixed": "#410005",
+                    "inverse-surface": "#313030",
+                    "primary": "#9f001a",
+                    "on-primary-container": "#ffdcd9",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "primary-container": "#c91428",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#5f5e5e",
+                    "on-primary": "#ffffff",
+                    "inverse-primary": "#ffb3af",
+                    "surface-dim": "#dcd9d9",
+                    "surface-bright": "#fcf9f8",
+                    "on-surface": "#1c1b1b",
+                    "primary-fixed-dim": "#ffb3af",
+                    "error": "#ba1a1a",
+                    "on-tertiary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#e2dfde",
+                    "on-primary-fixed-variant": "#930017",
+                    "surface-container-highest": "#e5e2e1",
+                    "surface-container": "#f0eded",
+                    "on-primary-fixed": "#410005",
+                    "on-background": "#1c1b1b",
+                    "on-secondary-fixed-variant": "#474746",
+                    "on-tertiary-container": "#ffdcd9",
+                    "outline-variant": "#e5bdba",
+                    "on-tertiary-fixed-variant": "#930017",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": [
+                            "Space Grotesk"
+                    ],
+                    "display": [
+                            "Space Grotesk"
+                    ],
+                    "body": [
+                            "Manrope"
+                    ],
+                    "label": [
+                            "Manrope"
+                    ]
+            },
+            "fontSize": {}
+    },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        .denim-grain {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body antialiased selection:bg-primary-container selection:text-on-primary">
+<!-- TopNavBar (Mobile Only) -->
+<nav class="md:hidden flex justify-between items-center h-20 px-6 w-full bg-surface/80 backdrop-blur-xl fixed top-0 z-50 border-b border-surface-container-highest">
+<span class="text-lg font-headline font-black uppercase tracking-widest text-primary">Editorial Heritage</span>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-70 transition-opacity">notifications</span>
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-70 transition-opacity">person</span>
+</div>
+</nav>
+<!-- SideNavBar (Web Only) -->
+<aside class="hidden md:flex flex-col h-full py-8 fixed left-0 top-0 w-72 bg-inverse-surface z-40 denim-grain">
+<div class="px-8 mb-12">
+<h1 class="text-2xl font-headline font-bold text-surface tracking-tighter">Editorial Heritage</h1>
+<p class="text-sm font-label text-surface-variant mt-1">Staff Portal</p>
+</div>
+<nav class="flex-1 flex flex-col gap-2 px-4">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-surface border-r-4 border-primary bg-surface/5 transition-transform duration-150 scale-[0.98]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary-fixed-dim hover:text-surface transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-label font-medium">Heritage Archive</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary-fixed-dim hover:text-surface transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label font-medium">Staff Directory</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary-fixed-dim hover:text-surface transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label font-medium">Inventory</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary-fixed-dim hover:text-surface transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">auto_stories</span>
+<span class="font-label font-medium">Editorial Board</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-secondary-fixed-dim hover:text-surface transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label font-medium">Settings</span>
+</a>
+</nav>
+<div class="px-8 mt-auto flex flex-col gap-4">
+<button class="w-full py-3 px-4 rounded-lg bg-primary-container text-on-primary font-label font-bold tracking-wide hover:bg-primary transition-colors">
+                New Entry
+            </button>
+<div class="flex flex-col gap-2 mt-4 pt-4 border-t border-surface-variant/20">
+<a class="flex items-center gap-3 text-secondary-fixed-dim hover:text-surface text-sm transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+                    Help Center
+                </a>
+<a class="flex items-center gap-3 text-secondary-fixed-dim hover:text-surface text-sm transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+                    Log Out
+                </a>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="pt-24 md:pt-12 md:pl-72 min-h-screen">
+<!-- TopNavBar Structure (Web Version injected into Canvas area for alignment per editorial style) -->
+<div class="hidden md:flex justify-between items-end px-16 mb-16">
+<div>
+<h2 class="text-4xl font-headline font-bold text-on-surface tracking-tighter -ml-1">Gestão de Pedidos</h2>
+<p class="text-on-surface-variant font-label mt-2">Overview de aprovações pendentes.</p>
+</div>
+<div class="flex gap-6 items-center border-b-2 border-primary pb-1">
+<span class="font-label font-bold text-primary cursor-pointer">Weekly Digest</span>
+<span class="font-label text-on-surface-variant hover:text-primary transition-colors cursor-pointer">Internal Ops</span>
+<div class="flex gap-3 ml-6 pl-6 border-l border-surface-variant">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-70">notifications</span>
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-70">person</span>
+</div>
+</div>
+</div>
+<div class="px-6 md:px-16 pb-20">
+<!-- Mobile Header -->
+<div class="md:hidden mb-10">
+<h2 class="text-3xl font-headline font-bold text-on-surface tracking-tighter">Gestão de Pedidos</h2>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col gap-2 transition-transform hover:-translate-y-1 duration-300 relative overflow-hidden group">
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<span class="text-sm font-label text-on-surface-variant uppercase tracking-wider">Total Pendentes</span>
+<span class="text-5xl font-headline font-bold text-primary -ml-1 tracking-tighter">12</span>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-low p-6 rounded-xl flex flex-col gap-2">
+<span class="text-sm font-label text-on-surface-variant uppercase tracking-wider">Folgas</span>
+<span class="text-4xl font-headline font-bold text-on-surface -ml-1 tracking-tighter">5</span>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-low p-6 rounded-xl flex flex-col gap-2">
+<span class="text-sm font-label text-on-surface-variant uppercase tracking-wider">Permutas</span>
+<span class="text-4xl font-headline font-bold text-on-surface -ml-1 tracking-tighter">4</span>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-low p-6 rounded-xl flex flex-col gap-2">
+<span class="text-sm font-label text-on-surface-variant uppercase tracking-wider">Preferências</span>
+<span class="text-4xl font-headline font-bold text-on-surface -ml-1 tracking-tighter">3</span>
+</div>
+</div>
+<!-- Main Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+<!-- Left Column: Folgas Pendentes -->
+<section class="flex flex-col gap-6">
+<div class="flex items-baseline justify-between border-b-2 border-surface-variant pb-4">
+<h3 class="text-2xl font-headline font-bold text-on-surface tracking-tight">Folgas Pendentes</h3>
+<span class="text-sm font-label text-primary font-medium hover:underline cursor-pointer">Ver todas</span>
+</div>
+<div class="flex flex-col gap-6">
+<!-- Row 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all hover:shadow-[0_20px_40px_rgba(28,27,27,0.06)] relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-primary transition-colors"></div>
+<div class="flex flex-col gap-1">
+<span class="font-headline font-semibold text-lg text-on-surface">Sasha Klein</span>
+<div class="flex items-center gap-3 text-sm font-label text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">calendar_today</span> 28 Oct</span>
+<span class="w-1 h-1 rounded-full bg-surface-dim"></span>
+<span>Evento Familiar</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 font-label text-sm font-medium text-error hover:bg-error/10 transition-colors rounded-lg border border-transparent hover:border-error/20">Rejeitar</button>
+<button class="px-4 py-2 font-label text-sm font-medium text-surface bg-inverse-surface hover:bg-on-surface transition-colors rounded-lg denim-grain">Aprovar</button>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="bg-surface p-6 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all hover:bg-surface-container-lowest relative overflow-hidden group border border-outline-variant/15">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-primary transition-colors"></div>
+<div class="flex flex-col gap-1">
+<span class="font-headline font-semibold text-lg text-on-surface">Marcus Vance</span>
+<div class="flex items-center gap-3 text-sm font-label text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">calendar_today</span> 02 Nov</span>
+<span class="w-1 h-1 rounded-full bg-surface-dim"></span>
+<span>Consulta Médica</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 font-label text-sm font-medium text-error hover:bg-error/10 transition-colors rounded-lg border border-transparent hover:border-error/20">Rejeitar</button>
+<button class="px-4 py-2 font-label text-sm font-medium text-surface bg-inverse-surface hover:bg-on-surface transition-colors rounded-lg denim-grain">Aprovar</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Column: Permutas Pendentes -->
+<section class="flex flex-col gap-6">
+<div class="flex items-baseline justify-between border-b-2 border-surface-variant pb-4">
+<h3 class="text-2xl font-headline font-bold text-on-surface tracking-tight">Permutas Pendentes</h3>
+<span class="text-sm font-label text-primary font-medium hover:underline cursor-pointer">Ver todas</span>
+</div>
+<div class="flex flex-col gap-6">
+<!-- Row 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all hover:shadow-[0_20px_40px_rgba(28,27,27,0.06)] relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-primary transition-colors"></div>
+<div class="flex flex-col gap-1">
+<span class="font-headline font-semibold text-lg text-on-surface">Elena Rossi</span>
+<div class="flex items-center gap-3 text-sm font-label text-on-surface-variant bg-surface-container-low px-3 py-1.5 rounded-lg w-fit mt-1">
+<span class="font-medium">24 Oct</span>
+<span class="material-symbols-outlined text-[16px] text-primary">sync_alt</span>
+<span class="font-medium">25 Oct</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 font-label text-sm font-medium text-error hover:bg-error/10 transition-colors rounded-lg border border-transparent hover:border-error/20">Rejeitar</button>
+<button class="px-4 py-2 font-label text-sm font-medium text-surface bg-inverse-surface hover:bg-on-surface transition-colors rounded-lg denim-grain">Aprovar</button>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="bg-surface p-6 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all hover:bg-surface-container-lowest relative overflow-hidden group border border-outline-variant/15">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-primary transition-colors"></div>
+<div class="flex flex-col gap-1">
+<span class="font-headline font-semibold text-lg text-on-surface">David Chen</span>
+<div class="flex items-center gap-3 text-sm font-label text-on-surface-variant bg-surface-container-low px-3 py-1.5 rounded-lg w-fit mt-1">
+<span class="font-medium">10 Nov</span>
+<span class="material-symbols-outlined text-[16px] text-primary">sync_alt</span>
+<span class="font-medium">12 Nov</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 font-label text-sm font-medium text-error hover:bg-error/10 transition-colors rounded-lg border border-transparent hover:border-error/20">Rejeitar</button>
+<button class="px-4 py-2 font-label text-sm font-medium text-surface bg-inverse-surface hover:bg-on-surface transition-colors rounded-lg denim-grain">Aprovar</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "success-emerald": "#059669",
+                        "tertiary": "#4e4d4d",
+                        "inverse-primary": "#ffb3af",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "outline": "#906f6d",
+                        "on-background": "#1c1b1b",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "background": "#fdf8f8",
+                        "on-primary-fixed-variant": "#930017",
+                        "surface-container-high": "#ece7e7",
+                        "on-surface-variant": "#5c403e",
+                        "on-primary-fixed": "#410005",
+                        "surface-bright": "#fdf8f8",
+                        "primary-fixed": "#ffdad7",
+                        "outline-variant": "#e5bdba",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-variant": "#e6e1e1",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "primary-container": "#c91428",
+                        "tertiary-fixed": "#e5e2e1",
+                        "inverse-on-surface": "#f4f0ef",
+                        "secondary": "#5f5e5e",
+                        "primary-fixed-dim": "#ffb3af",
+                        "on-secondary-fixed": "#1c1b1c",
+                        "on-tertiary-container": "#e6e3e2",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#bf0522",
+                        "inverse-surface": "#313030",
+                        "tertiary-container": "#666565",
+                        "surface-container": "#f1edec",
+                        "surface-container-highest": "#e6e1e1",
+                        "secondary-container": "#e2dfdf",
+                        "on-primary-container": "#ffdcd9",
+                        "secondary-fixed": "#e5e2e1",
+                        "primary": "#9f001a",
+                        "on-secondary-container": "#636262",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f7f2f2",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#c8c6c6",
+                        "surface-dim": "#ddd9d8",
+                        "warning-amber": "#D97706",
+                        "surface": "#FCF9F8",
+                        "on-secondary-fixed-variant": "#474647",
+                        "on-surface": "#1c1b1b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sidebar-width": "16rem",
+                        "card-padding": "2rem",
+                        "stack-lg": "4rem",
+                        "gutter": "2.5rem",
+                        "stack-sm": "1rem",
+                        "stack-md": "1.5rem",
+                        "header-height": "5rem",
+                        "container-max": "80rem"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Manrope"],
+                        "label-bold": ["Manrope"],
+                        "display-lg": ["Space Grotesk"],
+                        "body-md": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "headline-sm": ["Space Grotesk"],
+                        "headline-md": ["Space Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-bold": ["14px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "label-caps": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-sm": ["18px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "1.2", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-overlay {
+            background: rgba(252, 249, 248, 0.8);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased">
+<!-- Screen Mockup (Profile Background) -->
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="docked fixed left-0 top-0 h-full w-sidebar-width bg-inverse-surface flex flex-col py-stack-md shadow-[rgba(28,27,27,0.06)_4px_0px_12px_0px] z-10">
+<div class="px-6 mb-stack-lg">
+<h1 class="font-display-lg text-headline-md font-bold text-on-primary">Staff Portal</h1>
+<p class="text-on-tertiary-container/60 font-body-md">Levi's Official</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<div class="flex items-center gap-3 px-4 py-3 text-on-tertiary-container/60 hover:text-on-tertiary-container transition-colors cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-bold">Painel</span>
+</div>
+<!-- Profile is Active -->
+<div class="flex items-center gap-3 px-4 py-3 text-primary font-bold border-r-4 border-primary bg-primary/10 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-bold">Perfil</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-on-tertiary-container/60 hover:text-on-tertiary-container transition-colors cursor-pointer">
+<span class="material-symbols-outlined">schedule</span>
+<span class="font-label-bold">Horários</span>
+</div>
+</nav>
+<div class="px-4 mt-auto border-t border-white/10 pt-4">
+<div class="flex items-center gap-3 px-4 py-3 text-on-tertiary-container/60 hover:text-on-tertiary-container transition-colors cursor-pointer">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-bold">Sair</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-sidebar-width">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-header-height bg-surface/80 backdrop-blur-md border-b border-surface-variant flex justify-between items-center px-gutter z-20">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-secondary">search</span>
+<span class="text-secondary">Pesquisar...</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-secondary cursor-pointer">notifications</span>
+<span class="material-symbols-outlined text-secondary cursor-pointer">chat_bubble</span>
+</div>
+<div class="h-10 w-10 rounded-full bg-surface-container-high border border-outline-variant overflow-hidden">
+<img alt="Avatar" data-alt="A professional portrait of a male administrative staff member for a high-end fashion brand, wearing a crisp denim shirt. The lighting is soft and natural, emphasizing a bright, trustworthy aesthetic. The background is a blurred high-end retail environment with warm wood and industrial metal accents, maintaining a clean and modern professional look." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACuWwAPRA0y2woBY30H4GD5Qjgda-8UsPjuib5Retc4wCjuEvqB8CwBP_4_H2sKLvGoQpOWeR2PszLn-dO5SzuZDBeKUZttseWbbYjTm0KmLcPOLcz1kXCXlWuAxy-aZsEnLXPGhUc66r04T6gewojSFvr_gcT8_QEC5hT3ZXaiqmlAqOfnnFNxC6E0d2oDZXF4zD7yCQGGNZlvV7Wet8oLeKPyxgYq5jDhbi2GNEhfOsZgXK2lpIxwAnkZa3atFQb8FQdCgKkho"/>
+</div>
+</div>
+</header>
+<!-- Profile Content (Blurred in background) -->
+<div class="pt-24 px-gutter max-w-container-max mx-auto pb-12">
+<div class="flex justify-between items-end mb-stack-lg">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-background mb-2">O Meu Perfil</h2>
+<nav class="flex gap-6 border-b border-surface-variant">
+<span class="pb-3 border-b-2 border-primary text-primary font-bold">Informação Geral</span>
+<span class="pb-3 text-secondary hover:text-primary transition-colors cursor-pointer">Documentos</span>
+<span class="pb-3 text-secondary hover:text-primary transition-colors cursor-pointer">Segurança</span>
+</nav>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-stack-md">
+<div class="col-span-1 bg-surface-container-lowest border border-surface-variant p-card-padding rounded-lg shadow-[rgba(28,27,27,0.03)_0px_4px_12px_0px]">
+<div class="aspect-square bg-surface-container w-32 h-32 rounded-full mx-auto mb-6 flex items-center justify-center">
+<span class="material-symbols-outlined text-outline text-5xl">person</span>
+</div>
+<h3 class="text-center font-headline-sm text-headline-sm mb-1">Ricardo Oliveira</h3>
+<p class="text-center text-secondary text-body-md mb-6">Store Manager - Lisboa</p>
+<div class="space-y-4 pt-4 border-t border-surface-variant">
+<div class="flex justify-between">
+<span class="text-secondary">Funcionário ID</span>
+<span class="font-label-bold">#LEV-9284</span>
+</div>
+</div>
+</div>
+<div class="col-span-2 space-y-stack-md">
+<div class="bg-surface-container-lowest border border-surface-variant p-card-padding rounded-lg shadow-[rgba(28,27,27,0.03)_0px_4px_12px_0px]">
+<h4 class="font-headline-sm text-headline-sm mb-6 uppercase tracking-wider text-outline text-xs">Dados de Contacto</h4>
+<div class="grid grid-cols-2 gap-8">
+<div>
+<label class="block text-label-caps text-secondary mb-2">EMAIL CORPORATIVO</label>
+<p class="font-body-lg text-body-lg">r.oliveira@levis.com</p>
+</div>
+<div>
+<label class="block text-label-caps text-secondary mb-2">TELEMÓVEL</label>
+<div class="flex items-center justify-between">
+<p class="font-body-lg text-body-lg">+351 912 345 678</p>
+<button class="text-primary font-label-bold hover:underline">Alterar</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- MODAL OVERLAY -->
+<div class="fixed inset-0 z-50 flex items-center justify-center glass-overlay" id="edit-phone-modal">
+<!-- Modal Card -->
+<div class="bg-surface-container-lowest border border-surface-variant w-full max-w-md mx-4 rounded-xl shadow-2xl overflow-hidden transform transition-all animate-in fade-in zoom-in duration-300">
+<div class="p-card-padding text-center">
+<!-- Icon Header -->
+<div class="mx-auto w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">smartphone</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-background mb-8">Editar Telemóvel</h2>
+<!-- Fields Wrapper -->
+<div class="text-left space-y-8 mb-10">
+<!-- Current Number (Read Only) -->
+<div class="relative">
+<label class="block text-label-caps text-secondary mb-3 font-bold">NÚMERO ATUAL</label>
+<div class="flex items-center justify-between border-b-2 border-surface-variant bg-surface-container-low px-4 py-3 rounded-t">
+<span class="text-body-lg font-body-lg text-tertiary">+351 912 345 678</span>
+<span class="material-symbols-outlined text-outline text-sm">lock</span>
+</div>
+</div>
+<!-- New Number Input -->
+<div>
+<label class="block text-label-caps text-secondary mb-3 font-bold">NOVO NÚMERO</label>
+<div class="group border-b-2 border-outline focus-within:border-primary transition-all duration-300">
+<input class="w-full bg-transparent border-none px-4 py-3 text-body-lg focus:ring-0 placeholder:text-outline-variant text-on-background" placeholder="insira o novo número de telemóvel" type="text"/>
+</div>
+<p class="mt-3 text-label-caps text-secondary opacity-70 flex items-start gap-2">
+<span class="material-symbols-outlined text-[14px]">info</span>
+                            Certifique-se de que o número inclui o prefixo internacional (ex: +351)
+                        </p>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row gap-4">
+<button class="flex-1 px-6 py-4 font-label-bold text-secondary border border-outline hover:bg-surface-container-low transition-colors duration-200" onclick="closeModal()">
+                        CANCELAR
+                    </button>
+<button class="flex-1 px-6 py-4 font-label-bold text-on-primary bg-primary-container hover:bg-primary transition-all duration-200 shadow-md active:scale-95">
+                        ALTERAR
+                    </button>
+</div>
+</div>
+<!-- Subtle Industrial Branding Element -->
+<div class="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent opacity-20"></div>
+</div>
+</div>
+<script>
+        function closeModal() {
+            const modal = document.getElementById('edit-phone-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        // Add a small interaction to show active focus state
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('border-primary');
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('border-primary');
+            });
+        });
+    </script>
+</body></html>

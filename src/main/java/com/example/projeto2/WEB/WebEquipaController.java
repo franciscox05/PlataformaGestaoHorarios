@@ -300,7 +300,7 @@ public class WebEquipaController {
                             item.getId(),
                             item.getNome(),
                             item.getEmail(),
-                            item.getEstado(),
+                            item.getEstado() != null ? item.getEstado().name() : null,
                             cargoAtual,
                             daMinhaLoja
                     );

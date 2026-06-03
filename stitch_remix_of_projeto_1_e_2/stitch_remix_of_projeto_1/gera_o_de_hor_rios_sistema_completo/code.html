@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Levi's Staff - Geração de Horários</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&amp;family=Manrope:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "denim-texture-opacity": "rgba(28, 27, 27, 0.1)",
+                      "on-tertiary-fixed-variant": "#474746",
+                      "on-surface-variant": "#5c403e",
+                      "outline": "#906f6d",
+                      "success-emerald": "#059669",
+                      "outline-variant": "#e5bdba",
+                      "tertiary-fixed": "#e5e2e1",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary-container": "#e6e3e2",
+                      "inverse-surface": "#313030",
+                      "secondary-fixed": "#e5e2e1",
+                      "on-background": "#1c1b1b",
+                      "primary": "#9f001a",
+                      "surface-container-high": "#ece7e7",
+                      "tertiary": "#4e4d4d",
+                      "surface-variant": "#e6e1e1",
+                      "on-tertiary-fixed": "#1c1b1b",
+                      "tertiary-fixed-dim": "#c8c6c5",
+                      "on-error": "#ffffff",
+                      "background": "#fdf8f8",
+                      "primary-container": "#c91428",
+                      "warning-amber": "#D97706",
+                      "surface": "#FCF9F8",
+                      "on-primary-fixed": "#410005",
+                      "on-error-container": "#93000a",
+                      "primary-fixed": "#ffdad7",
+                      "on-secondary-container": "#636262",
+                      "secondary": "#5f5e5e",
+                      "tertiary-container": "#666565",
+                      "surface-tint": "#bf0522",
+                      "secondary-fixed-dim": "#c8c6c6",
+                      "on-tertiary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "secondary-container": "#e2dfdf",
+                      "on-secondary-fixed": "#1c1b1c",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-on-surface": "#f4f0ef",
+                      "surface-container-low": "#f7f2f2",
+                      "on-primary-container": "#ffdcd9",
+                      "surface-container": "#f1edec",
+                      "surface-bright": "#fdf8f8",
+                      "inverse-primary": "#ffb3af",
+                      "surface-dim": "#ddd9d8",
+                      "surface-container-highest": "#e6e1e1",
+                      "on-surface": "#1c1b1b",
+                      "primary-fixed-dim": "#ffb3af",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed-variant": "#930017",
+                      "on-secondary-fixed-variant": "#474647",
+                      "error-container": "#ffdad6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "stack-sm": "1rem",
+                      "gutter": "2.5rem",
+                      "stack-md": "1.5rem",
+                      "card-padding": "2rem",
+                      "header-height": "5rem",
+                      "stack-lg": "4rem",
+                      "sidebar-width": "16rem",
+                      "container-max": "80rem"
+              },
+              "fontFamily": {
+                      "headline-sm": [
+                              "Space Grotesk"
+                      ],
+                      "headline-md": [
+                              "Space Grotesk"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "label-caps": [
+                              "Manrope"
+                      ],
+                      "label-bold": [
+                              "Manrope"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "display-lg-mobile": [
+                              "Space Grotesk"
+                      ],
+                      "display-lg": [
+                              "Space Grotesk"
+                      ]
+              },
+              "fontSize": {
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-bold": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg-mobile": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .glass-panel {
+            background: rgba(252, 249, 248, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .bento-card {
+            background-color: theme('colors.surface-container-lowest');
+            box-shadow: rgba(28, 27, 27, 0.03) 0px 4px 12px;
+            border: 1px solid theme('colors.surface-variant');
+            border-radius: 14px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased flex min-h-screen">
+<!-- SIDEBAR NAVIGATION -->
+<nav class="fixed left-0 top-0 h-screen w-sidebar-width bg-inverse-surface dark:bg-on-surface text-primary dark:text-primary-fixed-dim shadow-[rgba(28,27,27,0.06)_4px_0_12px] shadow-lg flex flex-col h-full py-stack-md px-4 z-50 hidden md:flex">
+<!-- Brand / Header -->
+<div class="mb-stack-lg px-2 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold overflow-hidden">
+<img alt="Levi's Logo" class="w-full h-full object-cover" data-alt="A macro shot of a classic red Levi's tag stitched onto a piece of blue denim fabric. The texture of the denim is highly detailed, showing the intricate weave of the cotton threads. The lighting is soft and natural, emphasizing the rugged, authentic feel of the material. The bright red of the tag contrasts sharply against the deep blue background, creating a classic, industrial aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbIUNe1-N-m2cZQfPCM0kGyB2Jfkp2vYS-4DviBOQIHV2Qh1SfTAQ2Iz41nOb1TnmR-a8iLNfumBhROnfjS6bFaQHVuJTg-xCLPQyFSotAS4LreYkCODeMsEfUPPzuMsGxspLnIscwUrwJLHd8W3_rCN_EO91r-kOVv7ZKMZYxTcvS-3jhGG2ohJPCk3ACCDTBW4vcXE6xXftMMlK1hOkWPGWLZhud2rMOIoVji60IH8o_ftdqzq0N-jb50jTkp8nQexzI-48ATIs"/>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary-container tracking-tighter">Levi's Staff</h1>
+<p class="font-label-caps text-label-caps text-tertiary-fixed-dim opacity-80">Portal de Gestão</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex-1 space-y-1 overflow-y-auto">
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>Painel</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-container bg-primary-container font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">schedule</span>Horários</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">groups</span>Funcionários</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">store</span>Loja e Regras</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">shopping_cart</span>Pedidos</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person_outline</span>Perfil</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>Preferências</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">assessment</span>Relatórios</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary-fixed-dim font-label-bold hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors duration-200 scale-95 active:scale-90 transition-transform" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">verified_user</span>Auditoria</a></li>
+</ul>
+<!-- Footer / CTA -->
+<div class="mt-auto pt-stack-md border-t border-tertiary/30 space-y-3">
+<button class="w-full py-2 bg-primary-container text-on-primary-container rounded-lg font-label-bold hover:opacity-90 transition-opacity">Ajuda e Suporte</button>
+<div class="flex justify-between px-2 text-label-caps font-label-caps text-secondary-fixed-dim opacity-70">
+<a class="hover:text-on-tertiary-container flex items-center gap-1" href="#"><span class="material-symbols-outlined text-[14px]">description</span>Termos</a>
+<a class="hover:text-on-tertiary-container flex items-center gap-1" href="#"><span class="material-symbols-outlined text-[14px]">lock</span>Privacidade</a>
+</div>
+</div>
+</nav>
+<!-- MAIN CONTENT AREA -->
+<main class="flex-1 md:ml-sidebar-width w-full max-w-container-max mx-auto flex flex-col min-h-screen relative">
+<!-- TOP APP BAR -->
+<header class="sticky top-0 z-40 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md text-primary dark:text-primary-fixed-dim border-b border-outline-variant/30 shadow-sm flex justify-between items-center px-gutter h-header-height w-full">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-sm text-headline-sm font-bold text-primary">Geração de Horários</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden lg:flex gap-4 mr-4">
+<a class="text-on-surface-variant font-label-caps text-label-caps hover:text-primary transition-colors py-1" href="#">Visão Geral</a>
+<a class="text-on-surface-variant font-label-caps text-label-caps hover:text-primary transition-colors py-1" href="#">Novidades</a>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded font-label-bold hover:shadow-md transition-shadow">Novo Pedido</button>
+<button class="bg-surface-container-low text-on-surface px-4 py-2 rounded font-label-bold border border-surface-variant hover:bg-surface-container transition-colors">Suporte</button>
+<div class="flex gap-2 text-on-surface-variant">
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors"><span class="material-symbols-outlined">help_outline</span></button>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant ml-2">
+<img alt="Foto de Perfil do Utilizador" class="w-full h-full object-cover" data-alt="A professional headshot of a smiling man with a neat beard, wearing a crisp blue shirt. The background is slightly blurred, focusing entirely on his approachable expression. The lighting is bright and evenly distributed, creating a clean, modern corporate aesthetic suitable for a staff portal profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABM00qgOIe2rYV7ED2bSqlvN7EQosbBRYItXtufDLWMxECIbqQlX5l8HhprIaU4_yrV8nzMPHzgIPr2TvACpOBSeDzqUNLy6mp_CxDYAXqrctgNRMvKSSkSq8Z43D-FzgcwGEzheOAOI2NBD8GgrIUkFFqU6fXcrBdstgwOScCs32Qp3AjUcfgCSxeZDE51PInSG8xVtmUmrNiHna0IZfrWthTXnXMeZD7aED5xkC6vIKB2E9EkTqHakpV5Iyg8GMLr7S-uNSaqDk"/>
+</div>
+</div>
+</header>
+<!-- DASHBOARD WORKSPACE -->
+<div class="p-gutter space-y-stack-md flex-1">
+<!-- Breadcrumbs -->
+<nav aria-label="Breadcrumb" class="flex text-label-caps font-label-caps text-secondary">
+<ol class="inline-flex items-center space-x-1 md:space-x-2">
+<li class="inline-flex items-center">
+<a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-[14px]">dashboard</span>
+                    Painel
+                  </a>
+</li>
+<li>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-[14px] mx-1">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">Horários</a>
+</div>
+</li>
+<li aria-current="page">
+<div class="flex items-center">
+<span class="material-symbols-outlined text-[14px] mx-1">chevron_right</span>
+<span class="text-on-surface">Geração de Horários</span>
+</div>
+</li>
+</ol>
+</nav>
+<!-- BENTO GRID LAYOUT -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-stack-md">
+<!-- LEFT COLUMN: Control Panel (1/3) -->
+<div class="lg:col-span-1 space-y-stack-md">
+<div class="bento-card p-card-padding">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm border-b border-surface-variant pb-2">Parâmetros do Motor AI</h3>
+<div class="space-y-4">
+<!-- Period Selection -->
+<div class="grid grid-cols-2 gap-2">
+<div>
+<label class="block font-label-caps text-label-caps text-secondary mb-1">Mês</label>
+<select class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-body-md rounded-t-DEFAULT">
+<option>Novembro</option>
+<option selected="">Dezembro</option>
+<option>Janeiro</option>
+</select>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-secondary mb-1">Ano</label>
+<select class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-body-md rounded-t-DEFAULT">
+<option>2023</option>
+<option selected="">2024</option>
+</select>
+</div>
+</div>
+<!-- Alternatives -->
+<div>
+<label class="block font-label-caps text-label-caps text-secondary mb-1">Nº de Alternativas a Gerar</label>
+<input class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-body-md rounded-t-DEFAULT" max="5" min="1" type="number" value="3"/>
+</div>
+<!-- Constraints Toggles -->
+<div class="pt-2 space-y-3">
+<label class="block font-label-caps text-label-caps text-secondary">Restrições Ativas</label>
+<label class="flex items-center justify-between cursor-pointer group">
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Respeitar Folgas Fixas</span>
+<div class="relative">
+<input checked="" class="sr-only" type="checkbox"/>
+<div class="block bg-primary-container w-10 h-6 rounded-full transition-colors"></div>
+<div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform translate-x-4"></div>
+</div>
+</label>
+<label class="flex items-center justify-between cursor-pointer group">
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Evitar Fecho -&gt; Abertura</span>
+<div class="relative">
+<input checked="" class="sr-only" type="checkbox"/>
+<div class="block bg-primary-container w-10 h-6 rounded-full transition-colors"></div>
+<div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform translate-x-4"></div>
+</div>
+</label>
+<label class="flex items-center justify-between cursor-pointer group">
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Equilibrar Fins-de-Semana</span>
+<div class="relative">
+<input class="sr-only" type="checkbox"/>
+<div class="block bg-gray-300 w-10 h-6 rounded-full transition-colors"></div>
+<div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></div>
+</div>
+</label>
+</div>
+</div>
+</div>
+<!-- Employee Selection -->
+<div class="bento-card p-card-padding flex flex-col h-[400px]">
+<div class="flex justify-between items-center mb-stack-sm border-b border-surface-variant pb-2">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Colaboradores</h3>
+<span class="font-label-caps text-label-caps text-primary bg-primary-fixed py-1 px-2 rounded">12/12</span>
+</div>
+<div class="mb-3">
+<input class="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-body-md rounded-t-DEFAULT pl-8 bg-[url('data:image/svg+xml;utf8,&lt;svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23906f6d\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'&gt;&lt;circle cx=\'11\' cy=\'11\' r=\'8\'&gt;&lt;/circle&gt;&lt;line x1=\'21\' y1=\'21\' x2=\'16.65\' y2=\'16.65\'&gt;&lt;/line&gt;&lt;/svg&gt;')] bg-no-repeat bg-[center_left_0.5rem]" placeholder="Pesquisar..." type="text"/>
+</div>
+<div class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+<!-- Employee List Items -->
+<label class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded cursor-pointer transition-colors">
+<input checked="" class="form-checkbox text-primary border-outline-variant rounded" type="checkbox"/>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden">
+<img alt="Ana Silva" class="w-full h-full object-cover" data-alt="A portrait of a confident female retail manager in a denim jacket, smiling softly. Warm, bright indoor lighting. High quality corporate style headshot." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHE_5EA4DgEd4oox9FoXaYdht3gy_J1cjlQE5erhzN1O8ZMC2ibcas3NsYWScqipTL7VnmkHbB1nl7s0S7-G5dDGBImkhIMwP3bdu0tVtc0EykMXxxgHxobRY6d-EYGbxAPkqZxAzJFXZo86taWPoOx8_X3Ky0KH8jrQoyTDicAXxFs8H8wyEtkFNE5P284wJjvqo_Pm3quEKQ_5nFA7_xENlXz86nWlJY-6qRAYtgICuua9Sfoo5V5StpuP6EGag3UxzCSUqXkA8"/>
+</div>
+<div>
+<p class="font-label-bold text-label-bold text-on-surface">Ana Silva</p>
+<p class="font-label-caps text-[10px] text-secondary">Store Manager</p>
+</div>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded cursor-pointer transition-colors">
+<input checked="" class="form-checkbox text-primary border-outline-variant rounded" type="checkbox"/>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden">
+<img alt="Carlos Mendes" class="w-full h-full object-cover" data-alt="A casual portrait of a young male retail assistant with short hair, wearing a white t-shirt. Clean, well-lit background. Professional staff photo style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuDyWycTbvkKNkVCN7EE_iDQ6UUoBoALppIBgMWwC43XpVErd-iKkf99C8ZxBDoidzjhr8fvrq7hGRabb2YCBn8UVyNbKui5YbEbUKf22bKHbeSwRKo4snQxSIcITWzroezkxoL1UypkLR1E8HW7u2w4tetg84_OpFGKIXcEMIKn47Zo-YAk3MZGE-8S5MukuGhgdKoy8q_BEZvvyhxg_bvAyrqpgm_95q5-raXq0dfeAy7UqAeW365CdlyD_atwvONfX_DXfbex4"/>
+</div>
+<div>
+<p class="font-label-bold text-label-bold text-on-surface">Carlos Mendes</p>
+<p class="font-label-caps text-[10px] text-secondary">Sales Assistant</p>
+</div>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded cursor-pointer transition-colors">
+<input checked="" class="form-checkbox text-primary border-outline-variant rounded" type="checkbox"/>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant font-label-bold">
+                                    BM
+                                </div>
+<div>
+<p class="font-label-bold text-label-bold text-on-surface">Beatriz Martins</p>
+<p class="font-label-caps text-[10px] text-secondary">Sales Assistant</p>
+</div>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded cursor-pointer transition-colors">
+<input checked="" class="form-checkbox text-primary border-outline-variant rounded" type="checkbox"/>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden">
+<img alt="Diana Costa" class="w-full h-full object-cover" data-alt="A portrait of a young female staff member with long brown hair, looking friendly and approachable. Soft natural lighting, simple grey background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIDTlFEiLSuBHMYRRb9u3wKByByOciBiKmrPE7vkcnuVeWx_CGdKZwwGaeKiSEwb9icncUXUD6MxasKEdaPfxoLbvZKFZdHSwf6haAkAP3xcaRBRbv9DaN9oZbokCCtkgb8QHfBZf5965b984_haLvxazlyZtK0Ur9mLcShciOLlPNI3iZzPfc_psObDIMuBLBQmWU4GOJzhgWs4nKytMx8z9l9LFuhzUOaz2C8QygJvcz8rZRVsjLHMB0uTlmexKfC7Dxfe1TyI4"/>
+</div>
+<div>
+<p class="font-label-bold text-label-bold text-on-surface">Diana Costa</p>
+<p class="font-label-caps text-[10px] text-secondary">Visual Merchandiser</p>
+</div>
+</label>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: Main Content (2/3) -->
+<div class="lg:col-span-2 space-y-stack-md flex flex-col">
+<!-- Primary Actions Row -->
+<div class="flex flex-wrap gap-3 justify-end">
+<button class="px-4 py-2 bg-surface border border-outline text-on-surface font-label-bold rounded hover:border-primary hover:text-primary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                            Ver Planeamento Atual
+                        </button>
+<button class="px-4 py-2 bg-inverse-surface text-on-secondary font-label-bold rounded hover:bg-tertiary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">library_add</span>
+                            Gerar Lote de 3
+                        </button>
+<button class="px-6 py-2 bg-primary text-on-primary font-label-bold rounded hover:shadow-lg hover:opacity-95 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                            Gerar Nova Alternativa
+                        </button>
+</div>
+<!-- Alternatives Table -->
+<div class="bento-card overflow-hidden flex-shrink-0">
+<div class="p-4 border-b border-surface-variant bg-surface-container-lowest">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Alternativas Geradas (Dezembro 2024)</h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low font-label-caps text-label-caps text-secondary border-b border-surface-variant">
+<tr>
+<th class="p-4 font-semibold">ID</th>
+<th class="p-4 font-semibold">Data/Hora</th>
+<th class="p-4 font-semibold">Status</th>
+<th class="p-4 font-semibold">Score Qualidade</th>
+<th class="p-4 font-semibold text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant text-body-md bg-surface-container-lowest">
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer bg-primary-fixed/10">
+<td class="p-4 font-label-bold text-primary">ALT-892</td>
+<td class="p-4 text-on-surface">Hoje, 14:30</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-warning-amber/10 text-warning-amber">
+                                                Rascunho
+                                            </span>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="w-full bg-surface-variant rounded-full h-2 max-w-[100px]">
+<div class="bg-success-emerald h-2 rounded-full" style="width: 92%"></div>
+</div>
+<span class="font-label-bold text-success-emerald">92%</span>
+</div>
+</td>
+<td class="p-4 text-right">
+<button class="text-primary hover:bg-primary-container/20 p-1 rounded transition-colors"><span class="material-symbols-outlined">compare_arrows</span></button>
+<button class="text-secondary hover:bg-surface-variant p-1 rounded transition-colors"><span class="material-symbols-outlined">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer">
+<td class="p-4 font-label-bold text-on-surface">ALT-891</td>
+<td class="p-4 text-on-surface">Hoje, 14:28</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-success-emerald/10 text-success-emerald">
+                                                Pronto
+                                            </span>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="w-full bg-surface-variant rounded-full h-2 max-w-[100px]">
+<div class="bg-primary h-2 rounded-full" style="width: 78%"></div>
+</div>
+<span class="font-label-bold text-primary">78%</span>
+</div>
+</td>
+<td class="p-4 text-right">
+<button class="text-secondary hover:bg-surface-variant p-1 rounded transition-colors"><span class="material-symbols-outlined">compare_arrows</span></button>
+<button class="text-secondary hover:bg-surface-variant p-1 rounded transition-colors"><span class="material-symbols-outlined">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors cursor-pointer">
+<td class="p-4 font-label-bold text-on-surface">ALT-885</td>
+<td class="p-4 text-on-surface">Ontem, 09:15</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tertiary/10 text-tertiary">
+                                                Enviado
+                                            </span>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="w-full bg-surface-variant rounded-full h-2 max-w-[100px]">
+<div class="bg-success-emerald h-2 rounded-full" style="width: 85%"></div>
+</div>
+<span class="font-label-bold text-success-emerald">85%</span>
+</div>
+</td>
+<td class="p-4 text-right">
+<button class="text-secondary hover:bg-surface-variant p-1 rounded transition-colors"><span class="material-symbols-outlined">compare_arrows</span></button>
+<button class="text-secondary hover:bg-surface-variant p-1 rounded transition-colors"><span class="material-symbols-outlined">more_vert</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Comparison & Details View (ALT-892) -->
+<div class="bento-card p-card-padding flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-6">
+<div>
+<div class="flex items-center gap-3 mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface">Detalhes: ALT-892</h3>
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary">
+                                        Melhor Opção
+                                    </span>
+</div>
+<p class="text-secondary font-body-md">Comparação com o planeamento base revela melhoria na cobertura de fecho.</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 border border-outline rounded text-on-surface-variant hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">file_download</span></button>
+<button class="p-2 border border-outline rounded text-on-surface-variant hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">print</span></button>
+</div>
+</div>
+<!-- Mini Calendar/Coverage Preview -->
+<div class="grid grid-cols-7 gap-1 mb-6">
+<!-- Days Header -->
+<div class="text-center font-label-caps text-label-caps text-secondary py-1">SEG</div>
+<div class="text-center font-label-caps text-label-caps text-secondary py-1">TER</div>
+<div class="text-center font-label-caps text-label-caps text-secondary py-1">QUA</div>
+<div class="text-center font-label-caps text-label-caps text-secondary py-1">QUI</div>
+<div class="text-center font-label-caps text-label-caps text-secondary py-1">SEX</div>
+<div class="text-center font-label-caps text-label-caps text-primary py-1">SÁB</div>
+<div class="text-center font-label-caps text-label-caps text-primary py-1">DOM</div>
+<!-- Sample Week Data -->
+<div class="bg-surface-container-low p-2 rounded text-center border border-transparent hover:border-outline-variant cursor-pointer">
+<span class="block text-body-md text-on-surface">1</span>
+<span class="block text-[10px] text-success-emerald font-bold mt-1">10/10 Col.</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded text-center border border-transparent hover:border-outline-variant cursor-pointer">
+<span class="block text-body-md text-on-surface">2</span>
+<span class="block text-[10px] text-success-emerald font-bold mt-1">9/9 Col.</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded text-center border border-transparent hover:border-outline-variant cursor-pointer">
+<span class="block text-body-md text-on-surface">3</span>
+<span class="block text-[10px] text-success-emerald font-bold mt-1">9/9 Col.</span>
+</div>
+<div class="bg-primary-fixed/20 p-2 rounded text-center border border-primary-fixed hover:border-primary cursor-pointer relative">
+<span class="absolute top-1 right-1 w-2 h-2 bg-warning-amber rounded-full"></span>
+<span class="block text-body-md text-on-surface font-bold">4</span>
+<span class="block text-[10px] text-warning-amber font-bold mt-1">8/9 Col.</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded text-center border border-transparent hover:border-outline-variant cursor-pointer">
+<span class="block text-body-md text-on-surface">5</span>
+<span class="block text-[10px] text-success-emerald font-bold mt-1">11/11 Col.</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded text-center border border-transparent hover:border-outline-variant cursor-pointer">
+<span class="block text-body-md text-on-surface">6</span>
+<span class="block text-[10px] text-success-emerald font-bold mt-1">12/12 Col.</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded text-center border border-transparent hover:border-outline-variant cursor-pointer">
+<span class="block text-body-md text-on-surface">7</span>
+<span class="block text-[10px] text-success-emerald font-bold mt-1">12/12 Col.</span>
+</div>
+</div>
+<!-- Validation Section -->
+<div class="mt-auto pt-6 border-t border-surface-variant bg-surface-bright rounded-b-lg -mx-card-padding -mb-card-padding p-card-padding">
+<h4 class="font-label-bold text-label-bold text-on-surface mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+                                Validação para Supervisor
+                            </h4>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded p-3 text-body-md mb-4 resize-none" placeholder="Adicione observações sobre esta alternativa (ex: 'Dia 4 tem falta de pessoal na abertura')..." rows="3"></textarea>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning-amber opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-warning-amber"></span>
+</span>
+<span class="font-label-caps text-label-caps text-warning-amber">Revisão Pendente</span>
+</div>
+<button class="px-6 py-2 bg-primary text-on-primary font-label-bold rounded hover:bg-surface-tint transition-colors flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">send</span>
+                                    Enviar ao Supervisor
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Custom Scrollbar Style for the Employee List -->
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: theme('colors.surface-variant');
+            border-radius: 20px;
+        }
+    </style>
+</body></html>

@@ -1,5 +1,6 @@
 package com.example.projeto2.BLL;
 
+import com.example.projeto2.Enums.EstadoPermuta;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Lojautilizador;
 import com.example.projeto2.Modules.Permuta;
@@ -39,7 +40,7 @@ public class PermutaBLL {
         Permuta novaPermuta = new Permuta();
         novaPermuta.setIdHorarioOrigem(meuTurno);
         novaPermuta.setIdHorarioDestino(turnoColega);
-        novaPermuta.setEstado("pendente");
+        novaPermuta.setEstado(EstadoPermuta.pendente);
         novaPermuta.setDataPedido(Instant.now());
 
         return permutaRepository.save(novaPermuta);
@@ -91,14 +92,14 @@ public class PermutaBLL {
         horarioRepository.save(horarioOrigem);
         horarioRepository.save(horarioDestino);
 
-        pedido.setEstado("aprovada");
+        pedido.setEstado(EstadoPermuta.aprovado);
         Permuta pedidoAprovado = permutaRepository.save(pedido);
 
         List<Permuta> conflitos = permutaRepository.findPedidosPendentesConflitantes(
                 pedido.getId(),
                 Set.of(horarioOrigem.getId(), horarioDestino.getId())
         );
-        conflitos.forEach(conflicto -> conflicto.setEstado("rejeitada"));
+        conflitos.forEach(conflicto -> conflicto.setEstado(EstadoPermuta.rejeitado));
         permutaRepository.saveAll(conflitos);
 
         return pedidoAprovado;
@@ -107,7 +108,7 @@ public class PermutaBLL {
     @Transactional
     public Permuta rejeitarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador) {
         Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador);
-        pedido.setEstado("rejeitada");
+        pedido.setEstado(EstadoPermuta.rejeitado);
         return permutaRepository.save(pedido);
     }
 
@@ -194,7 +195,7 @@ public class PermutaBLL {
         Permuta pedido = permutaRepository.findDetalhadaById(idPermuta)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido de permuta nao encontrado."));
 
-        if (!"pendente".equalsIgnoreCase(pedido.getEstado())) {
+        if (pedido.getEstado() != EstadoPermuta.pendente) {
             throw new IllegalArgumentException("Este pedido de permuta ja foi tratado.");
         }
 
