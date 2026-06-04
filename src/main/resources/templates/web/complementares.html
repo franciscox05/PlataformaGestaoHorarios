@@ -121,7 +121,7 @@
             </form>
         </section>
 
-        <!-- Permuta -->
+        <!-- Permuta — formulário premium dinâmico -->
         <section class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
@@ -129,59 +129,80 @@
                     <span class="material-symbols-outlined text-primary-container text-[18px]">swap_horiz</span>
                 </span>
                 <h2 class="font-display font-bold text-[15px] text-on-surface">Trocar turno</h2>
+                <span id="perm-badge-loading"
+                      class="ml-auto hidden inline-flex items-center gap-1 font-body text-[10px] text-on-surface-variant">
+                    <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>A carregar…
+                </span>
             </div>
+
             <div class="p-5 flex flex-col gap-4 flex-1">
-                <!-- Passo 1 -->
-                <form method="get" action="/web/complementares">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">
-                            <span class="inline-flex items-center gap-1">
-                                <span class="w-4 h-4 rounded-full bg-primary-container text-white text-[9px] flex items-center justify-center font-bold">1</span>
-                                O meu turno
-                            </span>
-                        </label>
-                        <select name="origemPermuta" onchange="this.form.submit()"
-                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
-                            <option value="">Selecionar turno…</option>
-                            <option th:each="turno : ${meusTurnosPermutaveis}"
-                                    th:value="${turno.id}"
-                                    th:text="${turno.dataTurno} + ' | ' + ${turno.idTurno.horaInicio} + ' – ' + ${turno.idTurno.horaFim}"
-                                    th:selected="${origemPermutaSelecionada != null && origemPermutaSelecionada == turno.id}"></option>
-                        </select>
+
+                <!-- Passo 1: O meu turno -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-primary-container text-white text-[9px] flex items-center justify-center font-bold">1</span>
+                            O meu turno
+                        </span>
+                    </label>
+                    <select id="perm-origem"
+                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface"
+                            style="outline:none">
+                        <option value="">A carregar turnos…</option>
+                    </select>
+                </div>
+
+                <!-- Preview do turno origem -->
+                <div id="perm-preview-origem" class="hidden rounded-xl border border-primary-container/20 bg-primary-container/5 px-4 py-3 flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary-container text-[20px]">calendar_today</span>
+                    <div>
+                        <p id="perm-preview-origem-data"  class="font-body font-bold text-[13px] text-on-surface"></p>
+                        <p id="perm-preview-origem-horas" class="font-body text-[11px] text-on-surface-variant"></p>
                     </div>
-                </form>
+                    <span class="ml-auto inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full badge-warn">Meu turno</span>
+                </div>
 
                 <!-- Divisor -->
                 <div class="flex items-center gap-2">
-                    <div class="flex-1 h-px bg-outline-variant/40"></div>
-                    <span class="material-symbols-outlined text-[18px] text-on-surface-variant/40">arrow_downward</span>
-                    <div class="flex-1 h-px bg-outline-variant/40"></div>
+                    <div class="flex-1 h-px bg-outline-variant/30"></div>
+                    <span class="material-symbols-outlined text-[16px] text-on-surface-variant/40">swap_vert</span>
+                    <div class="flex-1 h-px bg-outline-variant/30"></div>
                 </div>
 
-                <!-- Passo 2 -->
-                <form method="post" action="/web/complementares/permutas" class="flex flex-col gap-4 flex-1">
-                    <input type="hidden" name="idHorarioOrigem" th:value="${origemPermutaSelecionada}">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">
-                            <span class="inline-flex items-center gap-1">
-                                <span class="w-4 h-4 rounded-full bg-primary-container text-white text-[9px] flex items-center justify-center font-bold">2</span>
-                                Turno de destino
-                            </span>
-                        </label>
-                        <select name="idHorarioDestino" required
-                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
-                            <option value="">Selecionar colega…</option>
-                            <option th:each="turno : ${turnosElegiveis}"
-                                    th:value="${turno.id}"
-                                    th:text="${turno.idLojautilizador.idUtilizador.nome} + ' | ' + ${turno.idTurno.horaInicio} + ' – ' + ${turno.idTurno.horaFim}"></option>
-                        </select>
+                <!-- Passo 2: Turno do colega -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-primary-container text-white text-[9px] flex items-center justify-center font-bold">2</span>
+                            Turno do colega
+                        </span>
+                    </label>
+                    <select id="perm-destino" disabled
+                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface disabled:opacity-50"
+                            style="outline:none">
+                        <option value="">Seleciona primeiro o teu turno…</option>
+                    </select>
+                </div>
+
+                <!-- Preview do turno destino -->
+                <div id="perm-preview-destino" class="hidden rounded-xl border border-outline-variant/25 bg-surface-container-low px-4 py-3 flex items-center gap-3">
+                    <span class="material-symbols-outlined text-on-surface-variant text-[20px]">person</span>
+                    <div>
+                        <p id="perm-preview-destino-colega" class="font-body font-bold text-[13px] text-on-surface"></p>
+                        <p id="perm-preview-destino-horas"  class="font-body text-[11px] text-on-surface-variant"></p>
                     </div>
-                    <button type="submit"
-                            class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-primary transition-colors flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-[17px]">sync_alt</span>
-                        Submeter permuta
-                    </button>
-                </form>
+                    <span class="ml-auto inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full badge-neu">Colega</span>
+                </div>
+
+                <!-- Feedback inline -->
+                <div id="perm-feedback" class="hidden rounded-xl px-4 py-3 font-body text-[13px] flex items-center gap-2"></div>
+
+                <!-- Botão submeter -->
+                <button id="perm-btn" disabled onclick="submeterPermuta()"
+                        class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-primary">
+                    <span class="material-symbols-outlined text-[17px]">sync_alt</span>
+                    Submeter pedido de permuta
+                </button>
             </div>
         </section>
     </div>
@@ -277,24 +298,42 @@
             <table class="w-full">
                 <thead class="bg-surface-container-low">
                     <tr>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Pedido</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Origem</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Destino</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Pedido em</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">O meu turno</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colega · Turno</th>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/25">
                     <tr th:if="${#lists.isEmpty(minhasPermutas)}">
-                        <td colspan="4" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem permutas registadas.</td>
+                        <td colspan="4" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[32px] block mb-2 opacity-30">swap_horiz</span>
+                            Sem permutas registadas. Usa o formulário acima para pedir a tua primeira troca de turno.
+                        </td>
                     </tr>
                     <tr th:each="item : ${minhasPermutas}" class="hover:bg-surface-container-low/50 transition-colors">
-                        <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant" th:text="${item.dataPedido}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.idHorarioOrigem.dataTurno} + ' | ' + ${item.idHorarioOrigem.idTurno.horaInicio} + ' – ' + ${item.idHorarioOrigem.idTurno.horaFim}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioDestino.idTurno.horaInicio} + ' – ' + ${item.idHorarioDestino.idTurno.horaFim}"></td>
+                        <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant"
+                            th:text="${item.dataPedido != null ? #temporals.format(item.dataPedido, 'dd/MM/yyyy HH:mm') : '–'}"></td>
                         <td class="px-6 py-3.5">
-                            <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                  th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('APROV')} ? 'badge-ok' : (${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'badge-err' : 'badge-warn')"
-                                  th:text="${item.estado}"></span>
+                            <p class="font-body font-bold text-[13px] text-on-surface"
+                               th:text="${item.idHorarioOrigem.dataTurno}"></p>
+                            <p class="font-body text-[11px] text-on-surface-variant"
+                               th:text="${item.idHorarioOrigem.idTurno.horaInicio} + ' – ' + ${item.idHorarioOrigem.idTurno.horaFim}"></p>
+                        </td>
+                        <td class="px-6 py-3.5">
+                            <p class="font-body font-bold text-[13px] text-on-surface"
+                               th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome}"></p>
+                            <p class="font-body text-[11px] text-on-surface-variant"
+                               th:text="${item.idHorarioDestino.idTurno.horaInicio} + ' – ' + ${item.idHorarioDestino.idTurno.horaFim}"></p>
+                        </td>
+                        <td class="px-6 py-3.5">
+                            <!-- Badge com cor por estado do enum EstadoPermuta -->
+                            <span class="inline-flex items-center gap-1 font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                  th:classappend="${item.estado != null and item.estado.name() == 'aprovado'}  ? 'badge-ok'   :
+                                                  (${item.estado != null and item.estado.name() == 'rejeitado'} ? 'badge-err'  :
+                                                  (${item.estado != null and item.estado.name() == 'cancelado'} ? 'badge-err'  :
+                                                  'badge-warn'))"
+                                  th:text="${item.estado != null ? item.estado.name() : 'pendente'}"></span>
                         </td>
                     </tr>
                 </tbody>
@@ -461,6 +500,156 @@ function showTab(id) {
     activeBtn.classList.add('border-primary-container','text-primary-container');
     activeBtn.classList.remove('border-transparent','text-on-surface-variant');
 }
+
+// ── Permutas – lógica dinâmica via API REST ────────────────────────────────
+(function () {
+    const selOrigem   = document.getElementById('perm-origem');
+    const selDestino  = document.getElementById('perm-destino');
+    const btn         = document.getElementById('perm-btn');
+    const badge       = document.getElementById('perm-badge-loading');
+    const feedback    = document.getElementById('perm-feedback');
+    const prevOrig    = document.getElementById('perm-preview-origem');
+    const prevOrigData = document.getElementById('perm-preview-origem-data');
+    const prevOrigHora = document.getElementById('perm-preview-origem-horas');
+    const prevDest    = document.getElementById('perm-preview-destino');
+    const prevDestColega = document.getElementById('perm-preview-destino-colega');
+    const prevDestHora   = document.getElementById('perm-preview-destino-horas');
+
+    let meusTurnos = [];
+
+    function mostrarLoading(sim) {
+        badge.classList.toggle('hidden', !sim);
+    }
+
+    function mostrarFeedback(msg, tipo) {
+        // tipo: 'ok' | 'err' | 'info'
+        feedback.classList.remove('hidden');
+        const cores = {
+            ok:   'bg-[#d1fae5] text-[#065f46]',
+            err:  'bg-error-container text-on-error-container',
+            info: 'bg-surface-container-low text-on-surface-variant'
+        };
+        feedback.className = 'rounded-xl px-4 py-3 font-body text-[13px] flex items-center gap-2 ' + (cores[tipo] || cores.info);
+        const icon = tipo === 'ok' ? 'check_circle' : (tipo === 'err' ? 'error_outline' : 'info');
+        feedback.innerHTML = `<span class="material-symbols-outlined text-[17px]">${icon}</span><span>${msg}</span>`;
+    }
+
+    function esconderFeedback() {
+        feedback.classList.add('hidden');
+    }
+
+    // Carrega "os meus turnos" ao arrancar
+    async function carregarMeusTurnos() {
+        mostrarLoading(true);
+        try {
+            const res = await fetch('/api/permutas/meus-turnos');
+            if (!res.ok) throw new Error('Sessão inválida.');
+            meusTurnos = await res.json();
+            selOrigem.innerHTML = meusTurnos.length === 0
+                ? '<option value="">Sem turnos disponíveis para permuta</option>'
+                : '<option value="">Seleciona o teu turno…</option>' +
+                  meusTurnos.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+        } catch (e) {
+            selOrigem.innerHTML = '<option value="">Erro ao carregar turnos</option>';
+            mostrarFeedback('Não foi possível carregar os teus turnos. Tenta recarregar a página.', 'err');
+        } finally {
+            mostrarLoading(false);
+        }
+    }
+
+    // Ao mudar o turno origem → carrega turnos elegíveis
+    selOrigem.addEventListener('change', async function () {
+        const id = this.value;
+        esconderFeedback();
+        prevOrig.classList.add('hidden');
+        prevDest.classList.add('hidden');
+        selDestino.innerHTML = '<option value="">A carregar…</option>';
+        selDestino.disabled = true;
+        btn.disabled = true;
+
+        if (!id) {
+            selDestino.innerHTML = '<option value="">Seleciona primeiro o teu turno…</option>';
+            return;
+        }
+
+        // Preview turno origem
+        const meu = meusTurnos.find(t => String(t.id) === id);
+        if (meu) {
+            prevOrigData.textContent  = meu.data;
+            prevOrigHora.textContent  = meu.horaInicio + ' – ' + meu.horaFim;
+            prevOrig.classList.remove('hidden');
+        }
+
+        mostrarLoading(true);
+        try {
+            const res = await fetch('/api/permutas/turnos-elegiveis?idHorarioOrigem=' + id);
+            if (!res.ok) throw new Error();
+            const turnos = await res.json();
+            selDestino.innerHTML = turnos.length === 0
+                ? '<option value="">Sem colegas elegíveis para esta data</option>'
+                : '<option value="">Seleciona o turno do colega…</option>' +
+                  turnos.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+            selDestino.disabled = false;
+            selDestino._turnos  = turnos;
+        } catch (e) {
+            selDestino.innerHTML = '<option value="">Erro ao carregar colegas</option>';
+            mostrarFeedback('Não foi possível carregar os turnos elegíveis.', 'err');
+        } finally {
+            mostrarLoading(false);
+        }
+    });
+
+    // Ao mudar turno destino → mostra preview e ativa botão
+    selDestino.addEventListener('change', function () {
+        esconderFeedback();
+        prevDest.classList.add('hidden');
+        btn.disabled = true;
+        const id = this.value;
+        if (!id) return;
+        const turnos = selDestino._turnos || [];
+        const t = turnos.find(x => String(x.id) === id);
+        if (t) {
+            prevDestColega.textContent = t.colega;
+            prevDestHora.textContent   = t.horaInicio + ' – ' + t.horaFim;
+            prevDest.classList.remove('hidden');
+        }
+        btn.disabled = false;
+    });
+
+    // Submeter pedido de permuta via API
+    window.submeterPermuta = async function () {
+        const idOrigem  = selOrigem.value;
+        const idDestino = selDestino.value;
+        if (!idOrigem || !idDestino) {
+            mostrarFeedback('Seleciona o teu turno e o turno do colega antes de submeter.', 'err');
+            return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[17px] animate-spin">sync</span> A submeter…';
+        esconderFeedback();
+        try {
+            const params = new URLSearchParams({ idHorarioOrigem: idOrigem, idHorarioDestino: idDestino });
+            const res = await fetch('/api/permutas/submeter', { method: 'POST', body: params });
+            const data = await res.json();
+            if (res.ok) {
+                mostrarFeedback(data.mensagem || 'Pedido submetido com sucesso!', 'ok');
+                // Recarrega o histórico
+                setTimeout(() => location.reload(), 1800);
+            } else {
+                mostrarFeedback(data.erro || 'Não foi possível submeter o pedido.', 'err');
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[17px]">sync_alt</span> Submeter pedido de permuta';
+            }
+        } catch (e) {
+            mostrarFeedback('Erro de rede. Verifica a ligação e tenta novamente.', 'err');
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[17px]">sync_alt</span> Submeter pedido de permuta';
+        }
+    };
+
+    // Inicializar
+    carregarMeusTurnos();
+})();
 </script>
 </body>
 </html>
