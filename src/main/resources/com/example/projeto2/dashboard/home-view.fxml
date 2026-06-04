@@ -133,6 +133,9 @@
                         </VBox>
                         <Region HBox.hgrow="ALWAYS" />
                         <Label styleClass="home-chip-ok" text="Escala publicada" />
+                        <Button onAction="#onAprovarHorarioClick"
+                                styleClass="home-chip-button"
+                                text="Aprovar Horário" />
                     </HBox>
 
                     <TableView fx:id="tabelaEquipaHoje"

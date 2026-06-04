@@ -1,5 +1,6 @@
 package com.example.projeto2.BLL;
 
+import com.example.projeto2.Enums.EstadoHorario;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Lojautilizador;
 import com.example.projeto2.Repositories.HorarioRepository;
@@ -125,6 +126,27 @@ public class HorarioBLL {
 
     private java.util.Optional<Lojautilizador> obterLigacaoAtiva(Integer idUtilizador) {
         return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
+    }
+
+    // ── Aprovar Horário ──────────────────────────────────────────────────────
+    @Transactional
+    public void aprovarHorario(Integer idHorario, Integer idUtilizadorAprovador) {
+        if (idHorario == null || idUtilizadorAprovador == null) {
+            throw new IllegalArgumentException("Id do horário e do aprovador são obrigatórios.");
+        }
+
+        Horario horario = horarioRepository.findById(idHorario)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Horário não encontrado com id: " + idHorario));
+
+        if (horario.getEstado() != EstadoHorario.pendente) {
+            throw new IllegalStateException(
+                    "Só é possível aprovar horários no estado PENDENTE. "
+                            + "Estado atual: " + horario.getEstado());
+        }
+
+        horario.setEstado(EstadoHorario.aprovado);
+        horarioRepository.save(horario);
     }
 
     public record ColaboradorLoja(Integer idUtilizador, String nome, String cargo) {

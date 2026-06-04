@@ -5,11 +5,14 @@ import com.example.projeto2.BLL.HorarioBLL;
 import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
 import com.example.projeto2.Controller.support.CalendarioMensalHelper;
 import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
+import com.example.projeto2.Controller.support.DialogosHelper;
+import com.example.projeto2.Enums.EstadoHorario;
 import com.example.projeto2.Modules.Horario;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
@@ -244,6 +247,87 @@ public class HomeController {
             dashboardNavigation.abrirRelatorios();
         }
     }
+
+    // ── Aprovar Horário ──────────────────────────────────────────────────────
+    @FXML
+    public void onAprovarHorarioClick() {
+        // 1. Obter o horário selecionado na TableView
+        Horario horarioSelecionado = tabelaEquipaHoje.getSelectionModel().getSelectedItem();
+
+        if (horarioSelecionado == null) {
+            mostrarAlerta(
+                    Alert.AlertType.WARNING,
+                    "Nenhum horário selecionado",
+                    "Seleciona um horário na tabela antes de aprovar."
+            );
+            return;
+        }
+
+        // 2. Validar se o estado atual é PENDENTE
+        if (horarioSelecionado.getEstado() != EstadoHorario.pendente) {
+            mostrarAlerta(
+                    Alert.AlertType.WARNING,
+                    "Operação inválida",
+                    "Só é possível aprovar horários no estado PENDENTE. "
+                            + "Estado atual: " + horarioSelecionado.getEstado().name().toUpperCase()
+            );
+            return;
+        }
+
+        // Confirmação antes de persistir
+        boolean confirmado = DialogosHelper.confirmarAcao(
+                obterJanela(),
+                "Aprovar horário",
+                "Confirmas a aprovação deste horário?",
+                "O estado será alterado para APROVADO e guardado na base de dados."
+        );
+        if (!confirmado) {
+            return;
+        }
+
+        // 3 + 4. Atualizar estado para APROVADO e chamar a camada BLL para guardar no PostgreSQL
+        try {
+            horarioBll.aprovarHorario(horarioSelecionado.getId(), utilizadorLogado.getId());
+
+            // 5. Alerta de sucesso
+            mostrarAlerta(
+                    Alert.AlertType.INFORMATION,
+                    "Horário aprovado",
+                    "O horário foi aprovado com sucesso."
+            );
+            carregarEquipaHoje(); // refrescar a TableView
+        } catch (IllegalStateException e) {
+            // 5. Alerta de erro de negócio (estado inválido detectado na BLL)
+            mostrarAlerta(Alert.AlertType.WARNING, "Operação inválida", e.getMessage());
+        } catch (Exception e) {
+            // 5. Alerta de erro genérico
+            mostrarAlerta(
+                    Alert.AlertType.ERROR,
+                    "Erro ao aprovar",
+                    "Não foi possível aprovar o horário. Tenta novamente."
+            );
+        }
+    }
+
+    // ── Auxiliares de UI ─────────────────────────────────────────────────────
+    private void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensagem) {
+        javafx.application.Platform.runLater(() -> {
+            Alert alerta = new Alert(tipo);
+            alerta.setTitle(titulo);
+            alerta.setHeaderText(null);
+            alerta.setContentText(mensagem);
+            alerta.initOwner(obterJanela());
+            alerta.showAndWait();
+        });
+    }
+
+    private javafx.stage.Window obterJanela() {
+        if (lblBemVindo == null || lblBemVindo.getScene() == null) {
+            return null;
+        }
+        return lblBemVindo.getScene().getWindow();
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     @FXML
     public void onSemanaHorarioAnteriorClick() {
