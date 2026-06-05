@@ -15,11 +15,20 @@
             <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Gestão de Funcionários</h1>
             <p class="font-body text-[14px] text-on-surface-variant mt-1">Consulta, aprova pedidos e gere a equipa da tua loja.</p>
         </div>
-        <span th:if="${totalUtilizadores != null}"
-              class="hidden sm:inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant bg-surface-container border border-outline-variant/40 px-3 py-1.5 rounded-full self-start mt-1">
-            <span class="material-symbols-outlined text-[14px]">group</span>
-            <span th:text="${totalUtilizadores} + ' colaborador(es)'"></span>
-        </span>
+        <div class="flex items-center gap-3 flex-wrap self-start mt-1">
+            <span th:if="${totalUtilizadores != null}"
+                  class="hidden sm:inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant bg-surface-container border border-outline-variant/40 px-3 py-1.5 rounded-full">
+                <span class="material-symbols-outlined text-[14px]">group</span>
+                <span th:text="${totalUtilizadores} + ' colaborador(es)'"></span>
+            </span>
+            <a th:if="${podeCriarColaboradores}"
+               href="/web/equipa/novo"
+               class="inline-flex items-center gap-1.5 font-body font-bold text-[12px] text-white px-4 py-2 rounded-xl transition-all hover:opacity-90"
+               style="background:linear-gradient(135deg,#c0001f,#7a0014)">
+                <span class="material-symbols-outlined text-[16px]">person_add</span>
+                Novo colaborador
+            </a>
+        </div>
     </div>
 
     <!-- Feedback -->
@@ -39,37 +48,29 @@
             <div class="px-5 py-4 border-b border-outline-variant/25">
                 <h2 class="font-display font-bold text-[15px] text-on-surface">Equipa da loja</h2>
             </div>
-
-            <!-- Pesquisa -->
             <div class="px-4 py-3 border-b border-outline-variant/25">
                 <form method="get" action="/web/equipa" class="flex gap-2">
                     <div class="relative flex-1">
                         <span class="material-symbols-outlined text-[17px] text-on-surface-variant/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
                         <input type="text" name="q" placeholder="Nome, email ou telemóvel"
                                th:value="${pesquisa}"
-                               class="w-full bg-surface-container-low border border-outline-variant rounded-xl pl-9 pr-3 py-2 font-body text-[13px] text-on-surface placeholder:text-on-surface-variant/40" style="outline:none">
+                               class="w-full bg-surface-container-low border border-outline-variant rounded-xl pl-9 pr-3 py-2 font-body text-[13px] text-on-surface placeholder:text-on-surface-variant/40">
                     </div>
-                    <button type="submit"
-                            class="bg-primary-container text-white font-body font-bold text-[12px] px-3 py-2 rounded-xl hover:bg-primary transition-colors">
+                    <button type="submit" class="bg-primary-container text-white font-body font-bold text-[12px] px-3 py-2 rounded-xl hover:bg-primary transition-colors">
                         <span class="material-symbols-outlined text-[16px]">search</span>
                     </button>
-                    <a href="/web/equipa"
-                       class="flex items-center justify-center w-9 h-9 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors shrink-0">
+                    <a href="/web/equipa" class="flex items-center justify-center w-9 h-9 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors shrink-0">
                         <span class="material-symbols-outlined text-[17px]">close</span>
                     </a>
                 </form>
             </div>
-
-            <!-- Lista -->
             <div class="flex flex-col overflow-y-auto" style="max-height:560px">
                 <p th:if="${#lists.isEmpty(utilizadores)}"
                    class="px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">Nenhum colaborador encontrado.</p>
-
                 <a th:each="item : ${utilizadores}"
                    th:href="@{/web/equipa/{id}(id=${item.idUtilizador()}, q=${pesquisa})}"
                    th:classappend="${temSelecao and utilizadorSelecionado != null and utilizadorSelecionado.id == item.idUtilizador()} ? 'bg-primary-container/8 border-l-[3px] border-primary-container' : 'border-l-[3px] border-transparent hover:bg-surface-container-low'"
                    class="flex items-center gap-3 px-4 py-3 border-b border-outline-variant/20 transition-colors cursor-pointer">
-                    <!-- Avatar -->
                     <div class="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center font-display font-bold text-sm text-on-surface shrink-0"
                          th:text="${item.nome() != null && !item.nome().isEmpty() ? item.nome().substring(0,1).toUpperCase() : '?'}">?</div>
                     <div class="min-w-0 flex-1">
@@ -79,7 +80,7 @@
                             <span class="inline-flex font-body font-semibold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
                                   th:classappend="${item.daMinhaLoja()} ? 'badge-ok' : 'badge-neu'"
                                   th:text="${item.daMinhaLoja()} ? 'Minha loja' : 'Outra loja'"></span>
-                            <span th:if="${item.cargoAtual() != null && !item.cargoAtual().isBlank()}"
+                            <span th:if="${item.cargoAtual() != null and !item.cargoAtual().isBlank()}"
                                   class="badge-neu inline-flex font-body font-semibold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
                                   th:text="${item.cargoAtual()}"></span>
                         </div>
@@ -89,20 +90,91 @@
             </div>
         </section>
 
-        <!-- ── Detalhe colaborador ── -->
+        <!-- ── Painel direito ── -->
         <div class="flex flex-col gap-5">
 
-            <!-- Placeholder -->
-            <section th:if="${!temSelecao}"
+            <!-- ── Placeholder vazio ── -->
+            <section th:if="${!temSelecao and !modoNovo}"
                      class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-14 flex flex-col items-center gap-4 text-center"
                      style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
                 <div class="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
                     <span class="material-symbols-outlined text-[36px] text-outline/40">person_search</span>
                 </div>
                 <h2 class="font-display font-bold text-[20px] text-on-surface">Seleciona um colaborador</h2>
-                <p class="font-body text-[14px] text-on-surface-variant max-w-sm">Clica num colaborador à esquerda para ver o perfil completo, horário e pedidos pendentes.</p>
+                <p class="font-body text-[14px] text-on-surface-variant max-w-sm">Clica num colaborador para ver o perfil completo, horário e pedidos pendentes.</p>
+                <a th:if="${podeCriarColaboradores}" href="/web/equipa/novo"
+                   class="inline-flex items-center gap-2 font-body font-bold text-[13px] text-white px-5 py-2.5 rounded-xl mt-2 hover:opacity-90 transition-opacity"
+                   style="background:linear-gradient(135deg,#c0001f,#7a0014)">
+                    <span class="material-symbols-outlined text-[17px]">person_add</span>
+                    Criar novo colaborador
+                </a>
             </section>
 
+            <!-- ── Formulário novo colaborador ── -->
+            <section th:if="${modoNovo}"
+                     class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                     style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                <div class="px-6 py-4 border-b border-outline-variant/25 flex items-center gap-3">
+                    <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(192,0,31,.08)">
+                        <span class="material-symbols-outlined text-[19px]" style="color:#c0001f">person_add</span>
+                    </span>
+                    <div>
+                        <h2 class="font-display font-bold text-[16px] text-on-surface">Novo colaborador</h2>
+                        <p class="font-body text-[12px] text-on-surface-variant">Preenche os dados para criar um novo membro da equipa.</p>
+                    </div>
+                </div>
+                <form method="post" action="/web/equipa/guardar" class="px-6 py-5 grid sm:grid-cols-2 gap-4">
+                    <input type="hidden" name="q" th:value="${pesquisa}">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Nome completo *</label>
+                        <input name="nome" type="text" required placeholder="Nome do colaborador"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Email *</label>
+                        <input name="email" type="email" required placeholder="email@empresa.pt"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Telemóvel</label>
+                        <input name="telemovel" type="text" maxlength="9" placeholder="9XXXXXXXX"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Password inicial *</label>
+                        <input name="password" type="password" required placeholder="••••••••"
+                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Cargo *</label>
+                        <select name="idCargo" required
+                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                            <option value="">Seleciona um cargo…</option>
+                            <option th:each="cargo : ${cargosDisponiveis}"
+                                    th:value="${cargo.idCargo()}"
+                                    th:text="${cargo.nome()}"></option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</label>
+                        <select name="estado"
+                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                            <option value="ativo">Ativo</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2 flex items-center gap-3 pt-2">
+                        <button type="submit"
+                                class="flex items-center gap-2 font-body font-bold text-[13px] text-white px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+                                style="background:linear-gradient(135deg,#c0001f,#7a0014)">
+                            <span class="material-symbols-outlined text-[16px]">save</span>
+                            Criar colaborador
+                        </button>
+                        <a href="/web/equipa" class="font-body font-semibold text-[13px] text-on-surface-variant hover:text-on-surface transition-colors">Cancelar</a>
+                    </div>
+                </form>
+            </section>
+
+            <!-- ── Detalhe colaborador selecionado ── -->
             <th:block th:if="${temSelecao}">
 
                 <!-- Hero card -->
@@ -123,24 +195,22 @@
                                           th:if="${utilizadorSelecionado.estado != null}"
                                           th:text="${utilizadorSelecionado.estado}">Ativo</span>
                                     <span class="badge-neu inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full"
-                                          th:if="${ligacaoAtiva != null && ligacaoAtiva.idCargo != null}"
+                                          th:if="${ligacaoAtiva != null and ligacaoAtiva.idCargo != null}"
                                           th:text="${ligacaoAtiva.idCargo.nome}">Cargo</span>
                                     <span class="badge-warn inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full"
                                           th:if="${ligacaoAtiva == null}">Sem ligação ativa</span>
                                 </div>
                             </div>
-
-                            <!-- Dados inline -->
                             <div class="grid sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-outline-variant/25">
                                 <div>
                                     <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant mb-0.5">Telemóvel</p>
                                     <p class="font-body text-[13px] text-on-surface"
-                                       th:text="${utilizadorSelecionado.telemovel != null && !utilizadorSelecionado.telemovel.isBlank() ? utilizadorSelecionado.telemovel : '–'}">–</p>
+                                       th:text="${utilizadorSelecionado.telemovel != null and !utilizadorSelecionado.telemovel.isBlank() ? utilizadorSelecionado.telemovel : '–'}">–</p>
                                 </div>
                                 <div>
                                     <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant mb-0.5">Loja atual</p>
                                     <p class="font-body text-[13px] text-on-surface"
-                                       th:text="${ligacaoAtiva != null && ligacaoAtiva.idLoja != null ? ligacaoAtiva.idLoja.nome : '–'}">–</p>
+                                       th:text="${ligacaoAtiva != null and ligacaoAtiva.idLoja != null ? ligacaoAtiva.idLoja.nome : '–'}">–</p>
                                 </div>
                                 <div>
                                     <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant mb-0.5">Gestão</p>
@@ -152,8 +222,91 @@
                     </div>
                 </article>
 
+                <!-- ── Formulário de edição ── -->
+                <article th:if="${podeEditarColaborador}"
+                         class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                         style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                    <div class="px-6 py-4 border-b border-outline-variant/25 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(192,0,31,.08)">
+                                <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">edit</span>
+                            </span>
+                            <h2 class="font-display font-bold text-[15px] text-on-surface">Editar dados</h2>
+                        </div>
+                        <!-- Desativar -->
+                        <form th:if="${utilizadorSelecionado.estado != null and utilizadorSelecionado.estado.toString() == 'ativo'}"
+                              method="post"
+                              th:action="@{/web/equipa/{id}/desativar(id=${utilizadorSelecionado.id})}"
+                              onsubmit="return confirm('Tens a certeza que queres desativar este colaborador?')">
+                            <input type="hidden" name="q" th:value="${pesquisa}">
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1.5 font-body font-bold text-[11px] text-error px-3 py-1.5 rounded-xl border border-error/30 hover:bg-error-container transition-colors">
+                                <span class="material-symbols-outlined text-[14px]">person_off</span>
+                                Desativar
+                            </button>
+                        </form>
+                    </div>
+                    <form method="post" action="/web/equipa/guardar" class="px-6 py-5 grid sm:grid-cols-2 gap-4">
+                        <input type="hidden" name="idUtilizador" th:value="${utilizadorSelecionado.id}">
+                        <input type="hidden" name="q" th:value="${pesquisa}">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Nome completo *</label>
+                            <input name="nome" type="text" required
+                                   th:value="${utilizadorSelecionado.nome}"
+                                   class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Email *</label>
+                            <input name="email" type="email" required
+                                   th:value="${utilizadorSelecionado.email}"
+                                   class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Telemóvel</label>
+                            <input name="telemovel" type="text" maxlength="9"
+                                   th:value="${utilizadorSelecionado.telemovel}"
+                                   placeholder="9XXXXXXXX"
+                                   class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Nova password <span class="normal-case tracking-normal font-normal text-on-surface-variant/60">(deixa vazio para não alterar)</span></label>
+                            <input name="password" type="password" placeholder="••••••••"
+                                   class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Cargo *</label>
+                            <select name="idCargo" required
+                                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                                <option value="">Seleciona um cargo…</option>
+                                <option th:each="cargo : ${cargosDisponiveis}"
+                                        th:value="${cargo.idCargo()}"
+                                        th:selected="${ligacaoAtiva != null and ligacaoAtiva.idCargo != null and ligacaoAtiva.idCargo.id == cargo.idCargo()}"
+                                        th:text="${cargo.nome()}"></option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</label>
+                            <select name="estado"
+                                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                                <option value="ativo"
+                                        th:selected="${utilizadorSelecionado.estado != null and utilizadorSelecionado.estado.toString() == 'ativo'}">Ativo</option>
+                                <option value="inativo"
+                                        th:selected="${utilizadorSelecionado.estado != null and utilizadorSelecionado.estado.toString() == 'inativo'}">Inativo</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2 pt-2">
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 font-body font-bold text-[13px] text-white px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+                                    style="background:linear-gradient(135deg,#c0001f,#7a0014)">
+                                <span class="material-symbols-outlined text-[16px]">save</span>
+                                Guardar alterações
+                            </button>
+                        </div>
+                    </form>
+                </article>
+
                 <!-- Horário publicado -->
-                <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
                          style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
                     <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/25 flex-wrap gap-3">
                         <h2 class="font-display font-bold text-[15px] text-on-surface flex items-center gap-2">
@@ -163,11 +316,11 @@
                         <form method="get" th:action="@{/web/equipa/{id}(id=${utilizadorSelecionado.id})}" class="flex items-center gap-2">
                             <input type="hidden" name="q" th:value="${pesquisa}">
                             <select name="mes" onchange="this.form.submit()"
-                                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-1.5 font-body text-[12px] text-on-surface" style="outline:none">
+                                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-1.5 font-body text-[12px] text-on-surface">
                                 <option th:each="mesOption : ${meses}" th:value="${mesOption.valor()}" th:selected="${mesOption.valor() == mes}" th:text="${mesOption.nome()}"></option>
                             </select>
                             <select name="ano" onchange="this.form.submit()"
-                                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-1.5 font-body text-[12px] text-on-surface" style="outline:none">
+                                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-1.5 font-body text-[12px] text-on-surface">
                                 <option th:each="anoOption : ${anos}" th:value="${anoOption}" th:selected="${anoOption == ano}" th:text="${anoOption}"></option>
                             </select>
                         </form>
@@ -188,11 +341,11 @@
                                 </tr>
                                 <tr th:each="item : ${horariosPublicados}" class="hover:bg-surface-container-low/50 transition-colors">
                                     <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.dataTurno}"></td>
-                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface-variant" th:text="${item.idTurno != null && item.idTurno.tipo != null ? item.idTurno.tipo : '–'}"></td>
+                                    <td class="px-6 py-3 font-body text-[13px] text-on-surface-variant" th:text="${item.idTurno != null and item.idTurno.tipo != null ? item.idTurno.tipo : '–'}"></td>
                                     <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.idTurno != null ? (item.idTurno.horaInicio + ' – ' + item.idTurno.horaFim) : '–'}"></td>
                                     <td class="px-6 py-3">
                                         <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                              th:classappend="${item.estado != null && item.estado.toString().contains('APROV')} ? 'badge-ok' : 'badge-neu'"
+                                              th:classappend="${item.estado != null and item.estado.toString().contains('APROV')} ? 'badge-ok' : 'badge-neu'"
                                               th:text="${item.estado != null ? item.estado : '–'}"></span>
                                     </td>
                                 </tr>
@@ -210,7 +363,7 @@
 
                 <!-- Pendentes para aprovação -->
                 <article th:if="${podeAprovarItens}"
-                         class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                         class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
                          style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
                     <div class="px-6 py-4 border-b border-outline-variant/25 flex items-center gap-2">
                         <span class="material-symbols-outlined icon-fill text-primary-container text-[20px]">pending_actions</span>
@@ -238,9 +391,7 @@
                                 </tr>
                                 <tr th:each="item : ${pendentesFolga}" class="hover:bg-surface-container-low/50 transition-colors">
                                     <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.dataAusencia}"></td>
-                                    <td class="px-6 py-3">
-                                        <span class="badge-warn inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${item.tipo}"></span>
-                                    </td>
+                                    <td class="px-6 py-3"><span class="badge-warn inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${item.tipo}"></span></td>
                                     <td class="px-6 py-3 font-body text-[13px] text-on-surface-variant" th:text="${item.motivo != null ? item.motivo : '–'}"></td>
                                     <td class="px-6 py-3">
                                         <div class="flex items-center justify-end gap-2">
@@ -282,8 +433,7 @@
                                 </tr>
                                 <tr th:each="item : ${pendentesPreferencia}" class="hover:bg-surface-container-low/50 transition-colors">
                                     <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.tipo}"></td>
-                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant"
-                                        th:text="${(item.dataInicio != null ? item.dataInicio : '–') + ' → ' + (item.dataFim != null ? item.dataFim : '–')}"></td>
+                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant" th:text="${(item.dataInicio != null ? item.dataInicio : '–') + ' → ' + (item.dataFim != null ? item.dataFim : '–')}"></td>
                                     <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant max-w-[160px] truncate" th:text="${item.descricao}"></td>
                                     <td class="px-6 py-3">
                                         <div class="flex items-center justify-end gap-2">
@@ -325,10 +475,8 @@
                                 </tr>
                                 <tr th:each="item : ${pendentesPermuta}" class="hover:bg-surface-container-low/50 transition-colors">
                                     <td class="px-6 py-3 font-body text-[13px] text-on-surface" th:text="${item.idHorarioOrigem != null ? item.idHorarioOrigem.dataTurno : '–'}"></td>
-                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant"
-                                        th:text="${item.idHorarioOrigem != null && item.idHorarioOrigem.idTurno != null ? (item.idHorarioOrigem.idTurno.horaInicio + ' – ' + item.idHorarioOrigem.idTurno.horaFim) : '–'}"></td>
-                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant"
-                                        th:text="${item.idHorarioDestino != null && item.idHorarioDestino.idTurno != null ? (item.idHorarioDestino.idTurno.horaInicio + ' – ' + item.idHorarioDestino.idTurno.horaFim) : '–'}"></td>
+                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant" th:text="${item.idHorarioOrigem != null and item.idHorarioOrigem.idTurno != null ? (item.idHorarioOrigem.idTurno.horaInicio + ' – ' + item.idHorarioOrigem.idTurno.horaFim) : '–'}"></td>
+                                    <td class="px-6 py-3 font-body text-[12px] text-on-surface-variant" th:text="${item.idHorarioDestino != null and item.idHorarioDestino.idTurno != null ? (item.idHorarioDestino.idTurno.horaInicio + ' – ' + item.idHorarioDestino.idTurno.horaFim) : '–'}"></td>
                                     <td class="px-6 py-3">
                                         <div class="flex items-center justify-end gap-2">
                                             <form method="post" th:action="@{/web/equipa/{u}/permutas/{p}/aprovar(u=${utilizadorSelecionado.id},p=${item.id})}">
@@ -350,8 +498,8 @@
                 </article>
 
             </th:block>
-        </div>
-    </div>
+        </div><!-- fim painel direito -->
+    </div><!-- fim grid master-detail -->
 
 </div>
 </main>
