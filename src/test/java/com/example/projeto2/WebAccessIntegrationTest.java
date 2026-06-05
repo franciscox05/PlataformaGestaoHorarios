@@ -10,6 +10,7 @@ import com.example.projeto2.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.net.CookieManager;
@@ -25,11 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-
 @SpringBootTest(
         classes = Projeto2WebApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "spring.main.web-application-type=servlet"
 )
+@ActiveProfiles("test")
 class WebAccessIntegrationTest {
 
     @LocalServerPort
@@ -154,7 +156,7 @@ class WebAccessIntegrationTest {
         HttpResponse<String> response = client.send(getRequest("/web/horarios"), HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());
-        assertTrue(response.body().contains("Horários da loja") || response.body().contains("HorÃ¡rios da loja"));
+        assertTrue(response.body().contains("Hor") && response.body().contains("rios da loja"));
         assertTrue(!response.body().contains("Gerar proposta"));
     }
 

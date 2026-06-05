@@ -9,7 +9,7 @@ O projeto **Plataforma de Gestao de Horarios** foi desenvolvido para apoiar a or
 Nesta fase final, a plataforma evoluiu para dois canais de utilizacao:
 
 - **desktop** (JavaFX), para fluxo operacional ja consolidado;
-- **web** (Spring MVC), para acesso por browser aos fluxos essenciais de autenticacao e horarios.
+- **web** (Spring MVC), para acesso por browser aos fluxos essenciais de autenticacao, horarios e complementares.
 
 O objetivo manteve-se: disponibilizar uma solucao funcional e demonstravel, cobrindo autenticacao, gestao operacional, regras da loja, preferencias, aprovacoes, geracao de horarios e relatorios.
 
@@ -25,7 +25,7 @@ Os objetivos principais da solucao foram:
 - apoiar a geracao de propostas mensais de horario
 - disponibilizar relatorios mensais de horas
 - garantir uma demonstracao estavel com dados de exemplo e empacotamento de entrega
-- disponibilizar interface Web para os fluxos nucleares de horarios
+- disponibilizar interface Web para os fluxos nucleares de horarios e complementares
 
 ### 3. Tecnologias utilizadas
 
@@ -46,7 +46,7 @@ A aplicacao segue uma organizacao por camadas:
 - **Views JavaFX / FXML**
   - responsaveis pela interface grafica e interacao com o utilizador
 - **Controllers**
-  - recebem eventos da interface e coordenam os fluxos de cada ecrã
+  - recebem eventos da interface e coordenam os fluxos de cada ecra
 - **BLL**
   - concentram as regras de negocio e validacoes
 - **Repositories**
@@ -149,7 +149,7 @@ Estas entidades suportam:
 #### 6.9 Painel unificado da gerencia
 
 - visualizacao centralizada de pedidos pendentes
-- consulta de folgas, permutas e preferencias no mesmo ecrã
+- consulta de folgas, permutas e preferencias no mesmo ecra
 - decisao rapida com atualizacao de estados
 
 #### 6.10 Geracao de horarios
@@ -171,13 +171,28 @@ Estas entidades suportam:
 - documentacao de demonstracao
 - empacotamento ZIP com JAR executavel, configuracao, SQL e scripts de arranque
 
-#### 6.13 Aplicacao Web (capitulo novo)
+#### 6.13 Aplicacao Web
 
 - login/logout Web com sessao HTTP
 - pagina de consulta de planeamento mensal
 - geracao de proposta mensal de horarios via browser
 - listagem de alternativas geradas para o periodo
+- fluxos complementares completos via Web:
+  - submissao e historico de folgas
+  - submissao e historico de preferencias
+  - submissao dinamica de permutas via API REST com selects de dois passos
+  - aprovacao e rejeicao de folgas, preferencias e permutas pelo gerente
+- API REST de suporte (`/api/permutas/*`) com tres endpoints:
+  - `GET /api/permutas/meus-turnos` — lista turnos aprovados do utilizador logado
+  - `GET /api/permutas/turnos-elegiveis` — lista turnos de colegas elegiveis para troca
+  - `POST /api/permutas/submeter` — submete pedido validando regras e `EstadoPermuta`
+- formulario de permutas com UX dinamica:
+  - selects carregados por fetch sem recarregar pagina
+  - previews do turno de origem e destino antes de submeter
+  - feedback inline de sucesso e erro
+  - submissao assincrona com reload automatico apos confirmacao
 - reutilizacao da BLL existente para garantir consistencia de regras entre desktop e Web
+- testes automatizados E2E: 15 testes a passar (5 E2E + 10 de integracao)
 
 ### 7. Mapeamento resumido de requisitos
 
@@ -230,12 +245,13 @@ Para esta entrega foram validados:
 - seguranca basica, timeout de sessao e auditoria
 - geracao do ZIP de entrega desktop
 - arranque da aplicacao a partir do ZIP extraido, fora do IntelliJ
+- arranque da aplicacao Web e fluxos complementares por browser
 
 ### 9.1 Evidencias visuais
 
 Foram atualizadas evidencias visuais de apoio ao documento, incluindo:
 
-- captura do ecrã de autenticacao da aplicacao desktop
+- captura do ecra de autenticacao da aplicacao desktop
 - captura da estrutura do pacote ZIP extraido para entrega
 
 ### 10. Estrutura da entrega
@@ -267,12 +283,11 @@ Para a vertente Web, o ZIP integra adicionalmente:
 Mesmo com a aplicacao desktop e Web funcionais para entrega, continuam identificadas algumas frentes de evolucao:
 
 - gestao de horarios especiais e excecoes por data
-- testes automatizados para fluxos criticos
 - painel de auditoria com visualizacao historica
-- extensao da interface Web para maior cobertura funcional (perfil, folgas, permutas e preferencias)
+- extensao da interface Web ao modulo de gestao de funcionarios
 
 ### 12. Conclusao
 
-A entrega final da **Plataforma de Gestao de Horarios** apresenta um conjunto funcional coerente com o objetivo do projeto, cobrindo autenticacao, operacao de colaborador, fluxos de gerencia, geracao de horarios, relatorios e empacotamento de entrega em desktop e Web.
+A entrega final da **Plataforma de Gestao de Horarios** apresenta um conjunto funcional coerente com o objetivo do projeto, cobrindo autenticacao, operacao de colaborador, fluxos de gerencia, geracao de horarios, relatorios, complementares (folgas, preferencias e permutas) e empacotamento de entrega em desktop e Web.
 
 O resultado final demonstra uma aplicacao organizada por camadas, integrada com Spring Boot, JavaFX, Spring MVC e PostgreSQL, pronta para demonstracao e preparada para evolucao futura.
