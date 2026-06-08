@@ -847,17 +847,18 @@ public class    GeracaoHorariosController {
         return cell;
     }
 
-    /** Extrai a chave CSS do nome do turno: "manha", "tarde", "noite", "folga", "outro" */
+    /** Extrai a chave CSS do nome do turno: "manha", "tarde", "noite", "folga", "intermedio", "outro" */
     private String turnoChave(String tipo) {
         if (tipo == null) return "outro";
         String p = Normalizer.normalize(tipo.trim().toLowerCase(), Normalizer.Form.NFD)
                 .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
         return switch (p) {
-            case "manha" -> "manha";
-            case "tarde" -> "tarde";
-            case "noite" -> "noite";
-            case "folga" -> "folga";
-            default      -> "outro";
+            case "manha"      -> "manha";
+            case "tarde"      -> "tarde";
+            case "noite"      -> "noite";
+            case "folga"      -> "folga";
+            case "intermedio" -> "intermedio";
+            default           -> "outro";
         };
     }
 
@@ -866,11 +867,12 @@ public class    GeracaoHorariosController {
         if (tipo == null) return "–";
         String chave = turnoChave(tipo);
         return switch (chave) {
-            case "manha" -> "Manhã";
-            case "tarde" -> "Tarde";
-            case "noite" -> "Noite";
-            case "folga" -> "Folga";
-            default      -> tipo.length() > 8 ? tipo.substring(0, 7) + "." : tipo;
+            case "manha"      -> "Manhã";
+            case "tarde"      -> "Tarde";
+            case "noite"      -> "Noite";
+            case "folga"      -> "Folga";
+            case "intermedio" -> "Interm.";
+            default           -> tipo.length() > 8 ? tipo.substring(0, 7) + "." : tipo;
         };
     }
 

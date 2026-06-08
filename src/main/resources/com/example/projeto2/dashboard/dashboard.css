@@ -3476,6 +3476,12 @@
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
 }
+.grelha-turno-card-intermedio {
+    -fx-background-color: #fefce8;
+    -fx-border-color: #fef08a;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
 .grelha-turno-card-outro {
     -fx-background-color: #f3f4f6;
     -fx-border-color: #e5e7eb;
@@ -3492,22 +3498,24 @@
     -fx-font-weight: 700;
     -fx-alignment: CENTER;
 }
-.grelha-turno-nome-manha { -fx-text-fill: #1d4ed8; }
-.grelha-turno-nome-tarde { -fx-text-fill: #b45309; }
-.grelha-turno-nome-noite { -fx-text-fill: #6d28d9; }
-.grelha-turno-nome-folga { -fx-text-fill: #dc2626; }
-.grelha-turno-nome-outro { -fx-text-fill: #374151; }
+.grelha-turno-nome-manha      { -fx-text-fill: #1d4ed8; }
+.grelha-turno-nome-tarde      { -fx-text-fill: #b45309; }
+.grelha-turno-nome-noite      { -fx-text-fill: #6d28d9; }
+.grelha-turno-nome-folga      { -fx-text-fill: #dc2626; }
+.grelha-turno-nome-intermedio { -fx-text-fill: #854d0e; }
+.grelha-turno-nome-outro      { -fx-text-fill: #374151; }
 
 .grelha-turno-hora {
     -fx-font-size: 10px;
     -fx-font-weight: 500;
     -fx-alignment: CENTER;
 }
-.grelha-turno-hora-manha { -fx-text-fill: #3b82f6; }
-.grelha-turno-hora-tarde { -fx-text-fill: #d97706; }
-.grelha-turno-hora-noite { -fx-text-fill: #8b5cf6; }
-.grelha-turno-hora-folga { -fx-text-fill: #f87171; }
-.grelha-turno-hora-outro { -fx-text-fill: #6b7280; }
+.grelha-turno-hora-manha      { -fx-text-fill: #3b82f6; }
+.grelha-turno-hora-tarde      { -fx-text-fill: #d97706; }
+.grelha-turno-hora-noite      { -fx-text-fill: #8b5cf6; }
+.grelha-turno-hora-folga      { -fx-text-fill: #f87171; }
+.grelha-turno-hora-intermedio { -fx-text-fill: #ca8a04; }
+.grelha-turno-hora-outro      { -fx-text-fill: #6b7280; }
 
 /* ── Célula de colaborador redimensionada ── */
 .grelha-employee-info {
