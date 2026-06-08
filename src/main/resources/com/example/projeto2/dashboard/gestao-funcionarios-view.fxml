@@ -22,9 +22,10 @@
       fx:controller="com.example.projeto2.Controller.GestaoFuncionariosController">
 
     <!-- ░░ CABEÇALHO DE PÁGINA ░░ -->
-    <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-funcionarios"
-          style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #1e293b 0%, #0f172a 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
-        <padding><Insets top="36.0" right="48.0" bottom="36.0" left="48.0" /></padding>
+    <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-card modulo-banner-funcionarios"
+          style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9b1c1c 0%, #450a0a 100%); -fx-background-insets: 0; -fx-background-radius: 16px;">
+        <VBox.margin><Insets top="40.0" right="40.0" bottom="24.0" left="40.0" /></VBox.margin>
+        <padding><Insets top="26.0" right="30.0" bottom="26.0" left="30.0" /></padding>
         <Label styleClass="modulo-titulo" text="Gest&#227;o de funcion&#225;rios" />
         <Label styleClass="modulo-subtitulo"
                text="Adiciona, atualiza e desativa colaboradores da tua loja sem sair do backoffice."

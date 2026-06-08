@@ -25,7 +25,7 @@
         <VBox fx:id="raizPerfil" fillWidth="true" spacing="0" styleClass="conteudo-pagina">
 
             <StackPane styleClass="page-banner perfil-banner" minHeight="200.0"
-                       style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #c91428 0%, #7f0010 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
+                       style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9b1c1c 0%, #450a0a 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
                 <VBox alignment="CENTER" spacing="16.0">
                     <StackPane styleClass="avatar-circle perfil-avatar-circle" prefWidth="96.0" prefHeight="96.0">
                         <Circle radius="48.0" styleClass="avatar-bg"

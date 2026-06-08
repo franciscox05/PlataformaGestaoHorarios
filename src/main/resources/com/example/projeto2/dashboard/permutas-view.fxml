@@ -25,9 +25,10 @@
     <content>
         <VBox spacing="0" styleClass="conteudo-pagina">
 
-            <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-permutas"
-                  style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #1d4ed8 0%, #1e1b4b 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
-                <padding><Insets bottom="36.0" left="48.0" right="48.0" top="36.0" /></padding>
+            <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-card modulo-banner-permutas"
+                  style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9b1c1c 0%, #450a0a 100%); -fx-background-insets: 0; -fx-background-radius: 16px;">
+                <VBox.margin><Insets top="40.0" right="40.0" bottom="24.0" left="40.0" /></VBox.margin>
+                <padding><Insets bottom="26.0" left="30.0" right="30.0" top="26.0" /></padding>
                 <Label styleClass="modulo-titulo" text="Trocar Turno" />
                 <Label styleClass="modulo-subtitulo"
                        text="Prop&#245;e uma permuta com um colega eleg&#237;vel · Acompanha o hist&#243;rico"
