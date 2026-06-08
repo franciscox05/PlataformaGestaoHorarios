@@ -3395,40 +3395,177 @@
     -fx-text-fill: #9ca3af;
 }
 
-/* ── Células de dia ── */
+/* ── Célula de dia (container) ── */
 .grelha-dia-cell {
     -fx-alignment: CENTER;
-    -fx-min-width: 56px;
-    -fx-pref-width: 56px;
-    -fx-max-width: 56px;
-    -fx-min-height: 50px;
-    -fx-pref-height: 50px;
+    -fx-padding: 5px 4px;
+    -fx-min-width: 110px;
+    -fx-pref-width: 110px;
+    -fx-max-width: 110px;
+    -fx-min-height: 72px;
+    -fx-pref-height: 72px;
+    -fx-border-color: #f0f0f0;
+    -fx-border-width: 0 1px 0 0;
 }
 .grelha-dia-cell-fim-semana {
-    -fx-background-color: #fef2f2;
+    -fx-background-color: #fafafa;
+}
+.grelha-header-dia {
+    -fx-alignment: CENTER;
+    -fx-padding: 8px 4px;
+    -fx-min-width: 110px;
+    -fx-pref-width: 110px;
+    -fx-max-width: 110px;
 }
 
-/* ── Pills de turno ── */
-.grelha-turno-pill {
+/* ── Cabeçalho de dia redefinido (sobrescreve definição anterior) ── */
+.grelha-header-dia-num {
+    -fx-font-size: 20px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #374151;
+}
+.grelha-header-dia-sem {
     -fx-font-size: 10px;
     -fx-font-weight: 700;
-    -fx-padding: 3px 6px;
-    -fx-background-radius: 5px;
+    -fx-text-fill: #9ca3af;
+    -fx-letter-spacing: 0.5px;
+}
+.grelha-header-hoje .grelha-header-dia-num {
     -fx-text-fill: white;
+}
+.grelha-header-dia-fim-semana .grelha-header-dia-num {
+    -fx-text-fill: #9b1c1c;
+}
+.grelha-header-dia-fim-semana .grelha-header-dia-sem {
+    -fx-text-fill: #ef4444;
+}
+
+/* ── Cards de turno (dentro das células) ── */
+.grelha-turno-card {
+    -fx-alignment: CENTER;
+    -fx-background-radius: 8px;
+    -fx-padding: 6px 8px;
+    -fx-spacing: 3px;
+    -fx-min-width: 96px;
+    -fx-pref-width: 96px;
+    -fx-max-width: 96px;
+    -fx-min-height: 52px;
+    -fx-pref-height: 52px;
+}
+.grelha-turno-card-manha {
+    -fx-background-color: #dbeafe;
+    -fx-border-color: #bfdbfe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-tarde {
+    -fx-background-color: #fef3c7;
+    -fx-border-color: #fde68a;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-noite {
+    -fx-background-color: #ede9fe;
+    -fx-border-color: #ddd6fe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-folga {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #d1d5db;
+    -fx-border-width: 1px;
+    -fx-border-style: dashed;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-outro {
+    -fx-background-color: #f3f4f6;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-vazio {
+    /* célula vazia — sem card */
+}
+
+/* ── Texto dentro dos cards ── */
+.grelha-turno-nome {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
     -fx-alignment: CENTER;
 }
-.grelha-turno-manha  { -fx-background-color: #2563eb; }
-.grelha-turno-tarde  { -fx-background-color: #ea580c; }
-.grelha-turno-noite  { -fx-background-color: #7c3aed; }
-.grelha-turno-folga  { -fx-background-color: #dc2626; }
-.grelha-turno-outro  { -fx-background-color: #6b7280; }
-.grelha-turno-vazio  { -fx-font-size: 11px; -fx-text-fill: #d1d5db; }
+.grelha-turno-nome-manha { -fx-text-fill: #1d4ed8; }
+.grelha-turno-nome-tarde { -fx-text-fill: #b45309; }
+.grelha-turno-nome-noite { -fx-text-fill: #6d28d9; }
+.grelha-turno-nome-folga { -fx-text-fill: #6b7280; }
+.grelha-turno-nome-outro { -fx-text-fill: #374151; }
 
-/* ── Separador entre linhas ── */
-.grelha-row-separator {
-    -fx-background-color: #f3f4f6;
-    -fx-min-height: 1px;
-    -fx-max-height: 1px;
+.grelha-turno-hora {
+    -fx-font-size: 10px;
+    -fx-font-weight: 500;
+    -fx-alignment: CENTER;
+}
+.grelha-turno-hora-manha { -fx-text-fill: #3b82f6; }
+.grelha-turno-hora-tarde { -fx-text-fill: #d97706; }
+.grelha-turno-hora-noite { -fx-text-fill: #8b5cf6; }
+.grelha-turno-hora-folga { -fx-text-fill: #9ca3af; }
+.grelha-turno-hora-outro { -fx-text-fill: #6b7280; }
+
+/* ── Célula de colaborador redimensionada ── */
+.grelha-employee-info {
+    -fx-padding: 0 12px 0 14px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-min-width: 190px;
+    -fx-pref-width: 190px;
+    -fx-max-width: 190px;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 0 2px 0 0;
+    -fx-min-height: 72px;
+}
+.grelha-employee-row {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #f0f0f0;
+    -fx-border-width: 0 0 1px 0;
+    -fx-min-height: 72px;
+    -fx-pref-height: 72px;
+    -fx-alignment: CENTER_LEFT;
+}
+.grelha-employee-row-alt { -fx-background-color: #fafafa; }
+.grelha-employee-row:hover { -fx-background-color: #fef2f2; }
+
+/* Avatar maior e mais visível */
+.grelha-avatar {
+    -fx-background-radius: 50%;
+    -fx-min-width: 36px; -fx-pref-width: 36px; -fx-max-width: 36px;
+    -fx-min-height: 36px; -fx-pref-height: 36px; -fx-max-height: 36px;
+    -fx-alignment: CENTER;
+}
+.grelha-avatar-iniciais {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: white;
+}
+.grelha-employee-nome {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #111827;
+    -fx-max-width: 128px;
+}
+.grelha-employee-cargo {
+    -fx-font-size: 10px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #9ca3af;
+}
+
+/* Cabeçalho colaborador redimensionado */
+.grelha-header-colab {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #9ca3af;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0 8px 0 14px;
+    -fx-min-width: 190px;
+    -fx-pref-width: 190px;
+    -fx-max-width: 190px;
 }
 
 /* ── Scroll thumb — mais visível ─────────────────────────────── */

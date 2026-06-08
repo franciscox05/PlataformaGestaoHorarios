@@ -602,6 +602,14 @@ public class    GeracaoHorariosController {
         }
     }
 
+    // Cores para os avatares dos colaboradores (ciclam pela lista)
+    private static final String[] AVATAR_CORES = {
+        "#dc2626", "#2563eb", "#7c3aed", "#059669",
+        "#d97706", "#db2777", "#0891b2", "#65a30d",
+        "#0f172a", "#9333ea", "#ea580c", "#0284c7"
+    };
+    private final Map<Integer, String> grelhaAvatarCores = new LinkedHashMap<>();
+
     private void construirVistaGrelha() {
         if (grelhaContainer == null) return;
         grelhaContainer.getChildren().clear();
@@ -626,9 +634,17 @@ public class    GeracaoHorariosController {
                 "MMMM yyyy", java.util.Locale.forLanguageTag("pt-PT"));
         if (lblGrelhaPeriodo != null) {
             String periodoTexto = grelhaVistaSemanais
-                    ? fmtDia.format(inicio) + " – " + fmtDia.format(fim) + " " + fim.getYear()
+                    ? fmtDia.format(inicio) + " – " + fmtDia.format(fim)
                     : capitalizar(YearMonth.from(inicio).format(fmtMes));
-            lblGrelhaPeriodo.setText(periodoTexto);
+            // conta colaboradores visíveis
+            long nPessoas = propostaAtual != null && propostaAtual.linhas() != null
+                    ? propostaAtual.linhas().stream()
+                        .filter(l -> l != null && l.data() != null
+                            && !l.data().isBefore(inicio) && !l.data().isAfter(fim))
+                        .map(GeracaoHorariosBLL.HorarioLinha::idColaborador)
+                        .distinct().count()
+                    : 0;
+            lblGrelhaPeriodo.setText(periodoTexto + (nPessoas > 0 ? "   · " + nPessoas + " pessoas" : ""));
         }
 
         // Verificar se há dados
@@ -648,22 +664,20 @@ public class    GeracaoHorariosController {
 
         // Lista de dias no intervalo
         List<LocalDate> dias = new ArrayList<>();
-        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {
-            dias.add(d);
-        }
+        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) dias.add(d);
 
-        // Agrupar linhas por colaborador, filtradas pelo intervalo
-        Map<Integer, List<GeracaoHorariosBLL.HorarioLinha>> porColaborador = new LinkedHashMap<>();
-        Map<Integer, String> nomesColab = new LinkedHashMap<>();
+        // Agrupar linhas por colaborador (turno() = tipo, periodo() = horário HH:MM-HH:MM)
+        Map<Integer, String> nomesColab  = new LinkedHashMap<>();
         Map<Integer, String> cargosColab = new LinkedHashMap<>();
+        // mapa: idColab → { data → HorarioLinha }
+        Map<Integer, Map<LocalDate, GeracaoHorariosBLL.HorarioLinha>> porColaborador = new LinkedHashMap<>();
 
         for (GeracaoHorariosBLL.HorarioLinha linha : propostaAtual.linhas()) {
             if (linha == null || linha.data() == null) continue;
-            if (linha.data().isBefore(inicio) || linha.data().isAfter(fim)) continue;
             Integer id = linha.idColaborador();
-            porColaborador.computeIfAbsent(id, k -> new ArrayList<>()).add(linha);
             nomesColab.put(id, linha.colaborador() != null ? linha.colaborador() : "?");
             cargosColab.put(id, linha.cargo() != null ? linha.cargo() : "");
+            porColaborador.computeIfAbsent(id, k -> new LinkedHashMap<>()).put(linha.data(), linha);
         }
 
         if (porColaborador.isEmpty()) {
@@ -672,72 +686,98 @@ public class    GeracaoHorariosController {
             return;
         }
 
+        // Atribuir cores de avatar estáveis
+        int corIdx = 0;
+        for (Integer id : porColaborador.keySet()) {
+            grelhaAvatarCores.putIfAbsent(id, AVATAR_CORES[corIdx % AVATAR_CORES.length]);
+            corIdx++;
+        }
+
+        LocalDate hoje = LocalDate.now();
+
         // ── LINHA DE CABEÇALHO ──
         HBox headerRow = new HBox();
         headerRow.getStyleClass().add("grelha-header-row");
 
         javafx.scene.control.Label headerColab = new javafx.scene.control.Label("COLABORADOR");
         headerColab.getStyleClass().add("grelha-header-colab");
-        headerColab.setMinWidth(200); headerColab.setPrefWidth(200); headerColab.setMaxWidth(200);
         headerRow.getChildren().add(headerColab);
 
         for (LocalDate dia : dias) {
             VBox hDia = new VBox();
             hDia.getStyleClass().add("grelha-header-dia");
             hDia.setAlignment(Pos.CENTER);
+            hDia.setSpacing(2);
             boolean fds = dia.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
                     || dia.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
+            boolean eHoje = dia.equals(hoje);
             if (fds) hDia.getStyleClass().add("grelha-header-dia-fim-semana");
 
-            javafx.scene.control.Label lblNum = new javafx.scene.control.Label(
-                    String.format("%02d", dia.getDayOfMonth()));
-            lblNum.getStyleClass().add("grelha-header-dia-num");
             javafx.scene.control.Label lblSem = new javafx.scene.control.Label(
-                    diaSemanaAbrev(dia.getDayOfWeek()));
+                    diaSemanaAbrev(dia.getDayOfWeek()).toUpperCase(java.util.Locale.ROOT));
             lblSem.getStyleClass().add("grelha-header-dia-sem");
-            hDia.getChildren().addAll(lblNum, lblSem);
+
+            // Número do dia — hoje fica dentro de um círculo vermelho
+            if (eHoje) {
+                javafx.scene.layout.StackPane circulo = new javafx.scene.layout.StackPane();
+                circulo.setMinSize(34, 34); circulo.setPrefSize(34, 34); circulo.setMaxSize(34, 34);
+                circulo.setStyle("-fx-background-color: #dc2626; -fx-background-radius: 50%;");
+                javafx.scene.control.Label lblNumHoje = new javafx.scene.control.Label(
+                        String.valueOf(dia.getDayOfMonth()));
+                lblNumHoje.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: white;");
+                circulo.getChildren().add(lblNumHoje);
+                hDia.getChildren().addAll(lblSem, circulo);
+            } else {
+                javafx.scene.control.Label lblNum = new javafx.scene.control.Label(
+                        String.valueOf(dia.getDayOfMonth()));
+                lblNum.getStyleClass().add("grelha-header-dia-num");
+                hDia.getChildren().addAll(lblSem, lblNum);
+            }
             headerRow.getChildren().add(hDia);
         }
         grelhaContainer.getChildren().add(headerRow);
 
         // ── LINHAS POR COLABORADOR ──
         boolean alternado = false;
-        for (Map.Entry<Integer, List<GeracaoHorariosBLL.HorarioLinha>> entry : porColaborador.entrySet()) {
+        for (Map.Entry<Integer, Map<LocalDate, GeracaoHorariosBLL.HorarioLinha>> entry
+                : porColaborador.entrySet()) {
             Integer idColab = entry.getKey();
-            List<GeracaoHorariosBLL.HorarioLinha> linhas = entry.getValue();
-
-            Map<LocalDate, String> diaParaPeriodo = new java.util.HashMap<>();
-            for (GeracaoHorariosBLL.HorarioLinha l : linhas) {
-                if (l.data() != null) diaParaPeriodo.put(l.data(), l.periodo() != null ? l.periodo() : "");
-            }
+            Map<LocalDate, GeracaoHorariosBLL.HorarioLinha> diaParaLinha = entry.getValue();
 
             HBox empRow = new HBox();
             empRow.getStyleClass().add("grelha-employee-row");
             if (alternado) empRow.getStyleClass().add("grelha-employee-row-alt");
             alternado = !alternado;
 
+            String corAvatar = grelhaAvatarCores.getOrDefault(idColab, "#6b7280");
             HBox infoCell = construirCelulaColaborador(
-                    nomesColab.get(idColab), cargosColab.get(idColab));
+                    nomesColab.get(idColab), cargosColab.get(idColab), corAvatar);
             empRow.getChildren().add(infoCell);
 
             for (LocalDate dia : dias) {
+                GeracaoHorariosBLL.HorarioLinha linha = diaParaLinha.get(dia);
+                // turno() = nome tipo (Manhã/Tarde/Noite/Folga)
+                // periodo() = horário ("09:00 - 15:00") — só existe para turnos, não folgas
+                String tipoTurno = (linha != null && linha.turno() != null) ? linha.turno() : null;
+                String horasTurno = (linha != null && linha.periodo() != null
+                        && !"-".equals(linha.periodo())) ? linha.periodo() : null;
                 javafx.scene.layout.StackPane diaCell = construirCelulaDia(
-                        diaParaPeriodo.get(dia), dia.getDayOfWeek());
+                        tipoTurno, horasTurno, dia.getDayOfWeek(), dia.equals(hoje));
                 empRow.getChildren().add(diaCell);
             }
             grelhaContainer.getChildren().add(empRow);
         }
     }
 
-    private HBox construirCelulaColaborador(String nome, String cargo) {
-        HBox cell = new HBox(8);
+    private HBox construirCelulaColaborador(String nome, String cargo, String corAvatar) {
+        HBox cell = new HBox(10);
         cell.getStyleClass().add("grelha-employee-info");
         cell.setAlignment(Pos.CENTER_LEFT);
 
-        // Avatar com iniciais
+        // Avatar colorido com iniciais
         javafx.scene.layout.StackPane avatar = new javafx.scene.layout.StackPane();
         avatar.getStyleClass().add("grelha-avatar");
-        avatar.setMinSize(32, 32); avatar.setPrefSize(32, 32); avatar.setMaxSize(32, 32);
+        avatar.setStyle("-fx-background-color: " + corAvatar + ";");
         javafx.scene.control.Label lblIniciais = new javafx.scene.control.Label(gerarIniciais(nome));
         lblIniciais.getStyleClass().add("grelha-avatar-iniciais");
         avatar.getChildren().add(lblIniciais);
@@ -748,7 +788,7 @@ public class    GeracaoHorariosController {
         javafx.scene.control.Label lblNome = new javafx.scene.control.Label(
                 nome != null ? nome : "?");
         lblNome.getStyleClass().add("grelha-employee-nome");
-        lblNome.setMaxWidth(130);
+        lblNome.setMaxWidth(128);
         javafx.scene.control.Label lblCargo = new javafx.scene.control.Label(
                 cargo != null ? cargo : "");
         lblCargo.getStyleClass().add("grelha-employee-cargo");
@@ -758,53 +798,94 @@ public class    GeracaoHorariosController {
         return cell;
     }
 
+    /** Constrói a célula de um dia: card colorido com nome do turno + horas abaixo.
+     *  tipoTurno = "Manhã" / "Tarde" / "Noite" / "Folga" (ou null = sem dados)
+     *  horasTurno = "09:00 - 15:00" (ou null para folgas/sem dados)
+     */
     private javafx.scene.layout.StackPane construirCelulaDia(
-            String periodo, java.time.DayOfWeek diaSemana) {
+            String tipoTurno,
+            String horasTurno,
+            java.time.DayOfWeek diaSemana,
+            boolean eHoje) {
 
         javafx.scene.layout.StackPane cell = new javafx.scene.layout.StackPane();
         cell.getStyleClass().add("grelha-dia-cell");
-        cell.setMinWidth(56); cell.setPrefWidth(56); cell.setMaxWidth(56);
 
         boolean fds = diaSemana == java.time.DayOfWeek.SATURDAY
                 || diaSemana == java.time.DayOfWeek.SUNDAY;
         if (fds) cell.getStyleClass().add("grelha-dia-cell-fim-semana");
+        if (eHoje) cell.setStyle("-fx-background-color: #fff5f5;");
 
-        javafx.scene.control.Label lbl;
-        if (periodo == null || periodo.isBlank()) {
-            lbl = new javafx.scene.control.Label("–");
-            lbl.getStyleClass().add("grelha-turno-vazio");
-        } else {
-            lbl = new javafx.scene.control.Label(turnoTexto(periodo));
-            lbl.getStyleClass().addAll("grelha-turno-pill", turnoCssClass(periodo));
+        if (tipoTurno == null || tipoTurno.isBlank() || "-".equals(tipoTurno)) {
+            // célula vazia — sem card
+            return cell;
         }
-        cell.getChildren().add(lbl);
+
+        String chave = turnoChave(tipoTurno);
+
+        // Card interior
+        VBox card = new VBox(3);
+        card.getStyleClass().addAll("grelha-turno-card", "grelha-turno-card-" + chave);
+        card.setAlignment(Pos.CENTER);
+
+        javafx.scene.control.Label lblNome = new javafx.scene.control.Label(
+                turnoNomeDisplay(tipoTurno));
+        lblNome.getStyleClass().addAll("grelha-turno-nome", "grelha-turno-nome-" + chave);
+
+        card.getChildren().add(lblNome);
+
+        // Horas formatadas (ex: "09:00 - 15:00" → "09-15")
+        if (horasTurno != null && !horasTurno.isBlank() && !"folga".equals(chave)) {
+            String horasFormatadas = formatarHorasGrelha(horasTurno);
+            javafx.scene.control.Label lblHora = new javafx.scene.control.Label(horasFormatadas);
+            lblHora.getStyleClass().addAll("grelha-turno-hora", "grelha-turno-hora-" + chave);
+            card.getChildren().add(lblHora);
+        }
+
+        cell.getChildren().add(card);
         return cell;
     }
 
-    private String turnoTexto(String periodo) {
-        if (periodo == null) return "–";
-        String p = Normalizer.normalize(periodo.trim().toLowerCase(), Normalizer.Form.NFD)
+    /** Extrai a chave CSS do nome do turno: "manha", "tarde", "noite", "folga", "outro" */
+    private String turnoChave(String tipo) {
+        if (tipo == null) return "outro";
+        String p = Normalizer.normalize(tipo.trim().toLowerCase(), Normalizer.Form.NFD)
                 .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
         return switch (p) {
-            case "manha", "manhã" -> "Manhã";
-            case "tarde"           -> "Tarde";
-            case "noite"           -> "Noite";
-            case "folga"           -> "Folga";
-            default -> periodo.length() > 6 ? periodo.substring(0, 5) + "." : periodo;
+            case "manha" -> "manha";
+            case "tarde" -> "tarde";
+            case "noite" -> "noite";
+            case "folga" -> "folga";
+            default      -> "outro";
         };
     }
 
-    private String turnoCssClass(String periodo) {
-        if (periodo == null) return "grelha-turno-vazio";
-        String p = Normalizer.normalize(periodo.trim().toLowerCase(), Normalizer.Form.NFD)
-                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        return switch (p) {
-            case "manha", "manhã" -> "grelha-turno-manha";
-            case "tarde"           -> "grelha-turno-tarde";
-            case "noite"           -> "grelha-turno-noite";
-            case "folga"           -> "grelha-turno-folga";
-            default                -> "grelha-turno-outro";
+    /** Nome do turno para mostrar no card (com acentos corretos) */
+    private String turnoNomeDisplay(String tipo) {
+        if (tipo == null) return "–";
+        String chave = turnoChave(tipo);
+        return switch (chave) {
+            case "manha" -> "Manhã";
+            case "tarde" -> "Tarde";
+            case "noite" -> "Noite";
+            case "folga" -> "Folga";
+            default      -> tipo.length() > 8 ? tipo.substring(0, 7) + "." : tipo;
         };
+    }
+
+    /** Formata "09:00 - 15:00" → "09-15", "09:30 - 15:30" → "09:30-15:30" */
+    private String formatarHorasGrelha(String horas) {
+        if (horas == null) return "";
+        // Remove espaços e normaliza separador
+        String s = horas.trim().replace(" ", "").replace("–", "-");
+        // Remove :00 de cada parte se ambas terminarem em :00
+        String[] partes = s.split("-", 2);
+        if (partes.length == 2) {
+            String p1 = partes[0].endsWith(":00") ? partes[0].replace(":00", "") : partes[0];
+            String p2 = partes[1].endsWith(":00") ? partes[1].replace(":00", "") : partes[1];
+            return p1 + "-" + p2;
+        }
+        return s;
     }
 
     private String diaSemanaAbrev(java.time.DayOfWeek dow) {
