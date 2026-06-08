@@ -1934,3 +1934,46 @@ nem sequer tinha campo `@FXML` no controller).
 ### Estado dos Testes
 
 **51/51 testes — 0 falhas — 0 erros** ✅ + BUILD SUCCESS (compile)
+
+---
+
+## Sessão 22 — Banner de topo uniforme em todos os módulos (2026-06-08)
+
+### Pedido
+
+O utilizador quis que **todas as páginas** usem o mesmo estilo de banner do
+"Painel de Gestão de Pedidos" — o **card flutuante vermelho-escuro**
+(`#9b1c1c → #450a0a`, raio 16px) — substituindo as cores por módulo
+(verde na Loja, azul/navy nos Funcionários, âmbar nas Folgas, etc.).
+
+### Implementação
+
+Antes existiam dois tipos de banner (Sessão 17/18):
+- **Full-bleed** (edge-to-edge, raio 0): Loja, Funcionários, Folgas, Permutas, Horários
+- **Card flutuante** (raio 16px, inset por padding do pai): Pedidos, Relatórios, Auditoria
+
+Uniformização para o estilo card vermelho-escuro:
+
+| Módulo | Antes | Ação |
+|--------|-------|------|
+| Pedidos | dark-red card | referência (inalterado) |
+| Relatórios | navy card | recolor → dark-red |
+| Auditoria | cinza card | recolor → dark-red |
+| Loja | verde full-bleed | → card dark-red (+`modulo-banner-card`, raio 16px, `VBox.margin` 40/40/24/40, padding 26/30) |
+| Funcionários | navy full-bleed | → card dark-red (idem) |
+| Folgas | âmbar full-bleed | → card dark-red (idem) |
+| Permutas | azul full-bleed | → card dark-red (idem) |
+| Horários | vermelho full-bleed | → card dark-red (idem) |
+| Perfil | hero vermelho `#c91428` | recolor → dark-red (mantém hero+avatar) |
+
+Os full-bleed passaram a card adicionando `modulo-banner-card` ao styleClass,
+`-fx-background-radius: 16px` no inline style e `<VBox.margin>` para flutuar
+(o pai `conteudo-pagina` não tinha padding). Padding interno alinhado a 26/30
+para igualar a altura da referência.
+
+**Apenas inline styles + styleClass + VBox.margin/padding.** Zero `fx:id`/handlers
+alterados. XML bem-formado validado nos 8 FXML via `[xml]` parse.
+
+### Estado dos Testes
+
+**51/51 testes — 0 falhas — 0 erros** ✅ + BUILD SUCCESS
