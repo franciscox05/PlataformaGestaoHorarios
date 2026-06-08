@@ -1885,3 +1885,52 @@ Fallback genérico mantido para tipos desconhecidos.
 ### Estado dos Testes
 
 **51/51 testes — 0 falhas — 0 erros** ✅ (após todos os fixes)
+
+---
+
+## Sessão 21 — Auditoria visual por screenshots + fix dos empty-states (2026-06-08)
+
+### Contexto
+
+O utilizador entregou **42 screenshots** de toda a app (pasta `printsProjetoTodo`)
+e pediu foco **exclusivo no Desktop**: "que fique bom, tudo a funcionar, extremamente
+bonito e fácil de usar". Análise visual página a página de todos os módulos.
+
+### Veredicto da auditoria visual
+
+A app está **visualmente excelente e funcionalmente completa**. Sidebar Indigo,
+banners por módulo, calendários, tabelas premium, diálogos modais, stepper de fluxo,
+edição de turno com z-order correto, auditoria a carregar — tudo confirmado nos prints.
+Zero TODOs/handlers vazios nos controllers desktop; todos os placeholders em PT correto.
+
+### 🐞 Bug encontrado e corrigido — empty-states sobrepostos a conteúdo
+
+**Sintoma (visível em 3 prints do módulo Horários):** os cartões de "vazio"
+apareciam **por cima da tabela/calendário já preenchidos**, dando sensação de ecrã
+partido precisamente no ecrã mais importante da app:
+- Tab Propostas → "Sem alternativas geradas" sobre a tabela de alternativas cheia
+- Tab Propostas → "Sem dados de distribuição" sobre a distribuição já preenchida
+- Tab Calendário → "Sem semana para mostrar" sobre o calendário semanal preenchido
+
+**Causa raiz:** os `VBox` `emptyStatePropostas`, `emptyStateDistribuicao` e
+`emptyStateCalendario` estavam declarados no FXML mas **nunca eram alternados** pelo
+controller (só `emptyStateCalendarioMensal` o era). Ficavam permanentemente
+`visible=true`. Mesma classe de bug em `gestao-loja-view.fxml` (`emptyStateExcecoes`
+nem sequer tinha campo `@FXML` no controller).
+
+**Fix:**
+- `GeracaoHorariosController` — novos `atualizarEmptyStates()` + `alternarEmptyState()`
+  invocados em `atualizarEstadoInterativo()` (ponto central de todos os fluxos:
+  `preencher/limparResultado`, `aplicarListaPropostas`). Esconde o empty-state e mostra
+  o conteúdo quando há dados; o contrário quando não há (evita o duplo "vazio" com o
+  `setPlaceholder` da própria TableView).
+- `GestaoLojaController` — novo campo `@FXML VBox emptyStateExcecoes` alternado em
+  `preencherHorariosEspeciais()`.
+
+**Ficheiros alterados:**
+- `Controller/GeracaoHorariosController.java`
+- `Controller/GestaoLojaController.java`
+
+### Estado dos Testes
+
+**51/51 testes — 0 falhas — 0 erros** ✅ + BUILD SUCCESS (compile)
