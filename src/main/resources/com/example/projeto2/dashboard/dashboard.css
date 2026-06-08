@@ -3471,10 +3471,9 @@
     -fx-border-radius: 8px;
 }
 .grelha-turno-card-folga {
-    -fx-background-color: #f9fafb;
-    -fx-border-color: #d1d5db;
+    -fx-background-color: #fee2e2;
+    -fx-border-color: #fecaca;
     -fx-border-width: 1px;
-    -fx-border-style: dashed;
     -fx-border-radius: 8px;
 }
 .grelha-turno-card-outro {
@@ -3496,7 +3495,7 @@
 .grelha-turno-nome-manha { -fx-text-fill: #1d4ed8; }
 .grelha-turno-nome-tarde { -fx-text-fill: #b45309; }
 .grelha-turno-nome-noite { -fx-text-fill: #6d28d9; }
-.grelha-turno-nome-folga { -fx-text-fill: #6b7280; }
+.grelha-turno-nome-folga { -fx-text-fill: #dc2626; }
 .grelha-turno-nome-outro { -fx-text-fill: #374151; }
 
 .grelha-turno-hora {
@@ -3507,7 +3506,7 @@
 .grelha-turno-hora-manha { -fx-text-fill: #3b82f6; }
 .grelha-turno-hora-tarde { -fx-text-fill: #d97706; }
 .grelha-turno-hora-noite { -fx-text-fill: #8b5cf6; }
-.grelha-turno-hora-folga { -fx-text-fill: #9ca3af; }
+.grelha-turno-hora-folga { -fx-text-fill: #f87171; }
 .grelha-turno-hora-outro { -fx-text-fill: #6b7280; }
 
 /* ── Célula de colaborador redimensionada ── */
