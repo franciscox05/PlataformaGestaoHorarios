@@ -77,7 +77,9 @@
     -fx-background-color: #ffffff;
     -fx-border-color: transparent;
     -fx-border-width: 0;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 32, 0.16, 0, 12);
+    -fx-background-radius: 22px;
+    -fx-border-radius: 22px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 44, 0.18, 0, 18);
 }
 
 .titulo-levis {
@@ -88,7 +90,7 @@
 }
 
 .titulo-registado {
-    -fx-text-fill: #c41230;
+    -fx-text-fill: #c91428;
     -fx-font-family: "Arial Black";
     -fx-font-size: 17px;
     -fx-font-weight: 900;
@@ -123,7 +125,7 @@
 }
 
 .login-link {
-    -fx-text-fill: #c41230;
+    -fx-text-fill: #c91428;
     -fx-font-size: 10px;
     -fx-font-weight: 800;
     -fx-letter-spacing: 1.5px;
@@ -148,7 +150,7 @@
 }
 
 .campo-login:focused {
-    -fx-border-color: transparent transparent #c41230 transparent;
+    -fx-border-color: transparent transparent #c91428 transparent;
     -fx-effect: none;
 }
 
@@ -165,26 +167,26 @@
 
 /* ── BOTÕES ────────────────────────────────────────────────────────── */
 .botao-login {
-    -fx-background-color: #c41230;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #e11d2e 0%, #9f0018 100%);
     -fx-text-fill: white;
     -fx-font-family: "Segoe UI";
     -fx-font-size: 14px;
-    -fx-font-weight: 700;
+    -fx-font-weight: 800;
     -fx-letter-spacing: 1px;
-    -fx-padding: 14px 28px;
+    -fx-padding: 15px 28px;
     -fx-cursor: hand;
-    -fx-background-radius: 8px;
-    -fx-border-radius: 8px;
-    -fx-effect: dropshadow(gaussian, rgba(196,18,48,0.22), 12, 0.14, 0, 4);
+    -fx-background-radius: 12px;
+    -fx-border-radius: 12px;
+    -fx-effect: dropshadow(gaussian, rgba(201,20,40,0.34), 16, 0.16, 0, 6);
 }
 
 .botao-login:hover {
-    -fx-background-color: #a80f28;
-    -fx-effect: dropshadow(gaussian, rgba(196,18,48,0.32), 16, 0.18, 0, 6);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #f02333 0%, #c91428 100%);
+    -fx-effect: dropshadow(gaussian, rgba(201,20,40,0.48), 22, 0.20, 0, 9);
 }
 
 .botao-login:pressed {
-    -fx-background-color: #8f0c22;
+    -fx-background-color: #7a0015;
     -fx-effect: none;
 }
 
@@ -239,7 +241,21 @@
 }
 
 .login-bottom-accent {
-    -fx-background-color: #c41230;
+    -fx-background-color: #c91428;
     -fx-pref-height: 5px;
     -fx-max-height: 5px;
+}
+
+.login-forgot-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: rgba(180,0,20,0.85);
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+}
+
+.login-forgot-btn:hover {
+    -fx-text-fill: #c9141e;
+    -fx-underline: true;
 }

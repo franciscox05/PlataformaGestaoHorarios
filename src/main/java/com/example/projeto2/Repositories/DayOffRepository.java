@@ -62,6 +62,18 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
                                                       @Param("dataInicio") LocalDate dataInicio,
                                                       @Param("dataFim") LocalDate dataFim);
 
+    @Query("SELECT COUNT(d) FROM DayOff d " +
+            "WHERE LOWER(CAST(d.estado AS string)) = 'pendente' " +
+            "AND d.idUtilizador.id <> :idUtilizadorAprovador " +
+            "AND EXISTS (" +
+            "    SELECT 1 FROM Lojautilizador lu " +
+            "    WHERE lu.idUtilizador.id = d.idUtilizador.id " +
+            "    AND lu.idLoja.id = :idLoja " +
+            "    AND lu.dataFim IS NULL" +
+            ")")
+    long countPedidosPendentesDaLoja(@Param("idLoja") Integer idLoja,
+                                     @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
+
     @Query("SELECT d FROM DayOff d " +
             "WHERE d.idDayoff = :idDayOff " +
             "AND EXISTS (" +

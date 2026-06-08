@@ -488,8 +488,18 @@ public class HorarioGeneratorEngine {
             }
         }
         List<AtribuicaoDia> lista = new ArrayList<>(melhorPorColaborador.values());
-        lista.sort(Comparator.comparingDouble(a -> pontuarAtribuicao(
-                a, data, pedido, reservaFDS, horariosJaGerados)));
+        // Ordenação com jitter determinístico baseado na semente:
+        // garante horários diferentes entre gerações sem violar restrições hard.
+        // O jitter (max ±12.0) é inferior ao menor peso soft (20 para rotação FDS),
+        // pelo que nunca anula preferências fortes — apenas desempata candidatos equivalentes.
+        long semente = pedido.semente();
+        lista.sort((a, b) -> {
+            double scoreA = pontuarAtribuicao(a, data, pedido, reservaFDS, horariosJaGerados)
+                + ((semente ^ (long) a.estado().idUtilizador() * 0x9e3779b97f4a7c15L) >>> 50) / 16383.0 * 12.0;
+            double scoreB = pontuarAtribuicao(b, data, pedido, reservaFDS, horariosJaGerados)
+                + ((semente ^ (long) b.estado().idUtilizador() * 0x9e3779b97f4a7c15L) >>> 50) / 16383.0 * 12.0;
+            return Double.compare(scoreA, scoreB);
+        });
         return lista;
     }
 
@@ -529,10 +539,44 @@ public class HorarioGeneratorEngine {
             }
         }
 
-        // Preferências: recompensar correspondência
+        // Preferências de turno: recompensar correspondência forte (duplicado vs carga contratual)
         if (temPreferenciaTurnoFavoravel(a.estado().idUtilizador(),
                 a.turno(), data, pedido.preferenciasTurnos())) {
-            pontuacao -= 30;
+            pontuacao -= 55;
+        }
+
+        // A2: Penalizar se este dia é preferido de folga (peso relevante mas ainda soft)
+        Set<LocalDate> folgasPref = pedido.diasFolgaPreferidos() != null
+                ? pedido.diasFolgaPreferidos().getOrDefault(a.estado().idUtilizador(), Set.of())
+                : Set.of();
+        if (folgasPref.contains(data)) {
+            pontuacao += 85;
+        }
+
+        // A3: Bónus se colega preferido está escalado no mesmo dia ou no mesmo mês
+        if (pedido.paresPreferisPorColaborador() != null) {
+            Set<Integer> colegasPref = pedido.paresPreferisPorColaborador()
+                    .getOrDefault(a.estado().idUtilizador(), Set.of());
+            if (!colegasPref.isEmpty()) {
+                // Mesmo dia = bónus forte (favorece co-escalamento direto)
+                boolean colegaMesmoDia = horariosJaGerados.stream()
+                        .anyMatch(h -> h.getIdLojautilizador() != null
+                                && h.getIdLojautilizador().getIdUtilizador() != null
+                                && colegasPref.contains(h.getIdLojautilizador().getIdUtilizador().getId())
+                                && data.equals(h.getDataTurno()));
+                if (colegaMesmoDia) {
+                    pontuacao -= 45;
+                } else {
+                    // Mesmo mês = bónus fraco (favorece equipas estáveis)
+                    boolean colegaAtivo = horariosJaGerados.stream()
+                            .anyMatch(h -> h.getIdLojautilizador() != null
+                                    && h.getIdLojautilizador().getIdUtilizador() != null
+                                    && colegasPref.contains(h.getIdLojautilizador().getIdUtilizador().getId()));
+                    if (colegaAtivo) {
+                        pontuacao -= 25;
+                    }
+                }
+            }
         }
 
         return pontuacao;
@@ -676,15 +720,17 @@ public class HorarioGeneratorEngine {
                 boolean exigeManha = desc.contains("manha");
                 boolean exigeTarde = desc.contains("tarde");
                 boolean exigeIntermedio = desc.contains("intermedio");
+                boolean exigeNoite = desc.contains("noite");
 
                 boolean temFiltroDuracao = exigeCurto || exigeLongo;
-                boolean temFiltroPeriodo = exigeManha || exigeTarde || exigeIntermedio;
+                boolean temFiltroPeriodo = exigeManha || exigeTarde || exigeIntermedio || exigeNoite;
 
                 boolean correspondeDuracao = !temFiltroDuracao
                         || (exigeCurto && duracaoMinutos < 300)
                         || (exigeLongo && duracaoMinutos >= 300);
 
-                boolean correspondePeriodo = !temFiltroPeriodo || correspondePeriodo(turno, exigeManha, exigeTarde, exigeIntermedio);
+                boolean correspondePeriodo = !temFiltroPeriodo
+                        || correspondePeriodo(turno, exigeManha, exigeTarde, exigeIntermedio, exigeNoite);
 
                 if (correspondeDuracao && correspondePeriodo) {
                     return true;
@@ -697,7 +743,8 @@ public class HorarioGeneratorEngine {
     private boolean correspondePeriodo(Turno turno,
                                        boolean exigeManha,
                                        boolean exigeTarde,
-                                       boolean exigeIntermedio) {
+                                       boolean exigeIntermedio,
+                                       boolean exigeNoite) {
         String tipoNormalizado = normalizarTurno(turno);
         LocalTime horaInicio = turno.getHoraInicio();
 
@@ -714,7 +761,14 @@ public class HorarioGeneratorEngine {
         }
 
         if (exigeTarde && ("tarde".equals(tipoNormalizado)
-                || (horaInicio != null && !horaInicio.isBefore(LocalTime.NOON)))) {
+                || (horaInicio != null
+                && !horaInicio.isBefore(LocalTime.NOON)
+                && horaInicio.isBefore(LocalTime.of(17, 0))))) {
+            return true;
+        }
+
+        if (exigeNoite && ("noite".equals(tipoNormalizado)
+                || (horaInicio != null && !horaInicio.isBefore(LocalTime.of(17, 0))))) {
             return true;
         }
 
@@ -828,7 +882,13 @@ public class HorarioGeneratorEngine {
             Map<LocalDate, ConfiguracaoDia>         configuracoesPorData,
             List<Horario>                           historicoHorarios,
             Instant                                 prazoLimite,
-            String                                  politica
+            String                                  politica,
+            // A2: dias de folga preferidos (soft — penalização, não hard block)
+            Map<Integer, Set<LocalDate>>            diasFolgaPreferidos,
+            // A3: pares de colegas preferidos (soft — bónus de pontuação)
+            Map<Integer, Set<Integer>>              paresPreferisPorColaborador,
+            // D: semente de diversificação — garante horários diferentes em gerações diferentes
+            long                                    semente
     ) {}
 
     /** Configuração especial para um dia (feriado, horário especial de loja). */

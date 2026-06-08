@@ -383,6 +383,7 @@ public class AuditoriaBLL {
     }
 
     private String normalizar(String valor) {
+        if (valor == null) return null;
         return valor.toLowerCase(Locale.ROOT);
     }
 
@@ -391,12 +392,41 @@ public class AuditoriaBLL {
         return emailNormalizado == null ? null : emailNormalizado.toLowerCase(Locale.ROOT);
     }
 
+    private static final java.util.Map<String, String> ETIQUETAS_PT = java.util.Map.ofEntries(
+            java.util.Map.entry("login",                   "Autenticação"),
+            java.util.Map.entry("logout",                  "Terminar sessão"),
+            java.util.Map.entry("sessao_expirada",         "Sessão expirada"),
+            java.util.Map.entry("alteracao_password",      "Alteração de password"),
+            java.util.Map.entry("colaborador_criado",      "Colaborador criado"),
+            java.util.Map.entry("colaborador_atualizado",  "Colaborador atualizado"),
+            java.util.Map.entry("colaborador_desativado",  "Colaborador desativado"),
+            java.util.Map.entry("horario_publicado",       "Horário publicado"),
+            java.util.Map.entry("horario_gerado",          "Horário gerado"),
+            java.util.Map.entry("proposta_enviada",        "Proposta enviada"),
+            java.util.Map.entry("proposta_aprovada",       "Proposta aprovada"),
+            java.util.Map.entry("proposta_rejeitada",      "Proposta rejeitada"),
+            java.util.Map.entry("folga_aprovada",          "Folga aprovada"),
+            java.util.Map.entry("folga_rejeitada",         "Folga rejeitada"),
+            java.util.Map.entry("permuta_aprovada",        "Permuta aprovada"),
+            java.util.Map.entry("permuta_rejeitada",       "Permuta rejeitada"),
+            java.util.Map.entry("sucesso",                 "Sucesso"),
+            java.util.Map.entry("falha",                   "Falha"),
+            java.util.Map.entry("autenticacao",            "Autenticação")
+    );
+
     private String formatarEtiqueta(String valor) {
         String valorNormalizado = normalizar(valor);
         if (valorNormalizado == null) {
             return "-";
         }
 
+        // Usar etiqueta em português se conhecida
+        String etiquetaConhecida = ETIQUETAS_PT.get(valorNormalizado);
+        if (etiquetaConhecida != null) {
+            return etiquetaConhecida;
+        }
+
+        // Fallback: split por underscore e capitalizar
         String[] partes = valorNormalizado.split("_");
         StringBuilder resultado = new StringBuilder();
         for (String parte : partes) {

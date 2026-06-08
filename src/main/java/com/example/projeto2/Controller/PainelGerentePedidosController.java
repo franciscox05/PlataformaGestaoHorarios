@@ -26,6 +26,9 @@ import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -247,10 +250,10 @@ public class PainelGerentePedidosController {
         btnAprovarPreferencia.setTooltip(new Tooltip("Aprovar a preferência selecionada"));
         btnRejeitarPreferencia.setTooltip(new Tooltip("Rejeitar a preferência selecionada"));
 
-        btnAtalhoFolgas.setTooltip(new Tooltip("Abrir mÃ³dulo de folgas (Ctrl+1)"));
-        btnAtalhoPermutas.setTooltip(new Tooltip("Abrir mÃ³dulo de permutas (Ctrl+2)"));
-        btnAtalhoPreferencias.setTooltip(new Tooltip("Abrir mÃ³dulo de preferÃªncias (Ctrl+3)"));
-        btnAtalhoHorarios.setTooltip(new Tooltip("Abrir mÃ³dulo de horÃ¡rios (Ctrl+4)"));
+        btnAtalhoFolgas.setTooltip(new Tooltip("Abrir módulo de folgas (Ctrl+1)"));
+        btnAtalhoPermutas.setTooltip(new Tooltip("Abrir módulo de permutas (Ctrl+2)"));
+        btnAtalhoPreferencias.setTooltip(new Tooltip("Abrir módulo de preferências (Ctrl+3)"));
+        btnAtalhoHorarios.setTooltip(new Tooltip("Abrir módulo de horários (Ctrl+4)"));
 
         txtDecisaoPreferencia.textProperty().addListener((obs, oldValue, newValue) -> esconderFeedback(lblFeedbackPreferencias));
         tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
@@ -357,11 +360,13 @@ public class PainelGerentePedidosController {
     }
 
     private void configurarTabelaFolgas() {
-        colFolgaColaborador.setCellValueFactory(cellData ->
-                new SimpleStringProperty(nomesFolgasPendentes.getOrDefault(
-                        cellData.getValue().getIdUtilizador(),
-                        "Utilizador #" + cellData.getValue().getIdUtilizador()
-                )));
+        colFolgaColaborador.setCellValueFactory(cellData -> {
+            var utilizadorFolga = cellData.getValue().getIdUtilizador();
+            Integer idColaborador = (utilizadorFolga != null) ? utilizadorFolga.getId() : null;
+            return new SimpleStringProperty(nomesFolgasPendentes.getOrDefault(
+                    idColaborador,
+                    idColaborador != null ? "Colaborador #" + idColaborador : "Colaborador"));
+        });
 
         colFolgaData.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarData(cellData.getValue().getDataAusencia())));
@@ -554,13 +559,23 @@ public class PainelGerentePedidosController {
                 throw new IllegalArgumentException("Seleciona um pedido de folga primeiro.");
             }
 
+            // Construir contexto da folga para o diálogo
+            String nomeColaboradorFolga = nomesFolgasPendentes.getOrDefault(
+                    pedidoSelecionado.getIdUtilizador() != null ? pedidoSelecionado.getIdUtilizador().getId() : null,
+                    "Colaborador");
+            String dataFolga = pedidoSelecionado.getDataAusencia() != null
+                    ? pedidoSelecionado.getDataAusencia().format(DATA_FORMATTER) : "-";
+            String tipoFolga = pedidoSelecionado.getTipo() != null ? pedidoSelecionado.getTipo() : "-";
+            String motivoFolga = pedidoSelecionado.getMotivo() != null && !pedidoSelecionado.getMotivo().isBlank()
+                    ? "\nMotivo: " + pedidoSelecionado.getMotivo() : "";
+            String detalhesFolga = String.format("Colaborador: %s%nData: %s%nTipo: %s%s",
+                    nomeColaboradorFolga, dataFolga, tipoFolga, motivoFolga);
+
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     aprovar ? "Aprovar folga" : "Rejeitar folga",
-                    aprovar ? "Deseja aprovar este pedido de folga?" : "Deseja rejeitar este pedido de folga?",
-                    aprovar
-                            ? "A decisão ficará registada no sistema."
-                            : "A rejeição ficará registada no sistema."
+                    aprovar ? "Confirmas a aprovação?" : "Confirmas a rejeição?",
+                    detalhesFolga
             )) {
                 return;
             }
@@ -590,13 +605,30 @@ public class PainelGerentePedidosController {
                 throw new IllegalArgumentException("Seleciona um pedido de permuta primeiro.");
             }
 
+            // Construir contexto da permuta para o diálogo
+            String nomeOrigem = pedidoSelecionado.getIdHorarioOrigem() != null
+                    && pedidoSelecionado.getIdHorarioOrigem().getIdLojautilizador() != null
+                    && pedidoSelecionado.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador() != null
+                    ? pedidoSelecionado.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador().getNome()
+                    : "Colaborador A";
+            String nomeDestino = pedidoSelecionado.getIdHorarioDestino() != null
+                    && pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador() != null
+                    && pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador().getIdUtilizador() != null
+                    ? pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador().getIdUtilizador().getNome()
+                    : "Colaborador B";
+            String dataOrigem = pedidoSelecionado.getIdHorarioOrigem() != null
+                    && pedidoSelecionado.getIdHorarioOrigem().getDataTurno() != null
+                    ? pedidoSelecionado.getIdHorarioOrigem().getDataTurno().format(DATA_FORMATTER) : "-";
+            String dataDestino = pedidoSelecionado.getIdHorarioDestino() != null
+                    && pedidoSelecionado.getIdHorarioDestino().getDataTurno() != null
+                    ? pedidoSelecionado.getIdHorarioDestino().getDataTurno().format(DATA_FORMATTER) : "-";
+            String detalhesPermuta = String.format("%s (%s)  ↔  %s (%s)", nomeOrigem, dataOrigem, nomeDestino, dataDestino);
+
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     aprovar ? "Aprovar permuta" : "Rejeitar permuta",
-                    aprovar ? "Deseja aprovar esta permuta?" : "Deseja rejeitar esta permuta?",
-                    aprovar
-                            ? "A decisão ficará registada no sistema."
-                            : "A rejeição ficará registada no sistema."
+                    aprovar ? "Confirmas a aprovação desta troca de turno?" : "Confirmas a rejeição desta troca de turno?",
+                    detalhesPermuta
             )) {
                 return;
             }
@@ -626,13 +658,25 @@ public class PainelGerentePedidosController {
                 throw new IllegalArgumentException("Seleciona uma preferência primeiro.");
             }
 
+            // Construir contexto da preferência para o diálogo
+            String nomeColabPref = preferenciaSelecionada.getIdUtilizador() != null
+                    && preferenciaSelecionada.getIdUtilizador().getNome() != null
+                    ? preferenciaSelecionada.getIdUtilizador().getNome() : "Colaborador";
+            String tipoPref = preferenciaSelecionada.getTipo() != null ? preferenciaSelecionada.getTipo() : "-";
+            String dataInicioPref = preferenciaSelecionada.getDataInicio() != null
+                    ? preferenciaSelecionada.getDataInicio().format(DATA_FORMATTER) : "-";
+            String dataFimPref = preferenciaSelecionada.getDataFim() != null
+                    ? preferenciaSelecionada.getDataFim().format(DATA_FORMATTER) : "-";
+            String descPref = preferenciaSelecionada.getDescricao() != null && !preferenciaSelecionada.getDescricao().isBlank()
+                    ? "\n\"" + preferenciaSelecionada.getDescricao() + "\"" : "";
+            String detalhesPref = String.format("Colaborador: %s%nTipo: %s%nPeríodo: %s a %s%s",
+                    nomeColabPref, tipoPref, dataInicioPref, dataFimPref, descPref);
+
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     aprovar ? "Aprovar preferência" : "Rejeitar preferência",
-                    aprovar ? "Deseja aprovar esta preferência?" : "Deseja rejeitar esta preferência?",
-                    aprovar
-                            ? "A decisão ficará registada no sistema."
-                            : "A rejeição ficará registada no sistema."
+                    aprovar ? "Confirmas a aprovação desta preferência?" : "Confirmas a rejeição desta preferência?",
+                    detalhesPref
             )) {
                 return;
             }
@@ -748,6 +792,13 @@ public class PainelGerentePedidosController {
         label.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
         label.setManaged(true);
         label.setVisible(true);
+
+        // Auto-dismiss após 5 s em mensagens de sucesso
+        if (sucesso) {
+            PauseTransition pausa = new PauseTransition(Duration.seconds(5));
+            pausa.setOnFinished(e -> esconderFeedback(label));
+            pausa.play();
+        }
     }
 
     private void esconderFeedback(Label label) {

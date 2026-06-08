@@ -17,4 +17,6 @@ public interface DashboardNavigator {
     void abrirHorarios();
 
     void abrirRelatorios();
+
+    void atualizarBadges();
 }

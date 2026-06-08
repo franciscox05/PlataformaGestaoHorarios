@@ -3,6 +3,7 @@ package com.example.projeto2.Controller;
 import com.example.projeto2.BLL.DayOffBLL;
 import com.example.projeto2.BLL.GestaoFuncionariosBLL;
 import com.example.projeto2.BLL.HorarioBLL;
+import com.example.projeto2.BLL.PerfilBLL;
 import com.example.projeto2.BLL.PermutaBLL;
 import com.example.projeto2.BLL.PreferenciaBLL;
 import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
@@ -19,6 +20,8 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -73,6 +76,7 @@ public class GestaoFuncionariosController {
     @FXML private ComboBox<String> cbEstado;
     @FXML private Button btnGuardar;
     @FXML private Button btnDesativar;
+    @FXML private Button btnRedefinirPassword;
     @FXML private Label lblSemanaColaborador;
     @FXML private Label lblResumoHorarioColaborador;
     @FXML private HBox boxSemanaColaborador;
@@ -98,6 +102,7 @@ public class GestaoFuncionariosController {
     private final DayOffBLL dayOffBLL;
     private final PreferenciaBLL preferenciaBLL;
     private final PermutaBLL permutaBLL;
+    private final PerfilBLL perfilBLL;
     private final ObservableList<ColaboradorLinha> colaboradores = FXCollections.observableArrayList();
     private final FilteredList<ColaboradorLinha> colaboradoresFiltrados = new FilteredList<>(colaboradores, colaborador -> true);
     private final ObservableList<FolgaLinha> folgasColaborador = FXCollections.observableArrayList();
@@ -111,12 +116,14 @@ public class GestaoFuncionariosController {
                                         HorarioBLL horarioBLL,
                                         DayOffBLL dayOffBLL,
                                         PreferenciaBLL preferenciaBLL,
-                                        PermutaBLL permutaBLL) {
+                                        PermutaBLL permutaBLL,
+                                        PerfilBLL perfilBLL) {
         this.gestaoFuncionariosBLL = gestaoFuncionariosBLL;
         this.horarioBLL = horarioBLL;
         this.dayOffBLL = dayOffBLL;
         this.preferenciaBLL = preferenciaBLL;
         this.permutaBLL = permutaBLL;
+        this.perfilBLL = perfilBLL;
     }
 
     @FXML
@@ -128,7 +135,15 @@ public class GestaoFuncionariosController {
         configurarAtalhosRapidos();
 
         tabelaColaboradores.setItems(colaboradoresFiltrados);
-        tabelaColaboradores.setPlaceholder(new Label("Ainda nao existem colaboradores associados a esta loja."));
+        tabelaColaboradores.setPlaceholder(new Label("Ainda não existem colaboradores associados a esta loja."));
+
+        // Tooltips explicativos nos botões condicionais
+        if (btnRedefinirPassword != null) {
+            btnRedefinirPassword.setTooltip(new javafx.scene.control.Tooltip("Seleciona um colaborador para redefinir a sua password"));
+        }
+        if (btnDesativar != null) {
+            btnDesativar.setTooltip(new javafx.scene.control.Tooltip("Seleciona um colaborador ativo para desativar a conta"));
+        }
         tabelaColaboradores.getSelectionModel().selectedItemProperty().addListener((observavel, anterior, selecionado) -> {
             if (selecionado != null) {
                 preencherFormulario(selecionado);
@@ -164,7 +179,7 @@ public class GestaoFuncionariosController {
     public void onGuardarClick() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
             CargoOption cargoSelecionado = cbCargo.getValue();
             if (cargoSelecionado == null || cargoSelecionado.idCargo() == null) {
@@ -174,10 +189,10 @@ public class GestaoFuncionariosController {
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     novoColaborador ? "Criar colaborador" : "Atualizar colaborador",
-                    novoColaborador ? "Deseja criar este colaborador?" : "Deseja guardar as alteracoes deste colaborador?",
+                    novoColaborador ? "Deseja criar este colaborador?" : "Deseja guardar as alterações deste colaborador?",
                     novoColaborador
-                            ? "O novo colaborador ficara associado a loja atual."
-                            : "Os dados do colaborador serao atualizados."
+                            ? "O novo colaborador ficará associado à loja atual."
+                            : "Os dados do colaborador serão atualizados."
             )) {
                 return;
             }
@@ -202,7 +217,7 @@ public class GestaoFuncionariosController {
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Nao foi possivel guardar o registo do colaborador.", false);
+            mostrarMensagem("Não foi possível guardar o registo do colaborador.", false);
         }
     }
 
@@ -210,7 +225,7 @@ public class GestaoFuncionariosController {
     public void onDesativarClick() {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
             ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
             if (selecionado == null) {
@@ -220,7 +235,7 @@ public class GestaoFuncionariosController {
                     obterJanela(),
                     "Desativar colaborador",
                     "Deseja desativar este colaborador?",
-                    "O colaborador deixara de ficar ativo na loja atual."
+                    "O colaborador deixará de ficar ativo na loja atual."
             )) {
                 return;
             }
@@ -230,8 +245,71 @@ public class GestaoFuncionariosController {
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Nao foi possivel desativar o colaborador selecionado.", false);
+            mostrarMensagem("Não foi possível desativar o colaborador selecionado.", false);
         }
+    }
+
+    @FXML
+    public void onRedefinirPasswordClick() {
+        if (utilizadorLogado == null || utilizadorLogado.getId() == null) return;
+
+        ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
+        if (selecionado == null) {
+            mostrarMensagem("Seleciona um colaborador primeiro.", false);
+            return;
+        }
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Redefinir palavra-passe");
+        dialog.setHeaderText("Redefinir password de: " + selecionado.nome());
+
+        ButtonType btnConfirmar = new ButtonType("Confirmar",
+                javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnCancelar = new ButtonType("Cancelar",
+                javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnConfirmar, btnCancelar);
+
+        PasswordField pfNova = new PasswordField();
+        pfNova.setPromptText("Nova palavra-passe (mín. 6 caracteres)");
+        PasswordField pfConfirma = new PasswordField();
+        pfConfirma.setPromptText("Confirmar nova palavra-passe");
+        Label lblDialogErro = new Label();
+        lblDialogErro.setStyle("-fx-text-fill: #c9141e; -fx-font-size: 11px;");
+        lblDialogErro.setWrapText(true);
+
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(10);
+        grid.setVgap(8);
+        grid.add(new Label("Nova password:"), 0, 0);
+        grid.add(pfNova, 1, 0);
+        grid.add(new Label("Confirmar:"), 0, 1);
+        grid.add(pfConfirma, 1, 1);
+
+        javafx.scene.layout.VBox conteudo = new javafx.scene.layout.VBox(10, grid, lblDialogErro);
+        conteudo.setPrefWidth(340);
+        dialog.getDialogPane().setContent(conteudo);
+
+        javafx.scene.Node botaoConfirmar = dialog.getDialogPane().lookupButton(btnConfirmar);
+        botaoConfirmar.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            lblDialogErro.setText("");
+            try {
+                perfilBLL.redefinirPasswordPorGerente(
+                        utilizadorLogado.getId(),
+                        selecionado.idUtilizador(),
+                        pfNova.getText(),
+                        pfConfirma.getText());
+            } catch (IllegalArgumentException e) {
+                lblDialogErro.setText(e.getMessage());
+                event.consume();
+            }
+        });
+
+        dialog.initOwner(obterJanela());
+        dialog.showAndWait().ifPresent(resultado -> {
+            if (resultado == btnConfirmar) {
+                mostrarMensagem("Palavra-passe redefinida com sucesso.", true);
+            }
+        });
     }
 
     @FXML
@@ -276,6 +354,7 @@ public class GestaoFuncionariosController {
         colFolgaAcao.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue()));
         colFolgaAcao.setCellFactory(coluna -> criarCelulaAcaoFolga());
         tabelaFolgasColaborador.setItems(folgasColaborador);
+        tabelaFolgasColaborador.setPlaceholder(new Label("Sem folgas registadas para este colaborador."));
 
         colPreferenciaTipo.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().tipo()));
         colPreferenciaPeriodo.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().periodo()));
@@ -284,6 +363,7 @@ public class GestaoFuncionariosController {
         colPreferenciaAcao.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue()));
         colPreferenciaAcao.setCellFactory(coluna -> criarCelulaAcaoPreferencia());
         tabelaPreferenciasColaborador.setItems(preferenciasColaborador);
+        tabelaPreferenciasColaborador.setPlaceholder(new Label("Sem preferências registadas para este colaborador."));
 
         colPermutaData.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().dataTurno()));
         colPermutaEstado.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().estado()));
@@ -292,6 +372,7 @@ public class GestaoFuncionariosController {
         colPermutaAcao.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue()));
         colPermutaAcao.setCellFactory(coluna -> criarCelulaAcaoPermuta());
         tabelaPermutasColaborador.setItems(permutasColaborador);
+        tabelaPermutasColaborador.setPlaceholder(new Label("Sem permutas registadas para este colaborador."));
     }
 
     private TableCell<FolgaLinha, FolgaLinha> criarCelulaAcaoFolga() {
@@ -377,7 +458,7 @@ public class GestaoFuncionariosController {
     private void carregarDados(Integer idPreferido) {
         try {
             if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-                throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
             GestaoFuncionariosBLL.GestaoFuncionariosResumo resumo = gestaoFuncionariosBLL.obterResumo(utilizadorLogado.getId());
             lblNomeLoja.setText(resumo.nomeLoja());
@@ -568,6 +649,9 @@ public class GestaoFuncionariosController {
         ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
         btnDesativar.setDisable(selecionado == null || !selecionado.ativo());
         btnGuardar.setDisable(cbCargo.getItems().isEmpty());
+        if (btnRedefinirPassword != null) {
+            btnRedefinirPassword.setDisable(selecionado == null);
+        }
     }
 
     private String mapearEstadoParaPersistencia(String estado) {
@@ -603,18 +687,18 @@ public class GestaoFuncionariosController {
             }
             CalendarioSemanalHelper.preencherCalendario(boxSemanaColaborador, semanaColaboradorInicio, eventos, "Sem turno");
             lblResumoHorarioColaborador.setText(horarios.isEmpty()
-                    ? nomeColaborador + " nao tem horario publicado nesta semana."
+                    ? nomeColaborador + " não tem horário publicado nesta semana."
                     : nomeColaborador + " tem " + horarios.size() + " turno(s) publicados nesta semana."
             );
         } catch (Exception e) {
             limparHorarioSemanalColaborador();
-            lblResumoHorarioColaborador.setText("Nao foi possivel carregar o horario semanal deste colaborador.");
+            lblResumoHorarioColaborador.setText("Não foi possível carregar o horário semanal deste colaborador.");
         }
     }
 
     private void limparHorarioSemanalColaborador() {
         CalendarioSemanalHelper.preencherCalendario(boxSemanaColaborador, semanaColaboradorInicio, Map.of(), "Seleciona um colaborador");
-        lblResumoHorarioColaborador.setText("Seleciona um colaborador para veres o horario publicado da semana.");
+        lblResumoHorarioColaborador.setText("Seleciona um colaborador para veres o horário publicado da semana.");
     }
 
     private void carregarPerfilOperacionalColaborador(ColaboradorLinha colaborador) {
@@ -628,7 +712,7 @@ public class GestaoFuncionariosController {
         try {
             List<DayOff> historicoFolgas = dayOffBLL.listarPedidosPorUtilizador(idColaborador);
             Map<Integer, DayOff> pendentesFolga = dayOffBLL.listarPedidosPendentesParaAprovacao(idGestor).stream()
-                    .filter(item -> idColaborador.equals(item.getIdUtilizador()))
+                    .filter(item -> item.getIdUtilizador() != null && idColaborador.equals(item.getIdUtilizador().getId()))
                     .collect(java.util.stream.Collectors.toMap(DayOff::getIdDayoff, item -> item, (a, b) -> a));
             folgasColaborador.setAll(historicoFolgas.stream()
                     .sorted(java.util.Comparator.comparing(DayOff::getDataAusencia,
@@ -681,12 +765,12 @@ public class GestaoFuncionariosController {
                     + permutasColaborador.stream().filter(PermutaLinha::pendenteAprovacao).count();
             lblPerfilOperacionalResumo.setText("Perfil operacional de " + colaborador.nome()
                     + " | " + folgasColaborador.size() + " folga(s), "
-                    + preferenciasColaborador.size() + " preferencia(s), "
+                    + preferenciasColaborador.size() + " preferência(s), "
                     + permutasColaborador.size() + " permuta(s) | "
                     + pendentes + " pendente(s).");
         } catch (Exception ex) {
             limparPerfilOperacionalColaborador();
-            lblPerfilOperacionalResumo.setText("Nao foi possivel carregar o perfil operacional deste colaborador.");
+            lblPerfilOperacionalResumo.setText("Não foi possível carregar o perfil operacional deste colaborador.");
         }
     }
 
@@ -695,7 +779,7 @@ public class GestaoFuncionariosController {
         preferenciasColaborador.clear();
         permutasColaborador.clear();
         if (lblPerfilOperacionalResumo != null)
-            lblPerfilOperacionalResumo.setText("Seleciona um colaborador para veres folgas, preferencias, permutas e decisoes pendentes.");
+            lblPerfilOperacionalResumo.setText("Seleciona um colaborador para veres folgas, preferências, permutas e decisões pendentes.");
     }
 
     private void decidirFolga(FolgaLinha linha, boolean aprovar) {
@@ -705,7 +789,7 @@ public class GestaoFuncionariosController {
         if (!DialogosHelper.confirmarAcao(obterJanela(),
                 aprovar ? "Aprovar folga" : "Rejeitar folga",
                 aprovar ? "Deseja aprovar este pedido de folga?" : "Deseja rejeitar este pedido de folga?",
-                "A decisao sera registada de imediato.")) return;
+                "A decisão será registada de imediato.")) return;
         try {
             if (aprovar) { dayOffBLL.aprovarPedidoFolga(linha.idDayOff(), utilizadorLogado.getId()); mostrarMensagem("Pedido de folga aprovado com sucesso.", true); }
             else { dayOffBLL.rejeitarPedidoFolga(linha.idDayOff(), utilizadorLogado.getId()); mostrarMensagem("Pedido de folga rejeitado com sucesso.", true); }
@@ -718,12 +802,12 @@ public class GestaoFuncionariosController {
         ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
         if (selecionado == null) return;
         if (!DialogosHelper.confirmarAcao(obterJanela(),
-                aprovar ? "Aprovar preferencia" : "Rejeitar preferencia",
-                aprovar ? "Deseja aprovar esta preferencia?" : "Deseja rejeitar esta preferencia?",
-                "A decisao sera registada de imediato.")) return;
+                aprovar ? "Aprovar preferência" : "Rejeitar preferência",
+                aprovar ? "Deseja aprovar esta preferência?" : "Deseja rejeitar esta preferência?",
+                "A decisão será registada de imediato.")) return;
         try {
-            if (aprovar) { preferenciaBLL.aprovarPreferencia(linha.idPreferencia(), utilizadorLogado.getId(), null); mostrarMensagem("Preferencia aprovada com sucesso.", true); }
-            else { preferenciaBLL.rejeitarPreferencia(linha.idPreferencia(), utilizadorLogado.getId(), null); mostrarMensagem("Preferencia rejeitada com sucesso.", true); }
+            if (aprovar) { preferenciaBLL.aprovarPreferencia(linha.idPreferencia(), utilizadorLogado.getId(), null); mostrarMensagem("Preferência aprovada com sucesso.", true); }
+            else { preferenciaBLL.rejeitarPreferencia(linha.idPreferencia(), utilizadorLogado.getId(), null); mostrarMensagem("Preferência rejeitada com sucesso.", true); }
             carregarPerfilOperacionalColaborador(selecionado);
         } catch (IllegalArgumentException ex) { mostrarMensagem(ex.getMessage(), false); }
     }
@@ -735,7 +819,7 @@ public class GestaoFuncionariosController {
         if (!DialogosHelper.confirmarAcao(obterJanela(),
                 aprovar ? "Aprovar permuta" : "Rejeitar permuta",
                 aprovar ? "Deseja aprovar este pedido de permuta?" : "Deseja rejeitar este pedido de permuta?",
-                "A decisao sera registada de imediato.")) return;
+                "A decisão será registada de imediato.")) return;
         try {
             if (aprovar) { permutaBLL.aprovarPedidoPermuta(linha.idPermuta(), utilizadorLogado.getId()); mostrarMensagem("Permuta aprovada com sucesso.", true); }
             else { permutaBLL.rejeitarPedidoPermuta(linha.idPermuta(), utilizadorLogado.getId()); mostrarMensagem("Permuta rejeitada com sucesso.", true); }

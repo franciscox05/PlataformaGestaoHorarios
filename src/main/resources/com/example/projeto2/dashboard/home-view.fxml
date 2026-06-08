@@ -14,6 +14,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
             styleClass="conteudo-scroll, modulo-home"
@@ -22,55 +23,80 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.example.projeto2.Controller.HomeController">
     <content>
-        <VBox spacing="24.0" styleClass="conteudo-pagina, home-dashboard-pro">
+        <VBox spacing="22.0" styleClass="conteudo-pagina, home-dashboard-pro">
             <padding>
-                <Insets top="34.0" right="40.0" bottom="56.0" left="40.0" />
+                <Insets top="32.0" right="40.0" bottom="52.0" left="40.0" />
             </padding>
 
-            <HBox alignment="CENTER_LEFT" spacing="16.0">
-                <Button styleClass="home-filter-pill-active" text="Todos" />
-                <Button styleClass="home-filter-pill" text="Manhã" />
-                <Button styleClass="home-filter-pill" text="Tarde" />
-                <Button styleClass="home-filter-pill" text="Noite" />
-                <Region HBox.hgrow="ALWAYS" />
-                <Label styleClass="home-date-chip" text="Hoje" />
-            </HBox>
-
-            <HBox spacing="20.0" alignment="TOP_LEFT">
-                <VBox spacing="20.0" HBox.hgrow="ALWAYS">
-                    <VBox spacing="12.0" styleClass="home-hero-card">
+            <!-- ░░ HERO ░░ -->
+            <VBox spacing="22.0" styleClass="home-hero-card">
+                <HBox alignment="TOP_LEFT" spacing="18.0">
+                    <VBox spacing="10.0" HBox.hgrow="ALWAYS">
                         <Label fx:id="lblBemVindo" styleClass="home-hero-title" text="Bom dia, Equipa." />
                         <Label fx:id="lblResumoHorarioPublicado"
                                styleClass="home-hero-copy"
                                text="Resumo operacional da loja para hoje."
                                wrapText="true" />
                     </VBox>
+                    <Label fx:id="lblDataHoje" styleClass="home-date-chip" text="Hoje" />
+                </HBox>
 
-                    <VBox spacing="18.0" styleClass="home-panel-card">
-                        <HBox alignment="CENTER_LEFT" spacing="12.0">
-                            <StackPane styleClass="home-section-icon">
-                                <Label text="◷" />
-                            </StackPane>
-                            <VBox spacing="2.0">
-                                <Label styleClass="home-card-title" text="Cobertura Semanal" />
-                                <Label fx:id="lblSemanaHorarioPublicadoIntervalo"
-                                       styleClass="home-card-subtitle"
-                                       text="Semana atual" />
-                            </VBox>
-                            <Region HBox.hgrow="ALWAYS" />
-                            <ComboBox fx:id="cbSemanaHorarioPublicado"
-                                      prefWidth="230.0"
-                                      promptText="Selecionar semana"
-                                      styleClass="home-week-select" />
-                            <Button onAction="#onSemanaHorarioAnteriorClick" styleClass="home-arrow-btn" text="‹" />
-                            <Button onAction="#onSemanaHorarioSeguinteClick" styleClass="home-arrow-btn" text="›" />
-                        </HBox>
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Button fx:id="pillTodos" onAction="#onPillTodosClick" styleClass="home-filter-pill-active" text="Todos" />
+                    <Button fx:id="pillManha" onAction="#onPillManhaClick" styleClass="home-filter-pill" text="Manhã" />
+                    <Button fx:id="pillTarde" onAction="#onPillTardeClick" styleClass="home-filter-pill" text="Tarde" />
+                    <Button fx:id="pillNoite" onAction="#onPillNoiteClick" styleClass="home-filter-pill" text="Noite" />
+                    <Region HBox.hgrow="ALWAYS" />
+                </HBox>
+            </VBox>
 
-                        <HBox fx:id="boxSemanaHorarioPublicado"
-                              minHeight="168.0"
-                              spacing="10.0"
-                              styleClass="home-week-strip" />
-                    </VBox>
+            <!-- ░░ BANNER PENDENTES (só gestão) ░░ -->
+            <HBox fx:id="bannerPendentes"
+                  alignment="CENTER_LEFT"
+                  managed="false"
+                  spacing="14.0"
+                  styleClass="home-banner-pendentes"
+                  visible="false">
+                <padding>
+                    <Insets top="14.0" right="20.0" bottom="14.0" left="20.0" />
+                </padding>
+                <FontIcon iconLiteral="mdi2a-alert-circle-outline" iconSize="18" styleClass="home-banner-pendentes-icon" />
+                <Label fx:id="lblBannerPendentes"
+                       styleClass="home-banner-pendentes-texto"
+                       text="Tens pedidos pendentes a aguardar aprovação."
+                       HBox.hgrow="ALWAYS" />
+                <Button fx:id="btnBannerVerPedidos"
+                        onAction="#onBannerVerPedidosClick"
+                        styleClass="home-banner-pendentes-btn"
+                        text="Ver pedidos" />
+            </HBox>
+
+            <!-- ░░ COBERTURA SEMANAL + PRÓXIMOS TURNOS ░░ -->
+            <HBox spacing="22.0" alignment="TOP_LEFT">
+                <VBox spacing="18.0" styleClass="home-panel-card" HBox.hgrow="ALWAYS">
+                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                        <StackPane styleClass="home-section-icon">
+                            <FontIcon iconLiteral="mdi2c-calendar-month" iconSize="18" />
+                        </StackPane>
+                        <VBox spacing="2.0">
+                            <Label styleClass="home-card-title" text="Cobertura Semanal" />
+                            <Label fx:id="lblSemanaHorarioPublicadoIntervalo"
+                                   styleClass="home-card-subtitle"
+                                   text="Semana atual" />
+                        </VBox>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cbSemanaHorarioPublicado"
+                                  prefWidth="230.0"
+                                  promptText="Selecionar semana"
+                                  styleClass="home-week-select" />
+                        <Button onAction="#onSemanaHorarioAnteriorClick" styleClass="home-arrow-btn" text="‹" />
+                        <Button onAction="#onSemanaHorarioSeguinteClick" styleClass="home-arrow-btn" text="›" />
+                    </HBox>
+
+                    <HBox fx:id="boxSemanaHorarioPublicado"
+                          minHeight="178.0"
+                          spacing="10.0"
+                          styleClass="home-week-strip" />
                 </VBox>
 
                 <VBox spacing="16.0" minWidth="340.0" prefWidth="360.0" styleClass="home-dark-card">
@@ -81,8 +107,9 @@
                                 styleClass="home-dark-arrow"
                                 text="→" />
                     </HBox>
-                    <Label styleClass="home-dark-copy"
-                           text="Consulta o teu calendário semanal ou abre a gestão de horários quando disponível."
+                    <Label fx:id="lblProximoTurnoInfo"
+                           styleClass="home-dark-copy"
+                           text="A carregar informações dos teus próximos turnos..."
                            wrapText="true" />
                     <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="home-quick-actions">
                         <Button fx:id="btnAtalhoFolga"
@@ -99,6 +126,8 @@
                             maxWidth="Infinity"
                             styleClass="home-dark-outline"
                             text="Abrir o meu perfil" />
+
+                    <Region prefHeight="2.0" />
 
                     <HBox fx:id="painelAcoesGestao"
                           alignment="CENTER_LEFT"
@@ -121,21 +150,46 @@
                 </VBox>
             </HBox>
 
-            <HBox spacing="20.0" alignment="TOP_LEFT">
+            <!-- ░░ OS MEUS PEDIDOS (colaboradores) ░░ -->
+            <VBox fx:id="painelMeusPedidos"
+                  managed="false"
+                  spacing="12.0"
+                  styleClass="home-panel-card"
+                  visible="false">
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <StackPane styleClass="home-section-icon">
+                        <FontIcon iconLiteral="mdi2c-clipboard-list-outline" iconSize="18" />
+                    </StackPane>
+                    <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                        <Label styleClass="home-card-title" text="Os Meus Pedidos" />
+                        <Label styleClass="home-card-subtitle" text="Estado dos teus últimos pedidos de folga e troca de turno" />
+                    </VBox>
+                    <Button onAction="#onAtalhoFolgaClick"
+                            styleClass="home-chip-button"
+                            text="Novo pedido" />
+                </HBox>
+                <VBox fx:id="listaMeusPedidos" spacing="6.0" />
+            </VBox>
+
+            <!-- ░░ EQUIPA EM LOJA + MÉTRICAS ░░ -->
+            <HBox spacing="22.0" alignment="TOP_LEFT">
                 <VBox spacing="16.0" styleClass="home-panel-card" HBox.hgrow="ALWAYS">
                     <HBox alignment="CENTER_LEFT" spacing="12.0">
                         <StackPane styleClass="home-section-icon">
-                            <Label text="👥" />
+                            <FontIcon iconLiteral="mdi2a-account-group" iconSize="18" />
                         </StackPane>
                         <VBox spacing="2.0">
                             <Label styleClass="home-card-title" text="Equipa em Loja Agora" />
                             <Label styleClass="home-card-subtitle" text="Presença prevista para hoje" />
                         </VBox>
                         <Region HBox.hgrow="ALWAYS" />
-                        <Label styleClass="home-chip-ok" text="Escala publicada" />
-                        <Button onAction="#onAprovarHorarioClick"
+                        <Label fx:id="lblChipEscala" styleClass="home-chip-ok" text="Escala publicada" />
+                        <Button fx:id="btnAprovarHorarioHome"
+                                managed="false"
+                                onAction="#onAprovarHorarioClick"
                                 styleClass="home-chip-button"
-                                text="Aprovar Horário" />
+                                text="Aprovar Horário"
+                                visible="false" />
                     </HBox>
 
                     <TableView fx:id="tabelaEquipaHoje"
@@ -168,19 +222,19 @@
                     <GridPane hgap="12.0" vgap="12.0">
                         <VBox spacing="4.0" styleClass="home-metric-tile" GridPane.columnIndex="0" GridPane.rowIndex="0">
                             <Label styleClass="home-metric-label" text="Colaboradores" />
-                            <Label fx:id="lblOperacaoColaboradores" styleClass="home-metric-value" text="0" />
+                            <Label fx:id="lblOperacaoColaboradores" styleClass="home-metric-value" text="-" />
                         </VBox>
                         <VBox spacing="4.0" styleClass="home-metric-tile" GridPane.columnIndex="1" GridPane.rowIndex="0">
                             <Label styleClass="home-metric-label" text="Turnos" />
-                            <Label fx:id="lblOperacaoTurnos" styleClass="home-metric-value" text="0" />
+                            <Label fx:id="lblOperacaoTurnos" styleClass="home-metric-value" text="-" />
                         </VBox>
                         <VBox spacing="4.0" styleClass="home-metric-tile" GridPane.columnIndex="0" GridPane.rowIndex="1">
                             <Label styleClass="home-metric-label" text="Ausências" />
-                            <Label fx:id="lblOperacaoAusencias" styleClass="home-metric-value" text="0" />
+                            <Label fx:id="lblOperacaoAusencias" styleClass="home-metric-value" text="-" />
                         </VBox>
                         <VBox spacing="4.0" styleClass="home-metric-tile" GridPane.columnIndex="1" GridPane.rowIndex="1">
                             <Label styleClass="home-metric-label" text="Pedidos" />
-                            <Label fx:id="lblOperacaoPedidos" styleClass="home-metric-value" text="0" />
+                            <Label fx:id="lblOperacaoPedidos" styleClass="home-metric-value" text="-" />
                         </VBox>
                     </GridPane>
 
@@ -191,6 +245,7 @@
                 </VBox>
             </HBox>
 
+            <!-- ░░ OPERAÇÃO DA LOJA (gestão) ░░ -->
             <VBox fx:id="painelOperacaoLoja"
                   managed="false"
                   spacing="18.0"
@@ -198,7 +253,7 @@
                   visible="false">
                 <HBox alignment="CENTER_LEFT" spacing="12.0">
                     <StackPane styleClass="home-section-icon">
-                        <Label text="▤" />
+                        <FontIcon iconLiteral="mdi2v-view-dashboard" iconSize="18" />
                     </StackPane>
                     <VBox spacing="2.0" HBox.hgrow="ALWAYS">
                         <Label styleClass="home-card-title" text="Operação da Loja" />
@@ -277,3 +332,4 @@
         </VBox>
     </content>
 </ScrollPane>
+

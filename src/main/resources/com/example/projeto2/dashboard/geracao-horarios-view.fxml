@@ -6,6 +6,8 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
@@ -13,500 +15,603 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.SVGPath?>
 
-<ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
-            styleClass="conteudo-scroll, modulo-horarios"
-            stylesheets="@dashboard.css"
-            xmlns="http://javafx.com/javafx/21"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.example.projeto2.Controller.GeracaoHorariosController">
-    <content>
-        <VBox spacing="0" styleClass="conteudo-pagina">
+<VBox styleClass="conteudo-pagina, modulo-com-abas"
+      stylesheets="@dashboard.css"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.projeto2.Controller.GeracaoHorariosController">
 
-            <VBox spacing="32.0">
-                <padding><Insets bottom="48.0" left="40.0" right="40.0" top="40.0" /></padding>
+    <!-- ░░ CABEÇALHO ░░ -->
+    <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-horarios"
+          style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #c91428 0%, #7f0010 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
+        <padding><Insets top="36.0" right="48.0" bottom="36.0" left="48.0"/></padding>
+        <Label styleClass="modulo-titulo" text="Gera&#231;&#227;o de hor&#225;rios"/>
+        <Label styleClass="modulo-subtitulo"
+               text="Configura o per&#237;odo, gera alternativas e envia ao supervisor para valida&#231;&#227;o."
+               wrapText="true"/>
+    </VBox>
 
-                <VBox spacing="20.0" styleClass="bento-card">
+    <!-- ░░ STEPPER DE FLUXO ░░ -->
+    <HBox styleClass="geracao-stepper" alignment="CENTER">
+        <padding><Insets top="8.0" right="40.0" bottom="8.0" left="40.0"/></padding>
 
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#c41230"
-                                     content="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"
-                                     styleClass="card-icon" />
-                        </StackPane>
-                        <VBox spacing="2.0">
-                            <Label styleClass="stat-kicker" text="CONFIGURA&#199;&#195;O" />
-                            <Label styleClass="bento-card-titulo" text="Per&#237;odo e gera&#231;&#227;o" />
-                        </VBox>
-                    </HBox>
-
-                    <HBox spacing="24.0" styleClass="bento-card-accent">
-                        <padding><Insets bottom="16.0" left="16.0" right="16.0" top="16.0" /></padding>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Loja" />
-                            <Label fx:id="lblLoja" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Localiza&#231;&#227;o" />
-                            <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
-                        </VBox>
-                    </HBox>
-
-                    <HBox spacing="12.0">
-                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="campo-titulo" text="M&#234;s" />
-                            <ComboBox fx:id="cbMes" maxWidth="Infinity"
-                                      promptText="Seleciona o m&#234;s" styleClass="campo-combo" />
-                        </VBox>
-                        <VBox spacing="5.0" HBox.hgrow="NEVER">
-                            <Label styleClass="campo-titulo" text="Ano" />
-                            <Spinner fx:id="spAno" />
-                        </VBox>
-                        <VBox spacing="5.0" HBox.hgrow="NEVER">
-                            <Label styleClass="campo-titulo" text="Alternativas" />
-                            <Spinner fx:id="spQuantidadeAlternativas" />
-                        </VBox>
-                    </HBox>
-
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <Button fx:id="btnVerProposta" onAction="#onVerPropostaClick"
-                                styleClass="botao-secundario" text="Ver planeamento" />
-                        <Button fx:id="btnGerarProposta" onAction="#onGerarPropostaClick"
-                                styleClass="botao-acao" text="Gerar 1 alternativa" />
-                        <Button fx:id="btnGerarAlternativas" onAction="#onGerarAlternativasClick"
-                                styleClass="botao-secundario" text="Gerar lote" />
-                    </HBox>
-                    <Label styleClass="texto-atalho"
-                           text="Atalhos: Ctrl+G gerar 1 | Ctrl+L gerar lote | Ctrl+Enter consultar planeamento"
-                           wrapText="true" />
-
-                    <VBox fx:id="painelSelecaoColaboradores" spacing="9.0">
-                        <HBox alignment="CENTER_LEFT" spacing="10.0">
-                            <Label styleClass="campo-titulo" text="Funcion&#225;rios inclu&#237;dos na gera&#231;&#227;o" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Button fx:id="btnSelecionarTodosColaboradores"
-                                    onAction="#onSelecionarTodosColaboradoresClick"
-                                    styleClass="botao-secundario, topo-botao-curto" text="Todos" />
-                            <Button fx:id="btnLimparColaboradores"
-                                    onAction="#onLimparColaboradoresClick"
-                                    styleClass="botao-secundario, topo-botao-curto" text="Limpar" />
-                        </HBox>
-                        <Label fx:id="lblResumoColaboradoresGeracao" styleClass="bento-card-subtitulo"
-                               text="Escolhe o per&#237;odo para carregar a equipa eleg&#237;vel." wrapText="true" />
-                        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" minHeight="120.0"
-                                    styleClass="selecao-colaboradores-scroll">
-                            <content>
-                                <VBox fx:id="boxColaboradoresGeracao" spacing="8.0"
-                                      styleClass="selecao-colaboradores-lista" />
-                            </content>
-                        </ScrollPane>
-                    </VBox>
-
-                    <Label styleClass="bento-card-subtitulo"
-                           text="As alternativas geradas ficam como rascunho do gerente. Ap&#243;s revis&#227;o, envia ao supervisor apenas as alternativas escolhidas."
-                           wrapText="true" />
-
-                    <Label fx:id="lblFeedback" managed="false" styleClass="mensagem-feedback"
-                           visible="false" wrapText="true" />
-
-                    <VBox fx:id="painelDiagnosticoGeracao" managed="false" spacing="10.0"
-                          styleClass="diagnostico-geracao" visible="false">
-                        <Label fx:id="lblDiagnosticoTitulo" styleClass="diagnostico-titulo"
-                               text="Porque n&#227;o foi poss&#237;vel gerar" wrapText="true" />
-                        <Label fx:id="lblDiagnosticoResumo" styleClass="diagnostico-resumo"
-                               wrapText="true" />
-                        <VBox fx:id="boxDiagnosticoMotivos" spacing="8.0" />
-                        <Label styleClass="diagnostico-titulo" text="Sugest&#245;es para resolver"
-                               wrapText="true" />
-                        <VBox fx:id="boxDiagnosticoSugestoes" spacing="8.0" />
-                        <Label fx:id="lblDiagnosticoPerfilRecomendado" managed="false"
-                               styleClass="diagnostico-reforco" visible="false" wrapText="true" />
-                    </VBox>
-                </VBox>
-
-                <HBox spacing="16.0">
-                    <VBox alignment="CENTER" spacing="12.0"
-                          styleClass="bento-card, premium-stat-card" HBox.hgrow="ALWAYS">
-                        <StackPane styleClass="stat-icon-wrap-blue" minWidth="52.0" minHeight="52.0">
-                            <SVGPath fill="#2563eb"
-                                     content="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                                     styleClass="stat-icon" />
-                        </StackPane>
-                        <Label fx:id="lblTotalColaboradores" styleClass="stat-numero" text="0" />
-                        <Label styleClass="stat-titulo" text="Colaboradores" />
-                    </VBox>
-                    <VBox alignment="CENTER" spacing="12.0"
-                          styleClass="bento-card, premium-stat-card" HBox.hgrow="ALWAYS">
-                        <StackPane styleClass="stat-icon-wrap-red" minWidth="52.0" minHeight="52.0">
-                            <SVGPath fill="#c41230"
-                                     content="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"
-                                     styleClass="stat-icon" />
-                        </StackPane>
-                        <Label fx:id="lblTotalTurnos" styleClass="stat-numero" text="0" />
-                        <Label styleClass="stat-titulo" text="Turnos gerados" />
-                    </VBox>
-                    <VBox alignment="CENTER" spacing="12.0"
-                          styleClass="bento-card, premium-stat-card" HBox.hgrow="ALWAYS">
-                        <StackPane styleClass="stat-icon-wrap-green" minWidth="52.0" minHeight="52.0">
-                            <SVGPath fill="#16a34a"
-                                     content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                     styleClass="stat-icon" />
-                        </StackPane>
-                        <Label fx:id="lblTotalDiasCobertos" styleClass="stat-numero" text="0" />
-                        <Label styleClass="stat-titulo" text="Dias cobertos" />
-                    </VBox>
-                </HBox>
-
-                <VBox spacing="16.0" styleClass="bento-card">
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="stat-icon-wrap-green" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#16a34a"
-                                     content="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                                     styleClass="card-icon" />
-                        </StackPane>
-                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="stat-kicker" text="RASCUNHOS" />
-                            <Label styleClass="bento-card-titulo" text="Alternativas geradas" />
-                        </VBox>
-                        <Button fx:id="btnEnviarSupervisor" onAction="#onEnviarSupervisorClick"
-                                styleClass="botao-acao" text="Enviar selecionadas ao supervisor" />
-                    </HBox>
-                    <Label styleClass="bento-card-subtitulo"
-                           text="O supervisor s&#243; valida alternativas enviadas pelo gerente."
-                           wrapText="true" />
-                    <VBox fx:id="emptyStatePropostas" alignment="CENTER" spacing="12.0"
-                          styleClass="empty-state-box">
-                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
-                        <SVGPath fill="#dddddd"
-                                 content="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"
-                                 styleClass="empty-state-icon" />
-                        <Label styleClass="empty-state-titulo" text="Sem alternativas geradas" />
-                        <Label styleClass="empty-state-subtitulo"
-                               text="Seleciona um m&#234;s e clica em Gerar 1 alternativa para come&#231;ar."
-                               wrapText="true" />
-                    </VBox>
-                    <TableView fx:id="tabelaPropostas" styleClass="tabela-premium"
-                               VBox.vgrow="ALWAYS">
-                        <columnResizePolicy>
-                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                        </columnResizePolicy>
-                        <columns>
-                            <TableColumn fx:id="colPropostaRotulo"    text="Proposta" />
-                            <TableColumn fx:id="colPropostaEstado"    text="Estado" />
-                            <TableColumn fx:id="colPropostaData"      text="Gerada em" />
-                            <TableColumn fx:id="colPropostaScore"     text="Score" />
-                            <TableColumn fx:id="colPropostaQualidade" text="Qualidade" />
-                            <TableColumn fx:id="colPropostaTurnos"    text="Turnos" />
-                        </columns>
-                    </TableView>
-                </VBox>
-
-                <VBox spacing="16.0" styleClass="bento-card">
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="stat-icon-wrap-orange" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#ea580c"
-                                     content="M9 3L5 6.99h3V14h2V6.99h3L9 3zm7 14.01V10h-2v7.01h-3L15 21l4-3.99h-3z"
-                                     styleClass="card-icon" />
-                        </StackPane>
-                        <VBox spacing="2.0">
-                            <Label styleClass="stat-kicker" text="AN&#193;LISE" />
-                            <Label styleClass="bento-card-titulo" text="Compara&#231;&#227;o de alternativas" />
-                        </VBox>
-                    </HBox>
-                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                        <ComboBox fx:id="cbComparacaoBase" maxWidth="Infinity" HBox.hgrow="ALWAYS"
-                                  promptText="Alternativa base" styleClass="campo-combo" />
-                        <ComboBox fx:id="cbComparacaoAlvo" maxWidth="Infinity" HBox.hgrow="ALWAYS"
-                                  promptText="Alternativa a comparar" styleClass="campo-combo" />
-                        <Button fx:id="btnCompararPropostas" onAction="#onCompararPropostasClick"
-                                styleClass="botao-acao" text="Comparar" />
-                    </HBox>
-                    <Label fx:id="lblResumoComparacao" styleClass="bento-card-subtitulo"
-                           text="Seleciona duas alternativas para comparar distribui&#231;&#227;o, carga hor&#225;ria e impacto por colaborador."
-                           wrapText="true" />
-                    <TableView fx:id="tabelaComparacao" styleClass="tabela-premium"
-                               VBox.vgrow="ALWAYS">
-                        <columnResizePolicy>
-                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                        </columnResizePolicy>
-                        <columns>
-                            <TableColumn fx:id="colComparacaoColaborador" text="Colaborador" />
-                            <TableColumn fx:id="colComparacaoBase"        text="Base" />
-                            <TableColumn fx:id="colComparacaoAlvo"        text="Comparada" />
-                            <TableColumn fx:id="colComparacaoDiferenca"   text="Diferen&#231;a" />
-                        </columns>
-                    </TableView>
-                </VBox>
-
-                <VBox spacing="20.0" styleClass="bento-card">
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="stat-icon-wrap-blue" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#2563eb"
-                                     content="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"
-                                     styleClass="card-icon" />
-                        </StackPane>
-                        <VBox spacing="2.0">
-                            <Label styleClass="stat-kicker" text="DETALHE" />
-                            <Label styleClass="bento-card-titulo" text="Resumo da proposta selecionada" />
-                        </VBox>
-                    </HBox>
-
-                    <HBox spacing="20.0">
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Estado" />
-                            <Label fx:id="lblEstadoProposta" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Origem" />
-                            <Label fx:id="lblOrigemPlaneamento" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Pol&#237;tica IO" />
-                            <Label fx:id="lblPoliticaOtimizacao" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Score" />
-                            <Label fx:id="lblPontuacaoOtimizacao" styleClass="meta-valor" text="-" />
-                        </VBox>
-                    </HBox>
-                    <HBox spacing="20.0">
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Gerado por" />
-                            <Label fx:id="lblGeradoPor" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Data de gera&#231;&#227;o" />
-                            <Label fx:id="lblDataGeracao" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Decidido por" />
-                            <Label fx:id="lblDecididoPor" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Data da decis&#227;o" />
-                            <Label fx:id="lblDataDecisao" styleClass="meta-valor" text="-" />
-                        </VBox>
-                    </HBox>
-                    <HBox spacing="20.0">
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Desvio m&#233;dio de carga" />
-                            <Label fx:id="lblDesvioCarga" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Amplitude de carga" />
-                            <Label fx:id="lblAmplitudeCarga" styleClass="meta-valor" text="-" />
-                        </VBox>
-                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="meta-etiqueta" text="Observa&#231;&#245;es do supervisor" />
-                            <Label fx:id="lblObservacoesSupervisor" styleClass="meta-valor"
-                                   text="-" wrapText="true" />
-                        </VBox>
-                    </HBox>
-
-                    <VBox spacing="6.0">
-                        <Label styleClass="campo-titulo" text="Observa&#231;&#245;es da gera&#231;&#227;o" />
-                        <Label fx:id="lblResumoGeracao" styleClass="bento-card-subtitulo"
-                               text="Ainda n&#227;o existe uma proposta carregada." wrapText="true" />
-                    </VBox>
-                </VBox>
-
-                <VBox fx:id="painelValidacaoSupervisor" spacing="16.0" styleClass="bento-card">
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="stat-icon-wrap-green" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#16a34a"
-                                     content="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"
-                                     styleClass="card-icon" />
-                        </StackPane>
-                        <VBox spacing="2.0">
-                            <Label styleClass="stat-kicker" text="DECIS&#195;O" />
-                            <Label styleClass="bento-card-titulo" text="Valida&#231;&#227;o do supervisor" />
-                        </VBox>
-                    </HBox>
-                    <Label styleClass="bento-card-subtitulo"
-                           text="Rev&#234; a proposta selecionada. Ao aprovar, as restantes propostas pendentes do mesmo m&#234;s s&#227;o rejeitadas automaticamente."
-                           wrapText="true" />
-                    <VBox spacing="6.0">
-                        <Label styleClass="campo-titulo" text="Observa&#231;&#245;es da decis&#227;o" />
-                        <TextArea fx:id="txtObservacoesSupervisor" prefRowCount="3"
-                                  promptText="Opcional: acrescenta observa&#231;&#245;es para o hist&#243;rico da decis&#227;o."
-                                  styleClass="campo-textarea" wrapText="true" />
-                    </VBox>
-                    <Label fx:id="lblFeedbackValidacao" managed="false" visible="false"
-                           wrapText="true" />
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <Button fx:id="btnRejeitarProposta" onAction="#onRejeitarPropostaClick"
-                                styleClass="botao-secundario" text="Rejeitar proposta" />
-                        <Button fx:id="btnAprovarProposta" onAction="#onAprovarPropostaClick"
-                                styleClass="botao-acao" text="Aprovar e publicar" />
-                    </HBox>
-                </VBox>
-
-                <VBox spacing="16.0" styleClass="bento-card">
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="stat-icon-wrap-blue" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#2563eb"
-                                     content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
-                                     styleClass="card-icon" />
-                        </StackPane>
-                        <VBox spacing="2.0">
-                            <Label styleClass="stat-kicker" text="EQUIPA" />
-                            <Label styleClass="bento-card-titulo" text="Distribui&#231;&#227;o por colaborador" />
-                        </VBox>
-                    </HBox>
-                    <VBox fx:id="emptyStateDistribuicao" alignment="CENTER" spacing="12.0"
-                          styleClass="empty-state-box">
-                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
-                        <SVGPath fill="#dddddd"
-                                 content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
-                                 styleClass="empty-state-icon" />
-                        <Label styleClass="empty-state-titulo" text="Sem dados de distribui&#231;&#227;o" />
-                        <Label styleClass="empty-state-subtitulo"
-                               text="Gera ou seleciona uma proposta para ver a distribui&#231;&#227;o."
-                               wrapText="true" />
-                    </VBox>
-                    <TableView fx:id="tabelaResumoColaboradores" styleClass="tabela-premium"
-                               VBox.vgrow="ALWAYS">
-                        <columnResizePolicy>
-                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                        </columnResizePolicy>
-                        <columns>
-                            <TableColumn fx:id="colResumoColaborador" text="Colaborador" />
-                            <TableColumn fx:id="colResumoCargo"       text="Cargo" />
-                            <TableColumn fx:id="colResumoTurnos"      text="Turnos" />
-                            <TableColumn fx:id="colResumoHoras"       text="Horas" />
-                        </columns>
-                    </TableView>
-                </VBox>
-
-                <VBox spacing="16.0" styleClass="bento-card">
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#c41230"
-                                     content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                     styleClass="card-icon" />
-                        </StackPane>
-                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="stat-kicker" text="CALEND&#193;RIO" />
-                            <Label styleClass="bento-card-titulo" text="Calend&#225;rio semanal do planeamento" />
-                        </VBox>
-                        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="campo-titulo" text="Filtrar por colaborador" />
-                            <ComboBox fx:id="cbFiltroColaborador" maxWidth="Infinity"
-                                      promptText="Toda a equipa" styleClass="campo-combo" />
-                        </VBox>
-                        <Button onAction="#onSemanaPlaneamentoAnteriorClick"
-                                styleClass="botao-nav" text="&#8249; Anterior" />
-                        <Label fx:id="lblSemanaPlaneamento" styleClass="campo-titulo"
-                               text="Semana" />
-                        <Button onAction="#onSemanaPlaneamentoSeguinteClick"
-                                styleClass="botao-nav" text="Seguinte &#8250;" />
-                    </HBox>
-                    <VBox fx:id="emptyStateCalendario" alignment="CENTER" spacing="12.0"
-                          styleClass="empty-state-box">
-                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
-                        <SVGPath fill="#dddddd"
-                                 content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                 styleClass="empty-state-icon" />
-                        <Label styleClass="empty-state-titulo" text="Sem semana para mostrar" />
-                        <Label styleClass="empty-state-subtitulo"
-                               text="Seleciona uma proposta para ver o calend&#225;rio semanal."
-                               wrapText="true" />
-                    </VBox>
-                    <HBox fx:id="boxSemanaPlaneamento" spacing="10.0"
-                          styleClass="calendario-semana" />
-                </VBox>
-
-                <VBox spacing="16.0" styleClass="bento-card">
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#c41230"
-                                     content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                     styleClass="card-icon" />
-                        </StackPane>
-                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
-                            <Label styleClass="stat-kicker" text="MENSAL" />
-                            <Label styleClass="bento-card-titulo" text="Hor&#225;rio mensal da loja" />
-                        </VBox>
-                        <Button fx:id="btnMesAnterior" onAction="#onMesAnteriorClick"
-                                styleClass="botao-nav" text="&#8249; M&#234;s anterior" />
-                        <Label fx:id="lblMesAtual" styleClass="calendar-month-label" text="&#8212;" />
-                        <Button fx:id="btnMesSeguinte" onAction="#onMesSeguinteClick"
-                                styleClass="botao-nav" text="M&#234;s seguinte &#8250;" />
-                    </HBox>
-
-                    <VBox fx:id="emptyStateCalendarioMensal" alignment="CENTER" spacing="12.0"
-                          styleClass="empty-state-box">
-                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
-                        <SVGPath fill="#dddddd"
-                                 content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                 styleClass="empty-state-icon" />
-                        <Label styleClass="empty-state-titulo" text="Sem hor&#225;rio mensal" />
-                        <Label styleClass="empty-state-subtitulo"
-                               text="Seleciona uma proposta aprovada para visualizar o calend&#225;rio mensal."
-                               wrapText="true" />
-                    </VBox>
-
-                    <GridPane fx:id="calendarioMensalGrid" hgap="8.0" vgap="8.0"
-                              styleClass="calendar-grid">
-                        <columnConstraints>
-                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28" />
-                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28" />
-                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28" />
-                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28" />
-                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28" />
-                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28" />
-                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.32" />
-                        </columnConstraints>
-                        <Label text="SEG" styleClass="calendar-day-header" maxWidth="Infinity"
-                               GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                        <Label text="TER" styleClass="calendar-day-header" maxWidth="Infinity"
-                               GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                        <Label text="QUA" styleClass="calendar-day-header" maxWidth="Infinity"
-                               GridPane.columnIndex="2" GridPane.rowIndex="0" />
-                        <Label text="QUI" styleClass="calendar-day-header" maxWidth="Infinity"
-                               GridPane.columnIndex="3" GridPane.rowIndex="0" />
-                        <Label text="SEX" styleClass="calendar-day-header" maxWidth="Infinity"
-                               GridPane.columnIndex="4" GridPane.rowIndex="0" />
-                        <Label text="S&#193;B" styleClass="calendar-day-header" maxWidth="Infinity"
-                               GridPane.columnIndex="5" GridPane.rowIndex="0" />
-                        <Label text="DOM" styleClass="calendar-day-header" maxWidth="Infinity"
-                               GridPane.columnIndex="6" GridPane.rowIndex="0" />
-                        <VBox styleClass="calendar-day-cell" maxWidth="Infinity"
-                              GridPane.columnIndex="0" GridPane.rowIndex="1">
-                            <Label styleClass="calendar-day-number" text="1" />
-                        </VBox>
-                        <VBox styleClass="calendar-day-cell" maxWidth="Infinity"
-                              GridPane.columnIndex="1" GridPane.rowIndex="1">
-                            <Label styleClass="calendar-day-number" text="2" />
-                        </VBox>
-                        <VBox styleClass="calendar-day-cell" maxWidth="Infinity"
-                              GridPane.columnIndex="2" GridPane.rowIndex="1">
-                            <Label styleClass="calendar-day-number" text="3" />
-                        </VBox>
-                        <VBox styleClass="calendar-day-cell" maxWidth="Infinity"
-                              GridPane.columnIndex="3" GridPane.rowIndex="1">
-                            <Label styleClass="calendar-day-number" text="4" />
-                        </VBox>
-                        <VBox styleClass="calendar-day-cell" maxWidth="Infinity"
-                              GridPane.columnIndex="4" GridPane.rowIndex="1">
-                            <Label styleClass="calendar-day-number" text="5" />
-                        </VBox>
-                        <VBox styleClass="calendar-day-cell" maxWidth="Infinity"
-                              GridPane.columnIndex="5" GridPane.rowIndex="1">
-                            <Label styleClass="calendar-day-number" text="6" />
-                        </VBox>
-                        <VBox styleClass="calendar-day-cell" maxWidth="Infinity"
-                              GridPane.columnIndex="6" GridPane.rowIndex="1">
-                            <Label styleClass="calendar-day-number" text="7" />
-                        </VBox>
-                    </GridPane>
-                </VBox>
-
-            </VBox>
+        <VBox fx:id="stepperPasso1" alignment="CENTER" styleClass="stepper-passo, stepper-passo-ativo" minWidth="80.0">
+            <Label styleClass="stepper-numero" text="1"/>
+            <Label styleClass="stepper-rotulo" text="Configurar"/>
         </VBox>
-    </content>
-</ScrollPane>
+        <Region styleClass="stepper-linha" HBox.hgrow="ALWAYS"/>
+        <VBox fx:id="stepperPasso2" alignment="CENTER" styleClass="stepper-passo, stepper-passo-inativo" minWidth="80.0">
+            <Label styleClass="stepper-numero" text="2"/>
+            <Label styleClass="stepper-rotulo" text="Gerar"/>
+        </VBox>
+        <Region styleClass="stepper-linha" HBox.hgrow="ALWAYS"/>
+        <VBox fx:id="stepperPasso3" alignment="CENTER" styleClass="stepper-passo, stepper-passo-inativo" minWidth="80.0">
+            <Label styleClass="stepper-numero" text="3"/>
+            <Label styleClass="stepper-rotulo" text="Analisar"/>
+        </VBox>
+        <Region styleClass="stepper-linha" HBox.hgrow="ALWAYS"/>
+        <VBox fx:id="stepperPasso4" alignment="CENTER" styleClass="stepper-passo, stepper-passo-inativo" minWidth="80.0">
+            <Label styleClass="stepper-numero" text="4"/>
+            <Label styleClass="stepper-rotulo" text="Enviar"/>
+        </VBox>
+    </HBox>
+
+    <!-- ░░ ABAS FOCADAS ░░ -->
+    <TabPane fx:id="tabPaneHorarios" styleClass="modulo-tabs" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+        <tabs>
+
+            <!-- ═════ ABA 1 — GERAR ═════ -->
+            <Tab text="Gerar">
+                <content>
+                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                                styleClass="conteudo-scroll">
+                        <content>
+                            <VBox spacing="20.0" styleClass="aba-conteudo">
+                                <padding><Insets top="24.0" right="40.0" bottom="44.0" left="40.0"/></padding>
+
+                                <VBox spacing="16.0" styleClass="bento-card">
+
+                                    <!-- Cabeçalho do card -->
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
+                                            <SVGPath fill="#c91428"
+                                                     content="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"
+                                                     styleClass="card-icon"/>
+                                        </StackPane>
+                                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="stat-kicker" text="CONFIGURA&#199;&#195;O"/>
+                                            <Label styleClass="bento-card-titulo" text="Per&#237;odo e gera&#231;&#227;o"/>
+                                        </VBox>
+                                    </HBox>
+
+                                    <!-- Contexto da loja -->
+                                    <HBox spacing="24.0" styleClass="bento-card-accent">
+                                        <padding><Insets bottom="16.0" left="16.0" right="16.0" top="16.0"/></padding>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Loja"/>
+                                            <Label fx:id="lblLoja" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Localiza&#231;&#227;o"/>
+                                            <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                    </HBox>
+
+                                    <!-- Período -->
+                                    <HBox spacing="12.0">
+                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="campo-titulo" text="M&#234;s"/>
+                                            <ComboBox fx:id="cbMes" maxWidth="Infinity"
+                                                      promptText="Seleciona o m&#234;s" styleClass="campo-combo"/>
+                                        </VBox>
+                                        <VBox spacing="5.0" HBox.hgrow="NEVER">
+                                            <Label styleClass="campo-titulo" text="Ano"/>
+                                            <Spinner fx:id="spAno"/>
+                                        </VBox>
+                                        <VBox spacing="5.0" HBox.hgrow="NEVER">
+                                            <Label styleClass="campo-titulo" text="Alternativas (lote)"/>
+                                            <Spinner fx:id="spQuantidadeAlternativas"/>
+                                        </VBox>
+                                    </HBox>
+
+                                    <!-- Ações -->
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <Button fx:id="btnVerProposta" onAction="#onVerPropostaClick"
+                                                styleClass="botao-secundario" text="Ver planeamento"/>
+                                        <Button fx:id="btnGerarProposta" onAction="#onGerarPropostaClick"
+                                                styleClass="botao-acao" text="Gerar 1 alternativa"/>
+                                        <Button fx:id="btnGerarAlternativas" onAction="#onGerarAlternativasClick"
+                                                styleClass="botao-secundario" text="Gerar lote"/>
+                                    </HBox>
+                                    <Label styleClass="texto-atalho"
+                                           text="Atalhos: Ctrl+G gerar 1 | Ctrl+L gerar lote | Ctrl+Enter consultar planeamento"
+                                           wrapText="true"/>
+
+                                    <!-- Seleção de colaboradores -->
+                                    <VBox fx:id="painelSelecaoColaboradores" spacing="9.0">
+                                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                            <Label styleClass="campo-titulo"
+                                                   text="Funcion&#225;rios inclu&#237;dos na gera&#231;&#227;o"/>
+                                            <Region HBox.hgrow="ALWAYS"/>
+                                            <Button fx:id="btnSelecionarTodosColaboradores"
+                                                    onAction="#onSelecionarTodosColaboradoresClick"
+                                                    styleClass="botao-secundario, topo-botao-curto" text="Todos"/>
+                                            <Button fx:id="btnLimparColaboradores"
+                                                    onAction="#onLimparColaboradoresClick"
+                                                    styleClass="botao-secundario, topo-botao-curto" text="Limpar"/>
+                                        </HBox>
+                                        <Label fx:id="lblResumoColaboradoresGeracao" styleClass="bento-card-subtitulo"
+                                               text="Escolhe o per&#237;odo para carregar a equipa eleg&#237;vel."
+                                               wrapText="true"/>
+                                        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" minHeight="140.0"
+                                                    styleClass="selecao-colaboradores-scroll">
+                                            <content>
+                                                <VBox fx:id="boxColaboradoresGeracao" spacing="8.0"
+                                                      styleClass="selecao-colaboradores-lista"/>
+                                            </content>
+                                        </ScrollPane>
+                                    </VBox>
+
+                                    <Label styleClass="bento-card-subtitulo"
+                                           text="As alternativas geradas ficam como rascunho. Ap&#243;s revis&#227;o, envia ao supervisor as alternativas escolhidas para aprova&#231;&#227;o."
+                                           wrapText="true"/>
+
+                                    <!-- Guia de fluxo contextual -->
+                                    <Label fx:id="lblGuiaFluxo" styleClass="guia-fluxo"
+                                           text="Configura o per&#237;odo, seleciona a equipa e clica em Gerar 1 alternativa."
+                                           wrapText="true"/>
+
+                                    <!-- Feedback de operação -->
+                                    <Label fx:id="lblFeedback" managed="false" styleClass="mensagem-feedback"
+                                           visible="false" wrapText="true"/>
+
+                                    <!-- Painel de diagnóstico (aparece quando a geração falha) -->
+                                    <VBox fx:id="painelDiagnosticoGeracao" managed="false" spacing="10.0"
+                                          styleClass="diagnostico-geracao" visible="false">
+                                        <Label fx:id="lblDiagnosticoTitulo" styleClass="diagnostico-titulo"
+                                               text="Porque n&#227;o foi poss&#237;vel gerar" wrapText="true"/>
+                                        <Label fx:id="lblDiagnosticoResumo" styleClass="diagnostico-resumo"
+                                               wrapText="true"/>
+                                        <VBox fx:id="boxDiagnosticoMotivos" spacing="8.0"/>
+                                        <Label styleClass="diagnostico-titulo" text="Sugest&#245;es para resolver"
+                                               wrapText="true"/>
+                                        <VBox fx:id="boxDiagnosticoSugestoes" spacing="8.0"/>
+                                        <Label fx:id="lblDiagnosticoPerfilRecomendado" managed="false"
+                                               styleClass="diagnostico-reforco" visible="false" wrapText="true"/>
+                                    </VBox>
+
+                                </VBox>
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                </content>
+            </Tab>
+
+            <!-- ═════ ABA 2 — PROPOSTAS ═════ -->
+            <Tab text="Propostas">
+                <content>
+                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                                styleClass="conteudo-scroll">
+                        <content>
+                            <VBox spacing="20.0" styleClass="aba-conteudo">
+                                <padding><Insets top="24.0" right="40.0" bottom="44.0" left="40.0"/></padding>
+
+                                <!-- CABEÇALHO DE PERÍODO -->
+                                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="periodo-header-box">
+                                    <SVGPath fill="#c91428"
+                                             content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                             styleClass="periodo-header-icon"/>
+                                    <Label fx:id="lblPeriodoPropostas" styleClass="periodo-header-label"
+                                           text="Seleciona um m&#234;s e gera uma proposta"/>
+                                </HBox>
+
+                                <!-- STAT CARDS -->
+                                <HBox spacing="16.0">
+                                    <VBox alignment="CENTER" spacing="12.0"
+                                          styleClass="bento-card, premium-stat-card" HBox.hgrow="ALWAYS">
+                                        <StackPane styleClass="stat-icon-wrap-blue" minWidth="52.0" minHeight="52.0">
+                                            <SVGPath fill="#2563eb"
+                                                     content="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                                                     styleClass="stat-icon"/>
+                                        </StackPane>
+                                        <Label fx:id="lblTotalColaboradores" styleClass="stat-numero" text="0"/>
+                                        <Label styleClass="stat-titulo" text="Colaboradores"/>
+                                    </VBox>
+                                    <VBox alignment="CENTER" spacing="12.0"
+                                          styleClass="bento-card, premium-stat-card" HBox.hgrow="ALWAYS">
+                                        <StackPane styleClass="stat-icon-wrap-red" minWidth="52.0" minHeight="52.0">
+                                            <SVGPath fill="#c91428"
+                                                     content="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"
+                                                     styleClass="stat-icon"/>
+                                        </StackPane>
+                                        <Label fx:id="lblTotalTurnos" styleClass="stat-numero" text="0"/>
+                                        <Label styleClass="stat-titulo" text="Turnos gerados"/>
+                                    </VBox>
+                                    <VBox alignment="CENTER" spacing="12.0"
+                                          styleClass="bento-card, premium-stat-card" HBox.hgrow="ALWAYS">
+                                        <StackPane styleClass="stat-icon-wrap-green" minWidth="52.0" minHeight="52.0">
+                                            <SVGPath fill="#16a34a"
+                                                     content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                     styleClass="stat-icon"/>
+                                        </StackPane>
+                                        <Label fx:id="lblTotalDiasCobertos" styleClass="stat-numero" text="0"/>
+                                        <Label styleClass="stat-titulo" text="Dias cobertos"/>
+                                    </VBox>
+                                </HBox>
+
+                                <!-- ALTERNATIVAS GERADAS (tabela de propostas) -->
+                                <VBox spacing="16.0" styleClass="bento-card">
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <StackPane styleClass="stat-icon-wrap-green" minWidth="40.0" minHeight="40.0">
+                                            <SVGPath fill="#16a34a"
+                                                     content="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                                                     styleClass="card-icon"/>
+                                        </StackPane>
+                                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="stat-kicker" text="RASCUNHOS"/>
+                                            <Label styleClass="bento-card-titulo" text="Alternativas geradas"/>
+                                        </VBox>
+                                        <Button fx:id="btnEnviarSupervisor" onAction="#onEnviarSupervisorClick"
+                                                styleClass="botao-acao"
+                                                text="Enviar selecionadas ao supervisor"/>
+                                    </HBox>
+                                    <Label styleClass="bento-card-subtitulo"
+                                           text="O supervisor s&#243; valida alternativas enviadas pelo gerente. Seleciona as que quiseres enviar (Ctrl+clique para m&#250;ltiplas)."
+                                           wrapText="true"/>
+                                    <VBox fx:id="emptyStatePropostas" alignment="CENTER" spacing="12.0"
+                                          styleClass="empty-state-box">
+                                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
+                                        <SVGPath fill="#dddddd"
+                                                 content="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"
+                                                 styleClass="empty-state-icon"/>
+                                        <Label styleClass="empty-state-titulo" text="Sem alternativas geradas"/>
+                                        <Label styleClass="empty-state-subtitulo"
+                                               text="Vai &#224; tab Gerar e clica em 'Gerar 1 alternativa' para come&#231;ar."
+                                               wrapText="true"/>
+                                    </VBox>
+                                    <TableView fx:id="tabelaPropostas" styleClass="tabela-premium"
+                                               VBox.vgrow="ALWAYS">
+                                        <columnResizePolicy>
+                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                        </columnResizePolicy>
+                                        <columns>
+                                            <TableColumn fx:id="colPropostaRotulo"    text="Proposta"/>
+                                            <TableColumn fx:id="colPropostaEstado"    text="Estado"/>
+                                            <TableColumn fx:id="colPropostaData"      text="Gerada em"/>
+                                            <TableColumn fx:id="colPropostaScore"     text="Score"/>
+                                            <TableColumn fx:id="colPropostaQualidade" text="Qualidade"/>
+                                            <TableColumn fx:id="colPropostaTurnos"    text="Turnos"/>
+                                        </columns>
+                                    </TableView>
+                                </VBox>
+
+                                <!-- COMPARAÇÃO DE ALTERNATIVAS -->
+                                <VBox spacing="16.0" styleClass="bento-card">
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <StackPane styleClass="stat-icon-wrap-orange" minWidth="40.0" minHeight="40.0">
+                                            <SVGPath fill="#ea580c"
+                                                     content="M9 3L5 6.99h3V14h2V6.99h3L9 3zm7 14.01V10h-2v7.01h-3L15 21l4-3.99h-3z"
+                                                     styleClass="card-icon"/>
+                                        </StackPane>
+                                        <VBox spacing="2.0">
+                                            <Label styleClass="stat-kicker" text="AN&#193;LISE"/>
+                                            <Label styleClass="bento-card-titulo" text="Compara&#231;&#227;o de alternativas"/>
+                                        </VBox>
+                                    </HBox>
+                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                        <ComboBox fx:id="cbComparacaoBase" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                                  promptText="Alternativa base" styleClass="campo-combo"/>
+                                        <ComboBox fx:id="cbComparacaoAlvo" maxWidth="Infinity" HBox.hgrow="ALWAYS"
+                                                  promptText="Alternativa a comparar" styleClass="campo-combo"/>
+                                        <Button fx:id="btnCompararPropostas" onAction="#onCompararPropostasClick"
+                                                styleClass="botao-acao" text="Comparar"/>
+                                    </HBox>
+                                    <Label fx:id="lblResumoComparacao" styleClass="bento-card-subtitulo"
+                                           text="Seleciona duas alternativas para comparar distribui&#231;&#227;o, carga hor&#225;ria e impacto por colaborador."
+                                           wrapText="true"/>
+                                    <TableView fx:id="tabelaComparacao" styleClass="tabela-premium"
+                                               VBox.vgrow="ALWAYS">
+                                        <columnResizePolicy>
+                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                        </columnResizePolicy>
+                                        <columns>
+                                            <TableColumn fx:id="colComparacaoColaborador" text="Colaborador"/>
+                                            <TableColumn fx:id="colComparacaoBase"        text="Base"/>
+                                            <TableColumn fx:id="colComparacaoAlvo"        text="Comparada"/>
+                                            <TableColumn fx:id="colComparacaoDiferenca"   text="Diferen&#231;a"/>
+                                        </columns>
+                                    </TableView>
+                                </VBox>
+
+                                <!-- DETALHE DA PROPOSTA SELECIONADA -->
+                                <VBox spacing="20.0" styleClass="bento-card">
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <StackPane styleClass="stat-icon-wrap-blue" minWidth="40.0" minHeight="40.0">
+                                            <SVGPath fill="#2563eb"
+                                                     content="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"
+                                                     styleClass="card-icon"/>
+                                        </StackPane>
+                                        <VBox spacing="2.0">
+                                            <Label styleClass="stat-kicker" text="DETALHE"/>
+                                            <Label styleClass="bento-card-titulo"
+                                                   text="Resumo da proposta selecionada"/>
+                                        </VBox>
+                                    </HBox>
+
+                                    <HBox spacing="20.0">
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Estado"/>
+                                            <Label fx:id="lblEstadoProposta" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Origem"/>
+                                            <Label fx:id="lblOrigemPlaneamento" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Pol&#237;tica IO"/>
+                                            <Label fx:id="lblPoliticaOtimizacao" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Score"/>
+                                            <Label fx:id="lblPontuacaoOtimizacao" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                    </HBox>
+                                    <HBox spacing="20.0">
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Gerado por"/>
+                                            <Label fx:id="lblGeradoPor" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Data de gera&#231;&#227;o"/>
+                                            <Label fx:id="lblDataGeracao" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Decidido por"/>
+                                            <Label fx:id="lblDecididoPor" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Data da decis&#227;o"/>
+                                            <Label fx:id="lblDataDecisao" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                    </HBox>
+                                    <HBox spacing="20.0">
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Desvio m&#233;dio de carga"/>
+                                            <Label fx:id="lblDesvioCarga" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta" text="Amplitude de carga"/>
+                                            <Label fx:id="lblAmplitudeCarga" styleClass="meta-valor" text="-"/>
+                                        </VBox>
+                                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="meta-etiqueta"
+                                                   text="Observa&#231;&#245;es do supervisor"/>
+                                            <Label fx:id="lblObservacoesSupervisor" styleClass="meta-valor"
+                                                   text="-" wrapText="true"/>
+                                        </VBox>
+                                    </HBox>
+
+                                    <VBox spacing="6.0">
+                                        <Label styleClass="campo-titulo"
+                                               text="Observa&#231;&#245;es da gera&#231;&#227;o"/>
+                                        <Label fx:id="lblResumoGeracao" styleClass="bento-card-subtitulo"
+                                               text="Ainda n&#227;o existe uma proposta carregada." wrapText="true"/>
+                                    </VBox>
+                                </VBox>
+
+                                <!-- VALIDAÇÃO DO SUPERVISOR -->
+                                <VBox fx:id="painelValidacaoSupervisor" spacing="16.0" styleClass="bento-card">
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <StackPane styleClass="stat-icon-wrap-green" minWidth="40.0" minHeight="40.0">
+                                            <SVGPath fill="#16a34a"
+                                                     content="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"
+                                                     styleClass="card-icon"/>
+                                        </StackPane>
+                                        <VBox spacing="2.0">
+                                            <Label styleClass="stat-kicker" text="DECIS&#195;O"/>
+                                            <Label styleClass="bento-card-titulo"
+                                                   text="Valida&#231;&#227;o do supervisor"/>
+                                        </VBox>
+                                    </HBox>
+                                    <Label styleClass="bento-card-subtitulo"
+                                           text="Rev&#234; a proposta selecionada. Ao aprovar, as restantes propostas pendentes do mesmo m&#234;s s&#227;o rejeitadas automaticamente."
+                                           wrapText="true"/>
+                                    <VBox spacing="6.0">
+                                        <Label styleClass="campo-titulo"
+                                               text="Observa&#231;&#245;es da decis&#227;o"/>
+                                        <TextArea fx:id="txtObservacoesSupervisor" prefRowCount="3"
+                                                  promptText="Opcional: acrescenta observa&#231;&#245;es para o hist&#243;rico da decis&#227;o."
+                                                  styleClass="campo-textarea" wrapText="true"/>
+                                    </VBox>
+                                    <Label fx:id="lblFeedbackValidacao" managed="false" visible="false"
+                                           wrapText="true"/>
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <Button fx:id="btnRejeitarProposta" onAction="#onRejeitarPropostaClick"
+                                                styleClass="botao-secundario" text="Rejeitar proposta"/>
+                                        <Button fx:id="btnAprovarProposta" onAction="#onAprovarPropostaClick"
+                                                styleClass="botao-acao" text="Aprovar e publicar"/>
+                                    </HBox>
+                                </VBox>
+
+                                <!-- DISTRIBUIÇÃO POR COLABORADOR -->
+                                <VBox spacing="16.0" styleClass="bento-card">
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <StackPane styleClass="stat-icon-wrap-blue" minWidth="40.0" minHeight="40.0">
+                                            <SVGPath fill="#2563eb"
+                                                     content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
+                                                     styleClass="card-icon"/>
+                                        </StackPane>
+                                        <VBox spacing="2.0">
+                                            <Label styleClass="stat-kicker" text="EQUIPA"/>
+                                            <Label styleClass="bento-card-titulo"
+                                                   text="Distribui&#231;&#227;o por colaborador"/>
+                                        </VBox>
+                                    </HBox>
+                                    <Label styleClass="bento-card-subtitulo"
+                                           text="Duplo clique num colaborador para ver o hor&#225;rio completo do m&#234;s."
+                                           wrapText="true"/>
+                                    <VBox fx:id="emptyStateDistribuicao" alignment="CENTER" spacing="12.0"
+                                          styleClass="empty-state-box">
+                                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
+                                        <SVGPath fill="#dddddd"
+                                                 content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
+                                                 styleClass="empty-state-icon"/>
+                                        <Label styleClass="empty-state-titulo"
+                                               text="Sem dados de distribui&#231;&#227;o"/>
+                                        <Label styleClass="empty-state-subtitulo"
+                                               text="Gera ou seleciona uma proposta para ver a distribui&#231;&#227;o."
+                                               wrapText="true"/>
+                                    </VBox>
+                                    <TableView fx:id="tabelaResumoColaboradores" styleClass="tabela-premium"
+                                               VBox.vgrow="ALWAYS">
+                                        <columnResizePolicy>
+                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                        </columnResizePolicy>
+                                        <columns>
+                                            <TableColumn fx:id="colResumoColaborador" text="Colaborador"/>
+                                            <TableColumn fx:id="colResumoCargo"       text="Cargo"/>
+                                            <TableColumn fx:id="colResumoTurnos"      text="Turnos"/>
+                                            <TableColumn fx:id="colResumoHoras"       text="Horas"/>
+                                        </columns>
+                                    </TableView>
+                                </VBox>
+
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                </content>
+            </Tab>
+
+            <!-- ═════ ABA 3 — CALENDÁRIO ═════ -->
+            <Tab text="Calend&#225;rio">
+                <content>
+                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                                styleClass="conteudo-scroll">
+                        <content>
+                            <VBox spacing="20.0" styleClass="aba-conteudo">
+                                <padding><Insets top="24.0" right="40.0" bottom="44.0" left="40.0"/></padding>
+
+                                <!-- CALENDÁRIO SEMANAL -->
+                                <VBox spacing="16.0" styleClass="bento-card">
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
+                                            <SVGPath fill="#c91428"
+                                                     content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                     styleClass="card-icon"/>
+                                        </StackPane>
+                                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="stat-kicker" text="CALEND&#193;RIO SEMANAL"/>
+                                            <Label styleClass="bento-card-titulo"
+                                                   text="Planeamento semana a semana"/>
+                                        </VBox>
+                                        <VBox spacing="4.0">
+                                            <Label styleClass="campo-titulo"
+                                                   text="Filtrar por colaborador"/>
+                                            <ComboBox fx:id="cbFiltroColaborador" minWidth="200.0"
+                                                      promptText="Toda a equipa" styleClass="campo-combo"/>
+                                        </VBox>
+                                        <Button onAction="#onSemanaPlaneamentoAnteriorClick"
+                                                styleClass="botao-nav" text="&#8249; Anterior"/>
+                                        <Label fx:id="lblSemanaPlaneamento" styleClass="campo-titulo"
+                                               text="Semana"/>
+                                        <Button onAction="#onSemanaPlaneamentoSeguinteClick"
+                                                styleClass="botao-nav" text="Seguinte &#8250;"/>
+                                    </HBox>
+                                    <Label styleClass="bento-card-subtitulo"
+                                           text="Seleciona uma proposta na tab Propostas para ver os turnos aqui. Clica num turno para editar."
+                                           wrapText="true"/>
+                                    <VBox fx:id="emptyStateCalendario" alignment="CENTER" spacing="12.0"
+                                          styleClass="empty-state-box">
+                                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
+                                        <SVGPath fill="#dddddd"
+                                                 content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                 styleClass="empty-state-icon"/>
+                                        <Label styleClass="empty-state-titulo"
+                                               text="Sem semana para mostrar"/>
+                                        <Label styleClass="empty-state-subtitulo"
+                                               text="Seleciona uma proposta na tab Propostas para ver o calend&#225;rio semanal."
+                                               wrapText="true"/>
+                                    </VBox>
+                                    <HBox fx:id="boxSemanaPlaneamento" spacing="10.0"
+                                          styleClass="calendario-semana"/>
+                                </VBox>
+
+                                <!-- CALENDÁRIO MENSAL -->
+                                <VBox spacing="16.0" styleClass="bento-card">
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
+                                            <SVGPath fill="#c91428"
+                                                     content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                     styleClass="card-icon"/>
+                                        </StackPane>
+                                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                            <Label styleClass="stat-kicker" text="CALEND&#193;RIO MENSAL"/>
+                                            <Label styleClass="bento-card-titulo"
+                                                   text="Hor&#225;rio mensal da loja"/>
+                                        </VBox>
+                                        <Button fx:id="btnMesAnterior" onAction="#onMesAnteriorClick"
+                                                styleClass="botao-nav" text="&#8249; M&#234;s anterior"/>
+                                        <Label fx:id="lblMesAtual" styleClass="calendar-month-label"
+                                               text="&#8212;"/>
+                                        <Button fx:id="btnMesSeguinte" onAction="#onMesSeguinteClick"
+                                                styleClass="botao-nav" text="M&#234;s seguinte &#8250;"/>
+                                        <Button fx:id="btnExportarCsvHorario"
+                                                onAction="#onExportarCsvHorarioClick"
+                                                disable="true" styleClass="botao-secundario"
+                                                text="Exportar CSV"/>
+                                        <Button fx:id="btnExportarPdfHorario"
+                                                onAction="#onExportarPdfHorarioClick"
+                                                disable="true" styleClass="botao-secundario"
+                                                text="Exportar PDF"/>
+                                    </HBox>
+                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                        <Label fx:id="lblIdentificacaoHorario"
+                                               styleClass="identificacao-horario-label"
+                                               text="Sem proposta carregada" HBox.hgrow="ALWAYS"/>
+                                        <Label styleClass="campo-titulo" text="Ver proposta:"/>
+                                        <ComboBox fx:id="cbSelecaoProposta" minWidth="240.0"
+                                                  promptText="Seleciona uma proposta"
+                                                  styleClass="campo-combo"/>
+                                    </HBox>
+
+                                    <VBox fx:id="emptyStateCalendarioMensal" alignment="CENTER" spacing="12.0"
+                                          styleClass="empty-state-box">
+                                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
+                                        <SVGPath fill="#dddddd"
+                                                 content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                 styleClass="empty-state-icon"/>
+                                        <Label styleClass="empty-state-titulo"
+                                               text="Sem hor&#225;rio mensal"/>
+                                        <Label styleClass="empty-state-subtitulo"
+                                               text="Seleciona uma proposta aprovada para visualizar o calend&#225;rio mensal. Clica em qualquer dia para ver o detalhe dos turnos."
+                                               wrapText="true"/>
+                                    </VBox>
+
+                                    <GridPane fx:id="calendarioMensalGrid" hgap="8.0" vgap="8.0"
+                                              styleClass="calendar-grid">
+                                        <columnConstraints>
+                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.32"/>
+                                        </columnConstraints>
+                                    </GridPane>
+                                </VBox>
+
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                </content>
+            </Tab>
+
+        </tabs>
+    </TabPane>
+
+</VBox>

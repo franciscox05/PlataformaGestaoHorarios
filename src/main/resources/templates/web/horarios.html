@@ -1,232 +1,253 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{web/fragments :: head('Horários — Levi\'s Staff Portal')}"></head>
+<head th:replace="~{web/fragments :: head('O Meu Horário — Levi\'s Staff Portal')}"></head>
 <body class="bg-background text-on-background antialiased">
 
 <aside th:replace="~{web/fragments :: shellSidebar}"></aside>
 <header th:replace="~{web/fragments :: shellHeader}"></header>
 
 <main class="md:ml-sidebar pt-topbar min-h-screen">
-<div class="max-w-[82rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-5">
+<div class="max-w-[72rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-5">
 
     <!-- ── Header ── -->
     <div class="fade-up flex items-start justify-between gap-4 flex-wrap">
         <div>
-            <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Horários da loja</h1>
+            <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">O meu horário</h1>
             <p class="font-body text-[14px] text-on-surface-variant mt-1"
-               th:if="${contexto}" th:text="${contexto.nomeLoja() + ' · ' + contexto.localizacao()}">Planeamento mensal</p>
-            <p class="font-body text-[14px] text-on-surface-variant mt-1" th:unless="${contexto}">Planeamento mensal da loja</p>
-        </div>
-        <div class="flex items-center gap-2 self-start mt-1" th:if="${proposta != null}">
-            <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full"
-                  th:classappend="${proposta.estado() == 'APROVADO'} ? 'badge-ok' : (${proposta.estado() == 'REJEITADO'} ? 'badge-err' : 'badge-warn')">
-                <span class="material-symbols-outlined text-[13px]"
-                      th:text="${proposta.estado() == 'APROVADO'} ? 'check_circle' : (${proposta.estado() == 'REJEITADO'} ? 'cancel' : 'hourglass_empty')">schedule</span>
-                <span th:text="${proposta.estado()}">PENDENTE</span>
-            </span>
+               th:text="${webPermissoes.podeGerarHorarios()} ? 'Consulta os teus turnos, gera e envia propostas mensais.' : 'Consulta os teus turnos publicados.'">
+                Consulta os teus turnos publicados.</p>
         </div>
     </div>
 
     <!-- Feedback -->
-    <div th:if="${erro}"    class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
-        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    <div th:if="${sucesso}" class="fade-up flex items-center gap-2.5 bg-success-container/20 text-on-surface px-4 py-3.5 rounded-xl font-body text-[13px] border border-outline-variant/25">
+        <span class="material-symbols-outlined text-[18px] text-green-600">check_circle</span><span th:text="${sucesso}"></span>
     </div>
-    <div th:if="${sucesso}" class="fade-up flex items-center gap-2.5 bg-[#d1fae5] text-[#065f46] px-4 py-3.5 rounded-xl font-body text-[13px]">
-        <span class="material-symbols-outlined text-[18px]">check_circle</span><span th:text="${sucesso}"></span>
+    <div th:if="${erro}" class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
     </div>
 
     <!-- ── Filtros ── -->
     <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5"
              style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
-        <h2 class="font-display font-bold text-[15px] text-on-surface mb-4 flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary-container text-[18px]">filter_list</span>
-            Consultar período
-        </h2>
-        <form id="filtroHorariosForm" method="get" action="/web/horarios" class="flex flex-wrap items-end gap-3">
+        <form id="filtroForm" method="get" action="/web/horarios" class="flex flex-wrap items-end gap-3">
             <div class="flex flex-col gap-1.5">
                 <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="ano">Ano</label>
-                <select id="ano" name="ano" onchange="document.getElementById('filtroHorariosForm').submit()"
-                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[90px]" style="outline:none">
+                <select id="ano" name="ano" onchange="document.getElementById('filtroForm').submit()"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[90px]">
                     <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
                 </select>
             </div>
             <div class="flex flex-col gap-1.5">
                 <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="mes">Mês</label>
-                <select id="mes" name="mes" onchange="document.getElementById('filtroHorariosForm').submit()"
-                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[140px]" style="outline:none">
+                <select id="mes" name="mes" onchange="document.getElementById('filtroForm').submit()"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[140px]">
                     <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
                 </select>
             </div>
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="flex items-center gap-2 bg-surface-container text-on-surface font-body font-bold text-[13px] px-4 py-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high transition-colors">
-                    <span class="material-symbols-outlined text-[16px]">search</span>
-                    Consultar
-                </button>
-                <button type="submit"
-                        th:if="${podeGerar}"
-                        formaction="/web/horarios/gerar"
-                        formmethod="post"
-                        class="flex items-center gap-2 bg-primary-container text-white font-body font-bold text-[13px] px-4 py-2.5 rounded-xl hover:bg-primary transition-colors shadow-sm">
-                    <span class="material-symbols-outlined text-[16px]">auto_fix_high</span>
-                    Gerar proposta
-                </button>
-            </div>
+            <button type="submit"
+                    class="flex items-center gap-2 bg-surface-container text-on-surface font-body font-bold text-[13px] px-4 py-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high transition-colors">
+                <span class="material-symbols-outlined text-[16px]">search</span>
+                Consultar
+            </button>
         </form>
     </section>
 
-    <!-- ── Sem proposta ── -->
-    <section th:if="${proposta == null}"
-             class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-12 flex flex-col items-center gap-4 text-center"
-             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
-        <div class="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
-            <span class="material-symbols-outlined text-[36px] text-outline/50">calendar_month</span>
-        </div>
-        <h2 class="font-display font-bold text-[20px] text-on-surface">Sem proposta para este período</h2>
-        <p th:if="${podeGerar}" class="font-body text-[14px] text-on-surface-variant max-w-md">
-            Não existe planeamento guardado. Usa o botão <strong>"Gerar proposta"</strong> para criar um novo.
-        </p>
-        <p th:unless="${podeGerar}" class="font-body text-[14px] text-on-surface-variant max-w-md">
-            Não existe planeamento guardado para este período e o teu perfil não tem permissão para gerar propostas.
-        </p>
-    </section>
+    <!-- ── Secção de gestão de propostas (apenas gerentes/subgerentes) ── -->
+    <th:block th:if="${webPermissoes.podeGerarHorarios()}">
 
-    <!-- ── Proposta atual ── -->
-    <section th:if="${proposta != null}"
-             class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
-             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
-
-        <!-- Cabeçalho -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/25 flex-wrap gap-3">
-            <h2 class="font-display font-bold text-[18px] text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined icon-fill text-primary-container text-[20px]">event_note</span>
-                Proposta atual
-            </h2>
-            <!-- Badge de estado -->
-            <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider px-3.5 py-1.5 rounded-full"
-                  th:classappend="${proposta.estado() == 'APROVADO'} ? 'badge-ok' : (${proposta.estado() == 'REJEITADO'} ? 'badge-err' : 'badge-warn')"
-                  th:text="${proposta.estado()}">PENDENTE</span>
-        </div>
-
-        <div class="p-6 flex flex-col gap-5">
-
-            <!-- Meta info -->
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25">
-                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Gerado por</p>
-                    <p class="font-body font-bold text-[14px] text-on-surface" th:text="${proposta.geradoPor() != null ? proposta.geradoPor() : '–'}">–</p>
-                </div>
-                <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25">
-                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data de geração</p>
-                    <p class="font-body font-bold text-[14px] text-on-surface" th:text="${proposta.dataGeracao() != null ? proposta.dataGeracao() : '–'}">–</p>
-                </div>
-                <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25" th:if="${proposta.resumo() != null}">
-                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Turnos gerados</p>
-                    <p class="font-display font-bold text-[22px] text-on-surface" th:text="${proposta.resumo().turnos()}">0</p>
-                </div>
-                <div class="flex flex-col gap-1 p-4 bg-surface-container-low rounded-xl border border-outline-variant/25" th:if="${proposta.resumo() != null}">
-                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Dias cobertos</p>
-                    <p class="font-display font-bold text-[22px] text-on-surface" th:text="${proposta.resumo().diasCobertos()}">0</p>
-                </div>
-            </div>
-
-            <!-- Barra de cobertura -->
-            <div th:if="${proposta.resumo() != null}" class="flex flex-col gap-2 p-4 rounded-xl border" style="background:rgba(192,0,31,.04);border-color:rgba(192,0,31,.15)">
-                <div class="flex items-center justify-between">
-                    <p class="font-body font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5" style="color:rgba(192,0,31,.7)">
-                        <span class="material-symbols-outlined text-[14px]">calendar_view_month</span>
-                        Cobertura do mês
-                    </p>
-                    <span id="coveragePct" class="font-body font-bold text-[12px]" style="color:#c0001f">–</span>
-                </div>
-                <div class="h-2 rounded-full overflow-hidden" style="background:rgba(192,0,31,.1)">
-                    <div id="coverageBar" class="h-full rounded-full" style="width:0%;background:linear-gradient(90deg,#c0001f,#e83a52);transition:width 1.1s cubic-bezier(.16,1,.3,1)"></div>
-                </div>
-                <p class="font-body text-[11px]" style="color:rgba(192,0,31,.5)"
-                   th:text="${proposta.resumo().diasCobertos()} + ' dias cobertos · ' + ${proposta.resumo().turnos()} + ' turnos gerados'">–</p>
-            </div>
-
-            <!-- Observações do supervisor -->
-            <div th:if="${proposta.resumoGeracao() != null}"
-                 class="flex items-start gap-3 p-4 bg-surface-container rounded-xl border border-outline-variant/25">
-                <span class="material-symbols-outlined text-[18px] text-on-surface-variant mt-0.5 shrink-0">info</span>
+        <!-- Gerar nova proposta -->
+        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                 style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/25">
+                <span class="material-symbols-outlined text-[20px] text-primary">auto_awesome</span>
                 <div>
-                    <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant mb-1">Observações do supervisor</p>
-                    <p class="font-body text-[13px] text-on-surface" th:text="${proposta.resumoGeracao()}">–</p>
+                    <h2 class="font-display font-bold text-[17px] text-on-surface">Gerar proposta mensal</h2>
+                    <p class="font-body text-[12px] text-on-surface-variant mt-0.5">O algoritmo IO gera automaticamente uma nova alternativa de horário para o período selecionado.</p>
                 </div>
             </div>
-
-            <!-- Aprovação / Rejeição -->
-            <div th:if="${podeValidar && proposta.podeSerDecidida()}"
-                 class="grid sm:grid-cols-2 gap-4 pt-4 border-t border-outline-variant/25">
-                <form method="post" th:action="@{'/web/horarios/' + ${proposta.idProposta()} + '/aprovar'}" class="flex flex-col gap-3">
-                    <input type="hidden" name="ano"  th:value="${ano}">
-                    <input type="hidden" name="mes"  th:value="${mes}">
-                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Observações (opcional)</label>
-                    <textarea name="observacoes" rows="2" placeholder="Notas de aprovação…"
-                              class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
+            <div class="px-6 py-5">
+                <form method="post" th:action="@{/web/horarios/gerar}"
+                      onsubmit="return confirm('Gerar uma nova proposta de horário para ' + document.querySelector('[name=mes] option:checked').text + ' de ' + document.querySelector('[name=ano]').value + '?');"
+                      class="flex flex-wrap items-end gap-3">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="gerar-ano">Ano</label>
+                        <select id="gerar-ano" name="ano"
+                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[90px]">
+                            <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="gerar-mes">Mês</label>
+                        <select id="gerar-mes" name="mes"
+                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[140px]">
+                            <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
+                        </select>
+                    </div>
                     <button type="submit"
-                            class="flex items-center justify-center gap-2 bg-[#059669] text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-[#047857] transition-colors">
-                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                        Aprovar proposta
-                    </button>
-                </form>
-                <form method="post" th:action="@{'/web/horarios/' + ${proposta.idProposta()} + '/rejeitar'}" class="flex flex-col gap-3">
-                    <input type="hidden" name="ano"  th:value="${ano}">
-                    <input type="hidden" name="mes"  th:value="${mes}">
-                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Justificação (opcional)</label>
-                    <textarea name="observacoes" rows="2" placeholder="Motivo de rejeição…"
-                              class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
-                    <button type="submit"
-                            class="flex items-center justify-center gap-2 bg-error text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-[#991b1b] transition-colors">
-                        <span class="material-symbols-outlined text-[18px]">cancel</span>
-                        Rejeitar proposta
+                            class="flex items-center gap-2 bg-primary text-on-primary font-body font-bold text-[13px] px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity">
+                        <span class="material-symbols-outlined text-[16px]">bolt</span>
+                        Gerar proposta
                     </button>
                 </form>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- ── Alternativas do período ── -->
+        <!-- Lista de propostas existentes -->
+        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                 style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/25">
+                <span class="material-symbols-outlined text-[20px] text-primary">list_alt</span>
+                <h2 class="font-display font-bold text-[17px] text-on-surface"
+                    th:text="${'Propostas de ' + mes + '/' + ano}">Propostas</h2>
+                <span th:if="${propostas != null && !#lists.isEmpty(propostas)}"
+                      class="ml-auto inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full badge-neu"
+                      th:text="${#lists.size(propostas)} + ' proposta(s)'">0 propostas</span>
+            </div>
+
+            <!-- sem propostas -->
+            <div th:if="${propostas == null || #lists.isEmpty(propostas)}"
+                 class="flex flex-col items-center gap-4 px-6 py-10 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[28px] text-outline/40">description</span>
+                </div>
+                <p class="font-display font-bold text-[16px] text-on-surface">Nenhuma proposta gerada</p>
+                <p class="font-body text-[13px] text-on-surface-variant max-w-sm">
+                    Usa o formulário acima para gerar a primeira proposta de horário para este período.
+                </p>
+            </div>
+
+            <!-- tabela de propostas -->
+            <div th:if="${propostas != null && !#lists.isEmpty(propostas)}" class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-surface-container-low">
+                        <tr>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Proposta</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Qualidade</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Score</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Gerado em</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colaboradores</th>
+                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <tr th:each="p : ${propostas}" class="hover:bg-surface-container-low/60 transition-colors">
+                            <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface"
+                                th:text="${p.rotulo()}">Proposta #1</td>
+                            <td class="px-6 py-3.5">
+                                <span class="inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                      th:classappend="${#strings.toLowerCase(p.estado()).contains('aprovado')} ? 'badge-ok' : (${#strings.toLowerCase(p.estado()).contains('rejeit')} ? 'badge-err' : (${#strings.toLowerCase(p.estado()).contains('pendente')} ? 'badge-warn' : 'badge-neu'))"
+                                      th:text="${p.estado()}">rascunho</span>
+                            </td>
+                            <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
+                                th:text="${p.qualidade()}">Boa</td>
+                            <td class="px-6 py-3.5 font-body font-semibold text-[13px] text-on-surface"
+                                th:text="${p.pontuacao()}">0</td>
+                            <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
+                                th:text="${p.dataGeracao()}">-</td>
+                            <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
+                                th:text="${p.colaboradores()} + ' colab.'">-</td>
+                            <td class="px-6 py-3.5">
+                                <!-- Só mostrar botão Enviar se estado = rascunho -->
+                                <form th:if="${#strings.toLowerCase(p.estado()).contains('rascunho')}"
+                                      method="post"
+                                      th:action="@{'/web/horarios/propostas/' + ${p.idProposta()} + '/enviar'}"
+                                      onsubmit="return confirm('Enviar esta proposta para validação pelo supervisor?')">
+                                    <input type="hidden" name="ano" th:value="${ano}" />
+                                    <input type="hidden" name="mes" th:value="${mes}" />
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[13px]">send</span>
+                                        Enviar ao supervisor
+                                    </button>
+                                </form>
+                                <span th:if="${#strings.toLowerCase(p.estado()).contains('pendente')}"
+                                      class="inline-flex items-center gap-1 font-body text-[11px] text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-[13px]">schedule</span>
+                                    A aguardar validação
+                                </span>
+                                <span th:if="${#strings.toLowerCase(p.estado()).contains('aprovado')}"
+                                      class="inline-flex items-center gap-1 font-body text-[11px] text-green-700">
+                                    <span class="material-symbols-outlined text-[13px]">check_circle</span>
+                                    Aprovada
+                                </span>
+                                <span th:if="${#strings.toLowerCase(p.estado()).contains('rejeit')}"
+                                      class="inline-flex items-center gap-1 font-body text-[11px] text-error">
+                                    <span class="material-symbols-outlined text-[13px]">cancel</span>
+                                    Rejeitada
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </th:block>
+
+    <!-- ── Lista de turnos ── -->
     <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
              style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/25">
-            <h2 class="font-display font-bold text-[17px] text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary-container text-[18px]">compare</span>
-                Alternativas do período
-            </h2>
+
+        <!-- cabeçalho -->
+        <div class="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/25">
+            <span class="material-symbols-outlined icon-fill text-primary-container text-[20px]">calendar_month</span>
+            <h2 class="font-display font-bold text-[17px] text-on-surface" th:text="${'Turnos de ' + mes + '/' + ano}">Turnos</h2>
+            <span th:if="${turnos != null && !#lists.isEmpty(turnos)}"
+                  class="inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full badge-ok"
+                  th:text="${#lists.size(turnos)} + ' turno(s)'">0 turnos</span>
+            <!-- W7: Exportar PDF -->
+            <a th:if="${turnos != null && !#lists.isEmpty(turnos)}"
+               th:href="@{/web/horarios/exportar.pdf(ano=${ano},mes=${mes})}"
+               class="ml-auto inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high border border-outline-variant/30 transition-colors">
+                <span class="material-symbols-outlined text-[14px]">picture_as_pdf</span>
+                PDF
+            </a>
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- sem turnos -->
+        <div th:if="${turnos == null || #lists.isEmpty(turnos)}"
+             class="flex flex-col items-center gap-4 px-6 py-14 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-[32px] text-outline/40">event_busy</span>
+            </div>
+            <p class="font-display font-bold text-[18px] text-on-surface">Sem turnos publicados</p>
+            <p class="font-body text-[13px] text-on-surface-variant max-w-sm">
+                Não existem turnos publicados para este período. Assim que o horário for aprovado pelo supervisor, os turnos aparecem aqui.
+            </p>
+        </div>
+
+        <!-- tabela de turnos -->
+        <div th:if="${turnos != null && !#lists.isEmpty(turnos)}" class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-surface-container-low">
                     <tr>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">ID</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Proposta</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Pontuação</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Qualidade</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Geração</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Dia</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Turno</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Início</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Fim</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-outline-variant/25">
-                    <tr th:if="${propostas == null || #lists.isEmpty(propostas)}">
-                        <td colspan="6" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Ainda não existem alternativas para este período.</td>
-                    </tr>
-                    <tr th:each="item : ${propostas}" class="hover:bg-surface-container-low/60 transition-colors">
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.idProposta()}"></td>
-                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${item.rotulo()}"></td>
+                <tbody class="divide-y divide-outline-variant/20">
+                    <tr th:each="t : ${turnos}"
+                        th:classappend="${t.dataTurno.equals(hoje)} ? 'bg-primary-fixed/10' : 'hover:bg-surface-container-low/60'"
+                        class="transition-colors">
+                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface"
+                            th:text="${#temporals.format(t.dataTurno, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant capitalize"
+                            th:text="${#temporals.format(t.dataTurno, 'EEEE', new java.util.Locale('pt','PT'))}">segunda</td>
                         <td class="px-6 py-3.5">
-                            <span class="inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                  th:classappend="${item.estado() == 'APROVADO'} ? 'badge-ok' : (${item.estado() == 'REJEITADO'} ? 'badge-err' : 'badge-warn')"
-                                  th:text="${item.estado()}"></span>
+                            <span class="inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                  th:classappend="${#strings.toLowerCase(t.idTurno.tipo).contains('manha') or #strings.toLowerCase(t.idTurno.tipo).contains('manhã')} ? 'badge-warn' : (${#strings.toLowerCase(t.idTurno.tipo).contains('tarde')} ? 'badge-neu' : 'badge-err')"
+                                  th:text="${t.idTurno.tipo}">manhã</span>
                         </td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.pontuacao()}"></td>
-                        <td class="px-6 py-3.5">
-                            <span class="inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                  th:classappend="${item.qualidade() == 'ALTA' || item.qualidade() == 'BOA'} ? 'badge-ok' : (${item.qualidade() == 'BAIXA' || item.qualidade() == 'MÁ'} ? 'badge-err' : 'badge-warn')"
-                                  th:text="${item.qualidade()}"></span>
-                        </td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.dataGeracao()}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface"
+                            th:text="${#temporals.format(t.idTurno.horaInicio, 'HH:mm')}">09:00</td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface"
+                            th:text="${#temporals.format(t.idTurno.horaFim, 'HH:mm')}">17:00</td>
                     </tr>
                 </tbody>
             </table>
@@ -236,26 +257,11 @@
 </div>
 </main>
 
-<script>
-// ── Animar barra de cobertura ──
-document.addEventListener('DOMContentLoaded', function(){
-    var bar  = document.getElementById('coverageBar');
-    var pctEl= document.getElementById('coveragePct');
-    if(!bar) return;
-    // Ler dias cobertos do texto da legenda
-    var legend = bar.closest('.flex').nextElementSibling;
-    if(!legend) return;
-    var txt = legend ? legend.textContent : '';
-    var dias = txt.match(/^(\d+)/);
-    if(!dias) return;
-    var covered = +dias[1];
-    // Dias do mês atual (fallback 30)
-    var now = new Date();
-    var daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-    var pct = Math.min(Math.round(covered/daysInMonth*100), 100);
-    if(pctEl) pctEl.textContent = pct + '%';
-    setTimeout(function(){ bar.style.width = pct + '%'; }, 200);
-});
+<th:block th:if="${turnos != null && !#lists.isEmpty(turnos)}">
+<script th:inline="javascript">
+    var hoje = /*[[${hoje}]]*/ null;
 </script>
+</th:block>
+
 </body>
 </html>

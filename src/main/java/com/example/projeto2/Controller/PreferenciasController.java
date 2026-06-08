@@ -13,9 +13,11 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
@@ -185,6 +187,12 @@ public class PreferenciasController {
         esconderFeedback();
         esconderFeedbackGestao();
 
+        // Tooltips nos campos do formulário
+        cbTipo.setTooltip(new Tooltip("Tipo de preferência: folgas, férias, colegas ou turnos"));
+        dpDataInicio.setTooltip(new Tooltip("Data a partir da qual a preferência é válida"));
+        dpDataFim.setTooltip(new Tooltip("Data limite de validade (deixa vazio para permanente)"));
+        txtDescricao.setTooltip(new Tooltip("Notas adicionais para o gestor (opcional)"));
+
         tabelaPreferencias.setPlaceholder(new Label("Ainda não tens preferências registadas."));
         tabelaPreferenciasPendentes.setPlaceholder(new Label("Não existem preferências pendentes para decidir nesta loja."));
         tabelaHistoricoDecisoes.setPlaceholder(new Label("Ainda não existem decisões registadas nesta loja."));
@@ -328,6 +336,27 @@ public class PreferenciasController {
 
         colEstado.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
+        colEstado.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String estado, boolean empty) {
+                super.updateItem(estado, empty);
+                if (empty || estado == null || estado.isBlank()) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Label badge = new Label(estado);
+                badge.getStyleClass().add("badge-estado");
+                switch (estado.toLowerCase()) {
+                    case "pendente" -> badge.getStyleClass().add("badge-pendente");
+                    case "aprovado" -> badge.getStyleClass().add("badge-aprovado");
+                    case "rejeitado" -> badge.getStyleClass().add("badge-rejeitado");
+                    default -> badge.getStyleClass().add("badge-rascunho");
+                }
+                setGraphic(badge);
+                setText(null);
+            }
+        });
 
         colDescricao.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getDescricao()));
@@ -356,6 +385,27 @@ public class PreferenciasController {
 
         colEstadoHistorico.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
+        colEstadoHistorico.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String estado, boolean empty) {
+                super.updateItem(estado, empty);
+                if (empty || estado == null || estado.isBlank()) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Label badge = new Label(estado);
+                badge.getStyleClass().add("badge-estado");
+                switch (estado.toLowerCase()) {
+                    case "pendente" -> badge.getStyleClass().add("badge-pendente");
+                    case "aprovado" -> badge.getStyleClass().add("badge-aprovado");
+                    case "rejeitado" -> badge.getStyleClass().add("badge-rejeitado");
+                    default -> badge.getStyleClass().add("badge-rascunho");
+                }
+                setGraphic(badge);
+                setText(null);
+            }
+        });
 
         colDecisaoHistorico.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarDecisao(cellData.getValue().getDecisao())));
@@ -552,6 +602,12 @@ public class PreferenciasController {
         lblFeedback.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
         lblFeedback.setVisible(true);
         lblFeedback.setManaged(true);
+
+        if (sucesso) {
+            javafx.animation.PauseTransition pausa = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5));
+            pausa.setOnFinished(e -> esconderFeedback());
+            pausa.play();
+        }
     }
 
     private void esconderFeedback() {
@@ -567,6 +623,12 @@ public class PreferenciasController {
         lblFeedbackGestao.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
         lblFeedbackGestao.setVisible(true);
         lblFeedbackGestao.setManaged(true);
+
+        if (sucesso) {
+            javafx.animation.PauseTransition pausa = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5));
+            pausa.setOnFinished(e -> esconderFeedbackGestao());
+            pausa.play();
+        }
     }
 
     private void esconderFeedbackGestao() {
@@ -840,7 +902,7 @@ public class PreferenciasController {
             duracao = inferirDuracaoAPartirDoContexto(textoLivre);
         }
         if (duracao != null) {
-            descricao.append(" Duracao preferida: ").append(duracao).append(".");
+            descricao.append(" Duração preferida: ").append(duracao).append(".");
         }
 
         if (textoLivre != null) {

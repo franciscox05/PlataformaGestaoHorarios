@@ -19,11 +19,14 @@ public class WebRelatoriosController {
 
     private final WebAppService webAppService;
     private final RelatorioHorasBLL relatorioHorasBLL;
+    private final WebPdfService webPdfService;
 
     public WebRelatoriosController(WebAppService webAppService,
-                                   RelatorioHorasBLL relatorioHorasBLL) {
+                                   RelatorioHorasBLL relatorioHorasBLL,
+                                   WebPdfService webPdfService) {
         this.webAppService = webAppService;
         this.relatorioHorasBLL = relatorioHorasBLL;
+        this.webPdfService = webPdfService;
     }
 
     @GetMapping
@@ -94,6 +97,24 @@ public class WebRelatoriosController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nomeFicheiro + "\"")
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .body(conteudo);
+    }
+
+    @GetMapping(value = "/exportar.pdf", produces = "application/pdf")
+    public ResponseEntity<byte[]> exportarPdf(@RequestParam(value = "ano") Integer ano,
+                                              @RequestParam(value = "mes") Integer mes,
+                                              @RequestParam(value = "colaborador", required = false) Integer idColaborador,
+                                              HttpSession session) {
+        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+        RelatorioHorasBLL.RelatorioResultado resultado = relatorioHorasBLL.gerarRelatorio(
+                utilizadorId, ano, mes, idColaborador);
+
+        byte[] conteudo = webPdfService.gerarRelatorioHorasPdf(resultado);
+        String nomeFicheiro = "relatorio-horas-" + ano + "-" + String.format("%02d", mes) + ".pdf";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nomeFicheiro + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
                 .body(conteudo);
     }
 

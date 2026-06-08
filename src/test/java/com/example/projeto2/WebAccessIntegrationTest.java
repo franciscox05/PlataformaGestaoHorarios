@@ -103,7 +103,7 @@ class WebAccessIntegrationTest {
         HttpResponse<String> response = clientSemSessao()
                 .send(postForm("/web/login", "email=teste%40ipvc.pt&password=123456"), HttpResponse.BodyHandlers.ofString());
         assertEquals(302, response.statusCode());
-        assertTrue(response.headers().firstValue("location").orElse("").contains("/web/painel"));
+        assertTrue(response.headers().firstValue("location").orElse("").contains("/web/horarios"));
     }
 
     @Test
@@ -140,11 +140,7 @@ class WebAccessIntegrationTest {
         when(dayOffBLL.listarPedidosPorUtilizador(anyInt())).thenReturn(List.of());
         when(permutaBLL.listarPedidosEnviados(anyInt())).thenReturn(List.of());
         when(horarioBLL.listarMeusTurnosDisponiveisParaPermuta(anyInt())).thenReturn(List.of());
-        when(geracaoHorariosBLL.obterContexto(anyInt())).thenReturn(new GeracaoHorariosBLL.GeracaoContexto(
-                1, "Loja Teste", "Viana", 2026, 5, false, false, false
-        ));
-        when(geracaoHorariosBLL.obterPlaneamento(anyInt(), anyInt(), anyInt())).thenReturn(null);
-        when(geracaoHorariosBLL.listarPropostas(anyInt(), anyInt(), anyInt())).thenReturn(List.of());
+        when(geracaoHorariosBLL.obterMeusHorarios(anyInt(), anyInt(), anyInt())).thenReturn(List.of());
 
         Utilizador utilizador = new Utilizador();
         utilizador.setId(10);
@@ -156,7 +152,7 @@ class WebAccessIntegrationTest {
         HttpResponse<String> response = client.send(getRequest("/web/horarios"), HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());
-        assertTrue(response.body().contains("Hor") && response.body().contains("rios da loja"));
+        assertTrue(response.body().contains("meu hor"));
         assertTrue(!response.body().contains("Gerar proposta"));
     }
 

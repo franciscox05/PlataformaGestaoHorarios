@@ -25,22 +25,14 @@
     <content>
         <VBox spacing="0" styleClass="conteudo-pagina">
 
-            <StackPane styleClass="page-banner" minHeight="190.0">
-                <VBox.margin><Insets left="32.0" right="32.0" bottom="0.0" top="0.0" /></VBox.margin>
-                <VBox alignment="CENTER" spacing="12.0">
-                    <StackPane styleClass="icon-badge-white-lg" prefWidth="64.0" prefHeight="64.0">
-                        <SVGPath styleClass="icon-svg-dark"
-                                 content="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"
-                                 scaleX="1.1" scaleY="1.1" />
-                    </StackPane>
-                    <VBox alignment="CENTER" spacing="6.0">
-                        <Label styleClass="banner-titulo" text="Trocar Turno" />
-                        <Label styleClass="banner-subtitulo"
-                               text="Prop&#245;e uma permuta com um colega eleg&#237;vel · Acompanha o hist&#243;rico"
-                               textAlignment="CENTER" wrapText="true" />
-                    </VBox>
-                </VBox>
-            </StackPane>
+            <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-permutas"
+                  style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #1d4ed8 0%, #1e1b4b 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
+                <padding><Insets bottom="36.0" left="48.0" right="48.0" top="36.0" /></padding>
+                <Label styleClass="modulo-titulo" text="Trocar Turno" />
+                <Label styleClass="modulo-subtitulo"
+                       text="Prop&#245;e uma permuta com um colega eleg&#237;vel · Acompanha o hist&#243;rico"
+                       wrapText="true" />
+            </VBox>
 
             <VBox spacing="32.0">
                 <padding>

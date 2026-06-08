@@ -27,7 +27,7 @@ public class WebLoginController {
     @GetMapping({"", "/", "/login"})
     public String loginPage(HttpSession session, Model model) {
         if (session.getAttribute(WebSession.UTILIZADOR_ID) != null) {
-            return "redirect:/web/painel";
+            return "redirect:/web/horarios";
         }
 
         if (!model.containsAttribute("erro")) {
@@ -48,7 +48,7 @@ public class WebLoginController {
         }
 
         webAppService.sincronizarSessao(session, utilizador);
-        return "redirect:/web/painel";
+        return "redirect:/web/horarios";
     }
 
     @PostMapping("/logout")

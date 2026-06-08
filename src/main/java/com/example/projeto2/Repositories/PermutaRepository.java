@@ -77,6 +77,13 @@ public interface PermutaRepository extends JpaRepository<Permuta, Integer> {
             "WHERE p.id = :idPermuta")
     java.util.Optional<Permuta> findDetalhadaById(@Param("idPermuta") Integer idPermuta);
 
+    @Query("SELECT COUNT(p) FROM Permuta p " +
+            "WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
+            "AND p.idHorarioOrigem.idLojautilizador.idLoja.id = :idLoja " +
+            "AND p.idHorarioOrigem.idLojautilizador.idUtilizador.id <> :idUtilizadorAprovador")
+    long countPedidosPendentesDaLoja(@Param("idLoja") Integer idLoja,
+                                     @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
+
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Permuta p " +
             "WHERE LOWER(CAST(p.estado AS string)) = 'pendente' " +
             "AND p.idHorarioOrigem.id = :idHorarioOrigem")

@@ -111,7 +111,7 @@ public class PainelAuditoriaController {
     @FXML
     public void initialize() {
         configurarTabela();
-        tabelaEventos.setPlaceholder(new Label("Ainda nao existem eventos de auditoria para os filtros selecionados."));
+        tabelaEventos.setPlaceholder(new Label("Ainda não existem eventos de auditoria para os filtros selecionados."));
         tabelaEventos.getSelectionModel().selectedItemProperty().addListener((obs, antigo, valor) -> preencherDetalheEvento(valor));
         txtDetalhesEvento.setEditable(false);
         txtDetalhesEvento.setFocusTraversable(false);
@@ -193,7 +193,7 @@ public class PainelAuditoriaController {
                 tabelaEventos.getSelectionModel().selectFirst();
                 preencherDetalheEvento(tabelaEventos.getSelectionModel().getSelectedItem());
                 if (mostrarMensagemSucesso) {
-                    mostrarFeedback("Historico de auditoria atualizado com sucesso.", true);
+                    mostrarFeedback("Histórico de auditoria atualizado com sucesso.", true);
                 } else {
                     esconderFeedback();
                 }

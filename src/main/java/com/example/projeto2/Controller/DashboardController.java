@@ -1,13 +1,19 @@
 package com.example.projeto2.Controller;
 
+import com.example.projeto2.BLL.DayOffBLL;
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
 import com.example.projeto2.BLL.GestaoLojaBLL;
+import com.example.projeto2.BLL.PermutaBLL;
+import com.example.projeto2.BLL.PreferenciaBLL;
 import com.example.projeto2.BLL.SessaoBLL;
 import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Controller.support.TabelaHelper;
 import com.example.projeto2.Modules.Utilizador;
 import com.example.projeto2.UIConstants;
+import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -19,6 +25,7 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.CustomMenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
@@ -26,6 +33,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.geometry.Side;
 import javafx.stage.Stage;
@@ -99,7 +107,13 @@ public class DashboardController implements DashboardNavigator {
     private Label lblUtilizadorSidebar;
 
     @FXML
+    private Label lblSecaoGestao;
+
+    @FXML
     private Label lblAvatarInicial;
+
+    @FXML
+    private Label lblCargoSidebar;
 
     @FXML
     private Button btnTopoVisaoGeral;
@@ -119,10 +133,34 @@ public class DashboardController implements DashboardNavigator {
     @FXML
     private HBox boxPesquisa;
 
+    @FXML
+    private StackPane stackHorarios;
+
+    @FXML
+    private StackPane stackPainelGerente;
+
+    @FXML
+    private Label badgeFolgas;
+
+    @FXML
+    private Label badgePermutas;
+
+    @FXML
+    private Label badgePreferencias;
+
+    @FXML
+    private Label badgeHorarios;
+
+    @FXML
+    private Label badgePainelGerente;
+
     private final ApplicationContext applicationContext;
     private final GestaoLojaBLL gestaoLojaBLL;
     private final GeracaoHorariosBLL geracaoHorariosBLL;
     private final SessaoBLL sessaoBLL;
+    private final DayOffBLL dayOffBLL;
+    private final PermutaBLL permutaBLL;
+    private final PreferenciaBLL preferenciaBLL;
     private final EventHandler<MouseEvent> handlerMouse = event -> registarAtividadeSessao();
     private final EventHandler<KeyEvent> handlerTeclado = event -> registarAtividadeSessao();
     private final EventHandler<ScrollEvent> handlerScroll = event -> registarAtividadeSessao();
@@ -131,21 +169,55 @@ public class DashboardController implements DashboardNavigator {
     private Utilizador utilizadorLogado;
     private PauseTransition temporizadorSessao;
     private Scene sceneMonitorizada;
+    private Timeline timelineRefreshBadges;
 
     public DashboardController(ApplicationContext applicationContext,
                                GestaoLojaBLL gestaoLojaBLL,
                                GeracaoHorariosBLL geracaoHorariosBLL,
-                               SessaoBLL sessaoBLL) {
+                               SessaoBLL sessaoBLL,
+                               DayOffBLL dayOffBLL,
+                               PermutaBLL permutaBLL,
+                               PreferenciaBLL preferenciaBLL) {
         this.applicationContext = applicationContext;
         this.gestaoLojaBLL = gestaoLojaBLL;
         this.geracaoHorariosBLL = geracaoHorariosBLL;
         this.sessaoBLL = sessaoBLL;
+        this.dayOffBLL = dayOffBLL;
+        this.permutaBLL = permutaBLL;
+        this.preferenciaBLL = preferenciaBLL;
     }
 
     @FXML
     public void initialize() {
         aplicarTemaDashboard();
         configurarPesquisaGlobal();
+        configurarTooltipsSidebar();
+    }
+
+    private void configurarTooltipsSidebar() {
+        btnDashboard.setTooltip(new Tooltip("Painel inicial  (Alt+1)"));
+        btnFolgas.setTooltip(new Tooltip("Folgas e ausências  (Alt+2)"));
+        btnPermutas.setTooltip(new Tooltip("Trocar turnos  (Alt+3)"));
+        btnPreferencias.setTooltip(new Tooltip("Preferências de horário  (Alt+4)"));
+        btnPerfil.setTooltip(new Tooltip("O teu perfil  (Alt+5)"));
+        if (btnHorarios != null) {
+            btnHorarios.setTooltip(new Tooltip("Horários da loja  (Alt+H)"));
+        }
+        if (btnPainelGerente != null) {
+            btnPainelGerente.setTooltip(new Tooltip("Pedidos pendentes da loja  (Alt+G)"));
+        }
+        if (btnGestaoLoja != null) {
+            btnGestaoLoja.setTooltip(new Tooltip("Configurações da loja  (Alt+L)"));
+        }
+        if (btnGestaoFuncionarios != null) {
+            btnGestaoFuncionarios.setTooltip(new Tooltip("Gerir funcionários  (Alt+F)"));
+        }
+        if (btnRelatorios != null) {
+            btnRelatorios.setTooltip(new Tooltip("Relatórios de horas"));
+        }
+        if (btnAuditoria != null) {
+            btnAuditoria.setTooltip(new Tooltip("Registo de auditoria"));
+        }
     }
 
     private void aplicarTemaDashboard() {
@@ -173,11 +245,30 @@ public class DashboardController implements DashboardNavigator {
         atualizarIdentidadeUtilizador();
         configurarPermissoesMenu();
         configurarMonitorizacaoSessao();
+        atualizarBadgesSidebar();
+
+        iniciarAutoRefreshBadges();
 
         if (!abrirDashboardHome()) {
             sessaoBLL.terminarSessaoManual();
             utilizadorLogado = null;
-            throw new IllegalStateException("Nao foi possivel carregar a pagina inicial do painel.");
+            throw new IllegalStateException("Não foi possível carregar a página inicial do painel.");
+        }
+    }
+
+    private void iniciarAutoRefreshBadges() {
+        pararAutoRefreshBadges();
+        timelineRefreshBadges = new Timeline(
+                new KeyFrame(Duration.minutes(5), evt -> atualizarBadgesSidebar())
+        );
+        timelineRefreshBadges.setCycleCount(Timeline.INDEFINITE);
+        timelineRefreshBadges.play();
+    }
+
+    private void pararAutoRefreshBadges() {
+        if (timelineRefreshBadges != null) {
+            timelineRefreshBadges.stop();
+            timelineRefreshBadges = null;
         }
     }
 
@@ -201,6 +292,7 @@ public class DashboardController implements DashboardNavigator {
         limparBotoesAtivos();
         btnFolgas.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/pedir-folga-view.fxml");
+        atualizarBadgesSidebar();
     }
 
     @FXML
@@ -255,6 +347,7 @@ public class DashboardController implements DashboardNavigator {
         limparBotoesAtivos();
         btnPermutas.getStyleClass().add("sidebar-btn-ativo");
         mudarEcraCentro("/com/example/projeto2/dashboard/permutas-view.fxml");
+        atualizarBadgesSidebar();
     }
 
     @FXML
@@ -291,7 +384,7 @@ public class DashboardController implements DashboardNavigator {
 
     @FXML
     public void onTopPedidosClick() {
-        if (btnPainelGerente != null && btnPainelGerente.isVisible()) {
+        if (stackPainelGerente != null && stackPainelGerente.isVisible()) {
             onPainelGerentePedidosClick();
             return;
         }
@@ -308,15 +401,16 @@ public class DashboardController implements DashboardNavigator {
     public void onLogoutClick() {
         if (!DialogosHelper.confirmarAcao(
                 obterJanelaAtual(),
-                "Terminar sessao",
-                "Deseja terminar sessao?",
-                "Vais sair do painel atual e regressar ao ecra de autenticacao."
+                "Terminar sessão",
+                "Deseja terminar sessão?",
+                "Vais sair do painel atual e regressar ao ecrã de autenticação."
         )) {
             return;
         }
 
         sessaoBLL.terminarSessaoManual();
         encerrarMonitorizacaoSessao();
+        pararAutoRefreshBadges();
         utilizadorLogado = null;
         abrirLogin(false);
     }
@@ -363,9 +457,17 @@ public class DashboardController implements DashboardNavigator {
                 relatoriosHorasController.setUtilizadorLogado(utilizadorLogado);
             }
 
+            novoConteudo.setOpacity(0.0);
             mainContainer.setCenter(novoConteudo);
             TabelaHelper.prepararArvore(novoConteudo);
             registarAtividadeSessao();
+
+            // Fade-in suave ao mudar de módulo
+            FadeTransition ft = new FadeTransition(Duration.millis(180), novoConteudo);
+            ft.setFromValue(0.0);
+            ft.setToValue(1.0);
+            ft.play();
+
             return true;
         } catch (Exception e) {
             LOGGER.error("Erro ao carregar o ecra {}", caminhoFxml, e);
@@ -424,12 +526,49 @@ public class DashboardController implements DashboardNavigator {
         btnRelatorios.setManaged(podeGerirLoja);
         btnGestaoFuncionarios.setVisible(podeGerirLoja);
         btnGestaoFuncionarios.setManaged(podeGerirLoja);
-        btnHorarios.setVisible(podeAcederHorarios);
-        btnHorarios.setManaged(podeAcederHorarios);
-        btnPainelGerente.setVisible(podeGerirLoja);
-        btnPainelGerente.setManaged(podeGerirLoja);
+        if (stackHorarios != null) {
+            stackHorarios.setVisible(podeAcederHorarios);
+            stackHorarios.setManaged(podeAcederHorarios);
+        }
+        if (stackPainelGerente != null) {
+            stackPainelGerente.setVisible(podeGerirLoja);
+            stackPainelGerente.setManaged(podeGerirLoja);
+        }
         btnAuditoria.setVisible(podeGerirLoja);
         btnAuditoria.setManaged(podeGerirLoja);
+        if (lblSecaoGestao != null) {
+            lblSecaoGestao.setVisible(podeAcederHorarios);
+            lblSecaoGestao.setManaged(podeAcederHorarios);
+        }
+    }
+
+    private void atualizarBadgesSidebar() {
+        if (utilizadorLogado == null) return;
+        int idUtilizador = utilizadorLogado.getId();
+        Platform.runLater(() -> {
+            try {
+                atualizarBadge(badgeFolgas, dayOffBLL.contarPendentesParaAprovacao(idUtilizador));
+                atualizarBadge(badgePermutas, permutaBLL.contarPendentesParaAprovacao(idUtilizador));
+                atualizarBadge(badgePreferencias, preferenciaBLL.contarPendentesParaAprovacao(idUtilizador));
+                atualizarBadge(badgeHorarios, geracaoHorariosBLL.contarHorariosPendentesValidacao(idUtilizador));
+                int totalGerente = dayOffBLL.contarPendentesParaAprovacao(idUtilizador)
+                        + permutaBLL.contarPendentesParaAprovacao(idUtilizador)
+                        + preferenciaBLL.contarPendentesParaAprovacao(idUtilizador);
+                atualizarBadge(badgePainelGerente, totalGerente);
+            } catch (Exception e) {
+                LOGGER.debug("Nao foi possivel atualizar badges do sidebar: {}", e.getMessage());
+            }
+        });
+    }
+
+    private void atualizarBadge(Label badge, int contagem) {
+        if (badge == null) return;
+        if (contagem <= 0) {
+            badge.setVisible(false);
+        } else {
+            badge.setText(contagem > 99 ? "99+" : String.valueOf(contagem));
+            badge.setVisible(true);
+        }
     }
 
     private void atualizarTituloTopo(String titulo) {
@@ -463,6 +602,20 @@ public class DashboardController implements DashboardNavigator {
             String email = utilizadorLogado.getEmail() != null ? utilizadorLogado.getEmail().trim() : "";
             lblTopUserRole.setText(email.isBlank() ? "Portal interno" : email);
         }
+
+        // Cargo na sidebar
+        if (lblCargoSidebar != null) {
+            try {
+                String cargo = gestaoLojaBLL.obterNomeCargo(utilizadorLogado.getId());
+                if (cargo != null && !cargo.isBlank()) {
+                    lblCargoSidebar.setText(cargo.toUpperCase());
+                } else {
+                    lblCargoSidebar.setText("VER PERFIL");
+                }
+            } catch (Exception e) {
+                lblCargoSidebar.setText("VER PERFIL");
+            }
+        }
     }
 
     private void configurarMonitorizacaoSessao() {
@@ -479,6 +632,7 @@ public class DashboardController implements DashboardNavigator {
         sceneMonitorizada.addEventFilter(MouseEvent.MOUSE_PRESSED, handlerMouse);
         sceneMonitorizada.addEventFilter(MouseEvent.MOUSE_MOVED, handlerMouse);
         sceneMonitorizada.addEventFilter(KeyEvent.KEY_PRESSED, handlerTeclado);
+        sceneMonitorizada.addEventFilter(KeyEvent.KEY_PRESSED, this::processarShortcutGlobal);
         sceneMonitorizada.addEventFilter(ScrollEvent.SCROLL, handlerScroll);
         iniciarTemporizadorSessao();
     }
@@ -512,6 +666,7 @@ public class DashboardController implements DashboardNavigator {
 
         sessaoBLL.expirarSessao();
         encerrarMonitorizacaoSessao();
+        pararAutoRefreshBadges();
         utilizadorLogado = null;
         abrirLogin(true);
     }
@@ -525,8 +680,52 @@ public class DashboardController implements DashboardNavigator {
             sceneMonitorizada.removeEventFilter(MouseEvent.MOUSE_PRESSED, handlerMouse);
             sceneMonitorizada.removeEventFilter(MouseEvent.MOUSE_MOVED, handlerMouse);
             sceneMonitorizada.removeEventFilter(KeyEvent.KEY_PRESSED, handlerTeclado);
+            sceneMonitorizada.removeEventFilter(KeyEvent.KEY_PRESSED, this::processarShortcutGlobal);
             sceneMonitorizada.removeEventFilter(ScrollEvent.SCROLL, handlerScroll);
             sceneMonitorizada = null;
+        }
+    }
+
+    private void processarShortcutGlobal(KeyEvent evento) {
+        // Não disparar shortcuts se o utilizador está a escrever num campo de texto
+        if (evento.getTarget() instanceof javafx.scene.control.TextInputControl) {
+            return;
+        }
+        if (!evento.isAltDown()) {
+            return;
+        }
+
+        switch (evento.getCode()) {
+            case DIGIT1 -> { onDashboardHomeClick(); evento.consume(); }
+            case DIGIT2 -> { onPedirFolgaClick(); evento.consume(); }
+            case DIGIT3 -> { onTrocarTurnoClick(); evento.consume(); }
+            case DIGIT4 -> { onPreferenciasClick(); evento.consume(); }
+            case DIGIT5 -> { onPerfilClick(); evento.consume(); }
+            case H -> {
+                if (stackHorarios != null && stackHorarios.isVisible()) {
+                    onHorariosClick();
+                    evento.consume();
+                }
+            }
+            case G -> {
+                if (stackPainelGerente != null && stackPainelGerente.isVisible()) {
+                    onPainelGerentePedidosClick();
+                    evento.consume();
+                }
+            }
+            case L -> {
+                if (btnGestaoLoja != null && btnGestaoLoja.isVisible()) {
+                    onGestaoLojaClick();
+                    evento.consume();
+                }
+            }
+            case F -> {
+                if (btnGestaoFuncionarios != null && btnGestaoFuncionarios.isVisible()) {
+                    onGestaoFuncionariosClick();
+                    evento.consume();
+                }
+            }
+            default -> { /* Ignorar */ }
         }
     }
 
@@ -785,7 +984,7 @@ public class DashboardController implements DashboardNavigator {
                     "funcionarios", "funcionários", "equipa", "colaboradores", "novo colaborador", "desativar colaborador"
             ));
         }
-        if (btnHorarios != null && btnHorarios.isVisible()) {
+        if (stackHorarios != null && stackHorarios.isVisible()) {
             destinos.add(new DestinoPesquisa(
                     "Horários",
                     "Gerar propostas, validar e publicar horários mensais da loja.",
@@ -793,7 +992,7 @@ public class DashboardController implements DashboardNavigator {
                     "horarios", "horários", "planeamento", "escala", "escala da loja", "publicar horario", "gerar horario", "validar horario"
             ));
         }
-        if (btnPainelGerente != null && btnPainelGerente.isVisible()) {
+        if (stackPainelGerente != null && stackPainelGerente.isVisible()) {
             destinos.add(new DestinoPesquisa(
                     "Painel do gerente",
                     "Aprovar folgas, permutas e preferências pendentes da equipa.",
@@ -863,6 +1062,11 @@ public class DashboardController implements DashboardNavigator {
     @Override
     public void abrirRelatorios() {
         onRelatoriosHorasClick();
+    }
+
+    @Override
+    public void atualizarBadges() {
+        atualizarBadgesSidebar();
     }
 
     private record DestinoPesquisa(String etiqueta, String descricao, Runnable acao, List<String> chavesNormalizadas) {

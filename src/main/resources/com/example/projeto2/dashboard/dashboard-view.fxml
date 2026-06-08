@@ -10,6 +10,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <BorderPane fx:id="mainContainer"
             styleClass="page-shell"
@@ -19,23 +20,23 @@
             fx:controller="com.example.projeto2.Controller.DashboardController">
 
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="18.0" styleClass="top-header">
+        <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="top-header">
             <padding>
-                <Insets top="14.0" right="28.0" bottom="14.0" left="28.0" />
+                <Insets top="15.0" right="30.0" bottom="15.0" left="30.0" />
             </padding>
 
-            <VBox spacing="2.0" minWidth="142.0">
-                <Label styleClass="top-header-brand" text="Portal de Gestão" />
+            <VBox spacing="2.0" minWidth="150.0">
+                <Label styleClass="top-header-brand" text="PORTAL DE GEST&#195;O" />
                 <HBox alignment="CENTER_LEFT" spacing="7.0">
                     <Label styleClass="top-breadcrumb-muted" text="Home" />
-                    <Label styleClass="top-breadcrumb-muted" text="›" />
+                    <Label styleClass="top-breadcrumb-muted" text="&#8250;" />
                     <Label fx:id="lblTopPageTitle"
                            styleClass="top-header-page-title"
                            text="Painel" />
                 </HBox>
             </VBox>
 
-            <HBox spacing="6.0" styleClass="top-nav-group">
+            <HBox spacing="2.0" styleClass="top-nav-group">
                 <Button fx:id="btnTopoVisaoGeral"
                         onAction="#onTopVisaoGeralClick"
                         styleClass="top-nav-button, top-nav-button-ativo"
@@ -52,23 +53,23 @@
 
             <HBox fx:id="boxPesquisa"
                   alignment="CENTER_LEFT"
-                  prefWidth="430.0"
+                  prefWidth="380.0"
                   styleClass="pesquisa-shell">
                 <TextField fx:id="txtPesquisa"
-                           promptText="Pesquisar módulos e ações"
+                           promptText="Pesquisar m&#243;dulos e a&#231;&#245;es"
                            styleClass="pesquisa-input"
                            HBox.hgrow="ALWAYS" />
             </HBox>
 
             <Region HBox.hgrow="ALWAYS" />
 
-            <Button styleClass="top-icon-btn" text="&#128276;" />
-            <Button styleClass="top-icon-btn" text="?" />
             <Button onAction="#onPedirFolgaClick"
                     styleClass="top-primary-action"
                     text="Novo Pedido" />
-            <Region prefWidth="10.0" />
-            <VBox alignment="CENTER_RIGHT" spacing="2.0">
+
+            <Region prefWidth="6.0" />
+
+            <VBox alignment="CENTER_RIGHT" spacing="1.0">
                 <Label fx:id="lblTopUserName" styleClass="top-user-name" text="Staff" />
                 <Label fx:id="lblTopUserRole" styleClass="top-user-role" text="Portal interno" />
             </VBox>
@@ -84,28 +85,32 @@
 
             <top>
                 <VBox>
-                    <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="sidebar-brand">
+                    <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="sidebar-brand">
                         <StackPane styleClass="sidebar-brand-icon">
-                            <Label styleClass="sidebar-brand-icon-text" text="_" />
+                            <Label styleClass="sidebar-brand-icon-text" text="L" />
                         </StackPane>
-                        <VBox spacing="2.0">
+                        <VBox spacing="1.0">
                             <Label styleClass="sidebar-titulo" text="Levi's Staff" />
-                            <Label styleClass="sidebar-subtitulo" text="Portal de Gest&#227;o" />
+                            <Label styleClass="sidebar-subtitulo" text="WORKSPACE EDITORIAL" />
                         </VBox>
                     </HBox>
 
                     <HBox alignment="CENTER_LEFT"
                           onMouseClicked="#onTopPerfilClick"
-                          spacing="12.0"
                           styleClass="sidebar-user-row, sidebar-user-row-clickable">
-                        <StackPane styleClass="sidebar-avatar">
-                            <Label fx:id="lblAvatarInicial"
-                                   styleClass="sidebar-avatar-text"
-                                   text="L" />
-                        </StackPane>
-                        <Label fx:id="lblUtilizadorSidebar"
-                               styleClass="sidebar-user-greeting"
-                               text="Ol&#225;, Staff!" />
+                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="sidebar-user-card" HBox.hgrow="ALWAYS">
+                            <StackPane styleClass="sidebar-avatar">
+                                <Label fx:id="lblAvatarInicial"
+                                       styleClass="sidebar-avatar-text"
+                                       text="L" />
+                            </StackPane>
+                            <VBox spacing="1.0">
+                                <Label fx:id="lblUtilizadorSidebar"
+                                       styleClass="sidebar-user-greeting"
+                                       text="Ol&#225;, Staff!" />
+                                <Label fx:id="lblCargoSidebar" styleClass="sidebar-subtitulo" text="VER PERFIL" />
+                            </VBox>
+                        </HBox>
                     </HBox>
                 </VBox>
             </top>
@@ -115,70 +120,166 @@
                             hbarPolicy="NEVER"
                             styleClass="sidebar-scroll"
                             vbarPolicy="AS_NEEDED">
-                    <VBox spacing="2.0" styleClass="sidebar-menu">
+                    <VBox styleClass="sidebar-menu">
+
+                        <Label styleClass="sidebar-section-label" text="PRINCIPAL" />
+
                         <Button fx:id="btnDashboard"
                                 onAction="#onDashboardHomeClick"
                                 maxWidth="Infinity"
+                                graphicTextGap="12.0"
                                 styleClass="sidebar-btn, sidebar-btn-ativo"
-                                text="▦   Painel" />
+                                text="Painel">
+                            <graphic><FontIcon iconLiteral="mdi2v-view-dashboard" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
+
+                        <StackPane maxWidth="Infinity">
+                            <Button fx:id="btnFolgas"
+                                    onAction="#onPedirFolgaClick"
+                                    maxWidth="Infinity"
+                                    graphicTextGap="12.0"
+                                    styleClass="sidebar-btn"
+                                    text="Folgas"
+                                    StackPane.alignment="CENTER">
+                                <graphic><FontIcon iconLiteral="mdi2c-calendar-remove" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                            </Button>
+                            <Label fx:id="badgeFolgas"
+                                   styleClass="sidebar-notif-badge"
+                                   visible="false"
+                                   StackPane.alignment="TOP_RIGHT">
+                                <StackPane.margin><Insets top="4.0" right="6.0"/></StackPane.margin>
+                            </Label>
+                        </StackPane>
+
+                        <StackPane maxWidth="Infinity">
+                            <Button fx:id="btnPermutas"
+                                    onAction="#onTrocarTurnoClick"
+                                    maxWidth="Infinity"
+                                    graphicTextGap="12.0"
+                                    styleClass="sidebar-btn"
+                                    text="Permutas"
+                                    StackPane.alignment="CENTER">
+                                <graphic><FontIcon iconLiteral="mdi2s-swap-horizontal" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                            </Button>
+                            <Label fx:id="badgePermutas"
+                                   styleClass="sidebar-notif-badge"
+                                   visible="false"
+                                   StackPane.alignment="TOP_RIGHT">
+                                <StackPane.margin><Insets top="4.0" right="6.0"/></StackPane.margin>
+                            </Label>
+                        </StackPane>
+
+                        <Label fx:id="lblSecaoGestao"
+                               managed="false" visible="false"
+                               styleClass="sidebar-section-label" text="GEST&#195;O" />
+
+                        <StackPane managed="false" maxWidth="Infinity" visible="false"
+                                   fx:id="stackHorarios">
+                            <Button fx:id="btnHorarios"
+                                    onAction="#onHorariosClick"
+                                    maxWidth="Infinity"
+                                    graphicTextGap="12.0"
+                                    styleClass="sidebar-btn"
+                                    text="Hor&#225;rios"
+                                    StackPane.alignment="CENTER">
+                                <graphic><FontIcon iconLiteral="mdi2c-calendar-month" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                            </Button>
+                            <Label fx:id="badgeHorarios"
+                                   styleClass="sidebar-notif-badge"
+                                   visible="false"
+                                   StackPane.alignment="TOP_RIGHT">
+                                <StackPane.margin><Insets top="4.0" right="6.0"/></StackPane.margin>
+                            </Label>
+                        </StackPane>
 
                         <Button fx:id="btnGestaoLoja"
                                 onAction="#onGestaoLojaClick"
                                 managed="false" maxWidth="Infinity"
+                                graphicTextGap="12.0"
                                 styleClass="sidebar-btn"
-                                text="▤   Loja e Regras"
-                                visible="false" />
+                                text="Loja e Regras"
+                                visible="false">
+                            <graphic><FontIcon iconLiteral="mdi2s-store" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
+
                         <Button fx:id="btnGestaoFuncionarios"
                                 onAction="#onGestaoFuncionariosClick"
                                 managed="false" maxWidth="Infinity"
+                                graphicTextGap="12.0"
                                 styleClass="sidebar-btn"
-                                text="👥   Funcion&#225;rios"
-                                visible="false" />
-                        <Button fx:id="btnHorarios"
-                                onAction="#onHorariosClick"
-                                managed="false" maxWidth="Infinity"
-                                styleClass="sidebar-btn"
-                                text="◷   Hor&#225;rios"
-                                visible="false" />
-                        <Button fx:id="btnPainelGerente"
-                                onAction="#onPainelGerentePedidosClick"
-                                managed="false" maxWidth="Infinity"
-                                styleClass="sidebar-btn"
-                                text="🛒   Pedidos"
-                                visible="false" />
-                        <Button fx:id="btnAuditoria"
-                                onAction="#onPainelAuditoriaClick"
-                                managed="false" maxWidth="Infinity"
-                                styleClass="sidebar-btn"
-                                text="🛡   Auditoria"
-                                visible="false" />
+                                text="Funcion&#225;rios"
+                                visible="false">
+                            <graphic><FontIcon iconLiteral="mdi2a-account-group" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
 
-                        <Button fx:id="btnFolgas"
-                                onAction="#onPedirFolgaClick"
-                                maxWidth="Infinity"
-                                styleClass="sidebar-btn"
-                                text="☕   Folgas" />
-                        <Button fx:id="btnPermutas"
-                                onAction="#onTrocarTurnoClick"
-                                maxWidth="Infinity"
-                                styleClass="sidebar-btn"
-                                text="⇄   Permutas" />
-                        <Button fx:id="btnPerfil"
-                                onAction="#onPerfilClick"
-                                maxWidth="Infinity"
-                                styleClass="sidebar-btn"
-                                text="♙   Perfil" />
-                        <Button fx:id="btnPreferencias"
-                                onAction="#onPreferenciasClick"
-                                maxWidth="Infinity"
-                                styleClass="sidebar-btn"
-                                text="⚙   Prefer&#234;ncias" />
+                        <StackPane managed="false" maxWidth="Infinity" visible="false"
+                                   fx:id="stackPainelGerente">
+                            <Button fx:id="btnPainelGerente"
+                                    onAction="#onPainelGerentePedidosClick"
+                                    maxWidth="Infinity"
+                                    graphicTextGap="12.0"
+                                    styleClass="sidebar-btn"
+                                    text="Pedidos"
+                                    StackPane.alignment="CENTER">
+                                <graphic><FontIcon iconLiteral="mdi2c-clipboard-list" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                            </Button>
+                            <Label fx:id="badgePainelGerente"
+                                   styleClass="sidebar-notif-badge"
+                                   visible="false"
+                                   StackPane.alignment="TOP_RIGHT">
+                                <StackPane.margin><Insets top="4.0" right="6.0"/></StackPane.margin>
+                            </Label>
+                        </StackPane>
+
                         <Button fx:id="btnRelatorios"
                                 onAction="#onRelatoriosHorasClick"
                                 managed="false" maxWidth="Infinity"
+                                graphicTextGap="12.0"
                                 styleClass="sidebar-btn"
-                                text="▥   Relat&#243;rios"
-                                visible="false" />
+                                text="Relat&#243;rios"
+                                visible="false">
+                            <graphic><FontIcon iconLiteral="mdi2c-chart-bar" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
+
+                        <Button fx:id="btnAuditoria"
+                                onAction="#onPainelAuditoriaClick"
+                                managed="false" maxWidth="Infinity"
+                                graphicTextGap="12.0"
+                                styleClass="sidebar-btn"
+                                text="Auditoria"
+                                visible="false">
+                            <graphic><FontIcon iconLiteral="mdi2s-shield-check" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
+
+                        <Label styleClass="sidebar-section-label" text="CONTA" />
+
+                        <Button fx:id="btnPerfil"
+                                onAction="#onPerfilClick"
+                                maxWidth="Infinity"
+                                graphicTextGap="12.0"
+                                styleClass="sidebar-btn"
+                                text="Perfil">
+                            <graphic><FontIcon iconLiteral="mdi2a-account-circle" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
+
+                        <StackPane maxWidth="Infinity">
+                            <Button fx:id="btnPreferencias"
+                                    onAction="#onPreferenciasClick"
+                                    maxWidth="Infinity"
+                                    graphicTextGap="12.0"
+                                    styleClass="sidebar-btn"
+                                    text="Prefer&#234;ncias"
+                                    StackPane.alignment="CENTER">
+                                <graphic><FontIcon iconLiteral="mdi2s-star-outline" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                            </Button>
+                            <Label fx:id="badgePreferencias"
+                                   styleClass="sidebar-notif-badge"
+                                   visible="false"
+                                   StackPane.alignment="TOP_RIGHT">
+                                <StackPane.margin><Insets top="4.0" right="6.0"/></StackPane.margin>
+                            </Label>
+                        </StackPane>
+
                     </VBox>
                 </ScrollPane>
             </center>

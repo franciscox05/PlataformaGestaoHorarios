@@ -372,6 +372,23 @@ public class WebEquipaController {
         return "redirect:/web/equipa/" + idUtilizador;
     }
 
+    // ── W5: Password reset by manager ────────────────────────────────────────
+    @PostMapping("/{idUtilizador}/reset-password")
+    public String resetarPassword(@PathVariable("idUtilizador") Integer idUtilizador,
+                                  @RequestParam("novaPassword") String novaPassword,
+                                  @RequestParam(value = "q", required = false) String pesquisa,
+                                  HttpSession session,
+                                  RedirectAttributes redirectAttributes) {
+        Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        try {
+            gestaoFuncionariosBLL.resetarPasswordColaborador(idGestor, idUtilizador, novaPassword);
+            redirectAttributes.addFlashAttribute("sucesso", "Password redefinida com sucesso.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+        return "redirect:/web/equipa/" + idUtilizador + (pesquisa != null && !pesquisa.isBlank() ? "?q=" + pesquisa : "");
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
     private boolean podeGerir(Integer idUtilizador) {
         return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)

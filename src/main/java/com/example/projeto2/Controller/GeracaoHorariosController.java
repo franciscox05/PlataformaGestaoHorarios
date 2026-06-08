@@ -1,6 +1,8 @@
 package com.example.projeto2.Controller;
 
+import com.example.projeto2.BLL.ExportacaoPdfBLL;
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.BLL.HorarioBLL;
 import com.example.projeto2.Controller.support.CalendarioMensalHelper;
 import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
 import com.example.projeto2.Controller.support.DialogosHelper;
@@ -16,20 +18,31 @@ import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
+import javafx.geometry.Pos;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -241,12 +254,22 @@ public class GeracaoHorariosController {
     @FXML
     private VBox emptyStateCalendario;
 
+    // ── TabPane raiz (adicionado na reestruturação em abas) ──────────────────
+    @FXML
+    private TabPane tabPaneHorarios;
+
     // ── Calendário Mensal (adicionado na reestruturação visual) ──────────────
     @FXML
     private Button btnMesAnterior;
 
     @FXML
     private Button btnMesSeguinte;
+
+    @FXML
+    private Button btnExportarCsvHorario;
+
+    @FXML
+    private Button btnExportarPdfHorario;
 
     @FXML
     private Label lblMesAtual;
@@ -272,7 +295,37 @@ public class GeracaoHorariosController {
     @FXML
     private TableColumn<GeracaoHorariosBLL.ResumoColaborador, String> colResumoHoras;
 
+    // ── Stepper de fluxo (dinâmico) ──────────────────────────────────────────
+    @FXML
+    private VBox stepperPasso1;
+
+    @FXML
+    private VBox stepperPasso2;
+
+    @FXML
+    private VBox stepperPasso3;
+
+    @FXML
+    private VBox stepperPasso4;
+
+    // ── Label de guia de fluxo (contextual) ──────────────────────────────────
+    @FXML
+    private Label lblGuiaFluxo;
+
+    // ── Labels de identificação do contexto (período e proposta) ─────────────
+    @FXML
+    private Label lblPeriodoPropostas;
+
+    @FXML
+    private Label lblIdentificacaoHorario;
+
+    // ── Seletor de proposta no calendário mensal ──────────────────────────────
+    @FXML
+    private ComboBox<GeracaoHorariosBLL.PropostaResumo> cbSelecaoProposta;
+
     private final GeracaoHorariosBLL geracaoHorariosBLL;
+    private final ExportacaoPdfBLL exportacaoPdfBLL;
+    private final HorarioBLL horarioBLL;
 
     private Utilizador utilizadorLogado;
     private GeracaoHorariosBLL.PropostaResultado propostaAtual;
@@ -284,8 +337,12 @@ public class GeracaoHorariosController {
     private YearMonth periodoMensalAtual = YearMonth.now();
     private final Map<Integer, CheckBox> selecaoColaboradoresGeracao = new LinkedHashMap<>();
 
-    public GeracaoHorariosController(GeracaoHorariosBLL geracaoHorariosBLL) {
+    public GeracaoHorariosController(GeracaoHorariosBLL geracaoHorariosBLL,
+                                     ExportacaoPdfBLL exportacaoPdfBLL,
+                                     HorarioBLL horarioBLL) {
         this.geracaoHorariosBLL = geracaoHorariosBLL;
+        this.exportacaoPdfBLL = exportacaoPdfBLL;
+        this.horarioBLL = horarioBLL;
     }
 
     @FXML
@@ -319,6 +376,7 @@ public class GeracaoHorariosController {
                 emptyStateCalendarioMensal.setManaged(true);
             }
             atualizarCalendarioMensal();
+            atualizarStepper(false);
         });
     }
 
@@ -429,6 +487,115 @@ public class GeracaoHorariosController {
         atualizarCalendarioMensal();
     }
 
+    @FXML
+    public void onExportarCsvHorarioClick() {
+        if (propostaAtual == null || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty()) {
+            mostrarErro("Carrega primeiro uma proposta de horário para exportar.");
+            return;
+        }
+
+        String[] MESES_PT = {
+            "janeiro","fevereiro","marco","abril","maio","junho",
+            "julho","agosto","setembro","outubro","novembro","dezembro"
+        };
+        MesOption mesSelecionado = cbMes.getValue();
+        int mes = mesSelecionado != null ? mesSelecionado.numero() : periodoMensalAtual.getMonthValue();
+        int ano = spAno.getValue() != null ? spAno.getValue() : periodoMensalAtual.getYear();
+        String nomeMes = MESES_PT[mes - 1];
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar horário mensal");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV", "*.csv"));
+        fileChooser.setInitialFileName("horario-" + ano + "-" + nomeMes + ".csv");
+
+        Window janela = btnExportarCsvHorario.getScene() != null
+                ? btnExportarCsvHorario.getScene().getWindow() : null;
+        java.io.File ficheiro = fileChooser.showSaveDialog(janela);
+        if (ficheiro == null) return;
+
+        try (BufferedWriter writer = Files.newBufferedWriter(ficheiro.toPath(), StandardCharsets.UTF_8)) {
+            writer.write("Loja;" + propostaAtual.origemPlaneamento()
+                    + ";Mês;" + nomeMes + ";Ano;" + ano);
+            writer.newLine();
+            writer.write("Proposta;" + sanitizarCsv(propostaAtual.geradoPor())
+                    + ";Estado;" + sanitizarCsv(propostaAtual.estado()));
+            writer.newLine();
+            writer.newLine();
+            writer.write("Colaborador;Cargo;Data;Dia Semana;Período;Turno;Estado");
+            writer.newLine();
+
+            List<GeracaoHorariosBLL.HorarioLinha> linhasOrdenadas = propostaAtual.linhas().stream()
+                    .sorted(Comparator.comparing(GeracaoHorariosBLL.HorarioLinha::data,
+                            Comparator.nullsLast(Comparator.naturalOrder()))
+                            .thenComparing(GeracaoHorariosBLL.HorarioLinha::colaborador,
+                            Comparator.nullsLast(String::compareToIgnoreCase)))
+                    .toList();
+
+            for (GeracaoHorariosBLL.HorarioLinha linha : linhasOrdenadas) {
+                writer.write(sanitizarCsv(linha.colaborador()) + ";"
+                        + sanitizarCsv(linha.cargo()) + ";"
+                        + (linha.data() != null ? linha.data().toString() : "") + ";"
+                        + sanitizarCsv(linha.diaSemana()) + ";"
+                        + sanitizarCsv(linha.periodo()) + ";"
+                        + sanitizarCsv(linha.turno()) + ";"
+                        + sanitizarCsv(linha.estado()));
+                writer.newLine();
+            }
+
+            mostrarSucesso("Horário exportado com sucesso.");
+        } catch (IOException e) {
+            mostrarErro("Não foi possível exportar o ficheiro CSV.");
+        }
+    }
+
+    private String sanitizarCsv(String valor) {
+        if (valor == null) return "";
+        return "\"" + valor.replace("\"", "\"\"") + "\"";
+    }
+
+    @FXML
+    public void onExportarPdfHorarioClick() {
+        if (propostaAtual == null || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty()) {
+            mostrarErro("Carrega primeiro uma proposta de horário para exportar.");
+            return;
+        }
+
+        String[] MESES_PT = {
+            "janeiro","fevereiro","marco","abril","maio","junho",
+            "julho","agosto","setembro","outubro","novembro","dezembro"
+        };
+        MesOption mesSelecionado = cbMes.getValue();
+        int mes = mesSelecionado != null ? mesSelecionado.numero() : periodoMensalAtual.getMonthValue();
+        int ano = spAno.getValue() != null ? spAno.getValue() : periodoMensalAtual.getYear();
+        String nomeMes = MESES_PT[mes - 1];
+        String nomeMesCapitalizado = Character.toUpperCase(nomeMes.charAt(0)) + nomeMes.substring(1);
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar horário mensal para PDF");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF", "*.pdf"));
+        fileChooser.setInitialFileName("horario-" + ano + "-" + nomeMes + ".pdf");
+
+        Window janela = btnExportarPdfHorario.getScene() != null
+                ? btnExportarPdfHorario.getScene().getWindow() : null;
+        java.io.File ficheiro = fileChooser.showSaveDialog(janela);
+        if (ficheiro == null) return;
+
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(ficheiro)) {
+            exportacaoPdfBLL.exportarHorarioPdf(
+                    fos,
+                    propostaAtual.origemPlaneamento(),
+                    nomeMesCapitalizado + " " + ano,
+                    ano,
+                    propostaAtual.estado(),
+                    propostaAtual.geradoPor(),
+                    propostaAtual.linhas()
+            );
+            mostrarSucesso("PDF exportado com sucesso.");
+        } catch (IOException e) {
+            mostrarErro("Não foi possível exportar o ficheiro PDF.");
+        }
+    }
+
     private void atualizarCalendarioMensal() {
         if (calendarioMensalGrid == null) return;
         String[] MESES_PT = {
@@ -457,19 +624,33 @@ public class GeracaoHorariosController {
     }
 
     /** Devolve os eventos (turnos) do mes para o helper do calendario.
-     *  Retorna mapa vazio se nao houver proposta carregada. */
+     *  Retorna mapa vazio se nao houver proposta carregada.
+     *  Aplica o filtro de colaborador selecionado em cbFiltroColaborador. */
     private java.util.Map<java.time.LocalDate, java.util.List<String>> obterEventosParaMes(YearMonth periodo) {
         if (propostaAtual == null || propostaAtual.linhas() == null) {
             return java.util.Collections.emptyMap();
         }
+        // Determinar se há filtro de colaborador ativo
+        FiltroColaboradorOption filtro = (cbFiltroColaborador != null) ? cbFiltroColaborador.getValue() : null;
+        Integer idColaboradorFiltro = (filtro != null && !filtro.isTodos()) ? filtro.idColaborador() : null;
+
         java.util.Map<java.time.LocalDate, java.util.List<String>> mapa = new java.util.LinkedHashMap<>();
         for (GeracaoHorariosBLL.HorarioLinha linha : propostaAtual.linhas()) {
             if (linha == null || linha.data() == null) continue;
+            // Aplicar filtro de colaborador
+            if (idColaboradorFiltro != null && !idColaboradorFiltro.equals(linha.idColaborador())) continue;
             java.time.LocalDate data = linha.data();
             if (!YearMonth.from(data).equals(periodo)) continue;
-            String desc = (linha.periodo() != null ? linha.periodo() : "?")
-                + " | " + (linha.colaborador() != null ? linha.colaborador() : "")
-                + " (" + (linha.cargo() != null ? linha.cargo() : "-") + ")";
+            String desc;
+            if (idColaboradorFiltro != null) {
+                // Vista individual: mostrar apenas período/turno (nome não é necessário)
+                desc = (linha.periodo() != null ? linha.periodo() : "?")
+                    + " (" + (linha.cargo() != null ? linha.cargo() : "-") + ")";
+            } else {
+                desc = (linha.periodo() != null ? linha.periodo() : "?")
+                    + " | " + (linha.colaborador() != null ? linha.colaborador() : "")
+                    + " (" + (linha.cargo() != null ? linha.cargo() : "-") + ")";
+            }
             mapa.computeIfAbsent(data, k -> new java.util.ArrayList<>()).add(desc);
         }
         return mapa;
@@ -521,8 +702,142 @@ public class GeracaoHorariosController {
         cargo.setWrapText(true);
 
         card.getChildren().addAll(periodo, colaborador, cargo);
+
+        // Botão de edição — só visível para gestores com proposta aprovada/publicada
+        if (podeGerar && turno.idHorario() != null) {
+            Button btnEditar = new Button("Editar turno");
+            btnEditar.getStyleClass().add("botao-editar-turno");
+            btnEditar.setMaxWidth(Double.MAX_VALUE);
+            btnEditar.setOnAction(e -> {
+                // Obtém a janela do diálogo de detalhe (pai do botão) para o ChoiceDialog aparecer por cima
+                javafx.stage.Window owner = btnEditar.getScene() != null
+                        ? btnEditar.getScene().getWindow()
+                        : obterJanela();
+                abrirEdicaoTurno(turno, owner);
+            });
+            card.getChildren().add(btnEditar);
+        }
+
         return card;
     }
+
+    // ── Horário individual do colaborador ────────────────────────────────────
+
+    private void mostrarHorarioIndividual(GeracaoHorariosBLL.ResumoColaborador colaborador) {
+        if (propostaAtual == null || propostaAtual.linhas() == null) return;
+
+        List<GeracaoHorariosBLL.HorarioLinha> turnos = propostaAtual.linhas().stream()
+                .filter(l -> colaborador.idColaborador() != null
+                        && colaborador.idColaborador().equals(l.idColaborador()))
+                .sorted(Comparator.comparing(GeracaoHorariosBLL.HorarioLinha::data,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        VBox conteudo = new VBox(16.0);
+        conteudo.getStyleClass().add("horario-individual-conteudo");
+
+        // Cabeçalho de estatísticas
+        HBox statBar = new HBox(24.0);
+        statBar.getStyleClass().add("horario-individual-stat-bar");
+        statBar.setAlignment(Pos.CENTER_LEFT);
+        statBar.getChildren().addAll(
+                criarStatMini("Turnos no mês", String.valueOf(colaborador.turnos())),
+                criarStatMini("Horas contratuais", colaborador.horasFormatadas())
+        );
+        conteudo.getChildren().add(statBar);
+
+        if (turnos.isEmpty()) {
+            Label vazio = new Label("Este colaborador não tem turnos atribuídos nesta proposta.");
+            vazio.getStyleClass().add("horario-individual-vazio");
+            vazio.setWrapText(true);
+            conteudo.getChildren().add(vazio);
+        } else {
+            // Agrupar por semana
+            Map<LocalDate, List<GeracaoHorariosBLL.HorarioLinha>> porSemana = new java.util.LinkedHashMap<>();
+            for (GeracaoHorariosBLL.HorarioLinha linha : turnos) {
+                LocalDate inicioSem = CalendarioSemanalHelper.inicioSemana(linha.data());
+                porSemana.computeIfAbsent(inicioSem, k -> new java.util.ArrayList<>()).add(linha);
+            }
+            for (Map.Entry<LocalDate, List<GeracaoHorariosBLL.HorarioLinha>> entrada : porSemana.entrySet()) {
+                conteudo.getChildren().add(criarBlocoSemanaIndividual(entrada.getKey(), entrada.getValue()));
+            }
+        }
+
+        ScrollPane scroll = new ScrollPane(conteudo);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.getStyleClass().add("horario-individual-scroll");
+        scroll.setMaxHeight(500.0);
+        scroll.setMinWidth(480.0);
+
+        DialogosHelper.mostrarConteudo(
+                obterJanela(),
+                "HORÁRIO INDIVIDUAL",
+                colaborador.nome() + "  ·  " + colaborador.cargo(),
+                colaborador.turnos() + " turno(s) atribuído(s)  ·  " + colaborador.horasFormatadas(),
+                scroll
+        );
+    }
+
+    private VBox criarStatMini(String etiqueta, String valor) {
+        VBox box = new VBox(3.0);
+        box.getStyleClass().add("horario-individual-stat");
+        Label lEtiqueta = new Label(etiqueta.toUpperCase(java.util.Locale.ROOT));
+        lEtiqueta.getStyleClass().add("horario-individual-stat-etiqueta");
+        Label lValor = new Label(valor);
+        lValor.getStyleClass().add("horario-individual-stat-valor");
+        box.getChildren().addAll(lEtiqueta, lValor);
+        return box;
+    }
+
+    private VBox criarBlocoSemanaIndividual(LocalDate inicioSemana,
+                                             List<GeracaoHorariosBLL.HorarioLinha> linhas) {
+        VBox bloco = new VBox(6.0);
+        bloco.getStyleClass().add("horario-individual-semana");
+
+        Label lblSemana = new Label(CalendarioSemanalHelper.formatarIntervaloSemana(inicioSemana));
+        lblSemana.getStyleClass().add("horario-individual-semana-titulo");
+        bloco.getChildren().add(lblSemana);
+
+        for (GeracaoHorariosBLL.HorarioLinha linha : linhas) {
+            bloco.getChildren().add(criarLinhaTurnoIndividual(linha));
+        }
+        return bloco;
+    }
+
+    private HBox criarLinhaTurnoIndividual(GeracaoHorariosBLL.HorarioLinha linha) {
+        HBox hbox = new HBox(12.0);
+        hbox.getStyleClass().add("horario-individual-turno");
+        hbox.setAlignment(Pos.CENTER_LEFT);
+
+        String diaCurto = linha.diaSemana() != null && linha.diaSemana().length() >= 3
+                ? linha.diaSemana().substring(0, 3).toUpperCase(java.util.Locale.ROOT)
+                : "---";
+        Label lblDia = new Label(diaCurto);
+        lblDia.getStyleClass().add("horario-individual-dia");
+        lblDia.setMinWidth(36.0);
+
+        String dataStr = linha.data() != null
+                ? linha.data().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM"))
+                : "--/--";
+        Label lblData = new Label(dataStr);
+        lblData.getStyleClass().add("horario-individual-data");
+        lblData.setMinWidth(44.0);
+
+        Label lblPeriodo = new Label(valorOuTraco(linha.periodo()));
+        lblPeriodo.getStyleClass().add("horario-individual-periodo");
+        HBox.setHgrow(lblPeriodo, Priority.ALWAYS);
+
+        String estadoStr = valorOuTraco(linha.estado());
+        Label lblEstado = new Label(estadoStr);
+        lblEstado.getStyleClass().add("horario-individual-estado");
+
+        hbox.getChildren().addAll(lblDia, lblData, lblPeriodo, lblEstado);
+        return hbox;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
 
     private String valorOuTraco(String valor) {
         return valor == null || valor.isBlank() ? "-" : valor;
@@ -570,7 +885,10 @@ public class GeracaoHorariosController {
 
         cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
         cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
-        cbFiltroColaborador.valueProperty().addListener((observavel, antigo, novo) -> aplicarFiltroColaborador());
+        cbFiltroColaborador.valueProperty().addListener((observavel, antigo, novo) -> {
+            aplicarFiltroColaborador();
+            atualizarCalendarioMensal();
+        });
         reposicionarSemanaPlaneamentoParaMesSelecionado();
     }
 
@@ -621,6 +939,17 @@ public class GeracaoHorariosController {
 
         colResumoHoras.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().horasFormatadas()));
+
+        // Duplo-clique numa linha → ver horário completo do colaborador
+        tabelaResumoColaboradores.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2 && propostaAtual != null) {
+                GeracaoHorariosBLL.ResumoColaborador selecionado =
+                        tabelaResumoColaboradores.getSelectionModel().getSelectedItem();
+                if (selecionado != null) {
+                    mostrarHorarioIndividual(selecionado);
+                }
+            }
+        });
     }
 
     private void configurarTabelaPropostas() {
@@ -695,6 +1024,15 @@ public class GeracaoHorariosController {
 
         cbComparacaoBase.valueProperty().addListener((observavel, antigo, novo) -> atualizarEstadoInterativo());
         cbComparacaoAlvo.valueProperty().addListener((observavel, antigo, novo) -> atualizarEstadoInterativo());
+
+        // Seletor de proposta no calendário mensal: carregar proposta ao mudar seleção
+        if (cbSelecaoProposta != null) {
+            cbSelecaoProposta.valueProperty().addListener((observavel, antigo, novo) -> {
+                if (novo != null && (propostaAtual == null || !novo.idProposta().equals(propostaAtual.idProposta()))) {
+                    carregarPropostaPorIdEmSegundoPlano(novo.idProposta(), false);
+                }
+            });
+        }
     }
 
     private void carregarContextoInicial() {
@@ -781,14 +1119,14 @@ public class GeracaoHorariosController {
             }
             List<Integer> idsColaboradoresSelecionados = obterIdsColaboradoresSelecionados();
             if (idsColaboradoresSelecionados.isEmpty()) {
-                throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horario.");
+                throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horário.");
             }
 
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     quantidade == 1 ? "Gerar alternativa" : "Gerar alternativas",
                     quantidade == 1 ? "Deseja gerar uma nova alternativa?" : "Deseja gerar " + quantidade + " alternativas?",
-                    "A geracao vai usar " + idsColaboradoresSelecionados.size()
+                    "A geração vai usar " + idsColaboradoresSelecionados.size()
                             + " colaboradores selecionados. Depois podes enviar ao supervisor apenas as alternativas escolhidas."
             )) {
                 return;
@@ -847,7 +1185,7 @@ public class GeracaoHorariosController {
             lblResumoColaboradoresGeracao.setText(e.getMessage());
         } catch (Exception e) {
             renderizarColaboradoresGeracao(List.of());
-            lblResumoColaboradoresGeracao.setText("Nao foi possivel carregar a equipa elegivel para este periodo.");
+            lblResumoColaboradoresGeracao.setText("Não foi possível carregar a equipa elegível para este período.");
         }
     }
 
@@ -859,7 +1197,7 @@ public class GeracaoHorariosController {
         boxColaboradoresGeracao.getChildren().clear();
 
         if (colaboradores == null || colaboradores.isEmpty()) {
-            Label vazio = new Label("Sem colaboradores elegiveis para o periodo selecionado.");
+            Label vazio = new Label("Sem colaboradores elegíveis para o período selecionado.");
             vazio.getStyleClass().add("texto-ajuda");
             boxColaboradoresGeracao.getChildren().add(vazio);
             atualizarResumoSelecaoColaboradores();
@@ -950,9 +1288,9 @@ public class GeracaoHorariosController {
         int total = selecaoColaboradoresGeracao.size();
         int selecionados = obterIdsColaboradoresSelecionadosComoSet().size();
         if (total == 0) {
-            lblResumoColaboradoresGeracao.setText("Escolhe o periodo para carregar a equipa elegivel.");
+            lblResumoColaboradoresGeracao.setText("Escolhe o período para carregar a equipa elegível.");
         } else {
-            lblResumoColaboradoresGeracao.setText(selecionados + " de " + total + " colaboradores selecionados para a geracao.");
+            lblResumoColaboradoresGeracao.setText(selecionados + " de " + total + " colaboradores selecionados para a geração.");
         }
         atualizarEstadoInterativo();
     }
@@ -1055,6 +1393,8 @@ public class GeracaoHorariosController {
 
     private void preencherResultado(GeracaoHorariosBLL.PropostaResultado resultado) {
         propostaAtual = resultado;
+        // Sincronizar o período mensal com o mês/ano da proposta carregada
+        periodoMensalAtual = YearMonth.of(resultado.ano(), resultado.mes());
         reposicionarSemanaPlaneamentoParaMesSelecionado();
         lblEstadoProposta.setText(resultado.estado());
         lblOrigemPlaneamento.setText(resultado.origemPlaneamento());
@@ -1073,9 +1413,29 @@ public class GeracaoHorariosController {
         lblTotalTurnos.setText(String.valueOf(resultado.resumo().turnos()));
         lblTotalDiasCobertos.setText(String.valueOf(resultado.resumo().diasCobertos()));
 
+        // Atualizar labels de identificação do contexto
+        String periodoTexto = resultado.nomeMes() + " " + resultado.ano();
+        if (lblPeriodoPropostas != null) {
+            lblPeriodoPropostas.setText("Propostas de " + periodoTexto);
+        }
+        if (lblIdentificacaoHorario != null) {
+            String idProposta = resultado.idProposta() != null
+                    ? "Proposta #" + resultado.idProposta() + " · " + periodoTexto + " · " + resultado.estado()
+                    : "Horário publicado · " + periodoTexto;
+            lblIdentificacaoHorario.setText("A visualizar: " + idProposta);
+        }
+        // Sincronizar seletor de proposta no calendário (o listener tem guard: não dispara em ciclo)
+        if (cbSelecaoProposta != null && resultado.idProposta() != null) {
+            cbSelecaoProposta.getItems().stream()
+                    .filter(p -> resultado.idProposta().equals(p.idProposta()))
+                    .findFirst()
+                    .ifPresent(cbSelecaoProposta::setValue);
+        }
+
         tabelaResumoColaboradores.setItems(FXCollections.observableArrayList(resultado.resumoColaboradores()));
         atualizarFiltroColaborador(resultado);
         aplicarFiltroColaborador();
+        atualizarCalendarioMensal();
         atualizarPainelValidacao();
         atualizarEstadoInterativo();
     }
@@ -1105,8 +1465,18 @@ public class GeracaoHorariosController {
         lblResumoComparacao.setText("Seleciona duas alternativas para comparar distribuição, carga horária e impacto por colaborador.");
         cbFiltroColaborador.setItems(FXCollections.observableArrayList(FiltroColaboradorOption.todos()));
         cbFiltroColaborador.setValue(FiltroColaboradorOption.todos());
+        if (lblPeriodoPropostas != null) {
+            lblPeriodoPropostas.setText("Seleciona um mês e gera uma proposta");
+        }
+        if (lblIdentificacaoHorario != null) {
+            lblIdentificacaoHorario.setText("Sem proposta carregada");
+        }
+        if (cbSelecaoProposta != null) {
+            cbSelecaoProposta.setValue(null);
+        }
         reposicionarSemanaPlaneamentoParaMesSelecionado();
         renderizarCalendarioPlaneamento(List.of());
+        atualizarCalendarioMensal();
         atualizarPainelValidacao();
         atualizarEstadoInterativo();
     }
@@ -1312,7 +1682,7 @@ public class GeracaoHorariosController {
 
         DialogosHelper.mostrarConteudo(
                 obterJanela(),
-                "Diagnostico da geracao",
+                "Diagnóstico da geração",
                 motivo.total() == 1 ? "1 pessoa afetada" : motivo.total() + " pessoas afetadas",
                 motivo.descricao(),
                 nomes
@@ -1551,7 +1921,7 @@ public class GeracaoHorariosController {
                     idsPropostas.size() == 1
                             ? "Deseja enviar a alternativa selecionada ao supervisor?"
                             : "Deseja enviar " + idsPropostas.size() + " alternativas ao supervisor?",
-                    "So as alternativas enviadas ficam disponiveis para aprovacao ou rejeicao."
+                    "Só as alternativas enviadas ficam disponíveis para aprovação ou rejeição."
             )) {
                 return;
             }
@@ -1582,7 +1952,7 @@ public class GeracaoHorariosController {
                                 ? "Alternativa enviada ao supervisor."
                                 : dados.totalEnviadas() + " alternativas enviadas ao supervisor.");
                     },
-                    erro -> mostrarErro(resolverMensagemErro(erro, "Nao foi possivel enviar as alternativas ao supervisor."))
+                    erro -> mostrarErro(resolverMensagemErro(erro, "Não foi possível enviar as alternativas ao supervisor."))
             );
         } catch (IllegalArgumentException e) {
             mostrarErro(e.getMessage());
@@ -1594,18 +1964,26 @@ public class GeracaoHorariosController {
             validarUtilizadorAutenticado();
             List<Integer> idsColaboradoresSelecionados = obterIdsColaboradoresSelecionados();
             if (idsColaboradoresSelecionados.isEmpty()) {
-                throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horario.");
+                throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horário.");
             }
 
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     quantidade == 1 ? "Gerar alternativa" : "Gerar alternativas",
                     quantidade == 1 ? "Deseja gerar uma nova alternativa?" : "Deseja gerar " + quantidade + " alternativas?",
-                    "A geracao vai usar " + idsColaboradoresSelecionados.size()
+                    "A geração vai usar " + idsColaboradoresSelecionados.size()
                             + " colaboradores selecionados. Depois podes enviar ao supervisor apenas as alternativas escolhidas."
             )) {
                 return;
             }
+
+            // Mostrar overlay de carregamento (não-bloqueante, cobre toda a janela)
+            final Stage overlayCarregamento = DialogosHelper.mostrarCarregamento(
+                    obterJanela(),
+                    quantidade == 1
+                            ? "A gerar o horário para o período selecionado..."
+                            : "A gerar " + quantidade + " alternativas de horário..."
+            );
 
             executarOperacaoEmSegundoPlano(
                     quantidade == 1
@@ -1632,20 +2010,55 @@ public class GeracaoHorariosController {
                         return new GeracaoAlternativasDados(propostas, melhorResultado, resultados.size());
                     },
                     dados -> {
+                        // Fechar overlay de carregamento
+                        overlayCarregamento.close();
+
                         aplicarListaPropostas(dados.propostas(), dados.melhorResultado().idProposta());
                         preencherResultado(dados.melhorResultado());
                         selecionarPropostaNaTabela(dados.melhorResultado().idProposta());
                         esconderFeedbackValidacao();
                         esconderDiagnosticoGeracao();
+
+                        // Navegar para a tab "Propostas" (índice 1) para o utilizador ver o resultado
+                        if (tabPaneHorarios != null) {
+                            tabPaneHorarios.getSelectionModel().select(1);
+                        }
+
+                        // Notificação grande de sucesso centrada na janela
+                        String tituloNotif = dados.totalGeradas() == 1
+                                ? "Horário gerado!"
+                                : dados.totalGeradas() + " alternativas geradas!";
+                        String mensagemNotif = dados.totalGeradas() == 1
+                                ? "A proposta está na tab Propostas. Analisa, compara com outras alternativas e envia ao supervisor quando estiveres pronto."
+                                : "As " + dados.totalGeradas() + " propostas estão na tab Propostas. A melhor pontuação ficou selecionada. Após aprovação, o calendário fica disponível na tab Calendário.";
+                        DialogosHelper.mostrarNotificacaoGeracao(obterJanela(), true, tituloNotif, mensagemNotif);
+
                         mostrarSucesso(dados.totalGeradas() == 1
-                                ? "Alternativa gerada como rascunho. Seleciona-a na tabela e envia ao supervisor quando estiver pronta."
-                                : dados.totalGeradas() + " alternativas geradas como rascunho. A melhor pontuacao ficou selecionada para analise.");
+                                ? "Alternativa gerada como rascunho."
+                                : dados.totalGeradas() + " alternativas geradas. A melhor pontuação ficou selecionada para análise.");
                     },
                     erro -> {
+                        // Fechar overlay de carregamento
+                        overlayCarregamento.close();
+
                         String mensagem = resolverMensagemErro(erro, "Não foi possível gerar alternativas para o período selecionado.");
+                        String mensagemCurta = mensagem.length() > 220 ? mensagem.substring(0, 217) + "..." : mensagem;
+
+                        // Notificação grande de erro — utilizador vê antes de ver o diagnóstico
+                        DialogosHelper.mostrarNotificacaoGeracao(
+                                obterJanela(), false,
+                                "Não foi possível gerar o horário",
+                                mensagemCurta
+                        );
+
+                        // Voltar para a tab "Gerar" (índice 0) para mostrar diagnóstico
+                        if (tabPaneHorarios != null) {
+                            tabPaneHorarios.getSelectionModel().select(0);
+                        }
+
                         if (tentarCarregarPlaneamentoExistente()) {
                             esconderFeedbackValidacao();
-                            mostrarErro(mensagem + " O planeamento atual foi carregado abaixo para facilitar a análise.");
+                            mostrarErro(mensagem + " O planeamento atual foi carregado na tab Calendário para facilitar a análise.");
                             mostrarDiagnosticoGeracao(erro);
                             return;
                         }
@@ -1663,6 +2076,9 @@ public class GeracaoHorariosController {
         tabelaPropostas.setItems(FXCollections.observableArrayList(propostasSeguras));
         cbComparacaoBase.setItems(FXCollections.observableArrayList(propostasSeguras));
         cbComparacaoAlvo.setItems(FXCollections.observableArrayList(propostasSeguras));
+        if (cbSelecaoProposta != null) {
+            cbSelecaoProposta.setItems(FXCollections.observableArrayList(propostasSeguras));
+        }
 
         if (propostasSeguras.size() >= 2) {
             cbComparacaoBase.setValue(propostasSeguras.get(0));
@@ -1721,6 +2137,78 @@ public class GeracaoHorariosController {
         btnAprovarProposta.setDisable(emProcessamento || !podeDecidirAgora);
         btnRejeitarProposta.setDisable(emProcessamento || !podeDecidirAgora);
         txtObservacoesSupervisor.setDisable(emProcessamento || !podeDecidirAgora);
+
+        boolean semDados = emProcessamento || propostaAtual == null
+                || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty();
+        if (btnExportarCsvHorario != null) btnExportarCsvHorario.setDisable(semDados);
+        if (btnExportarPdfHorario != null) btnExportarPdfHorario.setDisable(semDados);
+
+        atualizarStepper(emProcessamento);
+    }
+
+    private void atualizarStepper(boolean emProcessamento) {
+        if (stepperPasso1 == null) return;
+
+        boolean temProposta = propostaAtual != null;
+        boolean temRascunho = !tabelaPropostas.getItems().isEmpty();
+        boolean enviada = temProposta && propostaAtual.estado() != null
+                && normalizarTexto(propostaAtual.estado()).contains("enviado");
+        boolean aprovada = temProposta && propostaAtual.estado() != null
+                && normalizarTexto(propostaAtual.estado()).contains("aprovad");
+        boolean decidida = enviada || aprovada
+                || (temProposta && propostaAtual.estado() != null
+                        && normalizarTexto(propostaAtual.estado()).contains("rejeitad"));
+
+        // Passo 1 — Configurar: sempre ativo/concluído
+        aplicarEstadoStepper(stepperPasso1, true, temRascunho || temProposta);
+
+        // Passo 2 — Gerar: concluído se existem propostas
+        aplicarEstadoStepper(stepperPasso2, temRascunho || temProposta || emProcessamento, temRascunho || temProposta);
+
+        // Passo 3 — Analisar: ativo quando há proposta mas ainda não enviada
+        aplicarEstadoStepper(stepperPasso3, temProposta, decidida || aprovada);
+
+        // Passo 4 — Enviar: ativo quando já enviado ou aprovado
+        aplicarEstadoStepper(stepperPasso4, decidida, aprovada);
+
+        // Guia de fluxo contextual
+        atualizarGuiaFluxo(temRascunho, temProposta, enviada, aprovada, emProcessamento);
+    }
+
+    private void aplicarEstadoStepper(VBox passo, boolean ativo, boolean concluido) {
+        if (passo == null) return;
+        passo.getStyleClass().removeAll("stepper-passo-ativo", "stepper-passo-concluido", "stepper-passo-inativo");
+        if (concluido) {
+            passo.getStyleClass().add("stepper-passo-concluido");
+        } else if (ativo) {
+            passo.getStyleClass().add("stepper-passo-ativo");
+        } else {
+            passo.getStyleClass().add("stepper-passo-inativo");
+        }
+    }
+
+    private void atualizarGuiaFluxo(boolean temRascunho, boolean temProposta,
+                                     boolean enviada, boolean aprovada, boolean emProcessamento) {
+        if (lblGuiaFluxo == null) return;
+        String guia;
+        if (emProcessamento) {
+            guia = "A processar... aguarda.";
+        } else if (aprovada) {
+            guia = "✔ Proposta aprovada e publicada. O calendário fica disponível na tab Calendário.";
+        } else if (enviada) {
+            guia = "Proposta enviada ao supervisor. Aguarda a decisão ou gera mais alternativas.";
+        } else if (temProposta) {
+            guia = "Passo 3 → Analisa a proposta na tab Propostas. Compara alternativas e vê o horário de cada colaborador (duplo clique na tabela). Quando estiveres pronto, envia ao supervisor.";
+        } else if (temRascunho) {
+            guia = "Alternativas geradas. Vai à tab Propostas para analisar e comparar antes de enviar.";
+        } else if (podeGerar) {
+            guia = "Passo 1 → Configura o período, seleciona a equipa e clica em Gerar 1 alternativa.";
+        } else {
+            guia = "Seleciona o período para consultar o planeamento.";
+        }
+        lblGuiaFluxo.setText(guia);
+        lblGuiaFluxo.setVisible(true);
+        lblGuiaFluxo.setManaged(true);
     }
 
     private <T> void executarOperacaoEmSegundoPlano(String mensagemProcessamento,
@@ -1822,7 +2310,7 @@ public class GeracaoHorariosController {
         }
 
         return mensagemCurta
-                + " Revê a equipa selecionada, folgas/preferencias aprovadas, descanso entre turnos, limite de horas e minimo exigido por turno.";
+                + " Revê a equipa selecionada, folgas/preferências aprovadas, descanso entre turnos, limite de horas e mínimo exigido por turno.";
     }
 
     private Throwable encontrarCausaRaiz(Throwable erro) {
@@ -1880,6 +2368,91 @@ public class GeracaoHorariosController {
         @Override
         public String toString() {
             return nome;
+        }
+    }
+
+    /** Abre diálogo para o gestor alterar o turno de um horário publicado. */
+    private void abrirEdicaoTurno(GeracaoHorariosBLL.HorarioLinha linha, javafx.stage.Window owner) {
+        try {
+            List<com.example.projeto2.Modules.Turno> turnos = horarioBLL.listarTodosOsTurnos();
+            if (turnos.isEmpty()) {
+                mostrarErro("Sem turnos disponíveis.");
+                return;
+            }
+
+            javafx.scene.control.ChoiceDialog<com.example.projeto2.Modules.Turno> dialogo =
+                    new javafx.scene.control.ChoiceDialog<>(null, turnos);
+            dialogo.setTitle("Editar turno");
+            dialogo.setHeaderText("Colaborador: " + (linha.colaborador() != null ? linha.colaborador() : "-")
+                    + "\nDia: " + (linha.data() != null ? linha.data() : "-")
+                    + "\nTurno atual: " + (linha.turno() != null ? linha.turno() : "-"));
+            dialogo.setContentText("Novo turno:");
+
+            // Formatar turnos no dialog
+            javafx.util.StringConverter<com.example.projeto2.Modules.Turno> conversor = new javafx.util.StringConverter<>() {
+                @Override
+                public String toString(com.example.projeto2.Modules.Turno t) {
+                    if (t == null) return "-";
+                    return (t.getTipo() != null ? t.getTipo() + " " : "")
+                        + t.getHoraInicio() + " — " + t.getHoraFim();
+                }
+                @Override
+                public com.example.projeto2.Modules.Turno fromString(String s) { return null; }
+            };
+
+            // Aplicar o conversor ao combo interno do ChoiceDialog
+            if (dialogo.getDialogPane().lookupAll(".combo-box").stream()
+                    .findFirst().orElse(null) instanceof javafx.scene.control.ComboBox<?> combo) {
+                @SuppressWarnings("unchecked")
+                javafx.scene.control.ComboBox<com.example.projeto2.Modules.Turno> turnoCombo =
+                        (javafx.scene.control.ComboBox<com.example.projeto2.Modules.Turno>) combo;
+                turnoCombo.setConverter(conversor);
+                turnoCombo.setButtonCell(new javafx.scene.control.ListCell<>() {
+                    @Override
+                    protected void updateItem(com.example.projeto2.Modules.Turno t, boolean empty) {
+                        super.updateItem(t, empty);
+                        setText(empty || t == null ? "-" : conversor.toString(t));
+                    }
+                });
+                turnoCombo.setCellFactory(lv -> new javafx.scene.control.ListCell<>() {
+                    @Override
+                    protected void updateItem(com.example.projeto2.Modules.Turno t, boolean empty) {
+                        super.updateItem(t, empty);
+                        setText(empty || t == null ? "-" : conversor.toString(t));
+                    }
+                });
+            }
+
+            // Garantir que o ChoiceDialog aparece por cima do diálogo pai (detalhe do dia)
+            if (owner != null) {
+                dialogo.initOwner(owner);
+            }
+            java.util.Optional<com.example.projeto2.Modules.Turno> resultado = dialogo.showAndWait();
+            resultado.ifPresent(novoTurno -> {
+                try {
+                    horarioBLL.editarTurnoPublicado(
+                            linha.idHorario(),
+                            novoTurno.getId(),
+                            utilizadorLogado != null ? utilizadorLogado.getId() : null,
+                            null
+                    );
+                    // Fechar o diálogo de detalhe do dia (owner) para evitar dados desatualizados
+                    if (owner instanceof javafx.stage.Stage ownerStage) {
+                        ownerStage.close();
+                    }
+                    mostrarSucesso("Turno alterado para " + conversor.toString(novoTurno) + " com sucesso.");
+                    // Recarregar a proposta para refletir a alteração
+                    if (propostaAtual != null && propostaAtual.idProposta() != null) {
+                        carregarPropostaPorIdEmSegundoPlano(propostaAtual.idProposta(), false);
+                    }
+                } catch (IllegalArgumentException ex) {
+                    mostrarErro(ex.getMessage());
+                } catch (Exception ex) {
+                    mostrarErro("Não foi possível alterar o turno.");
+                }
+            });
+        } catch (Exception e) {
+            mostrarErro("Não foi possível abrir o editor de turno.");
         }
     }
 }

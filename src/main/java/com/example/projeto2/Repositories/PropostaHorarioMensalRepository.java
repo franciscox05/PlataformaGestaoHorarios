@@ -18,5 +18,7 @@ public interface PropostaHorarioMensalRepository extends JpaRepository<PropostaH
 
     long countByIdLojaIdAndAnoAndMes(Integer idLoja, Integer ano, Integer mes);
 
+    long countByIdLojaIdAndEstadoIgnoreCase(Integer idLoja, String estado);
+
     Optional<PropostaHorarioMensal> findByIdAndIdLojaId(Integer idPropostaHorario, Integer idLoja);
 }

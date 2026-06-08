@@ -10,11 +10,15 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 import javafx.stage.Window;
@@ -112,7 +116,27 @@ public class PermutasController {
         lblMensagem.setVisible(false);
         atualizarResumoElegiveis(0);
 
-        tabelaPedidosPermuta.setPlaceholder(new Label("Ainda não submeteste pedidos de permuta."));
+        // Tooltips nos campos do formulário
+        cbMeuTurno.setTooltip(new Tooltip("Seleciona o teu turno que queres trocar"));
+        cbColegaElegivel.setTooltip(new Tooltip("Escolhe o colega com quem queres trocar"));
+        cbTurnoColega.setTooltip(new Tooltip("Seleciona o turno do colega que recebes em troca"));
+
+        // Empty state com CTA para permutas
+        javafx.scene.layout.VBox emptyPermutas = new javafx.scene.layout.VBox(12);
+        emptyPermutas.setAlignment(javafx.geometry.Pos.CENTER);
+        emptyPermutas.setPadding(new javafx.geometry.Insets(40, 24, 40, 24));
+        Label emptyPermutasTitulo = new Label("Nenhuma troca ainda");
+        emptyPermutasTitulo.getStyleClass().add("empty-state-titulo");
+        Label emptyPermutasSubtitulo = new Label("As tuas propostas de troca de turno aparecem aqui depois de as submeteres.");
+        emptyPermutasSubtitulo.getStyleClass().add("empty-state-subtitulo");
+        emptyPermutasSubtitulo.setWrapText(true);
+        emptyPermutasSubtitulo.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        Button btnEmptyPermuta = new Button("Propor uma troca agora");
+        btnEmptyPermuta.getStyleClass().add("botao-acao");
+        btnEmptyPermuta.setOnAction(e -> cbMeuTurno.requestFocus());
+        emptyPermutas.getChildren().addAll(emptyPermutasTitulo, emptyPermutasSubtitulo, btnEmptyPermuta);
+        tabelaPedidosPermuta.setPlaceholder(emptyPermutas);
+
         tabelaPedidosPendentes.setPlaceholder(new Label("Não existem pedidos pendentes para aprovar."));
 
         btnSubmeterTroca.disableProperty().bind(
@@ -141,11 +165,24 @@ public class PermutasController {
                 throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
+            // Construir mensagem detalhada com os dados da troca
+            Horario meuTurno = cbMeuTurno.getValue();
+            Horario turnoColega = cbTurnoColega.getValue();
+            String nomeColega = cbColegaElegivel.getValue() != null ? cbColegaElegivel.getValue().nome() : "colega";
+            String detalheTroca = String.format(
+                    "O teu turno  →  %s%n"
+                    + "será trocado com o turno de %s  →  %s%n%n"
+                    + "O pedido ficará pendente para aprovação do gerente.",
+                    formatarTurnoProprio(meuTurno),
+                    nomeColega,
+                    formatarTurnoProprio(turnoColega)
+            );
+
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
-                    "Submeter permuta",
-                    "Deseja submeter este pedido de permuta?",
-                    "O pedido ficará pendente para aprovação."
+                    "Confirmar troca de turno",
+                    "Confirmas este pedido de permuta?",
+                    detalheTroca
             )) {
                 return;
             }
@@ -231,6 +268,44 @@ public class PermutasController {
 
         colEstadoPermuta.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado() != null ? cellData.getValue().getEstado().name() : null)));
+
+        // Badge colorido + botão cancelar para permutas pendentes
+        colEstadoPermuta.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String estado, boolean empty) {
+                super.updateItem(estado, empty);
+                if (empty || estado == null || estado.isBlank()) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Label badge = new Label(estado);
+                badge.getStyleClass().add("badge-estado");
+                switch (estado.toLowerCase()) {
+                    case "pendente" -> badge.getStyleClass().add("badge-pendente");
+                    case "aprovado" -> badge.getStyleClass().add("badge-aprovado");
+                    case "rejeitado" -> badge.getStyleClass().add("badge-rejeitado");
+                    case "cancelado" -> badge.getStyleClass().add("badge-rascunho");
+                    default -> badge.getStyleClass().add("badge-rascunho");
+                }
+
+                if ("pendente".equalsIgnoreCase(estado)) {
+                    Button btnCancelar = new Button("✕");
+                    btnCancelar.getStyleClass().add("botao-cancelar-pedido");
+                    btnCancelar.setTooltip(new Tooltip("Cancelar este pedido pendente"));
+                    btnCancelar.setOnAction(ev -> {
+                        Permuta permuta = getTableView().getItems().get(getIndex());
+                        cancelarPermutaPropria(permuta);
+                    });
+                    HBox cell = new HBox(6, badge, btnCancelar);
+                    cell.setAlignment(Pos.CENTER_LEFT);
+                    setGraphic(cell);
+                } else {
+                    setGraphic(badge);
+                }
+                setText(null);
+            }
+        });
     }
 
     private void configurarTabelaPendentes() {
@@ -320,9 +395,14 @@ public class PermutasController {
         }
 
         if (totalTurnos == 0) {
-            lblTurnosElegiveis.setText("Nao existem colegas elegiveis para o turno selecionado.");
+            Horario meuTurnoAtual = cbMeuTurno != null ? cbMeuTurno.getValue() : null;
+            if (meuTurnoAtual == null) {
+                lblTurnosElegiveis.setText("Seleciona um dos teus turnos para ver as opções de troca disponíveis.");
+            } else {
+                lblTurnosElegiveis.setText("Não existem turnos de colegas elegíveis para trocar com o turno selecionado.");
+            }
         } else {
-            lblTurnosElegiveis.setText(totalTurnos + " turno(s) elegiveis encontrados para este dia.");
+            lblTurnosElegiveis.setText(totalTurnos + " turno(s) de colegas disponíveis para troca neste dia.");
         }
     }
 
@@ -369,13 +449,25 @@ public class PermutasController {
                 throw new IllegalArgumentException("Seleciona um pedido pendente primeiro.");
             }
 
+            // Contexto detalhado: quem troca com quem e que turnos
+            String nomeOrigem = obterNomeSolicitante(pedidoSelecionado);
+            String turnoOrigem = formatarTurnoProprio(pedidoSelecionado.getIdHorarioOrigem());
+            String nomeDestino = pedidoSelecionado.getIdHorarioDestino() != null
+                    && pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador() != null
+                    && pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador().getIdUtilizador() != null
+                    ? pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador().getIdUtilizador().getNome()
+                    : "Colega";
+            String turnoDestino = formatarTurnoProprio(pedidoSelecionado.getIdHorarioDestino());
+            String detalhesPermuta = String.format(
+                    "%s  (%s)%n    ↔%n%s  (%s)",
+                    nomeOrigem, turnoOrigem, nomeDestino, turnoDestino
+            );
+
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     aprovar ? "Aprovar permuta" : "Rejeitar permuta",
-                    aprovar ? "Deseja aprovar esta permuta?" : "Deseja rejeitar esta permuta?",
-                    aprovar
-                            ? "A aprovação ficará registada no sistema."
-                            : "A rejeição ficará registada no sistema."
+                    aprovar ? "Confirmas a aprovação desta troca de turno?" : "Confirmas a rejeição desta troca de turno?",
+                    detalhesPermuta
             )) {
                 return;
             }
@@ -399,6 +491,35 @@ public class PermutasController {
         }
     }
 
+    private void cancelarPermutaPropria(Permuta permuta) {
+        try {
+            if (utilizadorLogado == null) {
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+            if (permuta == null) {
+                throw new IllegalArgumentException("Permuta inválida.");
+            }
+
+            String turnoOrigem = formatarTurnoProprio(permuta.getIdHorarioOrigem());
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Cancelar pedido de permuta",
+                    "Confirmas o cancelamento deste pedido?",
+                    "Turno: " + turnoOrigem
+            )) {
+                return;
+            }
+
+            permutaBll.cancelarPedidoProprio(permuta.getId(), utilizadorLogado.getId());
+            mostrarMensagem("Pedido de permuta cancelado.", true);
+            carregarHistorico();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagem(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagem("Não foi possível cancelar o pedido de permuta.", false);
+        }
+    }
+
     private void limparFormulario() {
         cbMeuTurno.setValue(null);
         cbColegaElegivel.setValue(null);
@@ -415,6 +536,16 @@ public class PermutasController {
         lblMensagem.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
         lblMensagem.setManaged(true);
         lblMensagem.setVisible(true);
+
+        // Auto-dismiss após 5 s em mensagens de sucesso
+        if (sucesso) {
+            javafx.animation.PauseTransition pausa = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5));
+            pausa.setOnFinished(e -> {
+                lblMensagem.setManaged(false);
+                lblMensagem.setVisible(false);
+            });
+            pausa.play();
+        }
     }
 
     private String formatarTurnoProprio(Horario horario) {
@@ -444,7 +575,13 @@ public class PermutasController {
             return "-";
         }
 
-        return Character.toUpperCase(estado.charAt(0)) + estado.substring(1).toLowerCase();
+        return switch (estado.toLowerCase()) {
+            case "pendente" -> "Pendente";
+            case "aprovado" -> "Aprovado";
+            case "rejeitado" -> "Rejeitado";
+            case "cancelado" -> "Cancelado";
+            default -> Character.toUpperCase(estado.charAt(0)) + estado.substring(1).toLowerCase();
+        };
     }
 
     private String formatarDataPedido(Permuta permuta) {

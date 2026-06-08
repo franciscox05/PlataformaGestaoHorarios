@@ -284,9 +284,20 @@
                         <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.prioridade}"></td>
                         <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant max-w-[200px] truncate" th:text="${item.descricao}"></td>
                         <td class="px-6 py-3.5">
-                            <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                  th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('APROV')} ? 'badge-ok' : (${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'badge-err' : 'badge-warn')"
-                                  th:text="${item.estado}"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                      th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('APROV')} ? 'badge-ok' : (${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'badge-err' : 'badge-warn')"
+                                      th:text="${item.estado}"></span>
+                                <form th:if="${item.estado == null or item.estado.toString().toUpperCase().contains('PENDENTE')}"
+                                      method="post"
+                                      th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/remover'}"
+                                      onsubmit="return confirm('Remover esta preferência?')">
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-error/10 text-error hover:bg-error/20 transition-colors">
+                                        ✕ Remover
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 </tbody>

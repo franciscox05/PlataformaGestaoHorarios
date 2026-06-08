@@ -143,6 +143,19 @@ public class HorarioValidatorService {
     }
 
     // -------------------------------------------------------------------------
+    // RFS08 extra — Validação da janela de rotação mínima legal
+    // -------------------------------------------------------------------------
+
+    /**
+     * Verifica se a janela de rotação de fins de semana respeita o mínimo legal
+     * recomendado (1 FDS livre por cada 7 semanas trabalhadas).
+     * Não é um hard block: é usado apenas para emitir um aviso ao gerente.
+     */
+    public boolean janelaRotacaoRespeiraMinimo(int janelaRotacaoSemanas) {
+        return janelaRotacaoSemanas >= 7;
+    }
+
+    // -------------------------------------------------------------------------
     // RFS03 — Chefia obrigatória ao sábado
     // -------------------------------------------------------------------------
 

@@ -1,17 +1,23 @@
 package com.example.projeto2.Controller;
 
+import com.example.projeto2.BLL.DayOffBLL;
 import com.example.projeto2.BLL.GestaoLojaBLL;
 import com.example.projeto2.BLL.HorarioBLL;
+import com.example.projeto2.BLL.PermutaBLL;
 import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
 import com.example.projeto2.Controller.support.CalendarioMensalHelper;
 import com.example.projeto2.Controller.support.CalendarioSemanalHelper;
 import com.example.projeto2.Controller.support.DialogosHelper;
 import com.example.projeto2.Enums.EstadoHorario;
+import com.example.projeto2.Modules.DayOff;
 import com.example.projeto2.Modules.Horario;
+import com.example.projeto2.Modules.Permuta;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -23,14 +29,19 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,6 +60,18 @@ public class HomeController {
 
     @FXML
     private Label lblBemVindo;
+
+    @FXML
+    private Label lblDataHoje;
+
+    @FXML
+    private Label lblChipEscala;
+
+    @FXML
+    private Button btnAprovarHorarioHome;
+
+    @FXML
+    private Label lblProximoTurnoInfo;
 
     @FXML
     private Button btnAtalhoFolga;
@@ -85,6 +108,15 @@ public class HomeController {
 
     @FXML
     private HBox boxSemanaHorarioPublicado;
+
+    @FXML
+    private Button pillTodos;
+    @FXML
+    private Button pillManha;
+    @FXML
+    private Button pillTarde;
+    @FXML
+    private Button pillNoite;
 
     @FXML
     private TableView<Horario> tabelaEquipaHoje;
@@ -164,20 +196,43 @@ public class HomeController {
     @FXML
     private GridPane gridHorarioMensalLoja;
 
+    @FXML
+    private VBox painelMeusPedidos;
+
+    @FXML
+    private VBox listaMeusPedidos;
+
+    @FXML
+    private HBox bannerPendentes;
+
+    @FXML
+    private Label lblBannerPendentes;
+
+    @FXML
+    private Button btnBannerVerPedidos;
+
     private final HorarioBLL horarioBll;
     private final SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
     private final GestaoLojaBLL gestaoLojaBLL;
+    private final DayOffBLL dayOffBLL;
+    private final PermutaBLL permutaBLL;
     private Utilizador utilizadorLogado;
     private DashboardNavigator dashboardNavigation;
     private LocalDate semanaHorarioPublicadoInicio;
     private boolean aAtualizarSeletorSemana;
+    private List<Horario> todosEquipaHoje = List.of();
+    private String filtroTipoAtivo = null;
 
     public HomeController(HorarioBLL horarioBll,
                           SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL,
-                          GestaoLojaBLL gestaoLojaBLL) {
+                          GestaoLojaBLL gestaoLojaBLL,
+                          DayOffBLL dayOffBLL,
+                          PermutaBLL permutaBLL) {
         this.horarioBll = horarioBll;
         this.snapshotOperacionalLojaBLL = snapshotOperacionalLojaBLL;
         this.gestaoLojaBLL = gestaoLojaBLL;
+        this.dayOffBLL = dayOffBLL;
+        this.permutaBLL = permutaBLL;
     }
 
     @FXML
@@ -195,15 +250,72 @@ public class HomeController {
         }
 
         this.utilizadorLogado = utilizador;
-        lblBemVindo.setText("Olá, " + utilizador.getNome() + "!");
+        lblBemVindo.setText(construirSaudacao(utilizador.getNome()));
+        atualizarDataHoje();
 
         carregarHorarioPublicado();
         carregarEquipaHoje();
         configurarVisibilidadePainelOperacao();
+        carregarMeusPedidos();
     }
 
     public void setDashboardNavigation(DashboardNavigator dashboardNavigation) {
         this.dashboardNavigation = dashboardNavigation;
+    }
+
+    @FXML
+    public void onPillTodosClick() {
+        filtroTipoAtivo = null;
+        ativarPill(pillTodos);
+        aplicarFiltroPill();
+    }
+
+    @FXML
+    public void onPillManhaClick() {
+        filtroTipoAtivo = "manha";
+        ativarPill(pillManha);
+        aplicarFiltroPill();
+    }
+
+    @FXML
+    public void onPillTardeClick() {
+        filtroTipoAtivo = "tarde";
+        ativarPill(pillTarde);
+        aplicarFiltroPill();
+    }
+
+    @FXML
+    public void onPillNoiteClick() {
+        filtroTipoAtivo = "noite";
+        ativarPill(pillNoite);
+        aplicarFiltroPill();
+    }
+
+    private void ativarPill(Button pillAtiva) {
+        for (Button pill : new Button[]{pillTodos, pillManha, pillTarde, pillNoite}) {
+            if (pill == null) continue;
+            pill.getStyleClass().remove("home-filter-pill-active");
+            if (!pill.getStyleClass().contains("home-filter-pill")) {
+                pill.getStyleClass().add("home-filter-pill");
+            }
+        }
+        if (pillAtiva != null) {
+            pillAtiva.getStyleClass().remove("home-filter-pill");
+            if (!pillAtiva.getStyleClass().contains("home-filter-pill-active")) {
+                pillAtiva.getStyleClass().add("home-filter-pill-active");
+            }
+        }
+    }
+
+    private void aplicarFiltroPill() {
+        List<Horario> filtrados = filtroTipoAtivo == null
+                ? todosEquipaHoje
+                : todosEquipaHoje.stream()
+                        .filter(h -> h.getIdTurno() != null
+                                && h.getIdTurno().getTipo() != null
+                                && h.getIdTurno().getTipo().toLowerCase(Locale.ROOT).contains(filtroTipoAtivo))
+                        .toList();
+        tabelaEquipaHoje.setItems(FXCollections.observableArrayList(filtrados));
     }
 
     @FXML
@@ -245,6 +357,13 @@ public class HomeController {
     public void onAtalhoRelatoriosClick() {
         if (dashboardNavigation != null) {
             dashboardNavigation.abrirRelatorios();
+        }
+    }
+
+    @FXML
+    public void onBannerVerPedidosClick() {
+        if (dashboardNavigation != null) {
+            dashboardNavigation.abrirPainelGerente();
         }
     }
 
@@ -505,6 +624,7 @@ public class HomeController {
                                 + formatarData(dataFim)
                                 + "."
                 );
+                atualizarProximoTurno(List.of());
                 return;
             }
 
@@ -521,13 +641,60 @@ public class HomeController {
                             + formatarPeriodo(proximoTurno)
                             + "."
             );
+            atualizarProximoTurno(turnos);
         } catch (Exception e) {
             lblResumoHorarioPublicado.setText("Não foi possível carregar o horário publicado. Tenta novamente dentro de instantes.");
             renderizarCalendarioHorarioPublicado(
                     semanaHorarioPublicadoInicio != null ? semanaHorarioPublicadoInicio : CalendarioSemanalHelper.inicioSemana(LocalDate.now()),
                     List.of()
             );
+            atualizarProximoTurno(List.of());
         }
+    }
+
+    private void atualizarProximoTurno(List<Horario> turnos) {
+        if (lblProximoTurnoInfo == null) return;
+
+        // Só relevante para colaboradores (gestores vêem o painel de operação)
+        boolean eGestor = utilizadorLogado != null && gestaoLojaBLL.utilizadorPodeGerirLoja(utilizadorLogado.getId());
+        if (eGestor) {
+            lblProximoTurnoInfo.setText("Como gestor, tens acesso ao painel de operação da loja com vista completa da equipa.");
+            return;
+        }
+
+        // Filtrar turnos a partir de hoje
+        LocalDate hoje = LocalDate.now();
+        List<Horario> futuros = turnos.stream()
+                .filter(h -> h.getDataTurno() != null && !h.getDataTurno().isBefore(hoje))
+                .limit(3)
+                .toList();
+
+        if (futuros.isEmpty()) {
+            lblProximoTurnoInfo.setText("Não tens turnos publicados nesta semana. Verifica semanas futuras no calendário.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (Horario turno : futuros) {
+            LocalDate data = turno.getDataTurno();
+            String diaLabel;
+            if (data.equals(hoje)) {
+                diaLabel = "Hoje";
+            } else if (data.equals(hoje.plusDays(1))) {
+                diaLabel = "Amanhã";
+            } else {
+                diaLabel = data.getDayOfWeek().getDisplayName(TextStyle.FULL, LOCALE_PT);
+                diaLabel = diaLabel.substring(0, 1).toUpperCase() + diaLabel.substring(1).toLowerCase(LOCALE_PT);
+                diaLabel += " (" + data.format(DateTimeFormatter.ofPattern("dd/MM")) + ")";
+            }
+            sb.append("• ").append(diaLabel).append("  ").append(formatarPeriodo(turno)).append("\n");
+        }
+
+        if (sb.length() > 0) {
+            sb.setLength(sb.length() - 1); // remover último \n
+        }
+
+        lblProximoTurnoInfo.setText(sb.toString());
     }
 
     private void carregarEquipaHoje() {
@@ -536,10 +703,28 @@ public class HomeController {
         }
 
         try {
-            List<Horario> equipaHoje = horarioBll.listarEquipaDeHoje(utilizadorLogado.getId());
-            tabelaEquipaHoje.setItems(FXCollections.observableArrayList(equipaHoje));
+            todosEquipaHoje = horarioBll.listarEquipaDeHoje(utilizadorLogado.getId());
         } catch (Exception e) {
-            tabelaEquipaHoje.setItems(FXCollections.observableArrayList());
+            todosEquipaHoje = List.of();
+        }
+        aplicarFiltroPill();
+        atualizarChipEscala();
+    }
+
+    private void atualizarChipEscala() {
+        if (lblChipEscala == null) return;
+        if (todosEquipaHoje.isEmpty()) {
+            lblChipEscala.setText("Sem escala hoje");
+            lblChipEscala.getStyleClass().removeAll("home-chip-ok", "home-chip-warn");
+            if (!lblChipEscala.getStyleClass().contains("home-chip-warn")) {
+                lblChipEscala.getStyleClass().add("home-chip-warn");
+            }
+        } else {
+            lblChipEscala.setText(todosEquipaHoje.size() + " escalado(s)");
+            lblChipEscala.getStyleClass().removeAll("home-chip-ok", "home-chip-warn");
+            if (!lblChipEscala.getStyleClass().contains("home-chip-ok")) {
+                lblChipEscala.getStyleClass().add("home-chip-ok");
+            }
         }
     }
 
@@ -553,17 +738,52 @@ public class HomeController {
         painelMetricasLoja.setManaged(podeGerirLoja);
         painelMetricasLoja.setVisible(podeGerirLoja);
 
+        // Botão "Aprovar Horário" só para gestores
+        if (btnAprovarHorarioHome != null) {
+            btnAprovarHorarioHome.setVisible(podeGerirLoja);
+            btnAprovarHorarioHome.setManaged(podeGerirLoja);
+        }
+
         if (podeGerirLoja) {
             carregarColaboradoresOperacao();
             carregarColaboradoresHorarioMensal();
             carregarOperacaoLoja();
             carregarHorarioMensalLoja();
+            atualizarBannerPendentes();
         } else {
             tabelaOperacaoLoja.setItems(FXCollections.observableArrayList());
             renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
             renderizarCalendarioMensalLoja(YearMonth.now(), List.of());
             lblResumoHorarioMensal.setText("A vista mensal da loja está disponível apenas para perfis de gestão.");
+            esconderBannerPendentes();
         }
+    }
+
+    private void atualizarBannerPendentes() {
+        if (bannerPendentes == null || utilizadorLogado == null) return;
+        try {
+            int folgas = dayOffBLL.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId()).size();
+            int permutas = permutaBLL.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId()).size();
+            int total = folgas + permutas;
+            if (total > 0) {
+                String msg = total == 1
+                        ? "Tens 1 pedido pendente a aguardar a tua aprovação."
+                        : "Tens " + total + " pedidos pendentes a aguardar a tua aprovação.";
+                if (lblBannerPendentes != null) lblBannerPendentes.setText(msg);
+                bannerPendentes.setVisible(true);
+                bannerPendentes.setManaged(true);
+            } else {
+                esconderBannerPendentes();
+            }
+        } catch (Exception e) {
+            esconderBannerPendentes();
+        }
+    }
+
+    private void esconderBannerPendentes() {
+        if (bannerPendentes == null) return;
+        bannerPendentes.setVisible(false);
+        bannerPendentes.setManaged(false);
     }
 
     private void carregarOperacaoLoja() {
@@ -869,6 +1089,168 @@ public class HomeController {
         lblFeedbackOperacao.setVisible(false);
         lblFeedbackOperacao.setManaged(false);
     }
+
+    // ── Saudação e data ─────────────────────────────────────────────────────
+
+    private String construirSaudacao(String nome) {
+        String primeiroNome = nome != null && !nome.isBlank()
+                ? nome.trim().split("\\s+")[0]
+                : "Equipa";
+
+        int hora = java.time.LocalTime.now().getHour();
+        String cumprimento;
+        if (hora >= 6 && hora < 13) {
+            cumprimento = "Bom dia";
+        } else if (hora >= 13 && hora < 20) {
+            cumprimento = "Boa tarde";
+        } else {
+            cumprimento = "Boa noite";
+        }
+        return cumprimento + ", " + primeiroNome + ".";
+    }
+
+    private void atualizarDataHoje() {
+        if (lblDataHoje == null) return;
+        LocalDate hoje = LocalDate.now();
+        String diaSemana = hoje.getDayOfWeek().getDisplayName(TextStyle.FULL, LOCALE_PT);
+        String dataFormatada = hoje.getDayOfMonth()
+                + " " + hoje.getMonth().getDisplayName(TextStyle.SHORT, LOCALE_PT).toLowerCase(LOCALE_PT);
+        // Capitalizar o dia da semana
+        String diaCapitalizado = diaSemana.substring(0, 1).toUpperCase() + diaSemana.substring(1).toLowerCase(LOCALE_PT);
+        lblDataHoje.setText(diaCapitalizado + ", " + dataFormatada);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── Os Meus Pedidos ─────────────────────────────────────────────────────
+
+    private void carregarMeusPedidos() {
+        if (painelMeusPedidos == null || listaMeusPedidos == null) {
+            return;
+        }
+
+        if (utilizadorLogado == null) {
+            painelMeusPedidos.setVisible(false);
+            painelMeusPedidos.setManaged(false);
+            return;
+        }
+
+        // Painel escondido para gestores (têm o painel de operação)
+        boolean eGestor = gestaoLojaBLL.utilizadorPodeGerirLoja(utilizadorLogado.getId());
+        if (eGestor) {
+            painelMeusPedidos.setVisible(false);
+            painelMeusPedidos.setManaged(false);
+            return;
+        }
+
+        try {
+            // Combinar folgas e permutas numa lista unificada de eventos recentes
+            List<PedidoResumo> pedidos = new ArrayList<>();
+
+            dayOffBLL.listarPedidosPorUtilizador(utilizadorLogado.getId()).stream()
+                    .limit(10)
+                    .forEach(dayOff -> pedidos.add(new PedidoResumo(
+                            "Folga / " + formatarTipoDayOff(dayOff.getTipo()),
+                            dayOff.getDataAusencia() != null ? DATA_FORMATTER.format(dayOff.getDataAusencia()) : "-",
+                            dayOff.getEstado() != null ? dayOff.getEstado() : "pendente",
+                            dayOff.getDataAusencia() != null ? dayOff.getDataAusencia().atStartOfDay().toInstant(java.time.ZoneOffset.UTC) : Instant.MIN
+                    )));
+
+            permutaBLL.listarPedidosEnviados(utilizadorLogado.getId()).stream()
+                    .limit(10)
+                    .forEach(permuta -> {
+                        String dataFormatada = permuta.getIdHorarioOrigem() != null
+                                && permuta.getIdHorarioOrigem().getDataTurno() != null
+                                ? DATA_FORMATTER.format(permuta.getIdHorarioOrigem().getDataTurno())
+                                : "-";
+                        String estado = permuta.getEstado() != null ? permuta.getEstado().name() : "pendente";
+                        Instant dataOrdem = permuta.getDataPedido() != null ? permuta.getDataPedido() : Instant.MIN;
+                        pedidos.add(new PedidoResumo("Troca de turno", dataFormatada, estado, dataOrdem));
+                    });
+
+            // Ordenar por data descendente (mais recentes primeiro), limitar a 5
+            List<PedidoResumo> recentes = pedidos.stream()
+                    .sorted(Comparator.comparing(PedidoResumo::dataOrdem, Comparator.reverseOrder()))
+                    .limit(5)
+                    .toList();
+
+            listaMeusPedidos.getChildren().clear();
+
+            if (recentes.isEmpty()) {
+                Label lblVazio = new Label("Ainda não tens pedidos registados. Usa os atalhos acima para pedir folga ou trocar turno.");
+                lblVazio.getStyleClass().add("home-card-subtitle");
+                lblVazio.setWrapText(true);
+                listaMeusPedidos.getChildren().add(lblVazio);
+            } else {
+                for (PedidoResumo pedido : recentes) {
+                    listaMeusPedidos.getChildren().add(criarLinhaPedido(pedido));
+                }
+            }
+
+            painelMeusPedidos.setVisible(true);
+            painelMeusPedidos.setManaged(true);
+
+        } catch (Exception e) {
+            painelMeusPedidos.setVisible(false);
+            painelMeusPedidos.setManaged(false);
+        }
+    }
+
+    private HBox criarLinhaPedido(PedidoResumo pedido) {
+        HBox linha = new HBox(12);
+        linha.setAlignment(Pos.CENTER_LEFT);
+        linha.getStyleClass().add("pedido-resumo-linha");
+        linha.setPadding(new Insets(8, 12, 8, 12));
+
+        Label lblTipo = new Label(pedido.tipo());
+        lblTipo.getStyleClass().add("pedido-resumo-tipo");
+        HBox.setHgrow(lblTipo, Priority.ALWAYS);
+        lblTipo.setMaxWidth(Double.MAX_VALUE);
+
+        Label lblData = new Label(pedido.data());
+        lblData.getStyleClass().add("pedido-resumo-data");
+
+        Label lblEstado = new Label(formatarEstadoPedido(pedido.estado()));
+        lblEstado.getStyleClass().addAll("pedido-resumo-badge", resolverCssBadge(pedido.estado()));
+
+        linha.getChildren().addAll(lblTipo, lblData, lblEstado);
+        return linha;
+    }
+
+    private String formatarTipoDayOff(String tipo) {
+        if (tipo == null) return "Ausência";
+        return switch (tipo.toLowerCase(Locale.ROOT)) {
+            case "ferias" -> "Férias";
+            case "folgas" -> "Folgas";
+            case "baixa" -> "Baixa";
+            case "urgente" -> "Urgente";
+            default -> capitalizar(tipo);
+        };
+    }
+
+    private String formatarEstadoPedido(String estado) {
+        if (estado == null) return "Pendente";
+        return switch (estado.toLowerCase(Locale.ROOT)) {
+            case "pendente" -> "Pendente";
+            case "aprovado" -> "Aprovado";
+            case "rejeitado" -> "Rejeitado";
+            case "recusado" -> "Recusado";
+            default -> capitalizar(estado);
+        };
+    }
+
+    private String resolverCssBadge(String estado) {
+        if (estado == null) return "badge-pendente";
+        return switch (estado.toLowerCase(Locale.ROOT)) {
+            case "aprovado" -> "badge-aprovado";
+            case "rejeitado", "recusado" -> "badge-rejeitado";
+            default -> "badge-pendente";
+        };
+    }
+
+    private record PedidoResumo(String tipo, String data, String estado, Instant dataOrdem) {}
+
+    // ────────────────────────────────────────────────────────────────────────
 
     private String formatarData(LocalDate data) {
         return data == null ? "-" : DATA_FORMATTER.format(data);

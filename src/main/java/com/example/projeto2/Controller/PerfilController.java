@@ -66,6 +66,9 @@ public class PerfilController {
     @FXML
     private Label lblTurnosFuturos;
 
+    @FXML
+    private Label lblPerfilAvatar;
+
     private final PerfilBLL perfilBLL;
     private final ApplicationContext applicationContext;
     private Utilizador utilizadorLogado;
@@ -86,6 +89,9 @@ public class PerfilController {
         try {
             PerfilBLL.PerfilResumo resumo = perfilBLL.obterResumoPerfil(utilizadorLogado);
 
+            if (lblPerfilAvatar != null && resumo.nome() != null && !resumo.nome().isBlank()) {
+                lblPerfilAvatar.setText(String.valueOf(resumo.nome().charAt(0)).toUpperCase());
+            }
             lblNomePerfil.setText(resumo.nome());
             lblEmailPerfil.setText(resumo.email());
             lblTelemovelPerfil.setText(resumo.telemovel());

@@ -10,6 +10,7 @@ import com.example.projeto2.Repositories.PermutaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -78,6 +79,17 @@ public class PermutaBLL {
         );
     }
 
+    @Transactional(readOnly = true)
+    public int contarPendentesParaAprovacao(Integer idUtilizador) {
+        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
+                .filter(lu -> lu.getIdCargo() != null
+                        && lu.getIdCargo().getTipo() != null
+                        && CARGOS_COM_APROVACAO.contains(lu.getIdCargo().getTipo().toLowerCase()))
+                .map(lu -> (int) permutaRepository.countPedidosPendentesDaLoja(
+                        lu.getIdLoja().getId(), idUtilizador))
+                .orElse(0);
+    }
+
     @Transactional
     public Permuta aprovarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador) {
         Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador);
@@ -110,6 +122,37 @@ public class PermutaBLL {
         Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador);
         pedido.setEstado(EstadoPermuta.rejeitado);
         return permutaRepository.save(pedido);
+    }
+
+    @Transactional
+    public void cancelarPedidoProprio(Integer idPermuta, Integer idUtilizador) {
+        if (idPermuta == null) {
+            throw new IllegalArgumentException("O pedido selecionado e obrigatorio.");
+        }
+        if (idUtilizador == null) {
+            throw new IllegalArgumentException("O utilizador e obrigatorio.");
+        }
+
+        Permuta pedido = permutaRepository.findDetalhadaById(idPermuta)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido de permuta nao encontrado."));
+
+        if (pedido.getEstado() != EstadoPermuta.pendente) {
+            throw new IllegalArgumentException("So e possivel cancelar pedidos pendentes.");
+        }
+
+        Integer idSolicitante = null;
+        if (pedido.getIdHorarioOrigem() != null
+                && pedido.getIdHorarioOrigem().getIdLojautilizador() != null
+                && pedido.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador() != null) {
+            idSolicitante = pedido.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador().getId();
+        }
+
+        if (!idUtilizador.equals(idSolicitante)) {
+            throw new IllegalArgumentException("Nao podes cancelar um pedido que nao e teu.");
+        }
+
+        pedido.setEstado(EstadoPermuta.cancelado);
+        permutaRepository.save(pedido);
     }
 
     private void validarPedido(Integer idUtilizadorLogado, Horario meuTurno, Horario turnoColega) {
@@ -145,6 +188,16 @@ public class PermutaBLL {
             throw new IllegalArgumentException("A permuta so pode ser feita com turnos do mesmo dia.");
         }
 
+        validarDescansoMinimoPosPermuta(
+                meuTurno.getIdLojautilizador().getIdUtilizador().getId(),
+                turnoColega.getIdTurno(),
+                meuTurno.getDataTurno()
+        );
+        validarDescansoMinimoPosPermuta(
+                turnoColega.getIdLojautilizador().getIdUtilizador().getId(),
+                meuTurno.getIdTurno(),
+                turnoColega.getDataTurno()
+        );
         validarAntecedenciaMinima(meuTurno, turnoColega);
 
         Integer idLojaOrigem = meuTurno.getIdLojautilizador().getIdLoja().getId();
@@ -172,6 +225,52 @@ public class PermutaBLL {
 
         if (origemSemAntecedencia || destinoSemAntecedencia) {
             throw new IllegalArgumentException("As permutas precisam de ser pedidas com pelo menos 24 horas de antecedencia.");
+        }
+    }
+
+    /**
+     * Valida que a permuta não viola o descanso mínimo de 11 horas entre turnos
+     * de dias consecutivos para o colaborador dado.
+     * Verifica gap entre o último turno do dia anterior e o turno pós-permuta,
+     * e entre o turno pós-permuta e o primeiro turno do dia seguinte.
+     */
+    private void validarDescansoMinimoPosPermuta(Integer idColaborador, com.example.projeto2.Modules.Turno turnoNovo, java.time.LocalDate data) {
+        final int DESCANSO_MINIMO_HORAS = 11;
+
+        if (turnoNovo == null || turnoNovo.getHoraInicio() == null || turnoNovo.getHoraFim() == null) {
+            return; // não é possível validar sem dados do turno
+        }
+
+        // Verificar gap com turno do dia anterior
+        List<Horario> turnosD_1 = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                idColaborador, data.minusDays(1), data.minusDays(1));
+        for (Horario h : turnosD_1) {
+            if (h.getIdTurno() == null || h.getIdTurno().getHoraFim() == null) continue;
+            long horasGap = Duration.between(
+                    LocalDateTime.of(data.minusDays(1), h.getIdTurno().getHoraFim()),
+                    LocalDateTime.of(data, turnoNovo.getHoraInicio())
+            ).toHours();
+            if (horasGap < DESCANSO_MINIMO_HORAS) {
+                throw new IllegalArgumentException(
+                        "Esta permuta viola o descanso mínimo de " + DESCANSO_MINIMO_HORAS
+                                + "h entre turnos consecutivos (gap actual: " + horasGap + "h).");
+            }
+        }
+
+        // Verificar gap com turno do dia seguinte
+        List<Horario> turnosD1 = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                idColaborador, data.plusDays(1), data.plusDays(1));
+        for (Horario h : turnosD1) {
+            if (h.getIdTurno() == null || h.getIdTurno().getHoraInicio() == null) continue;
+            long horasGap = Duration.between(
+                    LocalDateTime.of(data, turnoNovo.getHoraFim()),
+                    LocalDateTime.of(data.plusDays(1), h.getIdTurno().getHoraInicio())
+            ).toHours();
+            if (horasGap < DESCANSO_MINIMO_HORAS) {
+                throw new IllegalArgumentException(
+                        "Esta permuta viola o descanso mínimo de " + DESCANSO_MINIMO_HORAS
+                                + "h entre turnos consecutivos (gap actual: " + horasGap + "h).");
+            }
         }
     }
 

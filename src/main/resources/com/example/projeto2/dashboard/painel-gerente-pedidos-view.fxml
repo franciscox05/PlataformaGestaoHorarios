@@ -23,18 +23,16 @@
                 <Insets bottom="56.0" left="40.0" right="40.0" top="40.0" />
             </padding>
 
-            <HBox alignment="CENTER_LEFT" spacing="16.0">
-                <SVGPath fill="#c41230" styleClass="section-icon"
-                         content="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
-                <VBox spacing="3.0">
-                    <Label styleClass="titulo-dashboard" text="Painel de Gestão de Pedidos" />
-                    <Label styleClass="subtitulo"
-                           text="Decide num único ecrã os pedidos pendentes de folgas, permutas e preferências da tua loja."
-                           wrapText="true" />
-                </VBox>
-            </HBox>
+            <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-card modulo-banner-pedidos"
+                  style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9b1c1c 0%, #450a0a 100%); -fx-background-insets: 0; -fx-background-radius: 16px;">
+                <padding><Insets bottom="26.0" left="30.0" right="30.0" top="26.0" /></padding>
+                <Label styleClass="modulo-titulo" text="Painel de Gest&#227;o de Pedidos" />
+                <Label styleClass="modulo-subtitulo"
+                       text="Decide num &#250;nico ecr&#227; os pedidos pendentes de folgas, permutas e prefer&#234;ncias da tua loja."
+                       wrapText="true" />
+            </VBox>
 
-            <Region minHeight="32.0" />
+            <Region minHeight="24.0" />
 
             <HBox spacing="0.0" styleClass="context-bar">
                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
@@ -60,7 +58,7 @@
                       HBox.hgrow="ALWAYS">
                     <SVGPath fill="#c41230" styleClass="stat-icon"
                              content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-                    <Label fx:id="lblTotalPendentes" styleClass="stat-numero" text="0" />
+                    <Label fx:id="lblTotalPendentes" styleClass="stat-numero" text="-" />
                     <Label styleClass="stat-titulo" text="Total pendente" />
                 </VBox>
 
@@ -69,7 +67,7 @@
                       HBox.hgrow="ALWAYS">
                     <SVGPath fill="#c41230" styleClass="stat-icon"
                              content="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
-                    <Label fx:id="lblTotalFolgas" styleClass="stat-numero" text="0" />
+                    <Label fx:id="lblTotalFolgas" styleClass="stat-numero" text="-" />
                     <Label styleClass="stat-titulo" text="Folgas" />
                 </VBox>
 
@@ -78,7 +76,7 @@
                       HBox.hgrow="ALWAYS">
                     <SVGPath fill="#c41230" styleClass="stat-icon"
                              content="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z" />
-                    <Label fx:id="lblTotalPermutas" styleClass="stat-numero" text="0" />
+                    <Label fx:id="lblTotalPermutas" styleClass="stat-numero" text="-" />
                     <Label styleClass="stat-titulo" text="Permutas" />
                 </VBox>
 
@@ -87,7 +85,7 @@
                       HBox.hgrow="ALWAYS">
                     <SVGPath fill="#c41230" styleClass="stat-icon"
                              content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
-                    <Label fx:id="lblTotalPreferencias" styleClass="stat-numero" text="0" />
+                    <Label fx:id="lblTotalPreferencias" styleClass="stat-numero" text="-" />
                     <Label styleClass="stat-titulo" text="Preferências" />
                 </VBox>
 
@@ -131,19 +129,19 @@
 
                 <HBox spacing="12.0">
                     <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <Label fx:id="lblContextoColaboradoresEscalados" styleClass="stat-numero" text="0" />
+                        <Label fx:id="lblContextoColaboradoresEscalados" styleClass="stat-numero" text="-" />
                         <Label styleClass="stat-titulo" text="Escalados" wrapText="true" />
                     </VBox>
                     <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <Label fx:id="lblContextoTurnosPlaneados" styleClass="stat-numero" text="0" />
+                        <Label fx:id="lblContextoTurnosPlaneados" styleClass="stat-numero" text="-" />
                         <Label styleClass="stat-titulo" text="Turnos" />
                     </VBox>
                     <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <Label fx:id="lblContextoAusencias" styleClass="stat-numero" text="0" />
+                        <Label fx:id="lblContextoAusencias" styleClass="stat-numero" text="-" />
                         <Label styleClass="stat-titulo" text="Ausências" wrapText="true" />
                     </VBox>
                     <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <Label fx:id="lblContextoPedidosPendentes" styleClass="stat-numero" text="0" />
+                        <Label fx:id="lblContextoPedidosPendentes" styleClass="stat-numero" text="-" />
                         <Label styleClass="stat-titulo" text="Pendentes" wrapText="true" />
                     </VBox>
                 </HBox>

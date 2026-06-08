@@ -87,6 +87,16 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
                                                                 @Param("dataInicio") LocalDate dataInicio,
                                                                 @Param("dataFim") LocalDate dataFim);
 
+    @Query("SELECT COUNT(p) FROM Preferencia p " +
+            "JOIN p.idUtilizador u " +
+            "JOIN u.lojautilizadors lu " +
+            "WHERE lu.idLoja.id = :idLoja " +
+            "AND lu.dataFim IS NULL " +
+            "AND LOWER(p.estado) = 'pendente' " +
+            "AND u.id <> :idUtilizadorAprovador")
+    long countPreferenciasPendentesDaLoja(@Param("idLoja") Integer idLoja,
+                                          @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
+
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
             "FROM Preferencia p " +
             "WHERE p.idUtilizador.id = :idUtilizador " +

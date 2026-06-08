@@ -88,15 +88,12 @@
                             <children>
                                 <Button defaultButton="true" maxWidth="420.0" onAction="#onLoginClick" styleClass="botao-login" text="ENTRAR" />
 
-                                <HBox alignment="CENTER" spacing="10.0">
-                                    <children>
-                                        <Region styleClass="login-divider" HBox.hgrow="ALWAYS" />
-                                        <Label styleClass="login-or-label" text="OU ACESSO SEGURO" />
-                                        <Region styleClass="login-divider" HBox.hgrow="ALWAYS" />
-                                    </children>
+                                <HBox alignment="CENTER_RIGHT" maxWidth="420.0">
+                                    <Button onAction="#onEsqueciPasswordClick"
+                                            styleClass="login-forgot-btn"
+                                            text="Esqueci a palavra-passe" />
                                 </HBox>
 
-                                <Button maxWidth="420.0" mnemonicParsing="false" styleClass="botao-secure-login" text="ACESSO BIOMÉTRICO" />
                             </children>
                         </VBox>
 

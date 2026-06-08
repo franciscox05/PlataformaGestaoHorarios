@@ -196,36 +196,14 @@
     <nav class="flex-1 overflow-y-auto px-2.5 py-4 flex flex-col gap-0.5">
         <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20 px-3 mb-1.5">Principal</p>
 
-        <a href="/web/painel"
-           th:classappend="${webModuloAtivo == 'painel'} ? 'nav-active' : 'text-white/40'"
-           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
-            <span class="material-symbols-outlined text-[19px]"
-                  th:classappend="${webModuloAtivo == 'painel'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">dashboard</span>
-            Painel
-            <span th:if="${webModuloAtivo == 'painel'}"
-                  class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
-        </a>
         <a href="/web/horarios"
-           th:if="${webPermissoes != null && webPermissoes.podeVerHorarios()}"
            th:classappend="${webModuloAtivo == 'horarios'} ? 'nav-active' : 'text-white/40'"
            class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
             <span class="material-symbols-outlined text-[19px]"
                   th:classappend="${webModuloAtivo == 'horarios'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">calendar_month</span>
-            Horários
+            O meu horário
             <span th:if="${webModuloAtivo == 'horarios'}"
                   class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
-        </a>
-        <a href="/web/complementares"
-           th:if="${webPermissoes != null && webPermissoes.podeVerComplementares()}"
-           th:classappend="${webModuloAtivo == 'complementares'} ? 'nav-active' : 'text-white/40'"
-           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
-            <span class="material-symbols-outlined text-[19px]"
-                  th:classappend="${webModuloAtivo == 'complementares'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">mark_as_unread</span>
-            Pedidos
-            <span th:if="${webPermissoes.podeAprovarAlgumComplementar() && (totalPendenciasComplementares ?: 0) > 0}"
-                  class="ml-auto font-body font-bold text-[10px] px-1.5 py-0.5 rounded-full text-white shrink-0"
-                  style="background:#c0001f;min-width:18px;text-align:center"
-                  th:text="${totalPendenciasComplementares ?: 0}">0</span>
         </a>
         <a href="/web/relatorios"
            th:if="${webPermissoes != null && webPermissoes.podeVerRelatorios()}"
@@ -257,6 +235,14 @@
                 <span class="material-symbols-outlined text-[19px]"
                       th:classappend="${webModuloAtivo == 'equipa'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">groups</span>
                 Funcionários
+            </a>
+            <a href="/web/auditoria"
+               th:if="${webPermissoes != null && webPermissoes.podeVerAuditoria()}"
+               th:classappend="${webModuloAtivo == 'auditoria'} ? 'nav-active' : 'text-white/40'"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
+                <span class="material-symbols-outlined text-[19px]"
+                      th:classappend="${webModuloAtivo == 'auditoria'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">shield</span>
+                Auditoria
             </a>
         </div>
 

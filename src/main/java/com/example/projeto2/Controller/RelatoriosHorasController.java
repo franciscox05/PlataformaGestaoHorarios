@@ -1,5 +1,6 @@
 package com.example.projeto2.Controller;
 
+import com.example.projeto2.BLL.ExportacaoPdfBLL;
 import com.example.projeto2.BLL.RelatorioHorasBLL;
 import com.example.projeto2.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
@@ -47,6 +48,9 @@ public class RelatoriosHorasController {
     private Button btnExportarCsv;
 
     @FXML
+    private Button btnExportarPdf;
+
+    @FXML
     private Label lblFeedback;
 
     @FXML
@@ -80,20 +84,34 @@ public class RelatoriosHorasController {
     private TableColumn<RelatorioHorasBLL.RelatorioLinha, String> colHoras;
 
     private final RelatorioHorasBLL relatorioHorasBLL;
+    private final ExportacaoPdfBLL exportacaoPdfBLL;
 
     private Utilizador utilizadorLogado;
     private RelatorioHorasBLL.RelatorioResultado ultimoResultado;
 
-    public RelatoriosHorasController(RelatorioHorasBLL relatorioHorasBLL) {
+    public RelatoriosHorasController(RelatorioHorasBLL relatorioHorasBLL,
+                                     ExportacaoPdfBLL exportacaoPdfBLL) {
         this.relatorioHorasBLL = relatorioHorasBLL;
+        this.exportacaoPdfBLL = exportacaoPdfBLL;
     }
 
     @FXML
     public void initialize() {
         configurarTabela();
         configurarFiltrosBase();
-        tabelaRelatorio.setPlaceholder(new Label("Ainda não existem dados para os filtros selecionados."));
+        tabelaRelatorio.setPlaceholder(new Label("Seleciona os filtros e clica em \"Gerar Relatório\" para ver os dados."));
         btnExportarCsv.setDisable(true);
+        if (btnExportarCsv.getTooltip() == null) {
+            javafx.scene.control.Tooltip ttCsv = new javafx.scene.control.Tooltip("Gera o relatório primeiro para exportar");
+            javafx.scene.control.Tooltip.install(btnExportarCsv, ttCsv);
+        }
+        if (btnExportarPdf != null) {
+            btnExportarPdf.setDisable(true);
+            if (btnExportarPdf.getTooltip() == null) {
+                javafx.scene.control.Tooltip ttPdf = new javafx.scene.control.Tooltip("Gera o relatório primeiro para exportar");
+                javafx.scene.control.Tooltip.install(btnExportarPdf, ttPdf);
+            }
+        }
         esconderFeedback();
     }
 
@@ -111,12 +129,46 @@ public class RelatoriosHorasController {
             cbColaborador.setDisable(true);
             btnGerarRelatorio.setDisable(true);
             btnExportarCsv.setDisable(true);
+            if (btnExportarPdf != null) btnExportarPdf.setDisable(true);
         }
     }
 
     @FXML
     public void onGerarRelatorioClick() {
         gerarRelatorio();
+    }
+
+    @FXML
+    public void onExportarPdfClick() {
+        if (ultimoResultado == null || ultimoResultado.linhas().isEmpty()) {
+            mostrarFeedback("Gera primeiro um relatório com dados para exportar.", false);
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar relatório de horas para PDF");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF", "*.pdf"));
+        fileChooser.setInitialFileName(
+                "relatorio-horas-" + ultimoResultado.ano()
+                + "-" + ultimoResultado.nomeMes().toLowerCase() + ".pdf");
+
+        java.io.File ficheiro = fileChooser.showSaveDialog(
+                btnExportarPdf.getScene() != null ? btnExportarPdf.getScene().getWindow() : null);
+        if (ficheiro == null) return;
+
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(ficheiro)) {
+            exportacaoPdfBLL.exportarRelatorioPdf(
+                    fos,
+                    ultimoResultado.nomeLoja(),
+                    ultimoResultado.nomeMes() + " " + ultimoResultado.ano(),
+                    ultimoResultado.ano(),
+                    ultimoResultado.linhas(),
+                    ultimoResultado.resumo()
+            );
+            mostrarFeedback("PDF exportado com sucesso.", true);
+        } catch (IOException e) {
+            mostrarFeedback("Não foi possível exportar o ficheiro PDF.", false);
+        }
     }
 
     @FXML
@@ -251,17 +303,29 @@ public class RelatoriosHorasController {
 
             tabelaRelatorio.setItems(FXCollections.observableArrayList(ultimoResultado.linhas()));
             atualizarResumo(ultimoResultado);
-            btnExportarCsv.setDisable(ultimoResultado.linhas().isEmpty());
+            boolean temDados = !ultimoResultado.linhas().isEmpty();
+            btnExportarCsv.setDisable(!temDados);
+            if (btnExportarCsv.getTooltip() != null) {
+                btnExportarCsv.getTooltip().setText(temDados ? "Exportar tabela em formato CSV" : "Sem dados para exportar");
+            }
+            if (btnExportarPdf != null) {
+                btnExportarPdf.setDisable(!temDados);
+                if (btnExportarPdf.getTooltip() != null) {
+                    btnExportarPdf.getTooltip().setText(temDados ? "Exportar relatório em PDF" : "Sem dados para exportar");
+                }
+            }
             mostrarFeedback("Relatório gerado com sucesso.", true);
         } catch (IllegalArgumentException e) {
             tabelaRelatorio.setItems(FXCollections.observableArrayList());
             limparResumo();
             btnExportarCsv.setDisable(true);
+        if (btnExportarPdf != null) btnExportarPdf.setDisable(true);
             mostrarFeedback(e.getMessage(), false);
         } catch (Exception e) {
             tabelaRelatorio.setItems(FXCollections.observableArrayList());
             limparResumo();
             btnExportarCsv.setDisable(true);
+        if (btnExportarPdf != null) btnExportarPdf.setDisable(true);
             mostrarFeedback("Não foi possível gerar o relatório.", false);
         }
     }
@@ -289,6 +353,7 @@ public class RelatoriosHorasController {
         tabelaRelatorio.setItems(FXCollections.observableArrayList());
         limparResumo();
         btnExportarCsv.setDisable(true);
+        if (btnExportarPdf != null) btnExportarPdf.setDisable(true);
         esconderFeedback();
     }
 

@@ -279,6 +279,20 @@ public class WebComplementaresController {
         return "redirect:/web/complementares";
     }
 
+    @PostMapping("/preferencias/{idPreferencia}/remover")
+    public String removerPreferencia(@PathVariable("idPreferencia") Integer idPreferencia,
+                                     HttpSession session,
+                                     RedirectAttributes redirectAttributes) {
+        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+        try {
+            preferenciaBLL.removerPreferencia(utilizadorId, idPreferencia);
+            redirectAttributes.addFlashAttribute("sucesso", "Preferencia removida com sucesso.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+        return "redirect:/web/complementares";
+    }
+
     private LocalDate parseData(String valor, String nomeCampo) {
         try {
             return LocalDate.parse(valor);

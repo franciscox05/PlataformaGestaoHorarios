@@ -75,6 +75,17 @@ public class PreferenciaBLL {
     }
 
     @Transactional(readOnly = true)
+    public int contarPendentesParaAprovacao(Integer idUtilizador) {
+        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
+                .filter(lu -> lu.getIdCargo() != null
+                        && lu.getIdCargo().getTipo() != null
+                        && CARGOS_COM_APROVACAO.contains(lu.getIdCargo().getTipo().toLowerCase()))
+                .map(lu -> (int) preferenciaRepository.countPreferenciasPendentesDaLoja(
+                        lu.getIdLoja().getId(), idUtilizador))
+                .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
     public List<Preferencia> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
         validarPermissaoAprovacao(ligacaoAtiva);

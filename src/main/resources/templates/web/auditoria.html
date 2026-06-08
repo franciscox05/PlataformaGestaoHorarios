@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Auditoria — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<header th:replace="~{web/fragments :: shellHeader}"></header>
+
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[72rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-5">
+
+    <!-- ── Header ── -->
+    <div class="fade-up flex items-start justify-between gap-4 flex-wrap">
+        <div>
+            <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">Auditoria e Segurança</h1>
+            <p class="font-body text-[14px] text-on-surface-variant mt-1">
+                Registo de autenticações, alterações sensíveis e eventos da tua loja.</p>
+        </div>
+    </div>
+
+    <!-- Feedback -->
+    <div th:if="${erro}" class="fade-up flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3.5 rounded-xl font-body text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">error_outline</span><span th:text="${erro}"></span>
+    </div>
+
+    <!-- ── Resumo ── -->
+    <div th:if="${resumo != null}" class="fade-up grid grid-cols-2 md:grid-cols-4 gap-4">
+
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col items-center gap-2 text-center"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <span class="material-symbols-outlined text-[28px] text-primary/60">event_note</span>
+            <span class="font-display font-bold text-[28px] text-on-surface" th:text="${resumo.totalEventos()}">0</span>
+            <span class="font-body text-[11px] uppercase tracking-wider text-on-surface-variant">Eventos</span>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col items-center gap-2 text-center"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <span class="material-symbols-outlined text-[28px] text-error/60">warning</span>
+            <span class="font-display font-bold text-[28px] text-on-surface" th:text="${resumo.totalFalhas()}">0</span>
+            <span class="font-body text-[11px] uppercase tracking-wider text-on-surface-variant">Falhas</span>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col items-center gap-2 text-center"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <span class="material-symbols-outlined text-[28px] text-green-600/60">lock</span>
+            <span class="font-display font-bold text-[28px] text-on-surface" th:text="${resumo.totalAutenticacoes()}">0</span>
+            <span class="font-body text-[11px] uppercase tracking-wider text-on-surface-variant">Autenticações</span>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col items-center gap-2 text-center"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <span class="material-symbols-outlined text-[28px] text-amber-500/60">edit_note</span>
+            <span class="font-display font-bold text-[28px] text-on-surface" th:text="${resumo.totalAlteracoesSensiveis()}">0</span>
+            <span class="font-body text-[11px] uppercase tracking-wider text-on-surface-variant">Sensíveis</span>
+        </div>
+
+    </div>
+
+    <!-- ── Filtros ── -->
+    <section th:if="${contexto != null}"
+             class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+        <form method="get" action="/web/auditoria" class="flex flex-wrap items-end gap-3">
+
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="tipo">Tipo de evento</label>
+                <select id="tipo" name="tipo"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[160px]">
+                    <option value="">Todos os tipos</option>
+                    <option th:each="t : ${contexto.tiposEvento()}"
+                            th:value="${t.codigo()}"
+                            th:text="${t.etiqueta()}"
+                            th:selected="${t.codigo() == filtroTipo}">Tipo</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="colaborador">Colaborador</label>
+                <select id="colaborador" name="colaborador"
+                        class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[200px]">
+                    <option value="">Todos os colaboradores</option>
+                    <option th:each="u : ${contexto.utilizadores()}"
+                            th:value="${u.id()}"
+                            th:text="${u.nome()}"
+                            th:selected="${u.id() == filtroColaborador}">Colaborador</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="dataInicio">Data início</label>
+                <input type="date" id="dataInicio" name="dataInicio"
+                       th:value="${filtroDataInicio}"
+                       class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="dataFim">Data fim</label>
+                <input type="date" id="dataFim" name="dataFim"
+                       th:value="${filtroDataFim}"
+                       class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" />
+            </div>
+
+            <button type="submit"
+                    class="flex items-center gap-2 bg-primary text-on-primary font-body font-bold text-[13px] px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity">
+                <span class="material-symbols-outlined text-[16px]">search</span>
+                Filtrar
+            </button>
+            <a href="/web/auditoria"
+               class="flex items-center gap-2 bg-surface-container text-on-surface font-body font-bold text-[13px] px-4 py-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high transition-colors">
+                <span class="material-symbols-outlined text-[16px]">refresh</span>
+                Limpar
+            </a>
+        </form>
+    </section>
+
+    <!-- ── Lista de eventos ── -->
+    <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+
+        <div class="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/25">
+            <span class="material-symbols-outlined text-[20px] text-primary">history</span>
+            <h2 class="font-display font-bold text-[17px] text-on-surface">Histórico de eventos</h2>
+            <span th:if="${eventos != null && !#lists.isEmpty(eventos)}"
+                  class="ml-auto inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full badge-neu"
+                  th:text="${#lists.size(eventos)} + ' evento(s)'">0 eventos</span>
+        </div>
+
+        <!-- Sem eventos -->
+        <div th:if="${eventos == null || #lists.isEmpty(eventos)}"
+             class="flex flex-col items-center gap-4 px-6 py-14 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-[32px] text-outline/40">shield</span>
+            </div>
+            <p class="font-display font-bold text-[18px] text-on-surface">Sem eventos registados</p>
+            <p class="font-body text-[13px] text-on-surface-variant max-w-sm">
+                Nenhum evento corresponde aos filtros selecionados. Ajusta os critérios de pesquisa.
+            </p>
+        </div>
+
+        <!-- Tabela -->
+        <div th:if="${eventos != null && !#lists.isEmpty(eventos)}" class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-surface-container-low">
+                    <tr>
+                        <th class="text-left px-5 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data/Hora</th>
+                        <th class="text-left px-5 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
+                        <th class="text-left px-5 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Resultado</th>
+                        <th class="text-left px-5 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colaborador</th>
+                        <th class="text-left px-5 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Origem</th>
+                        <th class="text-left px-5 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/20">
+                    <tr th:each="ev : ${eventos}" class="hover:bg-surface-container-low/60 transition-colors">
+                        <td class="px-5 py-3 font-body text-[12px] text-on-surface whitespace-nowrap"
+                            th:text="${ev.dataHora()}">-</td>
+                        <td class="px-5 py-3">
+                            <span class="inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-2 py-1 rounded-full badge-neu"
+                                  th:text="${ev.tipoEvento()}">-</span>
+                        </td>
+                        <td class="px-5 py-3">
+                            <span class="inline-flex items-center font-body font-semibold text-[10px] uppercase tracking-wider px-2 py-1 rounded-full"
+                                  th:classappend="${#strings.toLowerCase(ev.resultado()).contains('sucesso')} ? 'badge-ok' : 'badge-err'"
+                                  th:text="${ev.resultado()}">-</span>
+                        </td>
+                        <td class="px-5 py-3 font-body text-[12px] text-on-surface"
+                            th:text="${ev.colaborador()}">-</td>
+                        <td class="px-5 py-3 font-body text-[12px] text-on-surface-variant"
+                            th:text="${ev.origem()}">-</td>
+                        <td class="px-5 py-3 font-body text-[12px] text-on-surface-variant max-w-xs truncate"
+                            th:text="${ev.detalhes()}"
+                            th:title="${ev.detalhes()}">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+</main>
+
+</body>
+</html>

@@ -1,5 +1,6 @@
 package com.example.projeto2.Controller;
 
+import com.example.projeto2.BLL.PerfilBLL;
 import com.example.projeto2.BLL.UtilizadorBLL;
 import com.example.projeto2.Modules.Utilizador;
 import com.example.projeto2.UIConstants;
@@ -8,9 +9,13 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCombination;
@@ -45,10 +50,14 @@ public class LoginController {
     private Label lblErro;
 
     private final UtilizadorBLL userBll;
+    private final PerfilBLL perfilBLL;
     private final ApplicationContext applicationContext;
 
-    public LoginController(UtilizadorBLL userBll, ApplicationContext applicationContext) {
+    public LoginController(UtilizadorBLL userBll,
+                           PerfilBLL perfilBLL,
+                           ApplicationContext applicationContext) {
         this.userBll = userBll;
+        this.perfilBLL = perfilBLL;
         this.applicationContext = applicationContext;
     }
 
@@ -103,6 +112,62 @@ public class LoginController {
             txtPasswordVisible.setVisible(false);
             mudarIconeBotao("olho-aberto.png");
         }
+    }
+
+    @FXML
+    public void onEsqueciPasswordClick() {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Recuperar palavra-passe");
+        dialog.setHeaderText("Indica o teu email e define uma nova palavra-passe.");
+
+        ButtonType btnConfirmar = new ButtonType("Confirmar", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnCancelar = new ButtonType("Cancelar", javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnConfirmar, btnCancelar);
+
+        TextField tfEmail = new TextField();
+        tfEmail.setPromptText("O teu email de acesso");
+        PasswordField pfNova = new PasswordField();
+        pfNova.setPromptText("Nova palavra-passe (mín. 6 caracteres)");
+        PasswordField pfConfirma = new PasswordField();
+        pfConfirma.setPromptText("Confirmar nova palavra-passe");
+        Label lblDialogErro = new Label();
+        lblDialogErro.setStyle("-fx-text-fill: #c9141e; -fx-font-size: 11px;");
+        lblDialogErro.setWrapText(true);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(8);
+        grid.add(new Label("Email:"), 0, 0);
+        grid.add(tfEmail, 1, 0);
+        grid.add(new Label("Nova password:"), 0, 1);
+        grid.add(pfNova, 1, 1);
+        grid.add(new Label("Confirmar:"), 0, 2);
+        grid.add(pfConfirma, 1, 2);
+
+        VBox conteudo = new VBox(10, grid, lblDialogErro);
+        conteudo.setPrefWidth(360);
+        dialog.getDialogPane().setContent(conteudo);
+
+        javafx.scene.Node botaoConfirmar = dialog.getDialogPane().lookupButton(btnConfirmar);
+        botaoConfirmar.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            lblDialogErro.setText("");
+            try {
+                perfilBLL.redefinirPassword(
+                        tfEmail.getText(),
+                        pfNova.getText(),
+                        pfConfirma.getText());
+            } catch (IllegalArgumentException e) {
+                lblDialogErro.setText(e.getMessage());
+                event.consume();
+            }
+        });
+
+        dialog.initOwner(txtEmail.getScene() != null ? txtEmail.getScene().getWindow() : null);
+        dialog.showAndWait().ifPresent(resultado -> {
+            if (resultado == btnConfirmar) {
+                mostrarErro("Palavra-passe redefinida com sucesso. Inicia sessão com a nova password.");
+            }
+        });
     }
 
     @FXML

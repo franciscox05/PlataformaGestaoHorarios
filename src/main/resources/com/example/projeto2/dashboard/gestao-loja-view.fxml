@@ -6,6 +6,8 @@
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
@@ -16,43 +18,35 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.SVGPath?>
 
-<ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
-            styleClass="conteudo-scroll"
-            stylesheets="@dashboard.css"
-            xmlns="http://javafx.com/javafx/21"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.example.projeto2.Controller.GestaoLojaController">
-    <content>
-        <VBox spacing="0" styleClass="conteudo-pagina">
+<VBox styleClass="conteudo-pagina, modulo-com-abas"
+      stylesheets="@dashboard.css"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.projeto2.Controller.GestaoLojaController">
 
             <!-- ══════════════════════════════════════════════
                  BANNER DE TOPO — LOJA
             ══════════════════════════════════════════════ -->
-            <StackPane styleClass="page-banner, page-banner-loja">
-                <VBox spacing="6.0" StackPane.alignment="BOTTOM_LEFT">
-                    <StackPane.margin>
-                        <Insets bottom="36.0" left="40.0" right="40.0" top="40.0" />
-                    </StackPane.margin>
-                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <StackPane styleClass="icon-badge-white-lg" minWidth="32.0" minHeight="32.0">
-                            <SVGPath fill="rgba(255,255,255,0.85)"
-                                     content="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
-                                     styleClass="banner-icon-sm" />
-                        </StackPane>
-                        <Label styleClass="hero-chip" text="&#11044; CONFIGURA&#199;&#195;O DA LOJA" />
-                    </HBox>
-                    <Label styleClass="page-banner-title" text="Loja e regras" />
-                    <Label styleClass="page-banner-subtitle"
-                           text="Atualiza o hor&#225;rio da loja, ajusta as regras base do planeamento e define exce&#231;&#245;es por data."
-                           wrapText="true" />
-                </VBox>
-            </StackPane>
+            <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-loja"
+                  style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #065f46 0%, #022c22 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
+                <padding><Insets bottom="36.0" left="48.0" right="48.0" top="36.0" /></padding>
+                <Label styleClass="modulo-titulo" text="Loja e regras" />
+                <Label styleClass="modulo-subtitulo"
+                       text="Atualiza o hor&#225;rio da loja, ajusta as regras base do planeamento e define exce&#231;&#245;es por data."
+                       wrapText="true" />
+            </VBox>
 
             <!-- ══════════════════════════════════════════════
                  CORPO — BENTO LAYOUT
             ══════════════════════════════════════════════ -->
-            <VBox spacing="32.0">
-                <padding><Insets bottom="48.0" left="40.0" right="40.0" top="40.0" /></padding>
+            <TabPane styleClass="modulo-tabs" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+                <tabs>
+                    <Tab text="Configuração">
+                        <content>
+                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="conteudo-scroll">
+                                <content>
+                                    <VBox spacing="20.0" styleClass="aba-conteudo">
+                                        <padding><Insets top="24.0" right="40.0" bottom="44.0" left="40.0" /></padding>
 
                 <!-- BENTO ROW: Contexto + Horário -->
                 <HBox spacing="20.0">
@@ -61,7 +55,7 @@
                     <VBox spacing="16.0" styleClass="bento-card" HBox.hgrow="ALWAYS">
                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                             <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
-                                <SVGPath fill="#c41230"
+                                <SVGPath fill="#c91428"
                                          content="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
                                          styleClass="card-icon" />
                             </StackPane>
@@ -136,12 +130,25 @@
                     <VBox fx:id="regrasContainer" spacing="32.0" />
                 </VBox>
 
+                                    </VBox>
+                                </content>
+                            </ScrollPane>
+                        </content>
+                    </Tab>
+
+                    <Tab text="Exceções">
+                        <content>
+                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="conteudo-scroll">
+                                <content>
+                                    <VBox spacing="20.0" styleClass="aba-conteudo">
+                                        <padding><Insets top="24.0" right="40.0" bottom="44.0" left="40.0" /></padding>
+
                 <!-- ─── EXCEÇÕES POR DATA ─── -->
                 <VBox spacing="16.0" styleClass="bento-card">
 
                     <HBox alignment="CENTER_LEFT" spacing="12.0">
                         <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
-                            <SVGPath fill="#c41230"
+                            <SVGPath fill="#c91428"
                                      content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zm-7-8.5c-2.33 0-7 1.17-7 3.5V17h14v-2c0-2.33-4.67-3.5-7-3.5zm0-1c1.38 0 2.5-1.12 2.5-2.5S13.38 6 12 6 9.5 7.12 9.5 8.5 10.62 11 12 11z"
                                      styleClass="card-icon" />
                         </StackPane>
@@ -250,7 +257,12 @@
                     </TableView>
 
                 </VBox>
-            </VBox>
-        </VBox>
-    </content>
-</ScrollPane>
+                                    </VBox>
+                                </content>
+                            </ScrollPane>
+                        </content>
+                    </Tab>
+                </tabs>
+            </TabPane>
+
+</VBox>

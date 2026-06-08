@@ -55,33 +55,18 @@ class WebFluxosCriticosE2ETest extends FluxosCriticosTestSupport {
                         .param("email", gerente.getEmail())
                         .param("password", "Gestor123"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/web/painel"))
+                .andExpect(redirectedUrl("/web/horarios"))
                 .andReturn();
 
         MockHttpSession sessao = (MockHttpSession) login.getRequest().getSession(false);
         assertNotNull(sessao);
         assertNotNull(sessao.getAttribute(WebSession.UTILIZADOR_ID));
 
-        mockMvc.perform(get("/web/painel").session(sessao))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/web/horarios/gerar")
-                        .session(sessao)
-                        .param("ano", String.valueOf(fixture.referencia().getYear()))
-                        .param("mes", String.valueOf(fixture.referencia().getMonthValue())))
-                .andExpect(status().is3xxRedirection());
-
         mockMvc.perform(get("/web/horarios")
                         .session(sessao)
                         .param("ano", String.valueOf(fixture.referencia().getYear()))
                         .param("mes", String.valueOf(fixture.referencia().getMonthValue())))
                 .andExpect(status().isOk());
-
-        assertFalse(geracaoHorariosBLL.listarPropostas(
-                gerente.getId(),
-                fixture.referencia().getYear(),
-                fixture.referencia().getMonthValue()
-        ).isEmpty());
     }
 
     @Test

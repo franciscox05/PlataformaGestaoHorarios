@@ -54,6 +54,15 @@ public class GestaoLojaBLL {
     }
 
     @Transactional(readOnly = true)
+    public String obterNomeCargo(Integer idUtilizador) {
+        if (idUtilizador == null) return null;
+        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
+                .map(Lojautilizador::getIdCargo)
+                .map(cargo -> cargo.getNome() != null ? cargo.getNome() : cargo.getTipo())
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
     public boolean utilizadorPodeGerirLoja(Integer idUtilizador) {
         if (idUtilizador == null) {
             return false;

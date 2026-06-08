@@ -213,6 +213,58 @@ public class PerfilBLL {
         return utilizadorAtualizado;
     }
 
+    @Transactional
+    public void redefinirPassword(String email, String novaPassword, String confirmarPassword) {
+        String emailNorm = normalizarTexto(email);
+        if (emailNorm == null) {
+            throw new IllegalArgumentException("Indica o teu email.");
+        }
+
+        Utilizador utilizador = utilizadorRepository.findByEmailIgnoreCase(emailNorm)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Nao foi encontrada nenhuma conta com esse email."));
+
+        String novaNorm = normalizarTexto(novaPassword);
+        String confirmaNorm = normalizarTexto(confirmarPassword);
+
+        if (novaNorm == null || confirmaNorm == null) {
+            throw new IllegalArgumentException("Preenche todos os campos.");
+        }
+
+        segurancaBLL.validarPasswordNova(novaNorm);
+
+        if (!novaNorm.equals(confirmaNorm)) {
+            throw new IllegalArgumentException("As passwords nao coincidem.");
+        }
+
+        utilizador.setPasswordHash(segurancaBLL.gerarHash(novaNorm));
+        utilizadorRepository.save(utilizador);
+    }
+
+    @Transactional
+    public void redefinirPasswordPorGerente(Integer idGerente, Integer idColaborador,
+                                            String novaPassword, String confirmarPassword) {
+        Utilizador gerente = obterUtilizadorPersistido(idGerente);
+        Utilizador colaborador = obterUtilizadorPersistido(idColaborador);
+
+        String novaNorm = normalizarTexto(novaPassword);
+        String confirmaNorm = normalizarTexto(confirmarPassword);
+
+        if (novaNorm == null || confirmaNorm == null) {
+            throw new IllegalArgumentException("Preenche todos os campos.");
+        }
+
+        segurancaBLL.validarPasswordNova(novaNorm);
+
+        if (!novaNorm.equals(confirmaNorm)) {
+            throw new IllegalArgumentException("As passwords nao coincidem.");
+        }
+
+        colaborador.setPasswordHash(segurancaBLL.gerarHash(novaNorm));
+        utilizadorRepository.save(colaborador);
+        auditoriaBLL.registarAlteracaoPassword(gerente, "reset-gerente-" + gerente.getId());
+    }
+
     private long calcularDuracaoEmMinutos(Turno turno) {
         if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null) {
             return 0;

@@ -76,7 +76,10 @@ public class DayOffBLL {
             pedido.setMotivo(null);
         }
 
-        validarAntecedenciaMinimaDoTurno(pedido.getIdUtilizador().getId(), pedido.getDataAusencia());
+        // Ausências urgentes (emergências) são aceites sem antecedência mínima
+        if (!"urgente".equalsIgnoreCase(pedido.getTipo())) {
+            validarAntecedenciaMinimaDoTurno(pedido.getIdUtilizador().getId(), pedido.getDataAusencia());
+        }
 
         pedido.setEstado("pendente");
 
@@ -116,6 +119,17 @@ public class DayOffBLL {
     }
 
     @Transactional(readOnly = true)
+    public int contarPendentesParaAprovacao(Integer idUtilizador) {
+        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
+                .filter(lu -> lu.getIdCargo() != null
+                        && lu.getIdCargo().getTipo() != null
+                        && CARGOS_COM_APROVACAO.contains(lu.getIdCargo().getTipo().toLowerCase()))
+                .map(lu -> (int) dayOffRepository.countPedidosPendentesDaLoja(
+                        lu.getIdLoja().getId(), idUtilizador))
+                .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
     public Map<Integer, String> listarNomesUtilizadores(Collection<Integer> idsUtilizadores) {
         if (idsUtilizadores == null || idsUtilizadores.isEmpty()) {
             return Map.of();
@@ -123,6 +137,30 @@ public class DayOffBLL {
 
         return utilizadorRepository.findAllById(idsUtilizadores).stream()
                 .collect(Collectors.toMap(Utilizador::getId, Utilizador::getNome, (nome1, nome2) -> nome1));
+    }
+
+    @Transactional
+    public void cancelarPedidoProprio(Integer idDayOff, Integer idUtilizador) {
+        if (idDayOff == null) {
+            throw new IllegalArgumentException("O pedido selecionado e obrigatorio.");
+        }
+        if (idUtilizador == null) {
+            throw new IllegalArgumentException("O utilizador e obrigatorio.");
+        }
+
+        DayOff pedido = dayOffRepository.findById(idDayOff)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido de folga nao encontrado."));
+
+        if (!idUtilizador.equals(pedido.getIdUtilizador().getId())) {
+            throw new IllegalArgumentException("Nao podes cancelar um pedido que nao e teu.");
+        }
+
+        if (!"pendente".equalsIgnoreCase(pedido.getEstado())) {
+            throw new IllegalArgumentException("So e possivel cancelar pedidos pendentes.");
+        }
+
+        pedido.setEstado("cancelado");
+        dayOffRepository.save(pedido);
     }
 
     @Transactional
@@ -248,5 +286,65 @@ public class DayOffBLL {
         if (tipoCargo == null || !CARGOS_COM_APROVACAO.contains(tipoCargo.toLowerCase())) {
             throw new IllegalArgumentException("Este utilizador nao tem permissao para aprovar folgas.");
         }
+    }
+
+    /**
+     * Resultado enriquecido da aprovação de uma folga, com aviso de cobertura.
+     * Usado quando o gestor aprova uma ausência e precisa de saber o impacto na equipa.
+     */
+    public record ResultadoAprovacaoFolga(
+            DayOff pedido,
+            boolean temAvisoCobertura,
+            String avisoCobertura,
+            int trabalhadoresRestantesNoTurno
+    ) {}
+
+    /**
+     * Aprova um pedido de folga e devolve o resultado com informação de impacto de cobertura.
+     * Útil para ausências urgentes em que o gestor precisa de agir rapidamente.
+     */
+    @Transactional
+    public ResultadoAprovacaoFolga aprovarPedidoFolgaComCobertura(Integer idDayOff, Integer idUtilizadorAprovador) {
+        DayOff pedidoAprovado = aprovarPedidoFolga(idDayOff, idUtilizadorAprovador);
+
+        // Calcular cobertura restante no turno do colaborador nesse dia
+        int trabalhadoresRestantes = 0;
+        String aviso = null;
+        try {
+            List<Horario> turnosDoDia = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                    pedidoAprovado.getIdUtilizador().getId(),
+                    pedidoAprovado.getDataAusencia(),
+                    pedidoAprovado.getDataAusencia()
+            );
+            // Contar trabalhadores restantes na loja nesse dia (após a ausência)
+            Lojautilizador ligacao = obterLigacaoAtiva(idUtilizadorAprovador);
+            List<com.example.projeto2.Modules.Horario> todosNoDia = horarioRepository.findHorariosDaLojaNoDia(
+                    ligacao.getIdLoja().getId(),
+                    pedidoAprovado.getDataAusencia()
+            );
+            // Excluir o colaborador ausente
+            Integer idAusente = pedidoAprovado.getIdUtilizador().getId();
+            trabalhadoresRestantes = (int) todosNoDia.stream()
+                    .filter(h -> h.getIdLojautilizador() != null
+                            && h.getIdLojautilizador().getIdUtilizador() != null
+                            && !idAusente.equals(h.getIdLojautilizador().getIdUtilizador().getId()))
+                    .count();
+
+            if (trabalhadoresRestantes == 0) {
+                aviso = "⚠️ ATENÇÃO: Não ficam trabalhadores escalados para " + pedidoAprovado.getDataAusencia() + ". Reatribui um turno urgentemente.";
+            } else if (trabalhadoresRestantes == 1) {
+                aviso = "⚠️ Apenas 1 trabalhador fica escalado em " + pedidoAprovado.getDataAusencia() + ". Considera reforçar a equipa.";
+            }
+        } catch (Exception e) {
+            // Falha na análise de cobertura não deve impedir a aprovação
+            aviso = "Não foi possível calcular o impacto de cobertura.";
+        }
+
+        return new ResultadoAprovacaoFolga(
+                pedidoAprovado,
+                aviso != null,
+                aviso != null ? aviso : "Cobertura mantida (" + trabalhadoresRestantes + " trabalhador(es) escalado(s)).",
+                trabalhadoresRestantes
+        );
     }
 }

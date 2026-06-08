@@ -1,5 +1,6 @@
 package com.example.projeto2.WEB;
 
+import com.example.projeto2.BLL.AuditoriaBLL;
 import com.example.projeto2.BLL.DayOffBLL;
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
 import com.example.projeto2.BLL.GestaoLojaBLL;
@@ -28,6 +29,7 @@ public class WebAppService {
     private final DayOffBLL dayOffBLL;
     private final PreferenciaBLL preferenciaBLL;
     private final PermutaBLL permutaBLL;
+    private final AuditoriaBLL auditoriaBLL;
 
     public WebAppService(UtilizadorRepository utilizadorRepository,
                          LojautilizadorRepository lojautilizadorRepository,
@@ -36,7 +38,8 @@ public class WebAppService {
                          RelatorioHorasBLL relatorioHorasBLL,
                          DayOffBLL dayOffBLL,
                          PreferenciaBLL preferenciaBLL,
-                         PermutaBLL permutaBLL) {
+                         PermutaBLL permutaBLL,
+                         AuditoriaBLL auditoriaBLL) {
         this.utilizadorRepository = utilizadorRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.geracaoHorariosBLL = geracaoHorariosBLL;
@@ -45,6 +48,7 @@ public class WebAppService {
         this.dayOffBLL = dayOffBLL;
         this.preferenciaBLL = preferenciaBLL;
         this.permutaBLL = permutaBLL;
+        this.auditoriaBLL = auditoriaBLL;
     }
 
     public Integer obterUtilizadorId(HttpSession session) {
@@ -97,7 +101,9 @@ public class WebAppService {
                 dayOffBLL.utilizadorPodeAprovarFolgas(idUtilizador),
                 preferenciaBLL.utilizadorPodeAprovarPreferencias(idUtilizador),
                 permutaBLL.utilizadorPodeAprovarPermutas(idUtilizador),
-                geracaoHorariosBLL.utilizadorPodeValidarHorarios(idUtilizador)
+                geracaoHorariosBLL.utilizadorPodeValidarHorarios(idUtilizador),
+                geracaoHorariosBLL.utilizadorPodeGerarHorarios(idUtilizador),
+                auditoriaBLL.utilizadorPodeConsultarAuditoria(idUtilizador)
         );
     }
 
@@ -141,10 +147,12 @@ public class WebAppService {
             boolean podeAprovarFolgas,
             boolean podeAprovarPreferencias,
             boolean podeAprovarPermutas,
-            boolean podeValidarHorarios
+            boolean podeValidarHorarios,
+            boolean podeGerarHorarios,
+            boolean podeVerAuditoria
     ) {
         static WebPermissoes semAcesso() {
-            return new WebPermissoes(false, false, false, false, false, false, false, false);
+            return new WebPermissoes(false, false, false, false, false, false, false, false, false, false);
         }
 
         public boolean podeAprovarAlgumComplementar() {

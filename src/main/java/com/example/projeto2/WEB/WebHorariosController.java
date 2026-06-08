@@ -1,7 +1,11 @@
 package com.example.projeto2.WEB;
 
 import com.example.projeto2.BLL.GeracaoHorariosBLL;
+import com.example.projeto2.Modules.Horario;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,11 +24,14 @@ public class WebHorariosController {
 
     private final GeracaoHorariosBLL geracaoHorariosBLL;
     private final WebAppService webAppService;
+    private final WebPdfService webPdfService;
 
     public WebHorariosController(GeracaoHorariosBLL geracaoHorariosBLL,
-                                 WebAppService webAppService) {
+                                 WebAppService webAppService,
+                                 WebPdfService webPdfService) {
         this.geracaoHorariosBLL = geracaoHorariosBLL;
         this.webAppService = webAppService;
+        this.webPdfService = webPdfService;
     }
 
     @GetMapping
@@ -41,86 +48,91 @@ public class WebHorariosController {
 
         model.addAttribute("ano", anoConsulta);
         model.addAttribute("mes", mesConsulta);
+        model.addAttribute("hoje", hoje);
         model.addAttribute("meses", MesWebOption.todos());
         model.addAttribute("anos", MesWebOption.anosProximos(hoje.getYear(), 2));
 
         try {
-            GeracaoHorariosBLL.GeracaoContexto contexto = geracaoHorariosBLL.obterContexto(utilizadorId);
-            GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.obterPlaneamento(utilizadorId, anoConsulta, mesConsulta);
-            List<GeracaoHorariosBLL.PropostaResumo> propostas = geracaoHorariosBLL.listarPropostas(utilizadorId, anoConsulta, mesConsulta);
-
-            model.addAttribute("contexto", contexto);
-            model.addAttribute("proposta", proposta);
-            model.addAttribute("propostas", propostas);
-            model.addAttribute("podeGerar", contexto.podeGerar());
-            model.addAttribute("podeValidar", contexto.podeValidar());
+            List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, anoConsulta, mesConsulta);
+            model.addAttribute("turnos", turnos);
         } catch (IllegalArgumentException ex) {
             model.addAttribute("erro", ex.getMessage());
-            model.addAttribute("podeGerar", false);
-            model.addAttribute("podeValidar", false);
+            model.addAttribute("turnos", List.of());
+        }
+
+        // Carrega propostas mensais para gerentes/subgerentes
+        if (geracaoHorariosBLL.utilizadorPodeGerarHorarios(utilizadorId)) {
+            try {
+                List<GeracaoHorariosBLL.PropostaResumo> propostas =
+                        geracaoHorariosBLL.listarPropostas(utilizadorId, anoConsulta, mesConsulta);
+                model.addAttribute("propostas", propostas);
+            } catch (IllegalArgumentException ex) {
+                model.addAttribute("propostas", List.of());
+            }
         }
 
         return "web/horarios";
     }
 
+    /** W2 — Gerar nova proposta de horário mensal */
     @PostMapping("/gerar")
-    public String gerar(@RequestParam("ano") Integer ano,
-                        @RequestParam("mes") Integer mes,
-                        HttpSession session,
-                        RedirectAttributes redirectAttributes) {
+    public String gerarHorario(@RequestParam("ano") Integer ano,
+                               @RequestParam("mes") Integer mes,
+                               HttpSession session,
+                               RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-
         try {
-            geracaoHorariosBLL.gerarProposta(utilizadorId, ano, mes);
-            redirectAttributes.addFlashAttribute("sucesso", "Proposta gerada com sucesso.");
+            GeracaoHorariosBLL.PropostaResultado resultado =
+                    geracaoHorariosBLL.gerarProposta(utilizadorId, ano, mes);
+            redirectAttributes.addFlashAttribute("sucesso",
+                    "Proposta gerada com sucesso (" + resultado.metricas().qualidade()
+                    + ", score " + resultado.metricas().pontuacao() + ").");
+        } catch (GeracaoHorariosBLL.FalhaGeracaoHorarioException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage()
+                    + (ex.motivoPrincipal() != null ? " — " + ex.motivoPrincipal() : ""));
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        } catch (Exception ex) {
-            redirectAttributes.addFlashAttribute("erro", "Nao foi possivel gerar a proposta para o periodo selecionado.");
         }
-
         return "redirect:/web/horarios?ano=" + ano + "&mes=" + mes;
     }
 
-    @PostMapping("/{idProposta}/aprovar")
-    public String aprovar(@PathVariable("idProposta") Integer idProposta,
-                          @RequestParam("ano") Integer ano,
-                          @RequestParam("mes") Integer mes,
-                          @RequestParam(value = "observacoes", required = false) String observacoes,
-                          HttpSession session,
-                          RedirectAttributes redirectAttributes) {
+    /** W7 — Exportar horário mensal como PDF */
+    @GetMapping(value = "/exportar.pdf", produces = "application/pdf")
+    public ResponseEntity<byte[]> exportarPdf(@RequestParam("ano") Integer ano,
+                                               @RequestParam("mes") Integer mes,
+                                               HttpSession session) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+        List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, ano, mes);
 
-        try {
-            geracaoHorariosBLL.aprovarProposta(utilizadorId, idProposta, observacoes);
-            redirectAttributes.addFlashAttribute("sucesso", "Proposta aprovada com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        } catch (Exception ex) {
-            redirectAttributes.addFlashAttribute("erro", "Nao foi possivel aprovar a proposta selecionada.");
-        }
+        String nomeUtilizador = (String) session.getAttribute(WebSession.UTILIZADOR_NOME);
+        byte[] conteudo = webPdfService.gerarHorarioMensalPdf(
+                turnos, ano, mes, nomeUtilizador != null ? nomeUtilizador : "");
 
-        return "redirect:/web/horarios?ano=" + ano + "&mes=" + mes;
+        String nomeFicheiro = "horario-" + ano + "-" + String.format("%02d", mes) + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nomeFicheiro + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(conteudo);
     }
 
-    @PostMapping("/{idProposta}/rejeitar")
-    public String rejeitar(@PathVariable("idProposta") Integer idProposta,
-                           @RequestParam("ano") Integer ano,
-                           @RequestParam("mes") Integer mes,
-                           @RequestParam(value = "observacoes", required = false) String observacoes,
-                           HttpSession session,
-                           RedirectAttributes redirectAttributes) {
+    /** W1 — Enviar proposta para validação pelo supervisor */
+    @PostMapping("/propostas/{idProposta}/enviar")
+    public String enviarParaSupervisor(@PathVariable("idProposta") Integer idProposta,
+                                       @RequestParam(value = "ano", required = false) Integer ano,
+                                       @RequestParam(value = "mes", required = false) Integer mes,
+                                       HttpSession session,
+                                       RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-
         try {
-            geracaoHorariosBLL.rejeitarProposta(utilizadorId, idProposta, observacoes);
-            redirectAttributes.addFlashAttribute("sucesso", "Proposta rejeitada com sucesso.");
+            geracaoHorariosBLL.enviarPropostasParaValidacao(utilizadorId, List.of(idProposta));
+            redirectAttributes.addFlashAttribute("sucesso", "Proposta enviada ao supervisor para validação.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        } catch (Exception ex) {
-            redirectAttributes.addFlashAttribute("erro", "Nao foi possivel rejeitar a proposta selecionada.");
         }
-
-        return "redirect:/web/horarios?ano=" + ano + "&mes=" + mes;
+        String redirect = "/web/horarios";
+        if (ano != null && mes != null) {
+            redirect += "?ano=" + ano + "&mes=" + mes;
+        }
+        return "redirect:" + redirect;
     }
 }

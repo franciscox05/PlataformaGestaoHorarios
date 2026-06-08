@@ -8,18 +8,23 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,6 +32,8 @@ import java.util.stream.Collectors;
 @Component
 @Scope("prototype")
 public class PedirFolgaController {
+
+    private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @FXML
     private DatePicker dpData;
@@ -90,14 +97,35 @@ public class PedirFolgaController {
         cbTipo.setItems(FXCollections.observableArrayList(
                 "Férias",
                 "Folgas",
-                "Baixa"
+                "Baixa",
+                "Urgente / Emergência"
         ));
 
         configurarTabelaHistorico();
         configurarTabelaAprovacao();
 
-        tabelaPedidos.setPlaceholder(new Label("Ainda não tens pedidos de folga registados."));
+        // Empty state com CTA para a tabela histórico
+        javafx.scene.layout.VBox emptyFolgas = new javafx.scene.layout.VBox(12);
+        emptyFolgas.setAlignment(javafx.geometry.Pos.CENTER);
+        emptyFolgas.setPadding(new javafx.geometry.Insets(40, 24, 40, 24));
+        Label emptyFolgasTitulo = new Label("Nenhum pedido ainda");
+        emptyFolgasTitulo.getStyleClass().add("empty-state-titulo");
+        Label emptyFolgasSubtitulo = new Label("Os teus pedidos de ausência aparecem aqui depois de os submeteres.");
+        emptyFolgasSubtitulo.getStyleClass().add("empty-state-subtitulo");
+        emptyFolgasSubtitulo.setWrapText(true);
+        emptyFolgasSubtitulo.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        Button btnEmptyFolga = new Button("Fazer o meu primeiro pedido");
+        btnEmptyFolga.getStyleClass().add("botao-acao");
+        btnEmptyFolga.setOnAction(e -> dpData.requestFocus());
+        emptyFolgas.getChildren().addAll(emptyFolgasTitulo, emptyFolgasSubtitulo, btnEmptyFolga);
+        tabelaPedidos.setPlaceholder(emptyFolgas);
+
         tabelaPedidosPendentes.setPlaceholder(new Label("Não existem pedidos pendentes para aprovar."));
+
+        // Tooltips nos campos do formulário
+        dpData.setTooltip(new Tooltip("Seleciona a data em que pretendes ausentar-te"));
+        cbTipo.setTooltip(new Tooltip("Seleciona o tipo de ausência: férias, folga, baixa ou emergência urgente"));
+        txtMotivo.setTooltip(new Tooltip("Opcional — descreve brevemente o motivo da ausência"));
 
         btnAprovarPedido.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
         btnRejeitarPedido.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
@@ -117,6 +145,29 @@ public class PedirFolgaController {
         try {
             if (utilizadorLogado == null) {
                 throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+
+            // Validar campos obrigatórios antes de qualquer diálogo
+            if (dpData.getValue() == null) {
+                throw new IllegalArgumentException("Seleciona uma data para o pedido de folga.");
+            }
+            if (cbTipo.getValue() == null) {
+                throw new IllegalArgumentException("Seleciona o tipo de ausência.");
+            }
+
+            // Verificar pedido duplicado (pendente ou aprovado para a mesma data)
+            java.time.LocalDate dataAusencia = dpData.getValue();
+            List<DayOff> pedidosExistentes = dayOffBLL.listarPedidosPorUtilizador(utilizadorLogado.getId());
+            boolean jaTem = pedidosExistentes.stream().anyMatch(d ->
+                    dataAusencia.equals(d.getDataAusencia())
+                    && ("pendente".equalsIgnoreCase(d.getEstado()) || "aprovado".equalsIgnoreCase(d.getEstado()))
+            );
+            if (jaTem) {
+                mostrarErro("Pedido duplicado",
+                        "Já tens uma folga pendente ou aprovada para "
+                        + dataAusencia.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        + ". Cancela o pedido anterior antes de submeter um novo.");
+                return;
             }
 
             if (!DialogosHelper.confirmarAcao(
@@ -160,8 +211,10 @@ public class PedirFolgaController {
     }
 
     private void configurarTabelaHistorico() {
-        colDataPedido.setCellValueFactory(cellData ->
-                new SimpleStringProperty(String.valueOf(cellData.getValue().getDataAusencia())));
+        colDataPedido.setCellValueFactory(cellData -> {
+            java.time.LocalDate data = cellData.getValue().getDataAusencia();
+            return new SimpleStringProperty(data != null ? data.format(DATA_FORMATTER) : "-");
+        });
 
         colTipoPedido.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTipo(cellData.getValue().getTipo())));
@@ -171,17 +224,58 @@ public class PedirFolgaController {
 
         colEstadoPedido.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarEstado(cellData.getValue().getEstado())));
+
+        // Badge colorido + botão cancelar para pedidos pendentes
+        colEstadoPedido.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String estado, boolean empty) {
+                super.updateItem(estado, empty);
+                if (empty || estado == null) {
+                    setGraphic(null);
+                    setText(null);
+                    return;
+                }
+                Label badge = new Label(estado);
+                badge.getStyleClass().add("badge-estado");
+                switch (estado.toLowerCase()) {
+                    case "pendente" -> badge.getStyleClass().add("badge-pendente");
+                    case "aprovado" -> badge.getStyleClass().add("badge-aprovado");
+                    case "rejeitado" -> badge.getStyleClass().add("badge-rejeitado");
+                    default -> badge.getStyleClass().add("badge-rascunho");
+                }
+
+                if ("pendente".equalsIgnoreCase(estado)) {
+                    Button btnCancelar = new Button("✕");
+                    btnCancelar.getStyleClass().add("botao-cancelar-pedido");
+                    btnCancelar.setTooltip(new Tooltip("Cancelar este pedido pendente"));
+                    btnCancelar.setOnAction(ev -> {
+                        DayOff pedido = getTableView().getItems().get(getIndex());
+                        cancelarPedidoProprio(pedido);
+                    });
+                    HBox cell = new HBox(6, badge, btnCancelar);
+                    cell.setAlignment(Pos.CENTER_LEFT);
+                    setGraphic(cell);
+                } else {
+                    setGraphic(badge);
+                }
+                setText(null);
+            }
+        });
     }
 
     private void configurarTabelaAprovacao() {
-        colColaboradorPendente.setCellValueFactory(cellData ->
-                new SimpleStringProperty(nomesPendentesPorUtilizador.getOrDefault(
-                        cellData.getValue().getIdUtilizador(),
-                        "Utilizador #" + cellData.getValue().getIdUtilizador()
-                )));
+        colColaboradorPendente.setCellValueFactory(cellData -> {
+            var utilizadorPendente = cellData.getValue().getIdUtilizador();
+            Integer idColaborador = (utilizadorPendente != null) ? utilizadorPendente.getId() : null;
+            return new SimpleStringProperty(nomesPendentesPorUtilizador.getOrDefault(
+                    idColaborador,
+                    idColaborador != null ? "Colaborador #" + idColaborador : "Colaborador"));
+        });
 
-        colDataPendente.setCellValueFactory(cellData ->
-                new SimpleStringProperty(String.valueOf(cellData.getValue().getDataAusencia())));
+        colDataPendente.setCellValueFactory(cellData -> {
+            java.time.LocalDate data = cellData.getValue().getDataAusencia();
+            return new SimpleStringProperty(data != null ? data.format(DATA_FORMATTER) : "-");
+        });
 
         colTipoPendente.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTipo(cellData.getValue().getTipo())));
@@ -238,23 +332,37 @@ public class PedirFolgaController {
                 throw new IllegalArgumentException("Seleciona um pedido pendente primeiro.");
             }
 
+            String nomeColaboradorFolga = nomesPendentesPorUtilizador.getOrDefault(
+                    pedidoSelecionado.getIdUtilizador() != null ? pedidoSelecionado.getIdUtilizador().getId() : null,
+                    "Colaborador");
+            String dataFolga = pedidoSelecionado.getDataAusencia() != null
+                    ? pedidoSelecionado.getDataAusencia().format(DATA_FORMATTER) : "-";
+            String motivoFolga = pedidoSelecionado.getMotivo() != null && !pedidoSelecionado.getMotivo().isBlank()
+                    ? "\nMotivo: " + pedidoSelecionado.getMotivo() : "";
+            String detalhesFolga = "Colaborador: " + nomeColaboradorFolga + "\nData: " + dataFolga + motivoFolga;
+
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     aprovar ? "Aprovar pedido de folga" : "Rejeitar pedido de folga",
-                    aprovar ? "Deseja aprovar este pedido?" : "Deseja rejeitar este pedido?",
-                    aprovar
-                            ? "A aprovação ficará registada no sistema."
-                            : "A rejeição ficará registada no sistema."
+                    aprovar ? "Confirmas a aprovação desta ausência?" : "Confirmas a rejeição desta ausência?",
+                    detalhesFolga
             )) {
                 return;
             }
 
             if (aprovar) {
-                dayOffBLL.aprovarPedidoFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                mostrarInformacao("Sucesso", "Pedido aprovado com sucesso.");
+                boolean urgente = "urgente".equalsIgnoreCase(pedidoSelecionado.getTipo());
+                if (urgente) {
+                    com.example.projeto2.BLL.DayOffBLL.ResultadoAprovacaoFolga resultado =
+                            dayOffBLL.aprovarPedidoFolgaComCobertura(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
+                    mostrarInformacao("Ausência aprovada", resultado.avisoCobertura());
+                } else {
+                    dayOffBLL.aprovarPedidoFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
+                    mostrarInformacao("Sucesso", "Pedido de folga aprovado.");
+                }
             } else {
                 dayOffBLL.rejeitarPedidoFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                mostrarInformacao("Sucesso", "Pedido rejeitado com sucesso.");
+                mostrarInformacao("Sucesso", "Pedido de folga rejeitado.");
             }
 
             carregarPedidosPendentes();
@@ -263,6 +371,35 @@ public class PedirFolgaController {
             mostrarErro("Erro", e.getMessage());
         } catch (Exception e) {
             mostrarErro("Erro", "Não foi possível atualizar o estado do pedido.");
+        }
+    }
+
+    private void cancelarPedidoProprio(DayOff pedido) {
+        try {
+            if (utilizadorLogado == null) {
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+            if (pedido == null) {
+                throw new IllegalArgumentException("Pedido inválido.");
+            }
+
+            String dataFolga = pedido.getDataAusencia() != null ? pedido.getDataAusencia().format(DATA_FORMATTER) : "-";
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    "Cancelar pedido de folga",
+                    "Confirmas o cancelamento deste pedido?",
+                    "Data: " + dataFolga + "\nTipo: " + formatarTipo(pedido.getTipo())
+            )) {
+                return;
+            }
+
+            dayOffBLL.cancelarPedidoProprio(pedido.getIdDayoff(), utilizadorLogado.getId());
+            mostrarInformacao("Pedido cancelado", "O pedido de folga foi cancelado.");
+            carregarHistoricoPedidos();
+        } catch (IllegalArgumentException e) {
+            mostrarErro("Erro", e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Erro", "Não foi possível cancelar o pedido de folga.");
         }
     }
 
@@ -275,6 +412,7 @@ public class PedirFolgaController {
             case "Férias" -> "ferias";
             case "Folgas" -> "folgas";
             case "Baixa" -> "baixa";
+            case "Urgente / Emergência" -> "urgente";
             default -> throw new IllegalArgumentException("Tipo de ausência inválido.");
         };
     }
@@ -288,6 +426,7 @@ public class PedirFolgaController {
             case "ferias" -> "Férias";
             case "folgas" -> "Folgas";
             case "baixa" -> "Baixa";
+            case "urgente" -> "⚡ Urgente";
             default -> tipo;
         };
     }
@@ -301,6 +440,7 @@ public class PedirFolgaController {
             case "pendente" -> "Pendente";
             case "aprovado" -> "Aprovado";
             case "rejeitado" -> "Rejeitado";
+            case "cancelado" -> "Cancelado";
             default -> estado;
         };
     }

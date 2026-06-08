@@ -24,18 +24,22 @@
     <content>
         <VBox fx:id="raizPerfil" fillWidth="true" spacing="0" styleClass="conteudo-pagina">
 
-            <StackPane styleClass="page-banner" minHeight="220.0">
-                <VBox.margin><Insets left="32.0" right="32.0" bottom="0.0" top="0.0" /></VBox.margin>
+            <StackPane styleClass="page-banner perfil-banner" minHeight="200.0"
+                       style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #c91428 0%, #7f0010 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
                 <VBox alignment="CENTER" spacing="16.0">
-                    <StackPane styleClass="avatar-circle" prefWidth="88.0" prefHeight="88.0">
-                        <Circle radius="44.0" styleClass="avatar-bg" />
-                        <Label styleClass="avatar-inicial" text="P" />
+                    <StackPane styleClass="avatar-circle perfil-avatar-circle" prefWidth="96.0" prefHeight="96.0">
+                        <Circle radius="48.0" styleClass="avatar-bg"
+                                style="-fx-fill: rgba(255,255,255,0.22); -fx-stroke: rgba(255,255,255,0.35); -fx-stroke-width: 2;" />
+                        <Label fx:id="lblPerfilAvatar" styleClass="avatar-inicial perfil-avatar-inicial" text="?"
+                               style="-fx-text-fill: #ffffff; -fx-font-size: 36px; -fx-font-weight: 700;" />
                     </StackPane>
                     <VBox alignment="CENTER" spacing="6.0">
-                        <Label styleClass="banner-titulo" text="O Meu Perfil" />
+                        <Label styleClass="banner-titulo" text="O Meu Perfil"
+                               style="-fx-text-fill: #ffffff;" />
                         <Label styleClass="banner-subtitulo"
                                text="Dados pessoais · V&#237;nculo ativo · Indicadores do m&#234;s"
-                               textAlignment="CENTER" wrapText="true" />
+                               textAlignment="CENTER" wrapText="true"
+                               style="-fx-text-fill: rgba(255,255,255,0.78);" />
                     </VBox>
                 </VBox>
             </StackPane>

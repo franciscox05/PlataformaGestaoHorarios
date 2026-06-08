@@ -8,6 +8,7 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
@@ -16,6 +17,8 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.SVGPath;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -138,6 +141,146 @@ public final class DialogosHelper {
         stage.setOnShown(event -> Platform.runLater(campo::requestFocus));
         stage.showAndWait();
         return Optional.ofNullable(valorConfirmado.get());
+    }
+
+    /**
+     * Mostra um overlay de carregamento não-bloqueante sobre a janela owner.
+     * Devolve o Stage para que o chamador possa fechá-lo com stage.close().
+     * Deve ser chamado a partir da FX thread; fechar também na FX thread.
+     */
+    public static Stage mostrarCarregamento(Window owner, String mensagem) {
+        StackPane overlay = new StackPane();
+        overlay.getStyleClass().add("dialogo-overlay");
+
+        VBox card = new VBox(20.0);
+        card.getStyleClass().add("dialogo-loading-card");
+        card.setAlignment(Pos.CENTER);
+        card.setMaxWidth(420.0);
+        card.setFillWidth(true);
+
+        ProgressIndicator spinner = new ProgressIndicator(-1.0);
+        spinner.getStyleClass().add("dialogo-loading-spinner");
+        spinner.setPrefSize(56, 56);
+
+        Label lblMensagem = new Label(mensagem);
+        lblMensagem.getStyleClass().add("dialogo-loading-titulo");
+        lblMensagem.setWrapText(true);
+        lblMensagem.setTextAlignment(TextAlignment.CENTER);
+        lblMensagem.setMaxWidth(320.0);
+
+        Label lblSub = new Label("Por favor aguarda...");
+        lblSub.getStyleClass().add("dialogo-loading-subtitulo");
+
+        card.getChildren().addAll(spinner, lblMensagem, lblSub);
+        overlay.getChildren().add(card);
+        StackPane.setAlignment(card, Pos.CENTER);
+
+        Scene scene = new Scene(overlay);
+        scene.setFill(Color.TRANSPARENT);
+        carregarCss(scene);
+
+        Stage stage = new Stage();
+        stage.initStyle(StageStyle.TRANSPARENT);
+        stage.setResizable(false);
+        stage.setTitle("");
+        if (owner != null) {
+            stage.initOwner(owner);
+            stage.initModality(Modality.WINDOW_MODAL);
+        } else {
+            stage.initModality(Modality.APPLICATION_MODAL);
+        }
+        stage.setScene(scene);
+
+        Rectangle2D limites = obterLimites(owner);
+        overlay.setPrefSize(limites.getWidth(), limites.getHeight());
+        stage.setX(limites.getMinX());
+        stage.setY(limites.getMinY());
+        stage.setWidth(limites.getWidth());
+        stage.setHeight(limites.getHeight());
+
+        stage.show();
+        return stage;
+    }
+
+    /**
+     * Mostra uma notificação grande centrada (sucesso ou erro) após uma operação.
+     * Bloqueante — showAndWait. Dispensa com Enter, Escape ou botão OK.
+     */
+    public static void mostrarNotificacaoGeracao(Window owner, boolean sucesso, String titulo, String mensagem) {
+        StackPane overlay = new StackPane();
+        overlay.getStyleClass().add("dialogo-overlay");
+
+        VBox card = new VBox(20.0);
+        card.getStyleClass().add("dialogo-notificacao-card");
+        card.setAlignment(Pos.CENTER);
+        card.setMaxWidth(520.0);
+        card.setFillWidth(true);
+
+        // Ícone circular
+        StackPane iconCircle = new StackPane();
+        iconCircle.getStyleClass().add(sucesso
+                ? "dialogo-notificacao-icone-sucesso"
+                : "dialogo-notificacao-icone-erro");
+        SVGPath icone = new SVGPath();
+        icone.setContent(sucesso
+                ? "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                : "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z");
+        icone.setFill(sucesso ? Color.web("#16a34a") : Color.web("#c91428"));
+        icone.setScaleX(1.6);
+        icone.setScaleY(1.6);
+        iconCircle.getChildren().add(icone);
+
+        Label lblTitulo = new Label(titulo);
+        lblTitulo.getStyleClass().add("dialogo-notificacao-titulo");
+        lblTitulo.setWrapText(true);
+        lblTitulo.setTextAlignment(TextAlignment.CENTER);
+        lblTitulo.setMaxWidth(400.0);
+
+        Label lblMensagem = new Label(mensagem);
+        lblMensagem.getStyleClass().add("dialogo-notificacao-mensagem");
+        lblMensagem.setWrapText(true);
+        lblMensagem.setTextAlignment(TextAlignment.CENTER);
+        lblMensagem.setMaxWidth(400.0);
+
+        Button btnOk = criarBotao("OK", "botao-acao");
+
+        card.getChildren().addAll(iconCircle, lblTitulo, lblMensagem, btnOk);
+        overlay.getChildren().add(card);
+        StackPane.setAlignment(card, Pos.CENTER);
+
+        Scene scene = new Scene(overlay);
+        scene.setFill(Color.TRANSPARENT);
+        carregarCss(scene);
+
+        Stage stage = new Stage();
+        stage.initStyle(StageStyle.TRANSPARENT);
+        stage.setResizable(false);
+        stage.setTitle("");
+        if (owner != null) {
+            stage.initOwner(owner);
+            stage.initModality(Modality.WINDOW_MODAL);
+        } else {
+            stage.initModality(Modality.APPLICATION_MODAL);
+        }
+        stage.setScene(scene);
+
+        Rectangle2D limites = obterLimites(owner);
+        overlay.setPrefSize(limites.getWidth(), limites.getHeight());
+        stage.setX(limites.getMinX());
+        stage.setY(limites.getMinY());
+        stage.setWidth(limites.getWidth());
+        stage.setHeight(limites.getHeight());
+
+        btnOk.setOnAction(event -> stage.close());
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ESCAPE || event.getCode() == KeyCode.ENTER) {
+                stage.close();
+                event.consume();
+            }
+        });
+
+        Platform.runLater(btnOk::requestFocus);
+        stage.showAndWait();
     }
 
     private static void mostrarMensagem(Window owner, String titulo, String cabecalho, String conteudo) {

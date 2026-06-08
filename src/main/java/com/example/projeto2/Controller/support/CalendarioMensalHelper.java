@@ -165,7 +165,7 @@ public final class CalendarioMensalHelper {
         VBox corpo = new VBox(6.0);
 
         if (eventosValidos.isEmpty()) {
-            Label vazio = new Label(mensagemVazia != null ? mensagemVazia : "Sem horario");
+            Label vazio = new Label(mensagemVazia != null ? mensagemVazia : "Sem horário");
             vazio.getStyleClass().add("calendario-mes-evento-vazio");
             vazio.setWrapText(true);
             corpo.getChildren().add(vazio);

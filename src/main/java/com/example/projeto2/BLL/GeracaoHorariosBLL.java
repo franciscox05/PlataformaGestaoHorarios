@@ -122,6 +122,15 @@ public class GeracaoHorariosBLL {
     }
 
     @Transactional(readOnly = true)
+    public int contarHorariosPendentesValidacao(Integer idUtilizador) {
+        return obterLigacaoAtiva(idUtilizador)
+                .filter(this::temPermissaoDeValidacao)
+                .map(lu -> (int) propostaHorarioMensalRepository.countByIdLojaIdAndEstadoIgnoreCase(
+                        lu.getIdLoja().getId(), ESTADO_PENDENTE))
+                .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
     public GeracaoContexto obterContexto(Integer idUtilizador) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComAcessoAoPainel(idUtilizador);
         LocalDate hoje = LocalDate.now();
@@ -171,6 +180,15 @@ public class GeracaoHorariosBLL {
         }
 
         return construirResultadoHorariosPublicados(ligacaoAtiva.getIdLoja(), anoNormalizado, mesNormalizado, horariosPublicados);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Horario> obterMeusHorarios(Integer idUtilizador, Integer ano, Integer mes) {
+        int anoNorm = normalizarAno(ano);
+        int mesNorm = normalizarMes(mes);
+        LocalDate inicio = LocalDate.of(anoNorm, mesNorm, 1);
+        LocalDate fim = inicio.withDayOfMonth(inicio.lengthOfMonth());
+        return horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(idUtilizador, inicio, fim);
     }
 
     @Transactional
@@ -281,8 +299,13 @@ public class GeracaoHorariosBLL {
                 String.format(Locale.ROOT, "%02d", dados.mes()),
                 dados.ano()
         );
+        // Semente-base única por invocação: garante que gerações distintas
+        // produzem horários diferentes mesmo com a mesma política de otimização.
+        long sementeBase = System.nanoTime();
         for (int indice = 0; indice < quantidadeNormalizada; indice++) {
             PoliticaOtimizacao politica = PoliticaOtimizacao.porIndice(alternativasExistentes + indice);
+            // Cada alternativa tem uma semente única: base × primo × índice
+            long sementeAlternativa = sementeBase ^ ((long)(alternativasExistentes + indice + 1) * 0x9e3779b97f4a7c15L);
             Instant inicioGeracao = Instant.now();
             PlaneamentoGerado planeamento = gerarPlaneamento(
                     dados.colaboradoresAtivos(),
@@ -290,13 +313,15 @@ public class GeracaoHorariosBLL {
                     dados.parametros(),
                     dados.historicoHorarios(),
                     dados.bloqueiosPorUtilizador(),
+                    dados.diasFolgaPreferidos(),
                     dados.preferenciasTurnos(),
                     dados.preferenciasColegas(),
                     dados.configuracoesPorData(),
                     dados.dataInicio(),
                     dados.dataFim(),
                     politica,
-                    inicioGeracao.plus(TEMPO_MAXIMO_GERACAO_ALTERNATIVA)
+                    inicioGeracao.plus(TEMPO_MAXIMO_GERACAO_ALTERNATIVA),
+                    sementeAlternativa
             );
 
             MetricasPlaneamento metricas = calcularMetricasPlaneamento(planeamento, politica);
@@ -477,6 +502,11 @@ public class GeracaoHorariosBLL {
                 dayOffsAprovados,
                 preferenciasAprovadas
         );
+        Map<Integer, Set<LocalDate>> diasFolgaPreferidos = construirDiasFolgaPreferidosPorColaborador(
+                dataInicio,
+                dataFim,
+                preferenciasAprovadas
+        );
         Map<Integer, List<Preferencia>> preferenciasTurnos = agruparPreferenciasPorTipo(preferenciasAprovadas, "turnos");
         Map<Integer, List<Preferencia>> preferenciasColegas = agruparPreferenciasPorTipo(preferenciasAprovadas, "colegas");
         Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData = construirConfiguracoesEspeciaisPorData(
@@ -497,6 +527,7 @@ public class GeracaoHorariosBLL {
                 parametros,
                 historicoHorarios,
                 bloqueiosPorUtilizador,
+                diasFolgaPreferidos,
                 preferenciasTurnos,
                 preferenciasColegas,
                 configuracoesPorData
@@ -680,13 +711,15 @@ public class GeracaoHorariosBLL {
                                                ParametrosGeracao parametros,
                                                List<Horario> historicoHorarios,
                                                Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
+                                               Map<Integer, Set<LocalDate>> diasFolgaPreferidos,
                                                Map<Integer, List<Preferencia>> preferenciasTurnos,
                                                Map<Integer, List<Preferencia>> preferenciasColegas,
                                                Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData,
                                                LocalDate dataInicio,
                                                LocalDate dataFim,
                                                PoliticaOtimizacao politica,
-                                               Instant prazoLimiteGeracao) {
+                                               Instant prazoLimiteGeracao,
+                                               long sementeDiversificacao) {
 
         // --- a) Construir carga máxima por colaborador ---
         Map<Integer, Long> cargaMaximaPorColaborador = new LinkedHashMap<>();
@@ -721,7 +754,11 @@ public class GeracaoHorariosBLL {
                     src.descricao()
             ));
         }
-        // --- d) Montar o PedidoGeracao ---
+        // --- d) Construir pares de colegas preferidos (A3) ---
+        Map<Integer, Set<Integer>> paresPreferisPorColaborador =
+                construirParesPreferisPorColaborador(preferenciasColegas, colaboradoresAtivos);
+
+        // --- e) Montar o PedidoGeracao ---
         HorarioGeneratorEngine.PedidoGeracao pedido = new HorarioGeneratorEngine.PedidoGeracao(
                 colaboradoresAtivos,
                 turnos,
@@ -740,7 +777,10 @@ public class GeracaoHorariosBLL {
                 configsEngine,
                 historicoHorarios,
                 prazoLimiteGeracao,
-                politica.nome()
+                politica.nome(),
+                diasFolgaPreferidos,
+                paresPreferisPorColaborador,
+                sementeDiversificacao
         );
 
         // --- e) Delegar ao motor ---
@@ -775,15 +815,16 @@ public class GeracaoHorariosBLL {
                                                                          List<Preferencia> preferenciasAprovadas) {
         Map<Integer, Set<LocalDate>> bloqueios = new HashMap<>();
 
+        // Hard blocks: DayOffs aprovados
         for (DayOff dayOff : dayOffsAprovados) {
             if (dayOff.getIdUtilizador() == null || dayOff.getDataAusencia() == null) {
                 continue;
             }
-
             bloqueios.computeIfAbsent(dayOff.getIdUtilizador().getId(), ignored -> new LinkedHashSet<>())
                     .add(dayOff.getDataAusencia());
         }
 
+        // Hard blocks: preferências aprovadas de tipo "folgas"/"ferias" com datas explícitas
         for (Preferencia preferencia : preferenciasAprovadas) {
             if (preferencia.getIdUtilizador() == null || preferencia.getIdUtilizador().getId() == null) {
                 continue;
@@ -795,27 +836,99 @@ public class GeracaoHorariosBLL {
             }
 
             LocalDate inicio = preferencia.getDataInicio() != null ? preferencia.getDataInicio() : dataInicio;
-            LocalDate fim = preferencia.getDataFim() != null ? preferencia.getDataFim() : dataFim;
-            if (inicio == null) {
-                continue;
-            }
+            LocalDate fim    = preferencia.getDataFim()    != null ? preferencia.getDataFim()    : dataFim;
+            if (inicio == null) continue;
 
-            LocalDate dataAtual = inicio.isBefore(dataInicio) ? dataInicio : inicio;
-            LocalDate ultimaData = fim.isAfter(dataFim) ? dataFim : fim;
-            if (ultimaData.isBefore(dataAtual)) {
-                continue;
-            }
+            LocalDate dataAtual  = inicio.isBefore(dataInicio) ? dataInicio : inicio;
+            LocalDate ultimaData = fim.isAfter(dataFim)        ? dataFim    : fim;
+            if (ultimaData.isBefore(dataAtual)) continue;
 
             Set<LocalDate> datas = bloqueios.computeIfAbsent(
-                    preferencia.getIdUtilizador().getId(),
-                    ignored -> new LinkedHashSet<>()
-            );
+                    preferencia.getIdUtilizador().getId(), ignored -> new LinkedHashSet<>());
             for (LocalDate data = dataAtual; !data.isAfter(ultimaData); data = data.plusDays(1)) {
                 datas.add(data);
             }
         }
 
         return bloqueios;
+    }
+
+    /**
+     * A2: Reservado para soft constraints de folga (penalização sem hard block).
+     * As preferências aprovadas com datas explícitas já são hard blocks em
+     * {@link #construirBloqueiosPorUtilizador}. Este método destina-se a casos
+     * futuros como preferências recorrentes por dia-da-semana sem data fixa.
+     * Por agora retorna um mapa vazio.
+     */
+    private Map<Integer, Set<LocalDate>> construirDiasFolgaPreferidosPorColaborador(
+            LocalDate dataInicio,
+            LocalDate dataFim,
+            List<Preferencia> preferenciasAprovadas) {
+        return Map.of();
+    }
+
+    /**
+     * A3: Constrói o mapa de pares de colegas preferidos a partir das preferências
+     * do tipo "colegas". A descrição de cada preferência contém nomes de colegas
+     * separados por vírgula ou ponto-e-vírgula. Cada nome é comparado (por contenção
+     * case-insensitive) com os nomes dos colaboradores activos para extrair os IDs.
+     */
+    private Map<Integer, Set<Integer>> construirParesPreferisPorColaborador(
+            Map<Integer, List<Preferencia>> preferenciasColegas,
+            List<Lojautilizador> colaboradoresAtivos) {
+
+        if (preferenciasColegas == null || preferenciasColegas.isEmpty()) {
+            return Map.of();
+        }
+
+        // Mapa auxiliar: nome normalizado → id utilizador
+        Map<String, Integer> nomeParaId = new HashMap<>();
+        for (Lojautilizador lu : colaboradoresAtivos) {
+            if (lu.getIdUtilizador() != null && lu.getIdUtilizador().getNome() != null) {
+                nomeParaId.put(
+                        normalizarTexto(lu.getIdUtilizador().getNome()),
+                        lu.getIdUtilizador().getId());
+            }
+        }
+
+        Map<Integer, Set<Integer>> pares = new HashMap<>();
+        for (Map.Entry<Integer, List<Preferencia>> entrada : preferenciasColegas.entrySet()) {
+            Integer idRequerente = entrada.getKey();
+            Set<Integer> idsColaboradoresPref = new LinkedHashSet<>();
+
+            for (Preferencia pref : entrada.getValue()) {
+                String descricao = pref.getDescricao();
+                if (descricao == null || descricao.isBlank()) continue;
+
+                // Dividir por vírgula, ponto-e-vírgula ou nova linha
+                String[] partes = descricao.split("[,;\n]+");
+                for (String parte : partes) {
+                    String nomeNormalizado = normalizarTexto(parte.trim());
+                    if (nomeNormalizado.isBlank()) continue;
+
+                    // Correspondência exacta primeiro; depois por contenção
+                    Integer idEncontrado = nomeParaId.get(nomeNormalizado);
+                    if (idEncontrado == null) {
+                        for (Map.Entry<String, Integer> e : nomeParaId.entrySet()) {
+                            if (e.getKey().contains(nomeNormalizado)
+                                    || nomeNormalizado.contains(e.getKey())) {
+                                idEncontrado = e.getValue();
+                                break;
+                            }
+                        }
+                    }
+                    if (idEncontrado != null && !idEncontrado.equals(idRequerente)) {
+                        idsColaboradoresPref.add(idEncontrado);
+                    }
+                }
+            }
+
+            if (!idsColaboradoresPref.isEmpty()) {
+                pares.put(idRequerente, idsColaboradoresPref);
+            }
+        }
+
+        return pares;
     }
 
     private Map<LocalDate, ConfiguracaoDiaEspecial> construirConfiguracoesEspeciaisPorData(Loja loja,
@@ -1005,6 +1118,13 @@ public class GeracaoHorariosBLL {
             }
 
             cargaMaximaMinutosPorPerfil.put(perfilContratual, horasMensais * 60L);
+        }
+
+        if (!validator.janelaRotacaoRespeiraMinimo(janelaRotacaoFinsDeSemanaSemanas)) {
+            LOGGER.warn(
+                    "A janela de rotacao de fins de semana configurada ({} semanas) e inferior ao minimo legal recomendado de 7 semanas. "
+                    + "Considera atualizar a regra RFS08 da loja.",
+                    janelaRotacaoFinsDeSemanaSemanas);
         }
 
         return new ParametrosGeracao(
@@ -1547,12 +1667,10 @@ public class GeracaoHorariosBLL {
         if (proposta == null || proposta.idProposta() == null) {
             return "Horarios publicados";
         }
-        return "#"
-                + proposta.idProposta()
-                + " · "
-                + proposta.estado()
-                + " · "
-                + proposta.metricas().politicaOtimizacao();
+        return proposta.nomeMes()
+                + " " + proposta.ano()
+                + " · #" + proposta.idProposta()
+                + " · " + proposta.estado();
     }
 
     private String criarObservacaoHistoricoDecisao(PropostaHorarioMensal proposta, String novoEstado) {
@@ -1714,6 +1832,7 @@ public class GeracaoHorariosBLL {
                 : "-";
 
         return new HorarioLinha(
+                horario.getId(),
                 idColaborador,
                 horario.getDataTurno(),
                 horario.getDataTurno() != null ? nomeDiaSemana(horario.getDataTurno()) : "-",
@@ -2021,6 +2140,7 @@ public class GeracaoHorariosBLL {
     }
 
     public record HorarioLinha(
+            Integer idHorario,
             Integer idColaborador,
             LocalDate data,
             String diaSemana,
@@ -2224,6 +2344,7 @@ public class GeracaoHorariosBLL {
             ParametrosGeracao parametros,
             List<Horario> historicoHorarios,
             Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador,
+            Map<Integer, Set<LocalDate>> diasFolgaPreferidos,
             Map<Integer, List<Preferencia>> preferenciasTurnos,
             Map<Integer, List<Preferencia>> preferenciasColegas,
             Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData

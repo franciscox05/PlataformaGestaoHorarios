@@ -305,6 +305,38 @@
                     </form>
                 </article>
 
+                <!-- ── W5: Redefinir password ── -->
+                <article th:if="${podeEditarColaborador}"
+                         class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+                         style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
+                    <div class="px-6 py-4 border-b border-outline-variant/25 flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(192,0,31,.08)">
+                            <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">key</span>
+                        </span>
+                        <div>
+                            <h2 class="font-display font-bold text-[15px] text-on-surface">Redefinir password</h2>
+                            <p class="font-body text-[11px] text-on-surface-variant mt-0.5">Define uma nova password para este colaborador. Ele deverá alterá-la no próximo acesso.</p>
+                        </div>
+                    </div>
+                    <form method="post"
+                          th:action="@{/web/equipa/{id}/reset-password(id=${utilizadorSelecionado.id})}"
+                          onsubmit="return confirm('Tens a certeza que queres redefinir a password deste colaborador?')"
+                          class="px-6 py-5 flex flex-wrap items-end gap-3">
+                        <input type="hidden" name="q" th:value="${pesquisa}">
+                        <div class="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+                            <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Nova password *</label>
+                            <input name="novaPassword" type="password" required minlength="4" placeholder="••••••••"
+                                   class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                        </div>
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 font-body font-bold text-[13px] text-white px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+                                style="background:linear-gradient(135deg,#c0001f,#7a0014)">
+                            <span class="material-symbols-outlined text-[16px]">lock_reset</span>
+                            Redefinir
+                        </button>
+                    </form>
+                </article>
+
                 <!-- Horário publicado -->
                 <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
                          style="box-shadow:0 4px 20px rgba(28,27,27,.06)">

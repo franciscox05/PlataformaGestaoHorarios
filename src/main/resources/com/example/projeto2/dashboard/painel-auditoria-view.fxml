@@ -37,9 +37,18 @@
                     <Insets bottom="48.0" left="40.0" right="40.0" top="40.0" />
                 </padding>
 
+                <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-card modulo-banner-auditoria"
+                      style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #374151 0%, #111827 100%); -fx-background-insets: 0; -fx-background-radius: 16px;">
+                    <padding><Insets bottom="26.0" left="30.0" right="30.0" top="26.0" /></padding>
+                    <Label styleClass="modulo-titulo" text="Auditoria e seguran&#231;a" />
+                    <Label styleClass="modulo-subtitulo"
+                           text="Consulta o registo de eventos, autentica&#231;&#245;es e altera&#231;&#245;es sens&#237;veis da tua loja."
+                           wrapText="true" />
+                </VBox>
+
                 <VBox spacing="16.0">
                     <HBox alignment="CENTER_LEFT" spacing="10.0">
-                        <SVGPath fill="#c41230"
+                        <SVGPath fill="#c91428"
                                  content="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"
                                  styleClass="section-icon" />
                         <Label styleClass="section-title" text="Resumo de Eventos" />
@@ -58,7 +67,7 @@
                     <VBox alignment="CENTER" spacing="12.0"
                           styleClass="bento-card, premium-stat-card" HBox.hgrow="ALWAYS">
                             <StackPane styleClass="stat-icon-wrap-red" minWidth="48.0" minHeight="48.0">
-                                <SVGPath fill="#c41230"
+                                <SVGPath fill="#c91428"
                                          content="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"
                                          styleClass="stat-icon" />
                             </StackPane>
@@ -144,7 +153,7 @@
 
                 <VBox spacing="16.0">
                     <HBox alignment="CENTER_LEFT" spacing="10.0">
-                        <SVGPath fill="#c41230"
+                        <SVGPath fill="#c91428"
                                  content="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"
                                  styleClass="section-icon" />
                         <Label styleClass="section-title" text="Hist&#243;rico de Eventos" />

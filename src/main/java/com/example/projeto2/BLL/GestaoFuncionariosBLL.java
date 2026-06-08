@@ -164,6 +164,38 @@ public class GestaoFuncionariosBLL {
         );
     }
 
+    @Transactional
+    public void resetarPasswordColaborador(Integer idUtilizadorGestor, Integer idColaborador, String novaPassword) {
+        if (idColaborador == null) {
+            throw new IllegalArgumentException("Seleciona um colaborador valido.");
+        }
+        if (Objects.equals(idUtilizadorGestor, idColaborador)) {
+            throw new IllegalArgumentException("Usa o teu perfil para alterar a tua propria password.");
+        }
+
+        Lojautilizador ligacaoGestor = obterLigacaoAtivaComPermissao(idUtilizadorGestor);
+
+        // Verifica que o colaborador pertence à loja gerida
+        lojautilizadorRepository.findHistoricoByIdLojaAndIdUtilizador(
+                ligacaoGestor.getIdLoja().getId(), idColaborador)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Este colaborador nao pertence a loja que estas a gerir."));
+
+        Utilizador colaborador = obterUtilizadorPersistido(idColaborador);
+        String passwordHash = segurancaBLL.prepararPasswordParaPersistencia(novaPassword, true);
+        colaborador.setPasswordHash(passwordHash);
+        utilizadorRepository.save(colaborador);
+
+        auditoriaBLL.registarEventoSensivel(
+                "alteracao_password",
+                ligacaoGestor.getIdUtilizador(),
+                sessaoBLL.obterIdentificadorSessao(),
+                "gestao_funcionarios",
+                "Password do colaborador " + valorOuTraco(colaborador.getEmail()) + " redefinida pelo gestor."
+        );
+    }
+
     private Integer criarColaborador(Loja loja,
                                      Cargo cargoSelecionado,
                                      String nome,
