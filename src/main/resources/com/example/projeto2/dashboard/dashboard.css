@@ -2681,7 +2681,11 @@
 .stepper-passo {
     -fx-padding: 6px 12px;
     -fx-spacing: 4px;
-    -fx-cursor: default;
+    -fx-cursor: hand;
+    -fx-background-radius: 10px;
+}
+.stepper-passo:hover {
+    -fx-background-color: #faf3f2;
 }
 
 .stepper-numero {
@@ -2739,6 +2743,22 @@
 }
 .stepper-passo-inativo .stepper-rotulo {
     -fx-text-fill: #c0b8b5;
+}
+
+/* Passo ATUAL (o que está visível no ecrã) — anel destacado por cima do estado.
+   Definido depois dos restantes para vencer o empate de especificidade. */
+.stepper-passo-atual {
+    -fx-background-color: #fdf2f2;
+}
+.stepper-passo-atual .stepper-numero {
+    -fx-border-color: #c91428;
+    -fx-border-width: 2.5px;
+    -fx-border-radius: 999px;
+    -fx-effect: dropshadow(gaussian, rgba(201,20,40,0.30), 9, 0, 0, 0);
+}
+.stepper-passo-atual .stepper-rotulo {
+    -fx-text-fill: #c91428;
+    -fx-font-weight: 900;
 }
 
 /* ── Guia de fluxo contextual ─────────────────────────────────────────── */
@@ -3573,6 +3593,148 @@
     -fx-min-width: 190px;
     -fx-pref-width: 190px;
     -fx-max-width: 190px;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   BLOCO CSS-19 — ASSISTENTE PASSO-A-PASSO (Geração de Horários)
+   TabPane usado como motor do wizard, cabeçalhos escondidos
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Esconder completamente a barra de tabs — a navegação é o stepper */
+.wizard-tabs > .tab-header-area {
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-max-height: 0;
+    -fx-padding: 0;
+}
+.wizard-tabs > .tab-header-area > .headers-region {
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-max-height: 0;
+}
+.wizard-tabs > .tab-header-area .tab {
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-max-height: 0;
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+.wizard-tabs > .tab-header-area .tab-header-background {
+    -fx-opacity: 0;
+}
+.wizard-tabs {
+    -fx-tab-min-height: 0;
+    -fx-tab-max-height: 0;
+}
+
+/* ── Cabeçalho de introdução de cada passo ── */
+.passo-intro {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #fdf2f2 0%, #ffffff 80%);
+    -fx-background-radius: 14px;
+    -fx-border-color: #f3dede;
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+    -fx-padding: 16px 20px;
+    -fx-spacing: 14px;
+    -fx-alignment: CENTER_LEFT;
+}
+.passo-intro-num {
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #ffffff;
+    -fx-background-color: #c91428;
+    -fx-background-radius: 999px;
+    -fx-min-width: 40px; -fx-min-height: 40px;
+    -fx-max-width: 40px; -fx-max-height: 40px;
+    -fx-alignment: center;
+}
+.passo-intro-titulo {
+    -fx-font-size: 17px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1c1b1b;
+}
+.passo-intro-sub {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #6b7280;
+}
+
+/* ── Barra de navegação (footer) do wizard ── */
+.wizard-footer {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #ecdad8;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 16px 40px;
+    -fx-spacing: 12px;
+    -fx-alignment: CENTER_LEFT;
+}
+.btn-wizard-voltar {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #6b7280;
+    -fx-background-color: #f3f4f6;
+    -fx-background-radius: 10px;
+    -fx-padding: 11px 22px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+}
+.btn-wizard-voltar:hover {
+    -fx-background-color: #e5e7eb;
+    -fx-text-fill: #374151;
+}
+.btn-wizard-continuar {
+    -fx-font-size: 13.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #ffffff;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #c91428 0%, #9b1c1c 100%);
+    -fx-background-radius: 10px;
+    -fx-padding: 12px 28px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(201,20,40,0.28), 10, 0, 0, 3);
+}
+.btn-wizard-continuar:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #b01124 0%, #7f1d1d 100%);
+}
+.btn-wizard-continuar:disabled {
+    -fx-opacity: 0.45;
+    -fx-effect: none;
+}
+
+/* CTA primário grande (botão Gerar no passo 1) */
+.btn-gerar-primario {
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #ffffff;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #c91428 0%, #9b1c1c 100%);
+    -fx-background-radius: 12px;
+    -fx-padding: 15px 34px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(201,20,40,0.30), 12, 0, 0, 4);
+}
+.btn-gerar-primario:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #b01124 0%, #7f1d1d 100%);
+}
+.btn-gerar-primario:disabled {
+    -fx-opacity: 0.45;
+    -fx-effect: none;
+}
+
+/* Card de envio (passo 4 — gerente) */
+.envio-card {
+    -fx-background-color: #f0f9ff;
+    -fx-background-radius: 14px;
+    -fx-border-color: #bae6fd;
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+    -fx-padding: 24px;
+    -fx-spacing: 14px;
+}
+.envio-resumo {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #075985;
 }
 
 /* ── Scroll thumb — mais visível ─────────────────────────────── */

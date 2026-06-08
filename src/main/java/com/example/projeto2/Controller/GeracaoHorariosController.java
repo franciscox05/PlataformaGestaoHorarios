@@ -360,6 +360,22 @@ public class    GeracaoHorariosController {
     @FXML
     private VBox grelhaContainer;
 
+    // ── Navegação do assistente (wizard) ──────────────────────────────────────
+    @FXML
+    private VBox painelEnvioGerente;
+
+    @FXML
+    private Button btnPasso1Continuar;
+
+    @FXML
+    private Button btnPasso2Continuar;
+
+    @FXML
+    private Button btnPasso3Continuar;
+
+    @FXML
+    private Label lblResumoEnvio;
+
     private final GeracaoHorariosBLL geracaoHorariosBLL;
     private final ExportacaoPdfBLL exportacaoPdfBLL;
     private final HorarioBLL horarioBLL;
@@ -411,6 +427,7 @@ public class    GeracaoHorariosController {
         btnAprovarProposta.setTooltip(new Tooltip("Aprova e publica esta proposta — as restantes pendentes são rejeitadas automaticamente"));
         btnRejeitarProposta.setTooltip(new Tooltip("Rejeita esta proposta de horário"));
         configurarAtalhosRapidos();
+        configurarNavegacaoWizard();
         // Inicializar o estado do calendário mensal (empty state visível, grid oculto até proposta)
         javafx.application.Platform.runLater(() -> {
             if (emptyStateCalendarioMensal != null) {
@@ -419,6 +436,7 @@ public class    GeracaoHorariosController {
             }
             atualizarCalendarioMensal();
             atualizarStepper(false);
+            marcarPassoAtual(0);
         });
     }
 
@@ -514,6 +532,62 @@ public class    GeracaoHorariosController {
         semanaPlaneamentoInicio = semanaPlaneamentoInicio.plusWeeks(1);
         atualizarCabecalhoSemanaPlaneamento();
         aplicarFiltroColaborador();
+    }
+
+    // ── Navegação do assistente (wizard) ────────────────────────────────────────
+
+    @FXML
+    public void onIrConfigurar()   { irParaPasso(0); }
+    @FXML
+    public void onIrAlternativas() { irParaPasso(1); }
+    @FXML
+    public void onIrRever()        { irParaPasso(2); }
+    @FXML
+    public void onIrEnviar()       { irParaPasso(3); }
+
+    /** Navega para um passo do assistente (0..3) selecionando o separador correspondente. */
+    private void irParaPasso(int indice) {
+        if (tabPaneHorarios == null) return;
+        if (indice < 0 || indice >= tabPaneHorarios.getTabs().size()) return;
+        tabPaneHorarios.getSelectionModel().select(indice);
+        // o listener de selectedIndex trata do destaque e dos refresh por passo
+    }
+
+    /** Destaca no stepper o passo atualmente visível. */
+    private void marcarPassoAtual(int indice) {
+        VBox[] passos = { stepperPasso1, stepperPasso2, stepperPasso3, stepperPasso4 };
+        for (int i = 0; i < passos.length; i++) {
+            if (passos[i] == null) continue;
+            passos[i].getStyleClass().remove("stepper-passo-atual");
+            if (i == indice) {
+                passos[i].getStyleClass().add("stepper-passo-atual");
+            }
+        }
+    }
+
+    /** Liga os cliques do stepper à navegação e arranca o destaque do passo atual. */
+    private void configurarNavegacaoWizard() {
+        VBox[] passos = { stepperPasso1, stepperPasso2, stepperPasso3, stepperPasso4 };
+        for (int i = 0; i < passos.length; i++) {
+            if (passos[i] == null) continue;
+            final int idx = i;
+            passos[i].setOnMouseClicked(e -> irParaPasso(idx));
+        }
+        if (tabPaneHorarios != null) {
+            tabPaneHorarios.getSelectionModel().selectedIndexProperty().addListener(
+                    (obs, antigo, novo) -> {
+                        int idx = novo.intValue();
+                        marcarPassoAtual(idx);
+                        // Ao entrar no passo Rever, garantir que o calendário/grelha estão atualizados
+                        if (idx == 2) {
+                            atualizarCalendarioMensal();
+                            if (painelVistaGrelha != null && painelVistaGrelha.isVisible()) {
+                                construirVistaGrelha();
+                            }
+                        }
+                    });
+            marcarPassoAtual(tabPaneHorarios.getSelectionModel().getSelectedIndex());
+        }
     }
 
     // ── Handlers da Vista em Grelha ─────────────────────────────────────────────
@@ -1975,6 +2049,10 @@ public class    GeracaoHorariosController {
         painelSelecaoColaboradores.setVisible(podeGerar);
         btnEnviarSupervisor.setManaged(podeGerar);
         btnEnviarSupervisor.setVisible(podeGerar);
+        if (painelEnvioGerente != null) {
+            painelEnvioGerente.setManaged(podeGerar);
+            painelEnvioGerente.setVisible(podeGerar);
+        }
 
         painelValidacaoSupervisor.setManaged(podeValidar);
         painelValidacaoSupervisor.setVisible(podeValidar);
@@ -2467,7 +2545,7 @@ public class    GeracaoHorariosController {
                         esconderFeedbackValidacao();
                         esconderDiagnosticoGeracao();
 
-                        // Navegar para a tab "Propostas" (índice 1) para o utilizador ver o resultado
+                        // Avançar para o passo "Alternativas" (índice 1) para ver o resultado
                         if (tabPaneHorarios != null) {
                             tabPaneHorarios.getSelectionModel().select(1);
                         }
@@ -2477,8 +2555,8 @@ public class    GeracaoHorariosController {
                                 ? "Horário gerado!"
                                 : dados.totalGeradas() + " alternativas geradas!";
                         String mensagemNotif = dados.totalGeradas() == 1
-                                ? "A proposta está na tab Propostas. Analisa, compara com outras alternativas e envia ao supervisor quando estiveres pronto."
-                                : "As " + dados.totalGeradas() + " propostas estão na tab Propostas. A melhor pontuação ficou selecionada. Após aprovação, o calendário fica disponível na tab Calendário.";
+                                ? "Estás agora no passo 2 (Alternativas). Analisa a proposta, e usa o botão 'Rever proposta' para ver o calendário antes de enviar."
+                                : "As " + dados.totalGeradas() + " alternativas estão no passo 2. A melhor pontuação ficou selecionada. Avança para 'Rever' e depois 'Enviar'.";
                         DialogosHelper.mostrarNotificacaoGeracao(obterJanela(), true, tituloNotif, mensagemNotif);
 
                         mostrarSucesso(dados.totalGeradas() == 1
@@ -2506,7 +2584,7 @@ public class    GeracaoHorariosController {
 
                         if (tentarCarregarPlaneamentoExistente()) {
                             esconderFeedbackValidacao();
-                            mostrarErro(mensagem + " O planeamento atual foi carregado na tab Calendário para facilitar a análise.");
+                            mostrarErro(mensagem + " O planeamento atual foi carregado no passo Rever para facilitar a análise.");
                             mostrarDiagnosticoGeracao(erro);
                             return;
                         }
@@ -2590,6 +2668,35 @@ public class    GeracaoHorariosController {
                 || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty();
         if (btnExportarCsvHorario != null) btnExportarCsvHorario.setDisable(semDados);
         if (btnExportarPdfHorario != null) btnExportarPdfHorario.setDisable(semDados);
+
+        // ── Navegação do assistente: gating dos botões "Continuar" ──
+        boolean temPropostasLista = tabelaPropostas.getItems() != null
+                && !tabelaPropostas.getItems().isEmpty();
+        boolean temPropostaSelecionada = propostaAtual != null;
+        if (btnPasso1Continuar != null) {
+            btnPasso1Continuar.setDisable(emProcessamento || !temPropostasLista);
+        }
+        if (btnPasso2Continuar != null) {
+            btnPasso2Continuar.setDisable(emProcessamento || !temPropostaSelecionada);
+        }
+        if (btnPasso3Continuar != null) {
+            btnPasso3Continuar.setDisable(emProcessamento || !temPropostaSelecionada);
+        }
+
+        // ── Resumo do que vai ser enviado (passo 4 — gerente) ──
+        if (lblResumoEnvio != null) {
+            var selecionadas = tabelaPropostas.getSelectionModel().getSelectedItems();
+            long emRascunho = selecionadas == null ? 0 :
+                    selecionadas.stream().filter(this::propostaEmRascunho).count();
+            if (emRascunho == 0) {
+                lblResumoEnvio.setText("Nenhum rascunho selecionado. Volta ao passo 2 (Alternativas) "
+                        + "e seleciona a(s) alternativa(s) que queres enviar.");
+            } else if (emRascunho == 1) {
+                lblResumoEnvio.setText("Vais enviar 1 alternativa ao supervisor.");
+            } else {
+                lblResumoEnvio.setText("Vais enviar " + emRascunho + " alternativas ao supervisor.");
+            }
+        }
 
         atualizarEmptyStates();
         atualizarStepper(emProcessamento);
@@ -2677,15 +2784,15 @@ public class    GeracaoHorariosController {
         if (emProcessamento) {
             guia = "A processar... aguarda.";
         } else if (aprovada) {
-            guia = "✔ Proposta aprovada e publicada. O calendário fica disponível na tab Calendário.";
+            guia = "✔ Proposta aprovada e publicada. O calendário fica disponível no passo 3 (Rever).";
         } else if (enviada) {
             guia = "Proposta enviada ao supervisor. Aguarda a decisão ou gera mais alternativas.";
         } else if (temProposta) {
-            guia = "Passo 3 → Analisa a proposta na tab Propostas. Compara alternativas e vê o horário de cada colaborador (duplo clique na tabela). Quando estiveres pronto, envia ao supervisor.";
+            guia = "Já tens uma proposta. Usa 'Ver alternativas' para comparar, ou 'Rever proposta' para ver o calendário e enviar.";
         } else if (temRascunho) {
-            guia = "Alternativas geradas. Vai à tab Propostas para analisar e comparar antes de enviar.";
+            guia = "Alternativas geradas. Avança para o passo 2 (Alternativas) para analisar e comparar.";
         } else if (podeGerar) {
-            guia = "Passo 1 → Configura o período, seleciona a equipa e clica em Gerar 1 alternativa.";
+            guia = "Configura o período, seleciona a equipa e clica em 'Gerar horário'.";
         } else {
             guia = "Seleciona o período para consultar o planeamento.";
         }
