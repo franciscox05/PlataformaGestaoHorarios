@@ -1,6 +1,11 @@
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
+
+# Logs de execução local (transitórios)
+app-run.log
+app-run-err.log
+*.log
 !**/src/main/**/target/
 !**/src/test/**/target/
 
