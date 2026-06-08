@@ -816,9 +816,10 @@ public class    GeracaoHorariosController {
         if (fds) cell.getStyleClass().add("grelha-dia-cell-fim-semana");
         if (eHoje) cell.setStyle("-fx-background-color: #fff5f5;");
 
+        // Sem dados para este dia → mostrar Folga
         if (tipoTurno == null || tipoTurno.isBlank() || "-".equals(tipoTurno)) {
-            // célula vazia — sem card
-            return cell;
+            tipoTurno = "Folga";
+            horasTurno = null;
         }
 
         String chave = turnoChave(tipoTurno);
