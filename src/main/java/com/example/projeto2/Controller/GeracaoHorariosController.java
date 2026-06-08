@@ -2143,7 +2143,42 @@ public class GeracaoHorariosController {
         if (btnExportarCsvHorario != null) btnExportarCsvHorario.setDisable(semDados);
         if (btnExportarPdfHorario != null) btnExportarPdfHorario.setDisable(semDados);
 
+        atualizarEmptyStates();
         atualizarStepper(emProcessamento);
+    }
+
+    /**
+     * Alterna os "empty states" das três zonas de resultado (alternativas geradas,
+     * distribuição por colaborador e calendário semanal) consoante existam ou não dados.
+     * Sem isto, o cartão "Sem ..." ficava permanentemente visível por cima da tabela/calendário
+     * já preenchido, dando a sensação de ecrã partido.
+     */
+    private void atualizarEmptyStates() {
+        boolean temPropostas = tabelaPropostas.getItems() != null
+                && !tabelaPropostas.getItems().isEmpty();
+        alternarEmptyState(emptyStatePropostas, tabelaPropostas, temPropostas);
+
+        boolean temDistribuicao = tabelaResumoColaboradores.getItems() != null
+                && !tabelaResumoColaboradores.getItems().isEmpty();
+        alternarEmptyState(emptyStateDistribuicao, tabelaResumoColaboradores, temDistribuicao);
+
+        boolean temPlaneamento = propostaAtual != null;
+        alternarEmptyState(emptyStateCalendario, boxSemanaPlaneamento, temPlaneamento);
+    }
+
+    /**
+     * Quando há conteúdo: esconde o empty-state e mostra o conteúdo.
+     * Quando não há: mostra o empty-state e esconde o conteúdo (evita o duplo "vazio").
+     */
+    private void alternarEmptyState(javafx.scene.Node emptyState, javafx.scene.Node conteudo, boolean temConteudo) {
+        if (emptyState != null) {
+            emptyState.setVisible(!temConteudo);
+            emptyState.setManaged(!temConteudo);
+        }
+        if (conteudo != null) {
+            conteudo.setVisible(temConteudo);
+            conteudo.setManaged(temConteudo);
+        }
     }
 
     private void atualizarStepper(boolean emProcessamento) {

@@ -82,6 +82,9 @@ public class GestaoLojaController {
     private Label lblMensagemExcecao;
 
     @FXML
+    private VBox emptyStateExcecoes;
+
+    @FXML
     private TableView<GestaoLojaBLL.HorarioEspecialResumo> tabelaHorariosEspeciais;
 
     @FXML
@@ -356,6 +359,13 @@ public class GestaoLojaController {
 
     private void preencherHorariosEspeciais(List<GestaoLojaBLL.HorarioEspecialResumo> horariosEspeciais) {
         tabelaHorariosEspeciais.getItems().setAll(horariosEspeciais == null ? List.of() : horariosEspeciais);
+        boolean temExcecoes = !tabelaHorariosEspeciais.getItems().isEmpty();
+        if (emptyStateExcecoes != null) {
+            emptyStateExcecoes.setVisible(!temExcecoes);
+            emptyStateExcecoes.setManaged(!temExcecoes);
+        }
+        tabelaHorariosEspeciais.setVisible(temExcecoes);
+        tabelaHorariosEspeciais.setManaged(temExcecoes);
     }
 
     private void configurarTabelaHorariosEspeciais() {
