@@ -496,115 +496,211 @@
                             <VBox spacing="20.0" styleClass="aba-conteudo">
                                 <padding><Insets top="24.0" right="40.0" bottom="44.0" left="40.0"/></padding>
 
-                                <!-- CALENDÁRIO SEMANAL -->
-                                <VBox spacing="16.0" styleClass="bento-card">
-                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                                        <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
-                                            <SVGPath fill="#c91428"
-                                                     content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                                     styleClass="card-icon"/>
-                                        </StackPane>
-                                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
-                                            <Label styleClass="stat-kicker" text="CALEND&#193;RIO SEMANAL"/>
-                                            <Label styleClass="bento-card-titulo"
-                                                   text="Planeamento semana a semana"/>
-                                        </VBox>
-                                        <VBox spacing="4.0">
-                                            <Label styleClass="campo-titulo"
-                                                   text="Filtrar por colaborador"/>
-                                            <ComboBox fx:id="cbFiltroColaborador" minWidth="200.0"
-                                                      promptText="Toda a equipa" styleClass="campo-combo"/>
-                                        </VBox>
-                                        <Button onAction="#onSemanaPlaneamentoAnteriorClick"
-                                                styleClass="botao-nav" text="&#8249; Anterior"/>
-                                        <Label fx:id="lblSemanaPlaneamento" styleClass="campo-titulo"
-                                               text="Semana"/>
-                                        <Button onAction="#onSemanaPlaneamentoSeguinteClick"
-                                                styleClass="botao-nav" text="Seguinte &#8250;"/>
+                                <!-- TOGGLE CALENDÁRIO / GRELHA -->
+                                <HBox alignment="CENTER_LEFT" spacing="16.0">
+                                    <HBox styleClass="vista-toggle-bar" spacing="4.0">
+                                        <Button fx:id="btnVistaCalendario"
+                                                onAction="#onVistaCalendarioClick"
+                                                styleClass="btn-vista btn-vista-ativo"
+                                                text="&#128197;  Calend&#225;rio"/>
+                                        <Button fx:id="btnVistaGrelha"
+                                                onAction="#onVistaGrelhaClick"
+                                                styleClass="btn-vista btn-vista-inativo"
+                                                text="&#9635;  Grelha"/>
                                     </HBox>
                                     <Label styleClass="bento-card-subtitulo"
-                                           text="Seleciona uma proposta na tab Propostas para ver os turnos aqui. Clica num turno para editar."
-                                           wrapText="true"/>
-                                    <VBox fx:id="emptyStateCalendario" alignment="CENTER" spacing="12.0"
-                                          styleClass="empty-state-box">
-                                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
-                                        <SVGPath fill="#dddddd"
-                                                 content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                                 styleClass="empty-state-icon"/>
-                                        <Label styleClass="empty-state-titulo"
-                                               text="Sem semana para mostrar"/>
-                                        <Label styleClass="empty-state-subtitulo"
-                                               text="Seleciona uma proposta na tab Propostas para ver o calend&#225;rio semanal."
-                                               wrapText="true"/>
-                                    </VBox>
-                                    <HBox fx:id="boxSemanaPlaneamento" spacing="10.0"
-                                          styleClass="calendario-semana"/>
-                                </VBox>
+                                           text="Alterna entre a vista de calend&#225;rio e a vista em grelha por colaborador"/>
+                                </HBox>
 
-                                <!-- CALENDÁRIO MENSAL -->
-                                <VBox spacing="16.0" styleClass="bento-card">
-                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                                        <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
-                                            <SVGPath fill="#c91428"
-                                                     content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                                     styleClass="card-icon"/>
-                                        </StackPane>
-                                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
-                                            <Label styleClass="stat-kicker" text="CALEND&#193;RIO MENSAL"/>
-                                            <Label styleClass="bento-card-titulo"
-                                                   text="Hor&#225;rio mensal da loja"/>
+                                <!-- ── PAINEL VISTA CALENDÁRIO (predefinido) ── -->
+                                <VBox fx:id="painelVistaCalendario" spacing="20.0">
+
+                                    <!-- CALENDÁRIO SEMANAL -->
+                                    <VBox spacing="16.0" styleClass="bento-card">
+                                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                            <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
+                                                <SVGPath fill="#c91428"
+                                                         content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                         styleClass="card-icon"/>
+                                            </StackPane>
+                                            <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                                <Label styleClass="stat-kicker" text="CALEND&#193;RIO SEMANAL"/>
+                                                <Label styleClass="bento-card-titulo"
+                                                       text="Planeamento semana a semana"/>
+                                            </VBox>
+                                            <VBox spacing="4.0">
+                                                <Label styleClass="campo-titulo"
+                                                       text="Filtrar por colaborador"/>
+                                                <ComboBox fx:id="cbFiltroColaborador" minWidth="200.0"
+                                                          promptText="Toda a equipa" styleClass="campo-combo"/>
+                                            </VBox>
+                                            <Button onAction="#onSemanaPlaneamentoAnteriorClick"
+                                                    styleClass="botao-nav" text="&#8249; Anterior"/>
+                                            <Label fx:id="lblSemanaPlaneamento" styleClass="campo-titulo"
+                                                   text="Semana"/>
+                                            <Button onAction="#onSemanaPlaneamentoSeguinteClick"
+                                                    styleClass="botao-nav" text="Seguinte &#8250;"/>
+                                        </HBox>
+                                        <Label styleClass="bento-card-subtitulo"
+                                               text="Seleciona uma proposta na tab Propostas para ver os turnos aqui. Clica num turno para editar."
+                                               wrapText="true"/>
+                                        <VBox fx:id="emptyStateCalendario" alignment="CENTER" spacing="12.0"
+                                              styleClass="empty-state-box">
+                                            <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
+                                            <SVGPath fill="#dddddd"
+                                                     content="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                     styleClass="empty-state-icon"/>
+                                            <Label styleClass="empty-state-titulo"
+                                                   text="Sem semana para mostrar"/>
+                                            <Label styleClass="empty-state-subtitulo"
+                                                   text="Seleciona uma proposta na tab Propostas para ver o calend&#225;rio semanal."
+                                                   wrapText="true"/>
                                         </VBox>
-                                        <Button fx:id="btnMesAnterior" onAction="#onMesAnteriorClick"
-                                                styleClass="botao-nav" text="&#8249; M&#234;s anterior"/>
-                                        <Label fx:id="lblMesAtual" styleClass="calendar-month-label"
-                                               text="&#8212;"/>
-                                        <Button fx:id="btnMesSeguinte" onAction="#onMesSeguinteClick"
-                                                styleClass="botao-nav" text="M&#234;s seguinte &#8250;"/>
-                                        <Button fx:id="btnExportarCsvHorario"
-                                                onAction="#onExportarCsvHorarioClick"
-                                                disable="true" styleClass="botao-secundario"
-                                                text="Exportar CSV"/>
-                                        <Button fx:id="btnExportarPdfHorario"
-                                                onAction="#onExportarPdfHorarioClick"
-                                                disable="true" styleClass="botao-secundario"
-                                                text="Exportar PDF"/>
-                                    </HBox>
-                                    <HBox alignment="CENTER_LEFT" spacing="12.0">
-                                        <Label fx:id="lblIdentificacaoHorario"
-                                               styleClass="identificacao-horario-label"
-                                               text="Sem proposta carregada" HBox.hgrow="ALWAYS"/>
-                                        <Label styleClass="campo-titulo" text="Ver proposta:"/>
-                                        <ComboBox fx:id="cbSelecaoProposta" minWidth="240.0"
-                                                  promptText="Seleciona uma proposta"
-                                                  styleClass="campo-combo"/>
-                                    </HBox>
-
-                                    <VBox fx:id="emptyStateCalendarioMensal" alignment="CENTER" spacing="12.0"
-                                          styleClass="empty-state-box">
-                                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
-                                        <SVGPath fill="#dddddd"
-                                                 content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
-                                                 styleClass="empty-state-icon"/>
-                                        <Label styleClass="empty-state-titulo"
-                                               text="Sem hor&#225;rio mensal"/>
-                                        <Label styleClass="empty-state-subtitulo"
-                                               text="Seleciona uma proposta aprovada para visualizar o calend&#225;rio mensal. Clica em qualquer dia para ver o detalhe dos turnos."
-                                               wrapText="true"/>
+                                        <HBox fx:id="boxSemanaPlaneamento" spacing="10.0"
+                                              styleClass="calendario-semana"/>
                                     </VBox>
 
-                                    <GridPane fx:id="calendarioMensalGrid" hgap="8.0" vgap="8.0"
-                                              styleClass="calendar-grid">
-                                        <columnConstraints>
-                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
-                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
-                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
-                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
-                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
-                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
-                                            <ColumnConstraints hgrow="ALWAYS" percentWidth="14.32"/>
-                                        </columnConstraints>
-                                    </GridPane>
+                                    <!-- CALENDÁRIO MENSAL -->
+                                    <VBox spacing="16.0" styleClass="bento-card">
+                                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                            <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
+                                                <SVGPath fill="#c91428"
+                                                         content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                         styleClass="card-icon"/>
+                                            </StackPane>
+                                            <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                                <Label styleClass="stat-kicker" text="CALEND&#193;RIO MENSAL"/>
+                                                <Label styleClass="bento-card-titulo"
+                                                       text="Hor&#225;rio mensal da loja"/>
+                                            </VBox>
+                                            <Button fx:id="btnMesAnterior" onAction="#onMesAnteriorClick"
+                                                    styleClass="botao-nav" text="&#8249; M&#234;s anterior"/>
+                                            <Label fx:id="lblMesAtual" styleClass="calendar-month-label"
+                                                   text="&#8212;"/>
+                                            <Button fx:id="btnMesSeguinte" onAction="#onMesSeguinteClick"
+                                                    styleClass="botao-nav" text="M&#234;s seguinte &#8250;"/>
+                                            <Button fx:id="btnExportarCsvHorario"
+                                                    onAction="#onExportarCsvHorarioClick"
+                                                    disable="true" styleClass="botao-secundario"
+                                                    text="Exportar CSV"/>
+                                            <Button fx:id="btnExportarPdfHorario"
+                                                    onAction="#onExportarPdfHorarioClick"
+                                                    disable="true" styleClass="botao-secundario"
+                                                    text="Exportar PDF"/>
+                                        </HBox>
+                                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                            <Label fx:id="lblIdentificacaoHorario"
+                                                   styleClass="identificacao-horario-label"
+                                                   text="Sem proposta carregada" HBox.hgrow="ALWAYS"/>
+                                            <Label styleClass="campo-titulo" text="Ver proposta:"/>
+                                            <ComboBox fx:id="cbSelecaoProposta" minWidth="240.0"
+                                                      promptText="Seleciona uma proposta"
+                                                      styleClass="campo-combo"/>
+                                        </HBox>
+
+                                        <VBox fx:id="emptyStateCalendarioMensal" alignment="CENTER" spacing="12.0"
+                                              styleClass="empty-state-box">
+                                            <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
+                                            <SVGPath fill="#dddddd"
+                                                     content="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"
+                                                     styleClass="empty-state-icon"/>
+                                            <Label styleClass="empty-state-titulo"
+                                                   text="Sem hor&#225;rio mensal"/>
+                                            <Label styleClass="empty-state-subtitulo"
+                                                   text="Seleciona uma proposta aprovada para visualizar o calend&#225;rio mensal. Clica em qualquer dia para ver o detalhe dos turnos."
+                                                   wrapText="true"/>
+                                        </VBox>
+
+                                        <GridPane fx:id="calendarioMensalGrid" hgap="8.0" vgap="8.0"
+                                                  styleClass="calendar-grid">
+                                            <columnConstraints>
+                                                <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                                <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                                <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                                <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                                <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                                <ColumnConstraints hgrow="ALWAYS" percentWidth="14.28"/>
+                                                <ColumnConstraints hgrow="ALWAYS" percentWidth="14.32"/>
+                                            </columnConstraints>
+                                        </GridPane>
+                                    </VBox>
+
                                 </VBox>
+                                <!-- ── FIM PAINEL CALENDÁRIO ── -->
+
+                                <!-- ── PAINEL VISTA GRELHA (oculto por defeito) ── -->
+                                <VBox fx:id="painelVistaGrelha" spacing="20.0" managed="false" visible="false">
+
+                                    <VBox spacing="16.0" styleClass="bento-card">
+                                        <!-- Cabeçalho com sub-toggle e navegação -->
+                                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                            <StackPane styleClass="stat-icon-wrap-red" minWidth="40.0" minHeight="40.0">
+                                                <SVGPath fill="#c91428"
+                                                         content="M3 5h18v2H3zm0 4h18v2H3zm0 4h18v2H3zm0 4h18v2H3z"
+                                                         styleClass="card-icon"/>
+                                            </StackPane>
+                                            <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                                <Label styleClass="stat-kicker" text="VISTA EM GRELHA"/>
+                                                <Label styleClass="bento-card-titulo"
+                                                       text="Hor&#225;rio da equipa — linha por colaborador"/>
+                                            </VBox>
+                                            <!-- Sub-toggle Semana / Mês -->
+                                            <HBox styleClass="vista-toggle-bar" spacing="4.0">
+                                                <Button fx:id="btnGrelhaSemana"
+                                                        onAction="#onGrelhaSemanaClick"
+                                                        styleClass="btn-grelha-sub-ativo"
+                                                        text="Semana"/>
+                                                <Button fx:id="btnGrelhaMes"
+                                                        onAction="#onGrelhaMesClick"
+                                                        styleClass="btn-grelha-sub-inativo"
+                                                        text="M&#234;s"/>
+                                            </HBox>
+                                            <!-- Separador visual -->
+                                            <Region minWidth="8.0"/>
+                                            <!-- Navegação -->
+                                            <Button fx:id="btnGrelhaAnterior"
+                                                    onAction="#onGrelhaAnteriorClick"
+                                                    styleClass="botao-nav" text="&#8249;"/>
+                                            <Label fx:id="lblGrelhaPeriodo" styleClass="calendar-month-label"
+                                                   text="&#8212;" minWidth="160.0"/>
+                                            <Button fx:id="btnGrelhaSeguinte"
+                                                    onAction="#onGrelhaSeguinteClick"
+                                                    styleClass="botao-nav" text="&#8250;"/>
+                                        </HBox>
+                                        <Label styleClass="bento-card-subtitulo"
+                                               text="Vista matricial: colaboradores em linha, dias em coluna. Seleciona uma proposta na tab Propostas para preencher a grelha."
+                                               wrapText="true"/>
+
+                                        <!-- Empty state da grelha -->
+                                        <VBox fx:id="emptyStateGrelha" alignment="CENTER" spacing="12.0"
+                                              styleClass="empty-state-box">
+                                            <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/></padding>
+                                            <SVGPath fill="#dddddd"
+                                                     content="M3 5h18v2H3zm0 4h12v2H3zm0 4h18v2H3zm0 4h12v2H3z"
+                                                     styleClass="empty-state-icon"/>
+                                            <Label styleClass="empty-state-titulo"
+                                                   text="Sem hor&#225;rio para mostrar"/>
+                                            <Label styleClass="empty-state-subtitulo"
+                                                   text="Seleciona uma proposta na tab Propostas para visualizar a grelha de hor&#225;rios da equipa."
+                                                   wrapText="true"/>
+                                        </VBox>
+
+                                        <!-- Grelha com scroll horizontal -->
+                                        <ScrollPane fx:id="grelhaScrollPane"
+                                                    fitToHeight="true"
+                                                    hbarPolicy="AS_NEEDED"
+                                                    vbarPolicy="AS_NEEDED"
+                                                    styleClass="grelha-scroll"
+                                                    minHeight="300.0"
+                                                    managed="false" visible="false">
+                                            <content>
+                                                <VBox fx:id="grelhaContainer" styleClass="grelha-container"/>
+                                            </content>
+                                        </ScrollPane>
+                                    </VBox>
+
+                                </VBox>
+                                <!-- ── FIM PAINEL GRELHA ── -->
 
                             </VBox>
                         </content>

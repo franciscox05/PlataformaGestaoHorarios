@@ -59,7 +59,7 @@ import java.util.function.Consumer;
 
 @Component
 @Scope("prototype")
-public class GeracaoHorariosController {
+public class    GeracaoHorariosController {
 
     private static final DateTimeFormatter FORMATO_DIA_DETALHE =
             DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM yyyy", java.util.Locale.forLanguageTag("pt-PT"));
@@ -323,6 +323,43 @@ public class GeracaoHorariosController {
     @FXML
     private ComboBox<GeracaoHorariosBLL.PropostaResumo> cbSelecaoProposta;
 
+    // ── Vista em Grelha ───────────────────────────────────────────────────────
+    @FXML
+    private Button btnVistaCalendario;
+
+    @FXML
+    private Button btnVistaGrelha;
+
+    @FXML
+    private VBox painelVistaCalendario;
+
+    @FXML
+    private VBox painelVistaGrelha;
+
+    @FXML
+    private Button btnGrelhaSemana;
+
+    @FXML
+    private Button btnGrelhaMes;
+
+    @FXML
+    private Button btnGrelhaAnterior;
+
+    @FXML
+    private Button btnGrelhaSeguinte;
+
+    @FXML
+    private Label lblGrelhaPeriodo;
+
+    @FXML
+    private VBox emptyStateGrelha;
+
+    @FXML
+    private ScrollPane grelhaScrollPane;
+
+    @FXML
+    private VBox grelhaContainer;
+
     private final GeracaoHorariosBLL geracaoHorariosBLL;
     private final ExportacaoPdfBLL exportacaoPdfBLL;
     private final HorarioBLL horarioBLL;
@@ -336,6 +373,11 @@ public class GeracaoHorariosController {
     private boolean suprimirCarregamentoPorSelecao;
     private YearMonth periodoMensalAtual = YearMonth.now();
     private final Map<Integer, CheckBox> selecaoColaboradoresGeracao = new LinkedHashMap<>();
+
+    // ── Estado da vista em grelha ─────────────────────────────────────────────
+    private boolean grelhaVistaSemanais = true;          // true=semana, false=mês
+    private LocalDate grelhaDataInicio = LocalDate.now()
+            .with(java.time.DayOfWeek.MONDAY);           // início da semana atual
 
     public GeracaoHorariosController(GeracaoHorariosBLL geracaoHorariosBLL,
                                      ExportacaoPdfBLL exportacaoPdfBLL,
@@ -472,6 +514,318 @@ public class GeracaoHorariosController {
         semanaPlaneamentoInicio = semanaPlaneamentoInicio.plusWeeks(1);
         atualizarCabecalhoSemanaPlaneamento();
         aplicarFiltroColaborador();
+    }
+
+    // ── Handlers da Vista em Grelha ─────────────────────────────────────────────
+
+    @FXML
+    public void onVistaCalendarioClick() {
+        mudarVistaCalendario(true);
+    }
+
+    @FXML
+    public void onVistaGrelhaClick() {
+        mudarVistaCalendario(false);
+        construirVistaGrelha();
+    }
+
+    @FXML
+    public void onGrelhaSemanaClick() {
+        if (grelhaVistaSemanais) return;
+        grelhaVistaSemanais = true;
+        // Reposicionar para a semana que contém o primeiro dia do período mensal
+        grelhaDataInicio = grelhaDataInicio
+                .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        atualizarEstiloToggleGrelha();
+        construirVistaGrelha();
+    }
+
+    @FXML
+    public void onGrelhaMesClick() {
+        if (!grelhaVistaSemanais) return;
+        grelhaVistaSemanais = false;
+        // Reposicionar para o início do mês da semana atual
+        grelhaDataInicio = grelhaDataInicio.withDayOfMonth(1);
+        atualizarEstiloToggleGrelha();
+        construirVistaGrelha();
+    }
+
+    @FXML
+    public void onGrelhaAnteriorClick() {
+        if (grelhaVistaSemanais) {
+            grelhaDataInicio = grelhaDataInicio.minusWeeks(1);
+        } else {
+            grelhaDataInicio = grelhaDataInicio.minusMonths(1).withDayOfMonth(1);
+        }
+        construirVistaGrelha();
+    }
+
+    @FXML
+    public void onGrelhaSeguinteClick() {
+        if (grelhaVistaSemanais) {
+            grelhaDataInicio = grelhaDataInicio.plusWeeks(1);
+        } else {
+            grelhaDataInicio = grelhaDataInicio.plusMonths(1).withDayOfMonth(1);
+        }
+        construirVistaGrelha();
+    }
+
+    // ── Lógica interna da Vista em Grelha ──────────────────────────────────────
+
+    private void mudarVistaCalendario(boolean mostrarCalendario) {
+        if (painelVistaCalendario != null) {
+            painelVistaCalendario.setVisible(mostrarCalendario);
+            painelVistaCalendario.setManaged(mostrarCalendario);
+        }
+        if (painelVistaGrelha != null) {
+            painelVistaGrelha.setVisible(!mostrarCalendario);
+            painelVistaGrelha.setManaged(!mostrarCalendario);
+        }
+        if (btnVistaCalendario != null) {
+            btnVistaCalendario.getStyleClass().removeAll("btn-vista-ativo", "btn-vista-inativo");
+            btnVistaCalendario.getStyleClass().add(mostrarCalendario ? "btn-vista-ativo" : "btn-vista-inativo");
+        }
+        if (btnVistaGrelha != null) {
+            btnVistaGrelha.getStyleClass().removeAll("btn-vista-ativo", "btn-vista-inativo");
+            btnVistaGrelha.getStyleClass().add(mostrarCalendario ? "btn-vista-inativo" : "btn-vista-ativo");
+        }
+    }
+
+    private void atualizarEstiloToggleGrelha() {
+        if (btnGrelhaSemana != null) {
+            btnGrelhaSemana.getStyleClass().removeAll("btn-grelha-sub-ativo", "btn-grelha-sub-inativo");
+            btnGrelhaSemana.getStyleClass().add(grelhaVistaSemanais ? "btn-grelha-sub-ativo" : "btn-grelha-sub-inativo");
+        }
+        if (btnGrelhaMes != null) {
+            btnGrelhaMes.getStyleClass().removeAll("btn-grelha-sub-ativo", "btn-grelha-sub-inativo");
+            btnGrelhaMes.getStyleClass().add(grelhaVistaSemanais ? "btn-grelha-sub-inativo" : "btn-grelha-sub-ativo");
+        }
+    }
+
+    private void construirVistaGrelha() {
+        if (grelhaContainer == null) return;
+        grelhaContainer.getChildren().clear();
+
+        // Determinar intervalo de datas
+        LocalDate inicio;
+        LocalDate fim;
+        if (grelhaVistaSemanais) {
+            inicio = grelhaDataInicio.with(
+                    java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+            fim = inicio.plusDays(6);
+        } else {
+            YearMonth ym = YearMonth.of(grelhaDataInicio.getYear(), grelhaDataInicio.getMonth());
+            inicio = ym.atDay(1);
+            fim = ym.atEndOfMonth();
+        }
+
+        // Atualizar label do período
+        java.time.format.DateTimeFormatter fmtDia = java.time.format.DateTimeFormatter.ofPattern(
+                "d MMM", java.util.Locale.forLanguageTag("pt-PT"));
+        java.time.format.DateTimeFormatter fmtMes = java.time.format.DateTimeFormatter.ofPattern(
+                "MMMM yyyy", java.util.Locale.forLanguageTag("pt-PT"));
+        if (lblGrelhaPeriodo != null) {
+            String periodoTexto = grelhaVistaSemanais
+                    ? fmtDia.format(inicio) + " – " + fmtDia.format(fim) + " " + fim.getYear()
+                    : capitalizar(YearMonth.from(inicio).format(fmtMes));
+            lblGrelhaPeriodo.setText(periodoTexto);
+        }
+
+        // Verificar se há dados
+        boolean temDados = propostaAtual != null
+                && propostaAtual.linhas() != null
+                && !propostaAtual.linhas().isEmpty();
+
+        if (emptyStateGrelha != null) {
+            emptyStateGrelha.setVisible(!temDados);
+            emptyStateGrelha.setManaged(!temDados);
+        }
+        if (grelhaScrollPane != null) {
+            grelhaScrollPane.setVisible(temDados);
+            grelhaScrollPane.setManaged(temDados);
+        }
+        if (!temDados) return;
+
+        // Lista de dias no intervalo
+        List<LocalDate> dias = new ArrayList<>();
+        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {
+            dias.add(d);
+        }
+
+        // Agrupar linhas por colaborador, filtradas pelo intervalo
+        Map<Integer, List<GeracaoHorariosBLL.HorarioLinha>> porColaborador = new LinkedHashMap<>();
+        Map<Integer, String> nomesColab = new LinkedHashMap<>();
+        Map<Integer, String> cargosColab = new LinkedHashMap<>();
+
+        for (GeracaoHorariosBLL.HorarioLinha linha : propostaAtual.linhas()) {
+            if (linha == null || linha.data() == null) continue;
+            if (linha.data().isBefore(inicio) || linha.data().isAfter(fim)) continue;
+            Integer id = linha.idColaborador();
+            porColaborador.computeIfAbsent(id, k -> new ArrayList<>()).add(linha);
+            nomesColab.put(id, linha.colaborador() != null ? linha.colaborador() : "?");
+            cargosColab.put(id, linha.cargo() != null ? linha.cargo() : "");
+        }
+
+        if (porColaborador.isEmpty()) {
+            if (emptyStateGrelha != null) { emptyStateGrelha.setVisible(true); emptyStateGrelha.setManaged(true); }
+            if (grelhaScrollPane != null) { grelhaScrollPane.setVisible(false); grelhaScrollPane.setManaged(false); }
+            return;
+        }
+
+        // ── LINHA DE CABEÇALHO ──
+        HBox headerRow = new HBox();
+        headerRow.getStyleClass().add("grelha-header-row");
+
+        javafx.scene.control.Label headerColab = new javafx.scene.control.Label("COLABORADOR");
+        headerColab.getStyleClass().add("grelha-header-colab");
+        headerColab.setMinWidth(200); headerColab.setPrefWidth(200); headerColab.setMaxWidth(200);
+        headerRow.getChildren().add(headerColab);
+
+        for (LocalDate dia : dias) {
+            VBox hDia = new VBox();
+            hDia.getStyleClass().add("grelha-header-dia");
+            hDia.setAlignment(Pos.CENTER);
+            boolean fds = dia.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
+                    || dia.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
+            if (fds) hDia.getStyleClass().add("grelha-header-dia-fim-semana");
+
+            javafx.scene.control.Label lblNum = new javafx.scene.control.Label(
+                    String.format("%02d", dia.getDayOfMonth()));
+            lblNum.getStyleClass().add("grelha-header-dia-num");
+            javafx.scene.control.Label lblSem = new javafx.scene.control.Label(
+                    diaSemanaAbrev(dia.getDayOfWeek()));
+            lblSem.getStyleClass().add("grelha-header-dia-sem");
+            hDia.getChildren().addAll(lblNum, lblSem);
+            headerRow.getChildren().add(hDia);
+        }
+        grelhaContainer.getChildren().add(headerRow);
+
+        // ── LINHAS POR COLABORADOR ──
+        boolean alternado = false;
+        for (Map.Entry<Integer, List<GeracaoHorariosBLL.HorarioLinha>> entry : porColaborador.entrySet()) {
+            Integer idColab = entry.getKey();
+            List<GeracaoHorariosBLL.HorarioLinha> linhas = entry.getValue();
+
+            Map<LocalDate, String> diaParaPeriodo = new java.util.HashMap<>();
+            for (GeracaoHorariosBLL.HorarioLinha l : linhas) {
+                if (l.data() != null) diaParaPeriodo.put(l.data(), l.periodo() != null ? l.periodo() : "");
+            }
+
+            HBox empRow = new HBox();
+            empRow.getStyleClass().add("grelha-employee-row");
+            if (alternado) empRow.getStyleClass().add("grelha-employee-row-alt");
+            alternado = !alternado;
+
+            HBox infoCell = construirCelulaColaborador(
+                    nomesColab.get(idColab), cargosColab.get(idColab));
+            empRow.getChildren().add(infoCell);
+
+            for (LocalDate dia : dias) {
+                javafx.scene.layout.StackPane diaCell = construirCelulaDia(
+                        diaParaPeriodo.get(dia), dia.getDayOfWeek());
+                empRow.getChildren().add(diaCell);
+            }
+            grelhaContainer.getChildren().add(empRow);
+        }
+    }
+
+    private HBox construirCelulaColaborador(String nome, String cargo) {
+        HBox cell = new HBox(8);
+        cell.getStyleClass().add("grelha-employee-info");
+        cell.setAlignment(Pos.CENTER_LEFT);
+
+        // Avatar com iniciais
+        javafx.scene.layout.StackPane avatar = new javafx.scene.layout.StackPane();
+        avatar.getStyleClass().add("grelha-avatar");
+        avatar.setMinSize(32, 32); avatar.setPrefSize(32, 32); avatar.setMaxSize(32, 32);
+        javafx.scene.control.Label lblIniciais = new javafx.scene.control.Label(gerarIniciais(nome));
+        lblIniciais.getStyleClass().add("grelha-avatar-iniciais");
+        avatar.getChildren().add(lblIniciais);
+
+        // Nome + cargo
+        VBox nomeBox = new VBox(2);
+        nomeBox.setAlignment(Pos.CENTER_LEFT);
+        javafx.scene.control.Label lblNome = new javafx.scene.control.Label(
+                nome != null ? nome : "?");
+        lblNome.getStyleClass().add("grelha-employee-nome");
+        lblNome.setMaxWidth(130);
+        javafx.scene.control.Label lblCargo = new javafx.scene.control.Label(
+                cargo != null ? cargo : "");
+        lblCargo.getStyleClass().add("grelha-employee-cargo");
+        nomeBox.getChildren().addAll(lblNome, lblCargo);
+
+        cell.getChildren().addAll(avatar, nomeBox);
+        return cell;
+    }
+
+    private javafx.scene.layout.StackPane construirCelulaDia(
+            String periodo, java.time.DayOfWeek diaSemana) {
+
+        javafx.scene.layout.StackPane cell = new javafx.scene.layout.StackPane();
+        cell.getStyleClass().add("grelha-dia-cell");
+        cell.setMinWidth(56); cell.setPrefWidth(56); cell.setMaxWidth(56);
+
+        boolean fds = diaSemana == java.time.DayOfWeek.SATURDAY
+                || diaSemana == java.time.DayOfWeek.SUNDAY;
+        if (fds) cell.getStyleClass().add("grelha-dia-cell-fim-semana");
+
+        javafx.scene.control.Label lbl;
+        if (periodo == null || periodo.isBlank()) {
+            lbl = new javafx.scene.control.Label("–");
+            lbl.getStyleClass().add("grelha-turno-vazio");
+        } else {
+            lbl = new javafx.scene.control.Label(turnoTexto(periodo));
+            lbl.getStyleClass().addAll("grelha-turno-pill", turnoCssClass(periodo));
+        }
+        cell.getChildren().add(lbl);
+        return cell;
+    }
+
+    private String turnoTexto(String periodo) {
+        if (periodo == null) return "–";
+        String p = Normalizer.normalize(periodo.trim().toLowerCase(), Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return switch (p) {
+            case "manha", "manhã" -> "Manhã";
+            case "tarde"           -> "Tarde";
+            case "noite"           -> "Noite";
+            case "folga"           -> "Folga";
+            default -> periodo.length() > 6 ? periodo.substring(0, 5) + "." : periodo;
+        };
+    }
+
+    private String turnoCssClass(String periodo) {
+        if (periodo == null) return "grelha-turno-vazio";
+        String p = Normalizer.normalize(periodo.trim().toLowerCase(), Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return switch (p) {
+            case "manha", "manhã" -> "grelha-turno-manha";
+            case "tarde"           -> "grelha-turno-tarde";
+            case "noite"           -> "grelha-turno-noite";
+            case "folga"           -> "grelha-turno-folga";
+            default                -> "grelha-turno-outro";
+        };
+    }
+
+    private String diaSemanaAbrev(java.time.DayOfWeek dow) {
+        return switch (dow) {
+            case MONDAY    -> "Seg";
+            case TUESDAY   -> "Ter";
+            case WEDNESDAY -> "Qua";
+            case THURSDAY  -> "Qui";
+            case FRIDAY    -> "Sex";
+            case SATURDAY  -> "Sáb";
+            case SUNDAY    -> "Dom";
+        };
+    }
+
+    private String gerarIniciais(String nome) {
+        if (nome == null || nome.isBlank()) return "?";
+        String[] partes = nome.trim().split("\\s+");
+        if (partes.length == 1)
+            return partes[0].substring(0, Math.min(2, partes[0].length())).toUpperCase(java.util.Locale.ROOT);
+        return (String.valueOf(partes[0].charAt(0))
+                + partes[partes.length - 1].charAt(0)).toUpperCase(java.util.Locale.ROOT);
     }
 
     // ── Navegação Calendário Mensal ─────────────────────────────────────────────
@@ -1438,6 +1792,16 @@ public class GeracaoHorariosController {
         atualizarCalendarioMensal();
         atualizarPainelValidacao();
         atualizarEstadoInterativo();
+        // Sincronizar grelha com o mês/ano da proposta carregada
+        grelhaDataInicio = LocalDate.of(resultado.ano(), resultado.mes(), 1);
+        if (grelhaVistaSemanais) {
+            grelhaDataInicio = grelhaDataInicio.with(
+                    java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        }
+        // Rebuilds only if the grelha panel is currently visible
+        if (painelVistaGrelha != null && painelVistaGrelha.isVisible()) {
+            construirVistaGrelha();
+        }
     }
 
     private void limparResultado() {

@@ -3215,6 +3215,222 @@
     -fx-font-weight: 800;
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   BLOCO CSS-18 — VISTA EM GRELHA (Geração de Horários)
+   Toggle de vista + cabeçalho + linhas por colaborador + pills de turno
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Toggle de vista (Calendário / Grelha) ── */
+.vista-toggle-bar {
+    -fx-background-color: #f3f4f6;
+    -fx-background-radius: 10px;
+    -fx-padding: 4px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 4px;
+    -fx-pref-height: 38px;
+}
+.btn-vista {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 6px 18px;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+}
+.btn-vista-ativo {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1c1b1b;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 6, 0, 0, 2);
+}
+.btn-vista-ativo:hover {
+    -fx-background-color: #f9fafb;
+}
+.btn-vista-inativo {
+    -fx-background-color: transparent;
+    -fx-text-fill: #6b7280;
+}
+.btn-vista-inativo:hover {
+    -fx-background-color: rgba(255,255,255,0.60);
+    -fx-text-fill: #374151;
+}
+
+/* Sub-toggle Semana / Mês dentro da grelha */
+.btn-grelha-sub-ativo {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 5px 14px;
+    -fx-background-radius: 6px;
+    -fx-background-color: #9b1c1c;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+}
+.btn-grelha-sub-ativo:hover { -fx-background-color: #7f1d1d; }
+.btn-grelha-sub-inativo {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-padding: 5px 14px;
+    -fx-background-radius: 6px;
+    -fx-background-color: transparent;
+    -fx-text-fill: #6b7280;
+    -fx-cursor: hand;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+}
+.btn-grelha-sub-inativo:hover {
+    -fx-background-color: #f3f4f6;
+    -fx-text-fill: #374151;
+}
+
+/* ── Container da grelha ── */
+.grelha-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-width: 0;
+}
+.grelha-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+.grelha-container {
+    -fx-background-color: transparent;
+    -fx-spacing: 0;
+}
+
+/* ── Linha de cabeçalho ── */
+.grelha-header-row {
+    -fx-background-color: #f8f9fa;
+    -fx-background-radius: 8px 8px 0 0;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 0 0 2px 0;
+    -fx-min-height: 52px;
+    -fx-pref-height: 52px;
+    -fx-alignment: CENTER_LEFT;
+}
+.grelha-header-colab {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #9ca3af;
+    -fx-letter-spacing: 0.5px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0 8px 0 16px;
+}
+.grelha-header-dia {
+    -fx-alignment: CENTER;
+    -fx-padding: 6px 2px;
+    -fx-min-width: 56px;
+    -fx-pref-width: 56px;
+    -fx-max-width: 56px;
+}
+.grelha-header-dia-num {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #374151;
+}
+.grelha-header-dia-sem {
+    -fx-font-size: 9px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #9ca3af;
+    -fx-letter-spacing: 0.3px;
+}
+.grelha-header-dia-fim-semana .grelha-header-dia-num {
+    -fx-text-fill: #9b1c1c;
+}
+.grelha-header-dia-fim-semana .grelha-header-dia-sem {
+    -fx-text-fill: #f87171;
+}
+
+/* ── Linhas de colaborador ── */
+.grelha-employee-row {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #f3f4f6;
+    -fx-border-width: 0 0 1px 0;
+    -fx-min-height: 50px;
+    -fx-pref-height: 50px;
+    -fx-alignment: CENTER_LEFT;
+}
+.grelha-employee-row-alt {
+    -fx-background-color: #fafafa;
+}
+.grelha-employee-row:hover {
+    -fx-background-color: #fef2f2;
+}
+
+/* ── Célula info do colaborador ── */
+.grelha-employee-info {
+    -fx-padding: 0 10px 0 12px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-min-width: 200px;
+    -fx-pref-width: 200px;
+    -fx-max-width: 200px;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 0 1px 0 0;
+    -fx-min-height: 50px;
+}
+.grelha-avatar {
+    -fx-background-color: #9b1c1c;
+    -fx-background-radius: 50%;
+    -fx-min-width: 32px;
+    -fx-pref-width: 32px;
+    -fx-max-width: 32px;
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+    -fx-alignment: CENTER;
+}
+.grelha-avatar-iniciais {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: white;
+}
+.grelha-employee-nome {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #1c1b1b;
+    -fx-max-width: 130px;
+}
+.grelha-employee-cargo {
+    -fx-font-size: 10px;
+    -fx-font-weight: 400;
+    -fx-text-fill: #9ca3af;
+}
+
+/* ── Células de dia ── */
+.grelha-dia-cell {
+    -fx-alignment: CENTER;
+    -fx-min-width: 56px;
+    -fx-pref-width: 56px;
+    -fx-max-width: 56px;
+    -fx-min-height: 50px;
+    -fx-pref-height: 50px;
+}
+.grelha-dia-cell-fim-semana {
+    -fx-background-color: #fef2f2;
+}
+
+/* ── Pills de turno ── */
+.grelha-turno-pill {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-padding: 3px 6px;
+    -fx-background-radius: 5px;
+    -fx-text-fill: white;
+    -fx-alignment: CENTER;
+}
+.grelha-turno-manha  { -fx-background-color: #2563eb; }
+.grelha-turno-tarde  { -fx-background-color: #ea580c; }
+.grelha-turno-noite  { -fx-background-color: #7c3aed; }
+.grelha-turno-folga  { -fx-background-color: #dc2626; }
+.grelha-turno-outro  { -fx-background-color: #6b7280; }
+.grelha-turno-vazio  { -fx-font-size: 11px; -fx-text-fill: #d1d5db; }
+
+/* ── Separador entre linhas ── */
+.grelha-row-separator {
+    -fx-background-color: #f3f4f6;
+    -fx-min-height: 1px;
+    -fx-max-height: 1px;
+}
+
 /* ── Scroll thumb — mais visível ─────────────────────────────── */
 .conteudo-scroll .scroll-bar .thumb {
     -fx-background-color: rgba(28,27,27,0.18);
