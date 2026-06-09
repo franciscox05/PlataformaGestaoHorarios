@@ -3,17 +3,24 @@ package com.example.projeto2.DESKTOP;
 import com.example.projeto2.API.Services.ExportacaoPdfService;
 import com.example.projeto2.API.Services.GeracaoHorariosService;
 import com.example.projeto2.API.Services.HorarioService;
+import com.example.projeto2.DESKTOP.support.BackgroundTaskRunner;
 import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
+import com.example.projeto2.DESKTOP.support.DetalheDiaDialog;
+import com.example.projeto2.DESKTOP.support.DiagnosticoGeracaoPanel;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
+import com.example.projeto2.DESKTOP.support.EdicaoTurnoDialog;
+import com.example.projeto2.DESKTOP.support.ExportadorHorarioCsv;
+import com.example.projeto2.DESKTOP.support.HorarioIndividualDialog;
+import com.example.projeto2.DESKTOP.support.MensagemErroFormatter;
 import com.example.projeto2.DESKTOP.support.MesOption;
+import com.example.projeto2.DESKTOP.support.SelecaoColaboradoresPainel;
+import com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
@@ -28,10 +35,8 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.geometry.Pos;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -40,20 +45,15 @@ import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.time.YearMonth;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -386,15 +386,17 @@ public class GeracaoHorariosController {
     private boolean podeGerar;
     private boolean podeValidar;
     private LocalDate semanaPlaneamentoInicio;
-    private Task<?> operacaoEmCurso;
+    private BackgroundTaskRunner taskRunner;
     private boolean suprimirCarregamentoPorSelecao;
     private YearMonth periodoMensalAtual = YearMonth.now();
-    private final Map<Integer, CheckBox> selecaoColaboradoresGeracao = new LinkedHashMap<>();
+    private SelecaoColaboradoresPainel selecaoColaboradoresPainel;
 
     // ── Estado da vista em grelha ─────────────────────────────────────────────
     private boolean grelhaVistaSemanais = true;          // true=semana, false=mês
     private LocalDate grelhaDataInicio = LocalDate.now()
             .with(java.time.DayOfWeek.MONDAY);           // início da semana atual
+    private VistaGrelhaHorarioRender vistaGrelhaRender;
+    private DiagnosticoGeracaoPanel diagnosticoGeracaoPanel;
 
     public GeracaoHorariosController(GeracaoHorariosService geracaoHorariosBLL,
                                      ExportacaoPdfService exportacaoPdfBLL,
@@ -406,6 +408,20 @@ public class GeracaoHorariosController {
 
     @FXML
     public void initialize() {
+        vistaGrelhaRender = new VistaGrelhaHorarioRender(
+                grelhaContainer, grelhaScrollPane, emptyStateGrelha, lblGrelhaPeriodo);
+        diagnosticoGeracaoPanel = new DiagnosticoGeracaoPanel(
+                painelDiagnosticoGeracao, lblDiagnosticoTitulo, lblDiagnosticoResumo,
+                lblDiagnosticoPerfilRecomendado, boxDiagnosticoMotivos, boxDiagnosticoSugestoes,
+                this::obterJanela);
+        taskRunner = new BackgroundTaskRunner(
+                this::mostrarInformacao,
+                this::atualizarEstadoInterativo,
+                "geracao-horarios-worker");
+        selecaoColaboradoresPainel = new SelecaoColaboradoresPainel(
+                boxColaboradoresGeracao,
+                lblResumoColaboradoresGeracao,
+                this::atualizarEstadoInterativo);
         configurarFiltros();
         configurarTabelas();
         configurarTabelaPropostas();
@@ -468,14 +484,12 @@ public class GeracaoHorariosController {
 
     @FXML
     public void onSelecionarTodosColaboradoresClick() {
-        selecaoColaboradoresGeracao.values().forEach(checkBox -> checkBox.setSelected(true));
-        atualizarResumoSelecaoColaboradores();
+        selecaoColaboradoresPainel.selecionarTodos();
     }
 
     @FXML
     public void onLimparColaboradoresClick() {
-        selecaoColaboradoresGeracao.values().forEach(checkBox -> checkBox.setSelected(false));
-        atualizarResumoSelecaoColaboradores();
+        selecaoColaboradoresPainel.limparSelecao();
     }
 
     @FXML
@@ -677,314 +691,10 @@ public class GeracaoHorariosController {
         }
     }
 
-    // Cores para os avatares dos colaboradores (ciclam pela lista)
-    private static final String[] AVATAR_CORES = {
-        "#dc2626", "#2563eb", "#7c3aed", "#059669",
-        "#d97706", "#db2777", "#0891b2", "#65a30d",
-        "#0f172a", "#9333ea", "#ea580c", "#0284c7"
-    };
-    private final Map<Integer, String> grelhaAvatarCores = new LinkedHashMap<>();
-
     private void construirVistaGrelha() {
-        if (grelhaContainer == null) return;
-        grelhaContainer.getChildren().clear();
-
-        // Determinar intervalo de datas
-        LocalDate inicio;
-        LocalDate fim;
-        if (grelhaVistaSemanais) {
-            inicio = grelhaDataInicio.with(
-                    java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-            fim = inicio.plusDays(6);
-        } else {
-            YearMonth ym = YearMonth.of(grelhaDataInicio.getYear(), grelhaDataInicio.getMonth());
-            inicio = ym.atDay(1);
-            fim = ym.atEndOfMonth();
-        }
-
-        // Atualizar label do período
-        java.time.format.DateTimeFormatter fmtDia = java.time.format.DateTimeFormatter.ofPattern(
-                "d MMM", java.util.Locale.forLanguageTag("pt-PT"));
-        java.time.format.DateTimeFormatter fmtMes = java.time.format.DateTimeFormatter.ofPattern(
-                "MMMM yyyy", java.util.Locale.forLanguageTag("pt-PT"));
-        if (lblGrelhaPeriodo != null) {
-            String periodoTexto = grelhaVistaSemanais
-                    ? fmtDia.format(inicio) + " – " + fmtDia.format(fim)
-                    : capitalizar(YearMonth.from(inicio).format(fmtMes));
-            // conta colaboradores visíveis
-            long nPessoas = propostaAtual != null && propostaAtual.linhas() != null
-                    ? propostaAtual.linhas().stream()
-                        .filter(l -> l != null && l.data() != null
-                            && !l.data().isBefore(inicio) && !l.data().isAfter(fim))
-                        .map(GeracaoHorariosService.HorarioLinha::idColaborador)
-                        .distinct().count()
-                    : 0;
-            lblGrelhaPeriodo.setText(periodoTexto + (nPessoas > 0 ? "   · " + nPessoas + " pessoas" : ""));
-        }
-
-        // Verificar se há dados
-        boolean temDados = propostaAtual != null
-                && propostaAtual.linhas() != null
-                && !propostaAtual.linhas().isEmpty();
-
-        if (emptyStateGrelha != null) {
-            emptyStateGrelha.setVisible(!temDados);
-            emptyStateGrelha.setManaged(!temDados);
-        }
-        if (grelhaScrollPane != null) {
-            grelhaScrollPane.setVisible(temDados);
-            grelhaScrollPane.setManaged(temDados);
-        }
-        if (!temDados) return;
-
-        // Lista de dias no intervalo
-        List<LocalDate> dias = new ArrayList<>();
-        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) dias.add(d);
-
-        // Agrupar linhas por colaborador (turno() = tipo, periodo() = horário HH:MM-HH:MM)
-        Map<Integer, String> nomesColab  = new LinkedHashMap<>();
-        Map<Integer, String> cargosColab = new LinkedHashMap<>();
-        // mapa: idColab → { data → HorarioLinha }
-        Map<Integer, Map<LocalDate, GeracaoHorariosService.HorarioLinha>> porColaborador = new LinkedHashMap<>();
-
-        for (GeracaoHorariosService.HorarioLinha linha : propostaAtual.linhas()) {
-            if (linha == null || linha.data() == null) continue;
-            Integer id = linha.idColaborador();
-            nomesColab.put(id, linha.colaborador() != null ? linha.colaborador() : "?");
-            cargosColab.put(id, linha.cargo() != null ? linha.cargo() : "");
-            porColaborador.computeIfAbsent(id, k -> new LinkedHashMap<>()).put(linha.data(), linha);
-        }
-
-        if (porColaborador.isEmpty()) {
-            if (emptyStateGrelha != null) { emptyStateGrelha.setVisible(true); emptyStateGrelha.setManaged(true); }
-            if (grelhaScrollPane != null) { grelhaScrollPane.setVisible(false); grelhaScrollPane.setManaged(false); }
-            return;
-        }
-
-        // Atribuir cores de avatar estáveis
-        int corIdx = 0;
-        for (Integer id : porColaborador.keySet()) {
-            grelhaAvatarCores.putIfAbsent(id, AVATAR_CORES[corIdx % AVATAR_CORES.length]);
-            corIdx++;
-        }
-
-        LocalDate hoje = LocalDate.now();
-
-        // ── LINHA DE CABEÇALHO ──
-        HBox headerRow = new HBox();
-        headerRow.getStyleClass().add("grelha-header-row");
-
-        javafx.scene.control.Label headerColab = new javafx.scene.control.Label("COLABORADOR");
-        headerColab.getStyleClass().add("grelha-header-colab");
-        headerRow.getChildren().add(headerColab);
-
-        for (LocalDate dia : dias) {
-            VBox hDia = new VBox();
-            hDia.getStyleClass().add("grelha-header-dia");
-            hDia.setAlignment(Pos.CENTER);
-            hDia.setSpacing(2);
-            boolean fds = dia.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
-                    || dia.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
-            boolean eHoje = dia.equals(hoje);
-            if (fds) hDia.getStyleClass().add("grelha-header-dia-fim-semana");
-
-            javafx.scene.control.Label lblSem = new javafx.scene.control.Label(
-                    diaSemanaAbrev(dia.getDayOfWeek()).toUpperCase(java.util.Locale.ROOT));
-            lblSem.getStyleClass().add("grelha-header-dia-sem");
-
-            // Número do dia — hoje fica dentro de um círculo vermelho
-            if (eHoje) {
-                javafx.scene.layout.StackPane circulo = new javafx.scene.layout.StackPane();
-                circulo.setMinSize(34, 34); circulo.setPrefSize(34, 34); circulo.setMaxSize(34, 34);
-                circulo.setStyle("-fx-background-color: #dc2626; -fx-background-radius: 50%;");
-                javafx.scene.control.Label lblNumHoje = new javafx.scene.control.Label(
-                        String.valueOf(dia.getDayOfMonth()));
-                lblNumHoje.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: white;");
-                circulo.getChildren().add(lblNumHoje);
-                hDia.getChildren().addAll(lblSem, circulo);
-            } else {
-                javafx.scene.control.Label lblNum = new javafx.scene.control.Label(
-                        String.valueOf(dia.getDayOfMonth()));
-                lblNum.getStyleClass().add("grelha-header-dia-num");
-                hDia.getChildren().addAll(lblSem, lblNum);
-            }
-            headerRow.getChildren().add(hDia);
-        }
-        grelhaContainer.getChildren().add(headerRow);
-
-        // ── LINHAS POR COLABORADOR ──
-        boolean alternado = false;
-        for (Map.Entry<Integer, Map<LocalDate, GeracaoHorariosService.HorarioLinha>> entry
-                : porColaborador.entrySet()) {
-            Integer idColab = entry.getKey();
-            Map<LocalDate, GeracaoHorariosService.HorarioLinha> diaParaLinha = entry.getValue();
-
-            HBox empRow = new HBox();
-            empRow.getStyleClass().add("grelha-employee-row");
-            if (alternado) empRow.getStyleClass().add("grelha-employee-row-alt");
-            alternado = !alternado;
-
-            String corAvatar = grelhaAvatarCores.getOrDefault(idColab, "#6b7280");
-            HBox infoCell = construirCelulaColaborador(
-                    nomesColab.get(idColab), cargosColab.get(idColab), corAvatar);
-            empRow.getChildren().add(infoCell);
-
-            for (LocalDate dia : dias) {
-                GeracaoHorariosService.HorarioLinha linha = diaParaLinha.get(dia);
-                // turno() = nome tipo (Manhã/Tarde/Noite/Folga)
-                // periodo() = horário ("09:00 - 15:00") — só existe para turnos, não folgas
-                String tipoTurno = (linha != null && linha.turno() != null) ? linha.turno() : null;
-                String horasTurno = (linha != null && linha.periodo() != null
-                        && !"-".equals(linha.periodo())) ? linha.periodo() : null;
-                javafx.scene.layout.StackPane diaCell = construirCelulaDia(
-                        tipoTurno, horasTurno, dia.getDayOfWeek(), dia.equals(hoje));
-                empRow.getChildren().add(diaCell);
-            }
-            grelhaContainer.getChildren().add(empRow);
-        }
-    }
-
-    private HBox construirCelulaColaborador(String nome, String cargo, String corAvatar) {
-        HBox cell = new HBox(10);
-        cell.getStyleClass().add("grelha-employee-info");
-        cell.setAlignment(Pos.CENTER_LEFT);
-
-        // Avatar colorido com iniciais
-        javafx.scene.layout.StackPane avatar = new javafx.scene.layout.StackPane();
-        avatar.getStyleClass().add("grelha-avatar");
-        avatar.setStyle("-fx-background-color: " + corAvatar + ";");
-        javafx.scene.control.Label lblIniciais = new javafx.scene.control.Label(gerarIniciais(nome));
-        lblIniciais.getStyleClass().add("grelha-avatar-iniciais");
-        avatar.getChildren().add(lblIniciais);
-
-        // Nome + cargo
-        VBox nomeBox = new VBox(2);
-        nomeBox.setAlignment(Pos.CENTER_LEFT);
-        javafx.scene.control.Label lblNome = new javafx.scene.control.Label(
-                nome != null ? nome : "?");
-        lblNome.getStyleClass().add("grelha-employee-nome");
-        lblNome.setMaxWidth(128);
-        javafx.scene.control.Label lblCargo = new javafx.scene.control.Label(
-                cargo != null ? cargo : "");
-        lblCargo.getStyleClass().add("grelha-employee-cargo");
-        nomeBox.getChildren().addAll(lblNome, lblCargo);
-
-        cell.getChildren().addAll(avatar, nomeBox);
-        return cell;
-    }
-
-    /** Constrói a célula de um dia: card colorido com nome do turno + horas abaixo.
-     *  tipoTurno = "Manhã" / "Tarde" / "Noite" / "Folga" (ou null = sem dados)
-     *  horasTurno = "09:00 - 15:00" (ou null para folgas/sem dados)
-     */
-    private javafx.scene.layout.StackPane construirCelulaDia(
-            String tipoTurno,
-            String horasTurno,
-            java.time.DayOfWeek diaSemana,
-            boolean eHoje) {
-
-        javafx.scene.layout.StackPane cell = new javafx.scene.layout.StackPane();
-        cell.getStyleClass().add("grelha-dia-cell");
-
-        boolean fds = diaSemana == java.time.DayOfWeek.SATURDAY
-                || diaSemana == java.time.DayOfWeek.SUNDAY;
-        if (fds) cell.getStyleClass().add("grelha-dia-cell-fim-semana");
-        if (eHoje) cell.setStyle("-fx-background-color: #fff5f5;");
-
-        // Sem dados para este dia → mostrar Folga
-        if (tipoTurno == null || tipoTurno.isBlank() || "-".equals(tipoTurno)) {
-            tipoTurno = "Folga";
-            horasTurno = null;
-        }
-
-        String chave = turnoChave(tipoTurno);
-
-        // Card interior
-        VBox card = new VBox(3);
-        card.getStyleClass().addAll("grelha-turno-card", "grelha-turno-card-" + chave);
-        card.setAlignment(Pos.CENTER);
-
-        javafx.scene.control.Label lblNome = new javafx.scene.control.Label(
-                turnoNomeDisplay(tipoTurno));
-        lblNome.getStyleClass().addAll("grelha-turno-nome", "grelha-turno-nome-" + chave);
-
-        card.getChildren().add(lblNome);
-
-        // Horas formatadas (ex: "09:00 - 15:00" → "09-15")
-        if (horasTurno != null && !horasTurno.isBlank() && !"folga".equals(chave)) {
-            String horasFormatadas = formatarHorasGrelha(horasTurno);
-            javafx.scene.control.Label lblHora = new javafx.scene.control.Label(horasFormatadas);
-            lblHora.getStyleClass().addAll("grelha-turno-hora", "grelha-turno-hora-" + chave);
-            card.getChildren().add(lblHora);
-        }
-
-        cell.getChildren().add(card);
-        return cell;
-    }
-
-    /** Extrai a chave CSS do nome do turno: "manha", "tarde", "noite", "folga", "intermedio", "outro" */
-    private String turnoChave(String tipo) {
-        if (tipo == null) return "outro";
-        String p = Normalizer.normalize(tipo.trim().toLowerCase(), Normalizer.Form.NFD)
-                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        return switch (p) {
-            case "manha"      -> "manha";
-            case "tarde"      -> "tarde";
-            case "noite"      -> "noite";
-            case "folga"      -> "folga";
-            case "intermedio" -> "intermedio";
-            default           -> "outro";
-        };
-    }
-
-    /** Nome do turno para mostrar no card (com acentos corretos) */
-    private String turnoNomeDisplay(String tipo) {
-        if (tipo == null) return "–";
-        String chave = turnoChave(tipo);
-        return switch (chave) {
-            case "manha"      -> "Manhã";
-            case "tarde"      -> "Tarde";
-            case "noite"      -> "Noite";
-            case "folga"      -> "Folga";
-            case "intermedio" -> "Interm.";
-            default           -> tipo.length() > 8 ? tipo.substring(0, 7) + "." : tipo;
-        };
-    }
-
-    /** Formata "09:00 - 15:00" → "09-15", "09:30 - 15:30" → "09:30-15:30" */
-    private String formatarHorasGrelha(String horas) {
-        if (horas == null) return "";
-        // Remove espaços e normaliza separador
-        String s = horas.trim().replace(" ", "").replace("–", "-");
-        // Remove :00 de cada parte se ambas terminarem em :00
-        String[] partes = s.split("-", 2);
-        if (partes.length == 2) {
-            String p1 = partes[0].endsWith(":00") ? partes[0].replace(":00", "") : partes[0];
-            String p2 = partes[1].endsWith(":00") ? partes[1].replace(":00", "") : partes[1];
-            return p1 + "-" + p2;
-        }
-        return s;
-    }
-
-    private String diaSemanaAbrev(java.time.DayOfWeek dow) {
-        return switch (dow) {
-            case MONDAY    -> "Seg";
-            case TUESDAY   -> "Ter";
-            case WEDNESDAY -> "Qua";
-            case THURSDAY  -> "Qui";
-            case FRIDAY    -> "Sex";
-            case SATURDAY  -> "Sáb";
-            case SUNDAY    -> "Dom";
-        };
-    }
-
-    private String gerarIniciais(String nome) {
-        if (nome == null || nome.isBlank()) return "?";
-        String[] partes = nome.trim().split("\\s+");
-        if (partes.length == 1)
-            return partes[0].substring(0, Math.min(2, partes[0].length())).toUpperCase(java.util.Locale.ROOT);
-        return (String.valueOf(partes[0].charAt(0))
-                + partes[partes.length - 1].charAt(0)).toUpperCase(java.util.Locale.ROOT);
+        List<GeracaoHorariosService.HorarioLinha> linhas =
+                propostaAtual != null ? propostaAtual.linhas() : null;
+        vistaGrelhaRender.renderizar(grelhaVistaSemanais, grelhaDataInicio, linhas);
     }
 
     // ── Navegação Calendário Mensal ─────────────────────────────────────────────
@@ -1006,64 +716,12 @@ public class GeracaoHorariosController {
             mostrarErro("Carrega primeiro uma proposta de horário para exportar.");
             return;
         }
-
-        String[] MESES_PT = {
-            "janeiro","fevereiro","marco","abril","maio","junho",
-            "julho","agosto","setembro","outubro","novembro","dezembro"
-        };
         MesOption mesSelecionado = cbMes.getValue();
         int mes = mesSelecionado != null ? mesSelecionado.numero() : periodoMensalAtual.getMonthValue();
         int ano = spAno.getValue() != null ? spAno.getValue() : periodoMensalAtual.getYear();
-        String nomeMes = MESES_PT[mes - 1];
-
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Exportar horário mensal");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV", "*.csv"));
-        fileChooser.setInitialFileName("horario-" + ano + "-" + nomeMes + ".csv");
-
         Window janela = btnExportarCsvHorario.getScene() != null
                 ? btnExportarCsvHorario.getScene().getWindow() : null;
-        java.io.File ficheiro = fileChooser.showSaveDialog(janela);
-        if (ficheiro == null) return;
-
-        try (BufferedWriter writer = Files.newBufferedWriter(ficheiro.toPath(), StandardCharsets.UTF_8)) {
-            writer.write("Loja;" + propostaAtual.origemPlaneamento()
-                    + ";Mês;" + nomeMes + ";Ano;" + ano);
-            writer.newLine();
-            writer.write("Proposta;" + sanitizarCsv(propostaAtual.geradoPor())
-                    + ";Estado;" + sanitizarCsv(propostaAtual.estado()));
-            writer.newLine();
-            writer.newLine();
-            writer.write("Colaborador;Cargo;Data;Dia Semana;Período;Turno;Estado");
-            writer.newLine();
-
-            List<GeracaoHorariosService.HorarioLinha> linhasOrdenadas = propostaAtual.linhas().stream()
-                    .sorted(Comparator.comparing(GeracaoHorariosService.HorarioLinha::data,
-                            Comparator.nullsLast(Comparator.naturalOrder()))
-                            .thenComparing(GeracaoHorariosService.HorarioLinha::colaborador,
-                            Comparator.nullsLast(String::compareToIgnoreCase)))
-                    .toList();
-
-            for (GeracaoHorariosService.HorarioLinha linha : linhasOrdenadas) {
-                writer.write(sanitizarCsv(linha.colaborador()) + ";"
-                        + sanitizarCsv(linha.cargo()) + ";"
-                        + (linha.data() != null ? linha.data().toString() : "") + ";"
-                        + sanitizarCsv(linha.diaSemana()) + ";"
-                        + sanitizarCsv(linha.periodo()) + ";"
-                        + sanitizarCsv(linha.turno()) + ";"
-                        + sanitizarCsv(linha.estado()));
-                writer.newLine();
-            }
-
-            mostrarSucesso("Horário exportado com sucesso.");
-        } catch (IOException e) {
-            mostrarErro("Não foi possível exportar o ficheiro CSV.");
-        }
-    }
-
-    private String sanitizarCsv(String valor) {
-        if (valor == null) return "";
-        return "\"" + valor.replace("\"", "\"\"") + "\"";
+        ExportadorHorarioCsv.exportar(propostaAtual, mes, ano, janela, this::mostrarSucesso, this::mostrarErro);
     }
 
     @FXML
@@ -1170,184 +828,22 @@ public class GeracaoHorariosController {
     }
 
     private void abrirDetalheDia(LocalDate data) {
-        if (data == null || propostaAtual == null || propostaAtual.linhas() == null) {
-            return;
-        }
-
-        List<GeracaoHorariosService.HorarioLinha> turnosDia = propostaAtual.linhas().stream()
-                .filter(linha -> linha != null && data.equals(linha.data()))
-                .sorted(Comparator
-                        .comparing(GeracaoHorariosService.HorarioLinha::periodo, Comparator.nullsLast(String::compareToIgnoreCase))
-                        .thenComparing(GeracaoHorariosService.HorarioLinha::colaborador, Comparator.nullsLast(String::compareToIgnoreCase)))
-                .toList();
-
-        if (turnosDia.isEmpty()) {
-            return;
-        }
-
-        VBox listaTurnos = new VBox(10.0);
-        listaTurnos.getStyleClass().add("detalhe-dia-lista");
-        for (GeracaoHorariosService.HorarioLinha turno : turnosDia) {
-            listaTurnos.getChildren().add(criarCardDetalheTurno(turno));
-        }
-
-        DialogosHelper.mostrarConteudo(
+        DetalheDiaDialog.abrir(
+                data,
+                propostaAtual != null ? propostaAtual.linhas() : null,
                 obterJanela(),
-                "DETALHE DO DIA",
-                capitalizar(data.format(FORMATO_DIA_DETALHE)),
-                turnosDia.size() + " turno(s) planeado(s). Revê a cobertura antes de enviar ao supervisor.",
-                listaTurnos
+                podeGerar,
+                (turno, janelaBotao) -> abrirEdicaoTurno(
+                        turno, janelaBotao != null ? janelaBotao : obterJanela())
         );
     }
-
-    private VBox criarCardDetalheTurno(GeracaoHorariosService.HorarioLinha turno) {
-        VBox card = new VBox(5.0);
-        card.getStyleClass().add("detalhe-dia-turno-card");
-
-        Label periodo = new Label(valorOuTraco(turno.periodo()));
-        periodo.getStyleClass().add("detalhe-dia-periodo");
-
-        Label colaborador = new Label(valorOuTraco(turno.colaborador()));
-        colaborador.getStyleClass().add("detalhe-dia-colaborador");
-
-        Label cargo = new Label(valorOuTraco(turno.cargo()) + " · " + valorOuTraco(turno.estado()));
-        cargo.getStyleClass().add("detalhe-dia-cargo");
-        cargo.setWrapText(true);
-
-        card.getChildren().addAll(periodo, colaborador, cargo);
-
-        // Botão de edição — só visível para gestores com proposta aprovada/publicada
-        if (podeGerar && turno.idHorario() != null) {
-            Button btnEditar = new Button("Editar turno");
-            btnEditar.getStyleClass().add("botao-editar-turno");
-            btnEditar.setMaxWidth(Double.MAX_VALUE);
-            btnEditar.setOnAction(e -> {
-                // Obtém a janela do diálogo de detalhe (pai do botão) para o ChoiceDialog aparecer por cima
-                javafx.stage.Window owner = btnEditar.getScene() != null
-                        ? btnEditar.getScene().getWindow()
-                        : obterJanela();
-                abrirEdicaoTurno(turno, owner);
-            });
-            card.getChildren().add(btnEditar);
-        }
-
-        return card;
-    }
-
-    // ── Horário individual do colaborador ────────────────────────────────────
 
     private void mostrarHorarioIndividual(GeracaoHorariosService.ResumoColaborador colaborador) {
-        if (propostaAtual == null || propostaAtual.linhas() == null) return;
-
-        List<GeracaoHorariosService.HorarioLinha> turnos = propostaAtual.linhas().stream()
-                .filter(l -> colaborador.idColaborador() != null
-                        && colaborador.idColaborador().equals(l.idColaborador()))
-                .sorted(Comparator.comparing(GeracaoHorariosService.HorarioLinha::data,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
-                .toList();
-
-        VBox conteudo = new VBox(16.0);
-        conteudo.getStyleClass().add("horario-individual-conteudo");
-
-        // Cabeçalho de estatísticas
-        HBox statBar = new HBox(24.0);
-        statBar.getStyleClass().add("horario-individual-stat-bar");
-        statBar.setAlignment(Pos.CENTER_LEFT);
-        statBar.getChildren().addAll(
-                criarStatMini("Turnos no mês", String.valueOf(colaborador.turnos())),
-                criarStatMini("Horas contratuais", colaborador.horasFormatadas())
+        HorarioIndividualDialog.abrir(
+                colaborador,
+                propostaAtual != null ? propostaAtual.linhas() : null,
+                obterJanela()
         );
-        conteudo.getChildren().add(statBar);
-
-        if (turnos.isEmpty()) {
-            Label vazio = new Label("Este colaborador não tem turnos atribuídos nesta proposta.");
-            vazio.getStyleClass().add("horario-individual-vazio");
-            vazio.setWrapText(true);
-            conteudo.getChildren().add(vazio);
-        } else {
-            // Agrupar por semana
-            Map<LocalDate, List<GeracaoHorariosService.HorarioLinha>> porSemana = new java.util.LinkedHashMap<>();
-            for (GeracaoHorariosService.HorarioLinha linha : turnos) {
-                LocalDate inicioSem = CalendarioSemanalHelper.inicioSemana(linha.data());
-                porSemana.computeIfAbsent(inicioSem, k -> new java.util.ArrayList<>()).add(linha);
-            }
-            for (Map.Entry<LocalDate, List<GeracaoHorariosService.HorarioLinha>> entrada : porSemana.entrySet()) {
-                conteudo.getChildren().add(criarBlocoSemanaIndividual(entrada.getKey(), entrada.getValue()));
-            }
-        }
-
-        ScrollPane scroll = new ScrollPane(conteudo);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scroll.getStyleClass().add("horario-individual-scroll");
-        scroll.setMaxHeight(500.0);
-        scroll.setMinWidth(480.0);
-
-        DialogosHelper.mostrarConteudo(
-                obterJanela(),
-                "HORÁRIO INDIVIDUAL",
-                colaborador.nome() + "  ·  " + colaborador.cargo(),
-                colaborador.turnos() + " turno(s) atribuído(s)  ·  " + colaborador.horasFormatadas(),
-                scroll
-        );
-    }
-
-    private VBox criarStatMini(String etiqueta, String valor) {
-        VBox box = new VBox(3.0);
-        box.getStyleClass().add("horario-individual-stat");
-        Label lEtiqueta = new Label(etiqueta.toUpperCase(java.util.Locale.ROOT));
-        lEtiqueta.getStyleClass().add("horario-individual-stat-etiqueta");
-        Label lValor = new Label(valor);
-        lValor.getStyleClass().add("horario-individual-stat-valor");
-        box.getChildren().addAll(lEtiqueta, lValor);
-        return box;
-    }
-
-    private VBox criarBlocoSemanaIndividual(LocalDate inicioSemana,
-                                             List<GeracaoHorariosService.HorarioLinha> linhas) {
-        VBox bloco = new VBox(6.0);
-        bloco.getStyleClass().add("horario-individual-semana");
-
-        Label lblSemana = new Label(CalendarioSemanalHelper.formatarIntervaloSemana(inicioSemana));
-        lblSemana.getStyleClass().add("horario-individual-semana-titulo");
-        bloco.getChildren().add(lblSemana);
-
-        for (GeracaoHorariosService.HorarioLinha linha : linhas) {
-            bloco.getChildren().add(criarLinhaTurnoIndividual(linha));
-        }
-        return bloco;
-    }
-
-    private HBox criarLinhaTurnoIndividual(GeracaoHorariosService.HorarioLinha linha) {
-        HBox hbox = new HBox(12.0);
-        hbox.getStyleClass().add("horario-individual-turno");
-        hbox.setAlignment(Pos.CENTER_LEFT);
-
-        String diaCurto = linha.diaSemana() != null && linha.diaSemana().length() >= 3
-                ? linha.diaSemana().substring(0, 3).toUpperCase(java.util.Locale.ROOT)
-                : "---";
-        Label lblDia = new Label(diaCurto);
-        lblDia.getStyleClass().add("horario-individual-dia");
-        lblDia.setMinWidth(36.0);
-
-        String dataStr = linha.data() != null
-                ? linha.data().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM"))
-                : "--/--";
-        Label lblData = new Label(dataStr);
-        lblData.getStyleClass().add("horario-individual-data");
-        lblData.setMinWidth(44.0);
-
-        Label lblPeriodo = new Label(valorOuTraco(linha.periodo()));
-        lblPeriodo.getStyleClass().add("horario-individual-periodo");
-        HBox.setHgrow(lblPeriodo, Priority.ALWAYS);
-
-        String estadoStr = valorOuTraco(linha.estado());
-        Label lblEstado = new Label(estadoStr);
-        lblEstado.getStyleClass().add("horario-individual-estado");
-
-        hbox.getChildren().addAll(lblDia, lblData, lblPeriodo, lblEstado);
-        return hbox;
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -1395,7 +891,7 @@ public class GeracaoHorariosController {
     private void onPeriodoAlterado() {
         invalidarPropostaAtual();
         carregarColaboradoresElegiveis();
-        if (utilizadorLogado != null && utilizadorLogado.getId() != null && (operacaoEmCurso == null || !operacaoEmCurso.isRunning())) {
+        if (utilizadorLogado != null && utilizadorLogado.getId() != null && !taskRunner.isRunning()) {
             carregarPlaneamentoDoPeriodo();
         }
     }
@@ -1669,130 +1165,29 @@ public class GeracaoHorariosController {
                 || utilizadorLogado.getId() == null
                 || cbMes.getValue() == null
                 || spAno.getValue() == null) {
-            renderizarColaboradoresGeracao(List.of());
+            selecaoColaboradoresPainel.mostrar(List.of());
             return;
         }
 
         try {
-            List<GeracaoHorariosService.ColaboradorElegivel> colaboradores = geracaoHorariosBLL.listarColaboradoresElegiveis(
-                    utilizadorLogado.getId(),
-                    spAno.getValue(),
-                    cbMes.getValue().numero()
-            );
-            renderizarColaboradoresGeracao(colaboradores);
+            List<GeracaoHorariosService.ColaboradorElegivel> colaboradores =
+                    geracaoHorariosBLL.listarColaboradoresElegiveis(
+                            utilizadorLogado.getId(),
+                            spAno.getValue(),
+                            cbMes.getValue().numero()
+                    );
+            selecaoColaboradoresPainel.mostrar(colaboradores);
         } catch (IllegalArgumentException e) {
-            renderizarColaboradoresGeracao(List.of());
+            selecaoColaboradoresPainel.mostrar(List.of());
             lblResumoColaboradoresGeracao.setText(e.getMessage());
         } catch (Exception e) {
-            renderizarColaboradoresGeracao(List.of());
+            selecaoColaboradoresPainel.mostrar(List.of());
             lblResumoColaboradoresGeracao.setText("Não foi possível carregar a equipa elegível para este período.");
         }
     }
 
-    private void renderizarColaboradoresGeracao(List<GeracaoHorariosService.ColaboradorElegivel> colaboradores) {
-        Set<Integer> selecionadosAnteriores = obterIdsColaboradoresSelecionadosComoSet();
-        boolean devePreservarSelecao = !selecaoColaboradoresGeracao.isEmpty();
-
-        selecaoColaboradoresGeracao.clear();
-        boxColaboradoresGeracao.getChildren().clear();
-
-        if (colaboradores == null || colaboradores.isEmpty()) {
-            Label vazio = new Label("Sem colaboradores elegíveis para o período selecionado.");
-            vazio.getStyleClass().add("texto-ajuda");
-            boxColaboradoresGeracao.getChildren().add(vazio);
-            atualizarResumoSelecaoColaboradores();
-            return;
-        }
-
-        Map<String, List<GeracaoHorariosService.ColaboradorElegivel>> colaboradoresPorCargo = agruparColaboradoresPorCargo(colaboradores);
-        for (Map.Entry<String, List<GeracaoHorariosService.ColaboradorElegivel>> grupo : colaboradoresPorCargo.entrySet()) {
-            VBox boxGrupo = new VBox(6);
-            boxGrupo.getStyleClass().add("grupo-colaboradores");
-
-            CheckBox checkGrupo = new CheckBox(grupo.getKey() + " (" + grupo.getValue().size() + ")");
-            checkGrupo.getStyleClass().add("grupo-colaboradores-titulo");
-            boxGrupo.getChildren().add(checkGrupo);
-
-            VBox boxItensGrupo = new VBox(5);
-            boxItensGrupo.getStyleClass().add("grupo-colaboradores-itens");
-            List<CheckBox> checksGrupo = new ArrayList<>();
-            for (GeracaoHorariosService.ColaboradorElegivel colaborador : grupo.getValue()) {
-                CheckBox checkBox = criarCheckBoxColaborador(colaborador, devePreservarSelecao, selecionadosAnteriores);
-                checksGrupo.add(checkBox);
-                boxItensGrupo.getChildren().add(checkBox);
-                selecaoColaboradoresGeracao.put(colaborador.idColaborador(), checkBox);
-            }
-
-            checkGrupo.setOnAction(event -> checksGrupo.forEach(checkBox -> checkBox.setSelected(checkGrupo.isSelected())));
-            checksGrupo.forEach(checkBox -> checkBox.selectedProperty().addListener(
-                    (observavel, anterior, selecionado) -> atualizarEstadoCheckGrupo(checkGrupo, checksGrupo)
-            ));
-            atualizarEstadoCheckGrupo(checkGrupo, checksGrupo);
-
-            boxGrupo.getChildren().add(boxItensGrupo);
-            boxColaboradoresGeracao.getChildren().add(boxGrupo);
-        }
-
-        atualizarResumoSelecaoColaboradores();
-    }
-
-    private Map<String, List<GeracaoHorariosService.ColaboradorElegivel>> agruparColaboradoresPorCargo(
-            List<GeracaoHorariosService.ColaboradorElegivel> colaboradores) {
-        Map<String, List<GeracaoHorariosService.ColaboradorElegivel>> grupos = new LinkedHashMap<>();
-        colaboradores.stream()
-                .sorted(Comparator
-                        .comparing(GeracaoHorariosService.ColaboradorElegivel::cargo, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(GeracaoHorariosService.ColaboradorElegivel::nome, String.CASE_INSENSITIVE_ORDER))
-                .forEach(colaborador -> grupos
-                        .computeIfAbsent(colaborador.cargo(), ignorado -> new ArrayList<>())
-                        .add(colaborador));
-        return grupos;
-    }
-
-    private CheckBox criarCheckBoxColaborador(GeracaoHorariosService.ColaboradorElegivel colaborador,
-                                              boolean devePreservarSelecao,
-                                              Set<Integer> selecionadosAnteriores) {
-            CheckBox checkBox = new CheckBox(colaborador.nome()
-                    + " | "
-                    + colaborador.perfilContratual());
-            checkBox.getStyleClass().add("colaborador-check");
-            checkBox.setWrapText(true);
-            checkBox.setSelected(devePreservarSelecao
-                    ? selecionadosAnteriores.contains(colaborador.idColaborador())
-                    : colaborador.selecionadoPorDefeito());
-            checkBox.selectedProperty().addListener((observavel, anterior, selecionado) -> atualizarResumoSelecaoColaboradores());
-            return checkBox;
-    }
-
-    private void atualizarEstadoCheckGrupo(CheckBox checkGrupo, List<CheckBox> checksGrupo) {
-        long selecionados = checksGrupo.stream().filter(CheckBox::isSelected).count();
-        checkGrupo.setIndeterminate(selecionados > 0 && selecionados < checksGrupo.size());
-        checkGrupo.setSelected(selecionados == checksGrupo.size() && !checksGrupo.isEmpty());
-    }
-
     private List<Integer> obterIdsColaboradoresSelecionados() {
-        return obterIdsColaboradoresSelecionadosComoSet().stream().toList();
-    }
-
-    private Set<Integer> obterIdsColaboradoresSelecionadosComoSet() {
-        Set<Integer> selecionados = new LinkedHashSet<>();
-        for (Map.Entry<Integer, CheckBox> entrada : selecaoColaboradoresGeracao.entrySet()) {
-            if (entrada.getValue().isSelected()) {
-                selecionados.add(entrada.getKey());
-            }
-        }
-        return selecionados;
-    }
-
-    private void atualizarResumoSelecaoColaboradores() {
-        int total = selecaoColaboradoresGeracao.size();
-        int selecionados = obterIdsColaboradoresSelecionadosComoSet().size();
-        if (total == 0) {
-            lblResumoColaboradoresGeracao.setText("Escolhe o período para carregar a equipa elegível.");
-        } else {
-            lblResumoColaboradoresGeracao.setText(selecionados + " de " + total + " colaboradores selecionados para a geração.");
-        }
-        atualizarEstadoInterativo();
+        return selecaoColaboradoresPainel.idsSelecionados();
     }
 
     private void carregarListaPropostas(Integer idSelecionar) {
@@ -2093,142 +1488,11 @@ public class GeracaoHorariosController {
     }
 
     private void mostrarDiagnosticoGeracao(Throwable erro) {
-        Throwable causaRaiz = encontrarCausaRaiz(erro);
-        if (!(causaRaiz instanceof GeracaoHorariosService.FalhaGeracaoHorarioException falha)) {
-            esconderDiagnosticoGeracao();
-            return;
-        }
-
-        lblDiagnosticoTitulo.setText("Turno sem cobertura: " + falha.turno() + " em " + falha.data());
-        lblDiagnosticoResumo.setText(
-                "Foram considerados "
-                        + falha.colaboradoresConsiderados()
-                        + " colaboradores. Principal bloqueio: "
-                        + falha.motivoPrincipal()
-        );
-        String perfilRecomendado = perfilRecomendado(falha);
-        lblDiagnosticoPerfilRecomendado.setText(perfilRecomendado.isBlank()
-                ? ""
-                : "Reforco recomendado: " + perfilRecomendado
-                        + ". Este e o perfil que mais ajuda a aliviar este gargalo sem mexer nas restantes regras.");
-        lblDiagnosticoPerfilRecomendado.setVisible(!perfilRecomendado.isBlank());
-        lblDiagnosticoPerfilRecomendado.setManaged(!perfilRecomendado.isBlank());
-        boxDiagnosticoMotivos.getChildren().clear();
-        boxDiagnosticoSugestoes.getChildren().clear();
-
-        for (GeracaoHorariosService.MotivoFalhaGeracao motivo : falha.motivos()) {
-            VBox blocoMotivo = new VBox(6);
-            blocoMotivo.getStyleClass().add("diagnostico-bloco-motivo");
-
-            HBox linha = new HBox(10);
-            linha.getStyleClass().add("diagnostico-linha");
-
-            Button total = new Button(motivo.total() == 1 ? "1 pessoa" : motivo.total() + " pessoas");
-            total.getStyleClass().add("diagnostico-contador");
-            total.setOnAction(event -> mostrarDetalheMotivo(motivo));
-
-            Label descricao = new Label(motivo.descricao());
-            descricao.getStyleClass().add("diagnostico-descricao");
-            descricao.setWrapText(true);
-
-            linha.getChildren().addAll(total, descricao);
-            blocoMotivo.getChildren().add(linha);
-
-            if (motivo.nomes() != null && !motivo.nomes().isEmpty()) {
-                HBox nomes = new HBox(6);
-                nomes.getStyleClass().add("diagnostico-nomes");
-                List<String> nomesVisiveis = motivo.nomes().stream().limit(4).toList();
-                for (String nome : nomesVisiveis) {
-                    Label etiqueta = new Label(nome);
-                    etiqueta.getStyleClass().add("diagnostico-nome");
-                    nomes.getChildren().add(etiqueta);
-                }
-                if (motivo.nomes().size() > nomesVisiveis.size()) {
-                    Label restantes = new Label("+" + (motivo.nomes().size() - nomesVisiveis.size()) + " ver no contador");
-                    restantes.getStyleClass().add("diagnostico-nome-mais");
-                    nomes.getChildren().add(restantes);
-                }
-                blocoMotivo.getChildren().add(nomes);
-            }
-
-            boxDiagnosticoMotivos.getChildren().add(blocoMotivo);
-        }
-
-        int indice = 0;
-        for (GeracaoHorariosService.SugestaoFalhaGeracao sugestao : falha.sugestoes()) {
-            HBox linha = new HBox(10);
-            linha.getStyleClass().add("diagnostico-linha");
-
-            Label ordem = new Label(rotuloSugestao(indice++));
-            ordem.getStyleClass().add("diagnostico-etapa");
-
-            Label descricao = new Label(sugestao.texto());
-            descricao.getStyleClass().add("diagnostico-sugestao");
-            descricao.setWrapText(true);
-
-            VBox textoSugestao = new VBox(5);
-            textoSugestao.getChildren().add(descricao);
-
-            linha.getChildren().addAll(ordem, textoSugestao);
-            boxDiagnosticoSugestoes.getChildren().add(linha);
-        }
-
-        painelDiagnosticoGeracao.setVisible(true);
-        painelDiagnosticoGeracao.setManaged(true);
-    }
-
-    private String perfilRecomendado(GeracaoHorariosService.FalhaGeracaoHorarioException falha) {
-        return falha.sugestoes().stream()
-                .map(GeracaoHorariosService.SugestaoFalhaGeracao::perfilRecomendado)
-                .filter(perfil -> perfil != null && !perfil.isBlank())
-                .findFirst()
-                .orElse("");
-    }
-
-    private void mostrarDetalheMotivo(GeracaoHorariosService.MotivoFalhaGeracao motivo) {
-        FlowPane nomes = new FlowPane(8, 8);
-        nomes.getStyleClass().add("diagnostico-modal-nomes");
-        for (String nome : motivo.nomes()) {
-            Label etiqueta = new Label(nome);
-            etiqueta.getStyleClass().add("diagnostico-nome");
-            nomes.getChildren().add(etiqueta);
-        }
-
-        DialogosHelper.mostrarConteudo(
-                obterJanela(),
-                "Diagnóstico da geração",
-                motivo.total() == 1 ? "1 pessoa afetada" : motivo.total() + " pessoas afetadas",
-                motivo.descricao(),
-                nomes
-        );
-    }
-
-    private String rotuloSugestao(int indice) {
-        return switch (indice) {
-            case 0 -> "Fazer primeiro";
-            case 1 -> "Depois";
-            case 2 -> "Verificar";
-            default -> "Opcional";
-        };
+        diagnosticoGeracaoPanel.mostrar(erro);
     }
 
     private void esconderDiagnosticoGeracao() {
-        if (painelDiagnosticoGeracao == null) {
-            return;
-        }
-        painelDiagnosticoGeracao.setVisible(false);
-        painelDiagnosticoGeracao.setManaged(false);
-        if (lblDiagnosticoPerfilRecomendado != null) {
-            lblDiagnosticoPerfilRecomendado.setVisible(false);
-            lblDiagnosticoPerfilRecomendado.setManaged(false);
-            lblDiagnosticoPerfilRecomendado.setText("");
-        }
-        if (boxDiagnosticoMotivos != null) {
-            boxDiagnosticoMotivos.getChildren().clear();
-        }
-        if (boxDiagnosticoSugestoes != null) {
-            boxDiagnosticoSugestoes.getChildren().clear();
-        }
+        diagnosticoGeracaoPanel.esconder();
     }
 
     private void mostrarFeedbackValidacao(String mensagem, boolean sucesso) {
@@ -2622,7 +1886,7 @@ public class GeracaoHorariosController {
     }
 
     private void atualizarEstadoInterativo() {
-        boolean emProcessamento = operacaoEmCurso != null && operacaoEmCurso.isRunning();
+        boolean emProcessamento = taskRunner != null && taskRunner.isRunning();
         boolean contextoCarregado = utilizadorLogado != null && utilizadorLogado.getId() != null;
 
         cbMes.setDisable(!contextoCarregado || emProcessamento);
@@ -2632,8 +1896,8 @@ public class GeracaoHorariosController {
         btnGerarAlternativas.setDisable(!podeGerar || emProcessamento);
         spQuantidadeAlternativas.setDisable(!podeGerar || emProcessamento);
         painelSelecaoColaboradores.setDisable(!podeGerar || emProcessamento);
-        btnSelecionarTodosColaboradores.setDisable(!podeGerar || emProcessamento || selecaoColaboradoresGeracao.isEmpty());
-        btnLimparColaboradores.setDisable(!podeGerar || emProcessamento || selecaoColaboradoresGeracao.isEmpty());
+        btnSelecionarTodosColaboradores.setDisable(!podeGerar || emProcessamento || selecaoColaboradoresPainel.isVazio());
+        btnLimparColaboradores.setDisable(!podeGerar || emProcessamento || selecaoColaboradoresPainel.isVazio());
 
         tabelaPropostas.setDisable(emProcessamento);
         cbComparacaoBase.setDisable(emProcessamento);
@@ -2793,46 +2057,7 @@ public class GeracaoHorariosController {
                                                     Callable<T> acao,
                                                     Consumer<T> onSuccess,
                                                     Consumer<Throwable> onFailure) {
-        if (operacaoEmCurso != null && operacaoEmCurso.isRunning()) {
-            mostrarInformacao("Existe uma operação em curso. Aguarda pela conclusão antes de iniciar outra.");
-            return;
-        }
-
-        Task<T> task = new Task<>() {
-            @Override
-            protected T call() throws Exception {
-                return acao.call();
-            }
-        };
-
-        operacaoEmCurso = task;
-        atualizarEstadoInterativo();
-        mostrarInformacao(mensagemProcessamento);
-
-        task.setOnSucceeded(evento -> {
-            operacaoEmCurso = null;
-            atualizarEstadoInterativo();
-            onSuccess.accept(task.getValue());
-        });
-
-        task.setOnFailed(evento -> {
-            operacaoEmCurso = null;
-            atualizarEstadoInterativo();
-            Throwable erro = task.getException() != null
-                    ? task.getException()
-                    : new IllegalStateException("Ocorreu um erro inesperado durante a operação.");
-            onFailure.accept(erro);
-        });
-
-        task.setOnCancelled(evento -> {
-            operacaoEmCurso = null;
-            atualizarEstadoInterativo();
-            mostrarInformacao("A operação foi cancelada.");
-        });
-
-        Thread thread = new Thread(task, "geracao-horarios-worker");
-        thread.setDaemon(true);
-        thread.start();
+        taskRunner.executar(mensagemProcessamento, acao, onSuccess, onFailure);
     }
 
     private void validarUtilizadorAutenticado() {
@@ -2852,51 +2077,11 @@ public class GeracaoHorariosController {
     }
 
     private String resolverMensagemErro(Throwable erro, String fallback) {
-        Throwable causaRaiz = encontrarCausaRaiz(erro);
-        if (causaRaiz instanceof IllegalArgumentException
-                && causaRaiz.getMessage() != null
-                && !causaRaiz.getMessage().isBlank()) {
-            return tornarMensagemErroApresentavel(causaRaiz.getMessage(), fallback);
-        }
-        return fallback;
-    }
-
-    private String tornarMensagemErroApresentavel(String mensagem, String fallback) {
-        String mensagemNormalizada = mensagem != null ? mensagem.trim() : "";
-        if (mensagemNormalizada.isBlank()) {
-            return fallback;
-        }
-
-        boolean pareceDiagnosticoTecnico = mensagemNormalizada.length() > 420
-                || mensagemNormalizada.contains("={")
-                || mensagemNormalizada.contains("=[")
-                || mensagemNormalizada.contains("@10:")
-                || mensagemNormalizada.contains("@14:")
-                || mensagemNormalizada.contains("@18:");
-
-        if (!pareceDiagnosticoTecnico) {
-            return mensagemNormalizada;
-        }
-
-        String mensagemCurta = mensagemNormalizada
-                .replaceAll("\\s*\\[[\\s\\S]*", "")
-                .replaceAll("\\s*\\{[\\s\\S]*", "")
-                .trim();
-
-        if (mensagemCurta.isBlank() || mensagemCurta.length() > 260) {
-            mensagemCurta = fallback;
-        }
-
-        return mensagemCurta
-                + " Revê a equipa selecionada, folgas/preferências aprovadas, descanso entre turnos, limite de horas e mínimo exigido por turno.";
+        return MensagemErroFormatter.resolver(erro, fallback);
     }
 
     private Throwable encontrarCausaRaiz(Throwable erro) {
-        Throwable atual = erro;
-        while (atual != null && atual.getCause() != null && atual.getCause() != atual) {
-            atual = atual.getCause();
-        }
-        return atual != null ? atual : erro;
+        return MensagemErroFormatter.causaRaiz(erro);
     }
 
     private Window obterJanela() {
@@ -2942,88 +2127,19 @@ public class GeracaoHorariosController {
         }
     }
 
-    /** Abre diálogo para o gestor alterar o turno de um horário publicado. */
-    private void abrirEdicaoTurno(GeracaoHorariosService.HorarioLinha linha, javafx.stage.Window owner) {
-        try {
-            List<com.example.projeto2.API.Modules.Turno> turnos = horarioBLL.listarTodosOsTurnos();
-            if (turnos.isEmpty()) {
-                mostrarErro("Sem turnos disponíveis.");
-                return;
-            }
-
-            javafx.scene.control.ChoiceDialog<com.example.projeto2.API.Modules.Turno> dialogo =
-                    new javafx.scene.control.ChoiceDialog<>(null, turnos);
-            dialogo.setTitle("Editar turno");
-            dialogo.setHeaderText("Colaborador: " + (linha.colaborador() != null ? linha.colaborador() : "-")
-                    + "\nDia: " + (linha.data() != null ? linha.data() : "-")
-                    + "\nTurno atual: " + (linha.turno() != null ? linha.turno() : "-"));
-            dialogo.setContentText("Novo turno:");
-
-            // Formatar turnos no dialog
-            javafx.util.StringConverter<com.example.projeto2.API.Modules.Turno> conversor = new javafx.util.StringConverter<>() {
-                @Override
-                public String toString(com.example.projeto2.API.Modules.Turno t) {
-                    if (t == null) return "-";
-                    return (t.getTipo() != null ? t.getTipo() + " " : "")
-                        + t.getHoraInicio() + " — " + t.getHoraFim();
-                }
-                @Override
-                public com.example.projeto2.API.Modules.Turno fromString(String s) { return null; }
-            };
-
-            // Aplicar o conversor ao combo interno do ChoiceDialog
-            if (dialogo.getDialogPane().lookupAll(".combo-box").stream()
-                    .findFirst().orElse(null) instanceof javafx.scene.control.ComboBox<?> combo) {
-                @SuppressWarnings("unchecked")
-                javafx.scene.control.ComboBox<com.example.projeto2.API.Modules.Turno> turnoCombo =
-                        (javafx.scene.control.ComboBox<com.example.projeto2.API.Modules.Turno>) combo;
-                turnoCombo.setConverter(conversor);
-                turnoCombo.setButtonCell(new javafx.scene.control.ListCell<>() {
-                    @Override
-                    protected void updateItem(com.example.projeto2.API.Modules.Turno t, boolean empty) {
-                        super.updateItem(t, empty);
-                        setText(empty || t == null ? "-" : conversor.toString(t));
-                    }
-                });
-                turnoCombo.setCellFactory(lv -> new javafx.scene.control.ListCell<>() {
-                    @Override
-                    protected void updateItem(com.example.projeto2.API.Modules.Turno t, boolean empty) {
-                        super.updateItem(t, empty);
-                        setText(empty || t == null ? "-" : conversor.toString(t));
-                    }
-                });
-            }
-
-            // Garantir que o ChoiceDialog aparece por cima do diálogo pai (detalhe do dia)
-            if (owner != null) {
-                dialogo.initOwner(owner);
-            }
-            java.util.Optional<com.example.projeto2.API.Modules.Turno> resultado = dialogo.showAndWait();
-            resultado.ifPresent(novoTurno -> {
-                try {
-                    horarioBLL.editarTurnoPublicado(
-                            linha.idHorario(),
-                            novoTurno.getId(),
-                            utilizadorLogado != null ? utilizadorLogado.getId() : null,
-                            null
-                    );
-                    // Fechar o diálogo de detalhe do dia (owner) para evitar dados desatualizados
-                    if (owner instanceof javafx.stage.Stage ownerStage) {
-                        ownerStage.close();
-                    }
-                    mostrarSucesso("Turno alterado para " + conversor.toString(novoTurno) + " com sucesso.");
-                    // Recarregar a proposta para refletir a alteração
+    private void abrirEdicaoTurno(GeracaoHorariosService.HorarioLinha linha, Window owner) {
+        EdicaoTurnoDialog.abrir(
+                linha,
+                owner,
+                horarioBLL,
+                utilizadorLogado != null ? utilizadorLogado.getId() : null,
+                this::mostrarSucesso,
+                this::mostrarErro,
+                () -> {
                     if (propostaAtual != null && propostaAtual.idProposta() != null) {
                         carregarPropostaPorIdEmSegundoPlano(propostaAtual.idProposta(), false);
                     }
-                } catch (IllegalArgumentException ex) {
-                    mostrarErro(ex.getMessage());
-                } catch (Exception ex) {
-                    mostrarErro("Não foi possível alterar o turno.");
                 }
-            });
-        } catch (Exception e) {
-            mostrarErro("Não foi possível abrir o editor de turno.");
-        }
+        );
     }
 }
