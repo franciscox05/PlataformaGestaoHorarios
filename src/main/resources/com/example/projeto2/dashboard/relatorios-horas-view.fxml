@@ -14,7 +14,7 @@
       stylesheets="@dashboard.css"
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.example.projeto2.Controller.RelatoriosHorasController"
+      fx:controller="com.example.projeto2.DESKTOP.RelatoriosHorasController"
       VBox.vgrow="ALWAYS">
 
     <padding>

@@ -1,7 +1,7 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -60,7 +60,7 @@ class HorariosEspeciaisValidationTest extends FluxosCriticosTestSupport {
         assertTrue(resumoLoja.horariosEspeciais().stream()
                 .anyMatch(horarioEspecial -> horarioEspecial.periodo().contains(diaEncerrado.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))));
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 referencia.getYear(),
                 referencia.getMonthValue()
@@ -70,7 +70,7 @@ class HorariosEspeciaisValidationTest extends FluxosCriticosTestSupport {
         assertFalse(proposta.linhas().stream()
                 .anyMatch(linha -> diaEncerrado.equals(linha.data())));
 
-        List<GeracaoHorariosBLL.HorarioLinha> linhasDiaEspecial = proposta.linhas().stream()
+        List<GeracaoHorariosService.HorarioLinha> linhasDiaEspecial = proposta.linhas().stream()
                 .filter(linha -> diaEspecial.equals(linha.data()))
                 .toList();
         assertEquals(2, linhasDiaEspecial.size());

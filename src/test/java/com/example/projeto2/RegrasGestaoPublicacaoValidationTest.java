@@ -1,11 +1,11 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Loja;
-import com.example.projeto2.Modules.Regra;
-import com.example.projeto2.Modules.RegrasLoja;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Loja;
+import com.example.projeto2.API.Modules.Regra;
+import com.example.projeto2.API.Modules.RegrasLoja;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -54,7 +54,7 @@ class RegrasGestaoPublicacaoValidationTest extends FluxosCriticosTestSupport {
             );
         }
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()

@@ -17,7 +17,7 @@
             stylesheets="@dashboard.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.example.projeto2.Controller.DashboardController">
+            fx:controller="com.example.projeto2.DESKTOP.DashboardController">
 
     <top>
         <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="top-header">
@@ -241,15 +241,6 @@
                             <graphic><FontIcon iconLiteral="mdi2c-chart-bar" iconSize="18" styleClass="sidebar-icon" /></graphic>
                         </Button>
 
-                        <Button fx:id="btnAuditoria"
-                                onAction="#onPainelAuditoriaClick"
-                                managed="false" maxWidth="Infinity"
-                                graphicTextGap="12.0"
-                                styleClass="sidebar-btn"
-                                text="Auditoria"
-                                visible="false">
-                            <graphic><FontIcon iconLiteral="mdi2s-shield-check" iconSize="18" styleClass="sidebar-icon" /></graphic>
-                        </Button>
 
                         <Label styleClass="sidebar-section-label" text="CONTA" />
 

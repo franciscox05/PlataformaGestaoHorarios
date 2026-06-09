@@ -22,7 +22,7 @@
       stylesheets="@dashboard.css"
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.example.projeto2.Controller.GestaoLojaController">
+      fx:controller="com.example.projeto2.DESKTOP.GestaoLojaController">
 
             <!-- ══════════════════════════════════════════════
                  BANNER DE TOPO — LOJA

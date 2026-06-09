@@ -1,12 +1,12 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.BLL.GestaoLojaBLL;
-import com.example.projeto2.BLL.HorarioBLL;
-import com.example.projeto2.BLL.SessaoBLL;
-import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
-import com.example.projeto2.Controller.DashboardController;
-import com.example.projeto2.Controller.HomeController;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.GestaoLojaService;
+import com.example.projeto2.API.Services.HorarioService;
+import com.example.projeto2.API.Services.SessaoService;
+import com.example.projeto2.API.Services.SnapshotOperacionalLojaService;
+import com.example.projeto2.DESKTOP.DashboardController;
+import com.example.projeto2.DESKTOP.HomeController;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -49,19 +49,19 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
     private ApplicationContext applicationContext;
 
     @MockitoBean
-    private SessaoBLL sessaoBLL;
+    private SessaoService sessaoBLL;
 
     @MockitoBean
-    private GestaoLojaBLL gestaoLojaBLL;
+    private GestaoLojaService gestaoLojaBLL;
 
     @MockitoBean
-    private GeracaoHorariosBLL geracaoHorariosBLL;
+    private GeracaoHorariosService geracaoHorariosBLL;
 
     @MockitoBean
-    private HorarioBLL horarioBLL;
+    private HorarioService horarioBLL;
 
     @MockitoBean
-    private SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
+    private SnapshotOperacionalLojaService snapshotOperacionalLojaBLL;
 
     @BeforeEach
     void prepararSessaoMock() {
@@ -81,10 +81,10 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
         when(horarioBLL.listarHorarioPublicadoDaLojaDoUtilizador(anyInt(), any(), any(), any())).thenReturn(List.of());
 
         when(snapshotOperacionalLojaBLL.carregarSnapshot(anyInt(), any(), any())).thenReturn(
-                new SnapshotOperacionalLojaBLL.SnapshotOperacionalLoja(
-                        new SnapshotOperacionalLojaBLL.ContextoLoja(1, "Loja Teste", "Viana do Castelo", "Gerente"),
-                        new SnapshotOperacionalLojaBLL.IntervaloOperacional(java.time.LocalDate.now(), java.time.LocalDate.now(), true),
-                        new SnapshotOperacionalLojaBLL.ResumoOperacional(0, 0, 0, 0, 0, 0, 0),
+                new SnapshotOperacionalLojaService.SnapshotOperacionalLoja(
+                        new SnapshotOperacionalLojaService.ContextoLoja(1, "Loja Teste", "Viana do Castelo", "Gerente"),
+                        new SnapshotOperacionalLojaService.IntervaloOperacional(java.time.LocalDate.now(), java.time.LocalDate.now(), true),
+                        new SnapshotOperacionalLojaService.ResumoOperacional(0, 0, 0, 0, 0, 0, 0),
                         List.of(),
                         List.of(),
                         List.of(),

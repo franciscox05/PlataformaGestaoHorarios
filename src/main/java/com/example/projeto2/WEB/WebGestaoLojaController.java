@@ -1,6 +1,6 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.GestaoLojaBLL;
+import com.example.projeto2.API.Services.GestaoLojaService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -23,10 +23,10 @@ import java.util.List;
 public class WebGestaoLojaController {
 
     private final WebAppService webAppService;
-    private final GestaoLojaBLL gestaoLojaBLL;
+    private final GestaoLojaService gestaoLojaBLL;
 
     public WebGestaoLojaController(WebAppService webAppService,
-                                   GestaoLojaBLL gestaoLojaBLL) {
+                                   GestaoLojaService gestaoLojaBLL) {
         this.webAppService = webAppService;
         this.gestaoLojaBLL = gestaoLojaBLL;
     }
@@ -37,14 +37,14 @@ public class WebGestaoLojaController {
                                   RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
         try {
-            GestaoLojaBLL.GestaoLojaResumo resumo = gestaoLojaBLL.obterResumo(utilizadorId);
+            GestaoLojaService.GestaoLojaResumo resumo = gestaoLojaBLL.obterResumo(utilizadorId);
             LocalTime horaAberturaAtual = parseHoraObrigatoria(resumo.horaAbertura(), "abertura");
             LocalTime horaFechoAtual = parseHoraObrigatoria(resumo.horaFecho(), "fecho");
-            List<GestaoLojaBLL.ConfiguracaoRegraRequest> regras = lerRegrasDoFormulario(request);
+            List<GestaoLojaService.ConfiguracaoRegraRequest> regras = lerRegrasDoFormulario(request);
 
             gestaoLojaBLL.guardarConfiguracao(
                     utilizadorId,
-                    new GestaoLojaBLL.ConfiguracaoLojaRequest(horaAberturaAtual, horaFechoAtual, regras)
+                    new GestaoLojaService.ConfiguracaoLojaRequest(horaAberturaAtual, horaFechoAtual, regras)
             );
             redirectAttributes.addFlashAttribute("sucesso", "Regras da loja atualizadas com sucesso.");
         } catch (IllegalArgumentException ex) {
@@ -59,7 +59,7 @@ public class WebGestaoLojaController {
         webAppService.preencherModeloBase(model, session, "gestao-loja");
 
         try {
-            GestaoLojaBLL.GestaoLojaResumo resumo = gestaoLojaBLL.obterResumo(utilizadorId);
+            GestaoLojaService.GestaoLojaResumo resumo = gestaoLojaBLL.obterResumo(utilizadorId);
             model.addAttribute("resumo", resumo);
         } catch (IllegalArgumentException ex) {
             model.addAttribute("erro", ex.getMessage());
@@ -77,7 +77,7 @@ public class WebGestaoLojaController {
         try {
             gestaoLojaBLL.guardarConfiguracao(
                     utilizadorId,
-                    new GestaoLojaBLL.ConfiguracaoLojaRequest(
+                    new GestaoLojaService.ConfiguracaoLojaRequest(
                             parseHoraObrigatoria(horaAbertura, "abertura"),
                             parseHoraObrigatoria(horaFecho, "fecho"),
                             null
@@ -106,7 +106,7 @@ public class WebGestaoLojaController {
         try {
             gestaoLojaBLL.guardarHorarioEspecial(
                     utilizadorId,
-                    new GestaoLojaBLL.ConfiguracaoHorarioEspecialRequest(
+                    new GestaoLojaService.ConfiguracaoHorarioEspecialRequest(
                             idHorarioEspecial,
                             descricao,
                             parseDataObrigatoria(dataInicio, "inicial"),
@@ -172,8 +172,8 @@ public class WebGestaoLojaController {
         }
     }
 
-    private List<GestaoLojaBLL.ConfiguracaoRegraRequest> lerRegrasDoFormulario(HttpServletRequest request) {
-        List<GestaoLojaBLL.ConfiguracaoRegraRequest> regras = new ArrayList<>();
+    private List<GestaoLojaService.ConfiguracaoRegraRequest> lerRegrasDoFormulario(HttpServletRequest request) {
+        List<GestaoLojaService.ConfiguracaoRegraRequest> regras = new ArrayList<>();
         Enumeration<String> nomes = request.getParameterNames();
         while (nomes.hasMoreElements()) {
             String nome = nomes.nextElement();
@@ -184,7 +184,7 @@ public class WebGestaoLojaController {
             Integer idRegra = parseIdRegra(nome.substring("regra_valor_".length()));
             Integer valor = parseInteiroOpcional(request.getParameter(nome));
             String observacoes = request.getParameter("regra_obs_" + idRegra);
-            regras.add(new GestaoLojaBLL.ConfiguracaoRegraRequest(idRegra, valor, observacoes));
+            regras.add(new GestaoLojaService.ConfiguracaoRegraRequest(idRegra, valor, observacoes));
         }
         return regras;
     }

@@ -16,7 +16,7 @@
             stylesheets="@dashboard.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.example.projeto2.Controller.PainelGerentePedidosController">
+            fx:controller="com.example.projeto2.DESKTOP.PainelGerentePedidosController">
     <content>
         <VBox spacing="0" styleClass="conteudo-pagina">
             <padding>

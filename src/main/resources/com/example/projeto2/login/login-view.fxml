@@ -10,7 +10,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane styleClass="login-shell" stylesheets="@login.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.Controller.LoginController">
+<StackPane styleClass="login-shell" stylesheets="@login.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.projeto2.DESKTOP.LoginController">
     <children>
         <Region styleClass="login-backdrop-image" />
         <Region styleClass="login-backdrop-overlay" />

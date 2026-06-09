@@ -1,16 +1,15 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.AuditoriaBLL;
-import com.example.projeto2.BLL.DayOffBLL;
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.BLL.GestaoLojaBLL;
-import com.example.projeto2.BLL.PermutaBLL;
-import com.example.projeto2.BLL.PreferenciaBLL;
-import com.example.projeto2.BLL.RelatorioHorasBLL;
-import com.example.projeto2.Modules.Lojautilizador;
-import com.example.projeto2.Modules.Utilizador;
-import com.example.projeto2.Repositories.LojautilizadorRepository;
-import com.example.projeto2.Repositories.UtilizadorRepository;
+import com.example.projeto2.API.Services.DayOffService;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.GestaoLojaService;
+import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.PreferenciaService;
+import com.example.projeto2.API.Services.RelatorioHorasService;
+import com.example.projeto2.API.Modules.Lojautilizador;
+import com.example.projeto2.API.Modules.Utilizador;
+import com.example.projeto2.API.Repositories.LojautilizadorRepository;
+import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
@@ -23,23 +22,20 @@ public class WebAppService {
 
     private final UtilizadorRepository utilizadorRepository;
     private final LojautilizadorRepository lojautilizadorRepository;
-    private final GeracaoHorariosBLL geracaoHorariosBLL;
-    private final GestaoLojaBLL gestaoLojaBLL;
-    private final RelatorioHorasBLL relatorioHorasBLL;
-    private final DayOffBLL dayOffBLL;
-    private final PreferenciaBLL preferenciaBLL;
-    private final PermutaBLL permutaBLL;
-    private final AuditoriaBLL auditoriaBLL;
-
+    private final GeracaoHorariosService geracaoHorariosBLL;
+    private final GestaoLojaService gestaoLojaBLL;
+    private final RelatorioHorasService relatorioHorasBLL;
+    private final DayOffService dayOffBLL;
+    private final PreferenciaService preferenciaBLL;
+    private final PermutaService permutaBLL;
     public WebAppService(UtilizadorRepository utilizadorRepository,
                          LojautilizadorRepository lojautilizadorRepository,
-                         GeracaoHorariosBLL geracaoHorariosBLL,
-                         GestaoLojaBLL gestaoLojaBLL,
-                         RelatorioHorasBLL relatorioHorasBLL,
-                         DayOffBLL dayOffBLL,
-                         PreferenciaBLL preferenciaBLL,
-                         PermutaBLL permutaBLL,
-                         AuditoriaBLL auditoriaBLL) {
+                         GeracaoHorariosService geracaoHorariosBLL,
+                         GestaoLojaService gestaoLojaBLL,
+                         RelatorioHorasService relatorioHorasBLL,
+                         DayOffService dayOffBLL,
+                         PreferenciaService preferenciaBLL,
+                         PermutaService permutaBLL) {
         this.utilizadorRepository = utilizadorRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.geracaoHorariosBLL = geracaoHorariosBLL;
@@ -48,7 +44,6 @@ public class WebAppService {
         this.dayOffBLL = dayOffBLL;
         this.preferenciaBLL = preferenciaBLL;
         this.permutaBLL = permutaBLL;
-        this.auditoriaBLL = auditoriaBLL;
     }
 
     public Integer obterUtilizadorId(HttpSession session) {
@@ -102,8 +97,7 @@ public class WebAppService {
                 preferenciaBLL.utilizadorPodeAprovarPreferencias(idUtilizador),
                 permutaBLL.utilizadorPodeAprovarPermutas(idUtilizador),
                 geracaoHorariosBLL.utilizadorPodeValidarHorarios(idUtilizador),
-                geracaoHorariosBLL.utilizadorPodeGerarHorarios(idUtilizador),
-                auditoriaBLL.utilizadorPodeConsultarAuditoria(idUtilizador)
+                geracaoHorariosBLL.utilizadorPodeGerarHorarios(idUtilizador)
         );
     }
 
@@ -148,11 +142,10 @@ public class WebAppService {
             boolean podeAprovarPreferencias,
             boolean podeAprovarPermutas,
             boolean podeValidarHorarios,
-            boolean podeGerarHorarios,
-            boolean podeVerAuditoria
+            boolean podeGerarHorarios
     ) {
         static WebPermissoes semAcesso() {
-            return new WebPermissoes(false, false, false, false, false, false, false, false, false, false);
+            return new WebPermissoes(false, false, false, false, false, false, false, false, false);
         }
 
         public boolean podeAprovarAlgumComplementar() {

@@ -1,11 +1,11 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.Enums.EstadoHorario;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Lojautilizador;
-import com.example.projeto2.Modules.Turno;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Enums.EstadoHorario;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Lojautilizador;
+import com.example.projeto2.API.Modules.Turno;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -66,7 +66,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
                 "Compatibilidade com descanso semanal."
         );
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -107,7 +107,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
     void geracaoMensalGaranteRotacaoDeFimDeSemanaEmJanelaDeDuasSemanas() {
         GeracaoFixture fixture = criarContextoGeracao("rotacao-fds");
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -178,7 +178,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
         criarHorarioAprovado(ligacaoAtiva, fixture.turnos().get(1), fimDeSemanaAnterior.plusDays(1));
         flushAndClear();
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()

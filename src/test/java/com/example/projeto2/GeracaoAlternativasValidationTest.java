@@ -1,11 +1,11 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.Enums.EstadoHorario;
-import com.example.projeto2.Modules.Cargo;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.RegrasLoja;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Enums.EstadoHorario;
+import com.example.projeto2.API.Modules.Cargo;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.RegrasLoja;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -33,7 +33,7 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
     void gerentePodeGerarVariasAlternativasECompararAntesDaValidacao() {
         GeracaoFixture fixture = criarContextoGeracao("alternativas-comparacao");
 
-        List<GeracaoHorariosBLL.PropostaResultado> alternativas = geracaoHorariosBLL.gerarPropostas(
+        List<GeracaoHorariosService.PropostaResultado> alternativas = geracaoHorariosBLL.gerarPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue(),
@@ -41,30 +41,30 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         );
 
         assertEquals(3, alternativas.size());
-        assertEquals(3, alternativas.stream().map(GeracaoHorariosBLL.PropostaResultado::idProposta).collect(Collectors.toSet()).size());
+        assertEquals(3, alternativas.stream().map(GeracaoHorariosService.PropostaResultado::idProposta).collect(Collectors.toSet()).size());
         assertTrue(alternativas.stream().allMatch(proposta -> "rascunho".equalsIgnoreCase(proposta.estado())));
         assertTrue(alternativas.stream().allMatch(proposta -> proposta.metricas().pontuacao() >= 0));
         long blocosCobertura = contarBlocosCobertura(fixture.turnos());
         assertTrue(alternativas.stream().allMatch(proposta ->
                 proposta.resumo().turnos() == fixture.referencia().lengthOfMonth() * blocosCobertura));
 
-        List<GeracaoHorariosBLL.PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
+        List<GeracaoHorariosService.PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
         );
 
         assertTrue(resumos.size() >= 3);
-        assertTrue(resumos.stream().map(GeracaoHorariosBLL.PropostaResumo::politicaOtimizacao).distinct().count() >= 2);
+        assertTrue(resumos.stream().map(GeracaoHorariosService.PropostaResumo::politicaOtimizacao).distinct().count() >= 2);
 
-        List<GeracaoHorariosBLL.PropostaResumo> resumosSupervisorAntesDoEnvio = geracaoHorariosBLL.listarPropostas(
+        List<GeracaoHorariosService.PropostaResumo> resumosSupervisorAntesDoEnvio = geracaoHorariosBLL.listarPropostas(
                 fixture.lojaFixture().supervisor().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
         );
         assertTrue(resumosSupervisorAntesDoEnvio.isEmpty());
 
-        GeracaoHorariosBLL.ComparacaoPropostas comparacao = geracaoHorariosBLL.compararPropostas(
+        GeracaoHorariosService.ComparacaoPropostas comparacao = geracaoHorariosBLL.compararPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 alternativas.get(0).idProposta(),
                 alternativas.get(1).idProposta()
@@ -75,14 +75,14 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         assertEquals(alternativas.get(0).idProposta(), comparacao.idPropostaBase());
         assertEquals(alternativas.get(1).idProposta(), comparacao.idPropostaComparada());
 
-        List<GeracaoHorariosBLL.PropostaResultado> enviadas = geracaoHorariosBLL.enviarPropostasParaValidacao(
+        List<GeracaoHorariosService.PropostaResultado> enviadas = geracaoHorariosBLL.enviarPropostasParaValidacao(
                 fixture.lojaFixture().gerente().getId(),
                 List.of(alternativas.get(0).idProposta(), alternativas.get(1).idProposta())
         );
         assertEquals(2, enviadas.size());
         assertTrue(enviadas.stream().allMatch(proposta -> "pendente".equalsIgnoreCase(proposta.estado())));
 
-        List<GeracaoHorariosBLL.PropostaResumo> resumosSupervisorDepoisDoEnvio = geracaoHorariosBLL.listarPropostas(
+        List<GeracaoHorariosService.PropostaResumo> resumosSupervisorDepoisDoEnvio = geracaoHorariosBLL.listarPropostas(
                 fixture.lojaFixture().supervisor().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -95,7 +95,7 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
     void aprovarUmaAlternativaPublicaEssaERejeitaPendentesConcorrentes() {
         GeracaoFixture fixture = criarContextoGeracao("alternativas-aprovacao");
 
-        List<GeracaoHorariosBLL.PropostaResultado> alternativas = geracaoHorariosBLL.gerarPropostas(
+        List<GeracaoHorariosService.PropostaResultado> alternativas = geracaoHorariosBLL.gerarPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue(),
@@ -103,10 +103,10 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         );
         geracaoHorariosBLL.enviarPropostasParaValidacao(
                 fixture.lojaFixture().gerente().getId(),
-                alternativas.stream().map(GeracaoHorariosBLL.PropostaResultado::idProposta).toList()
+                alternativas.stream().map(GeracaoHorariosService.PropostaResultado::idProposta).toList()
         );
 
-        GeracaoHorariosBLL.PropostaResultado aprovada = geracaoHorariosBLL.aprovarProposta(
+        GeracaoHorariosService.PropostaResultado aprovada = geracaoHorariosBLL.aprovarProposta(
                 fixture.lojaFixture().supervisor().getId(),
                 alternativas.get(1).idProposta(),
                 "Alternativa escolhida apos comparacao."
@@ -114,7 +114,7 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
 
         assertTrue("aprovado".equalsIgnoreCase(aprovada.estado()));
 
-        List<GeracaoHorariosBLL.PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
+        List<GeracaoHorariosService.PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -145,20 +145,20 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
     void verPlaneamentoRecuperaAAlternativaMaisRecenteGeradaParaOMes() {
         GeracaoFixture fixture = criarContextoGeracao("alternativas-planeamento");
 
-        List<GeracaoHorariosBLL.PropostaResultado> alternativas = geracaoHorariosBLL.gerarPropostas(
+        List<GeracaoHorariosService.PropostaResultado> alternativas = geracaoHorariosBLL.gerarPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue(),
                 3
         );
 
-        List<GeracaoHorariosBLL.PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
+        List<GeracaoHorariosService.PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
         );
 
-        GeracaoHorariosBLL.PropostaResultado planeamento = geracaoHorariosBLL.obterPlaneamento(
+        GeracaoHorariosService.PropostaResultado planeamento = geracaoHorariosBLL.obterPlaneamento(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -196,7 +196,7 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         regrasLojaRepository.save(regraMinimos);
         flushAndClear();
 
-        List<GeracaoHorariosBLL.PropostaResultado> propostas = geracaoHorariosBLL.gerarPropostas(
+        List<GeracaoHorariosService.PropostaResultado> propostas = geracaoHorariosBLL.gerarPropostas(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue(),
@@ -204,7 +204,7 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         );
 
         assertEquals(1, propostas.size());
-        GeracaoHorariosBLL.PropostaResultado proposta = propostas.getFirst();
+        GeracaoHorariosService.PropostaResultado proposta = propostas.getFirst();
         assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()) * 2, proposta.resumo().turnos());
 
         List<Horario> horarios = horarioRepository.findByIdPropostaHorarioId(proposta.idProposta());

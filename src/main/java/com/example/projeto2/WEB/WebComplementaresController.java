@@ -1,14 +1,14 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.DayOffBLL;
-import com.example.projeto2.BLL.HorarioBLL;
-import com.example.projeto2.BLL.PermutaBLL;
-import com.example.projeto2.BLL.PreferenciaBLL;
-import com.example.projeto2.Modules.DayOff;
-import com.example.projeto2.Modules.Utilizador;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Permuta;
-import com.example.projeto2.Modules.Preferencia;
+import com.example.projeto2.API.Services.DayOffService;
+import com.example.projeto2.API.Services.HorarioService;
+import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.PreferenciaService;
+import com.example.projeto2.API.Modules.DayOff;
+import com.example.projeto2.API.Modules.Utilizador;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Permuta;
+import com.example.projeto2.API.Modules.Preferencia;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -32,16 +32,16 @@ import java.util.stream.Collectors;
 public class WebComplementaresController {
 
     private final WebAppService webAppService;
-    private final DayOffBLL dayOffBLL;
-    private final PreferenciaBLL preferenciaBLL;
-    private final PermutaBLL permutaBLL;
-    private final HorarioBLL horarioBLL;
+    private final DayOffService dayOffBLL;
+    private final PreferenciaService preferenciaBLL;
+    private final PermutaService permutaBLL;
+    private final HorarioService horarioBLL;
 
     public WebComplementaresController(WebAppService webAppService,
-                                       DayOffBLL dayOffBLL,
-                                       PreferenciaBLL preferenciaBLL,
-                                       PermutaBLL permutaBLL,
-                                       HorarioBLL horarioBLL) {
+                                       DayOffService dayOffBLL,
+                                       PreferenciaService preferenciaBLL,
+                                       PermutaService permutaBLL,
+                                       HorarioService horarioBLL) {
         this.webAppService = webAppService;
         this.dayOffBLL = dayOffBLL;
         this.preferenciaBLL = preferenciaBLL;

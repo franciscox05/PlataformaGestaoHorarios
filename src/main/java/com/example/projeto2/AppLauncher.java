@@ -1,4 +1,4 @@
-package com.example.projeto2; // Garante que o pacote é igual ao teu.
+package com.example.projeto2;
 
 public class AppLauncher {
     public static void main(String[] args) {

@@ -20,7 +20,7 @@
             stylesheets="@dashboard.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.example.projeto2.Controller.PerfilController">
+            fx:controller="com.example.projeto2.DESKTOP.PerfilController">
     <content>
         <VBox fx:id="raizPerfil" fillWidth="true" spacing="0" styleClass="conteudo-pagina">
 

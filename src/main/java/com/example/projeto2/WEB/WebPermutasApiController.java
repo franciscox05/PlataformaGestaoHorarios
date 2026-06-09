@@ -1,10 +1,10 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.HorarioBLL;
-import com.example.projeto2.BLL.PermutaBLL;
-import com.example.projeto2.Enums.EstadoPermuta;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Permuta;
+import com.example.projeto2.API.Services.HorarioService;
+import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Enums.EstadoPermuta;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Permuta;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,12 +32,12 @@ public class WebPermutasApiController {
     private static final DateTimeFormatter FMT_HORA  = DateTimeFormatter.ofPattern("HH:mm");
 
     private final WebAppService webAppService;
-    private final HorarioBLL horarioBLL;
-    private final PermutaBLL permutaBLL;
+    private final HorarioService horarioBLL;
+    private final PermutaService permutaBLL;
 
     public WebPermutasApiController(WebAppService webAppService,
-                                    HorarioBLL horarioBLL,
-                                    PermutaBLL permutaBLL) {
+                                    HorarioService horarioBLL,
+                                    PermutaService permutaBLL) {
         this.webAppService = webAppService;
         this.horarioBLL    = horarioBLL;
         this.permutaBLL    = permutaBLL;

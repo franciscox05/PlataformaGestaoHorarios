@@ -1,43 +1,42 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.BLL.GestaoLojaBLL;
-import com.example.projeto2.BLL.DayOffBLL;
-import com.example.projeto2.BLL.HorarioBLL;
-import com.example.projeto2.BLL.PermutaBLL;
-import com.example.projeto2.BLL.PerfilBLL;
-import com.example.projeto2.BLL.PreferenciaBLL;
-import com.example.projeto2.BLL.SegurancaBLL;
-import com.example.projeto2.BLL.SessaoBLL;
-import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
-import com.example.projeto2.BLL.UtilizadorBLL;
-import com.example.projeto2.Enums.EstadoHorario;
-import com.example.projeto2.Enums.EstadoUtilizador;
-import com.example.projeto2.Modules.Cargo;
-import com.example.projeto2.Modules.DayOff;
-import com.example.projeto2.Modules.HistoricoHorarioEstado;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.HorarioEspecialLoja;
-import com.example.projeto2.Modules.Loja;
-import com.example.projeto2.Modules.Lojautilizador;
-import com.example.projeto2.Modules.Preferencia;
-import com.example.projeto2.Modules.Regra;
-import com.example.projeto2.Modules.RegrasLoja;
-import com.example.projeto2.Modules.Turno;
-import com.example.projeto2.Modules.Utilizador;
-import com.example.projeto2.Repositories.CargoRepository;
-import com.example.projeto2.Repositories.DayOffRepository;
-import com.example.projeto2.Repositories.EventoAuditoriaRepository;
-import com.example.projeto2.Repositories.HistoricoHorarioEstadoRepository;
-import com.example.projeto2.Repositories.HorarioEspecialLojaRepository;
-import com.example.projeto2.Repositories.HorarioRepository;
-import com.example.projeto2.Repositories.LojaRepository;
-import com.example.projeto2.Repositories.LojautilizadorRepository;
-import com.example.projeto2.Repositories.PreferenciaRepository;
-import com.example.projeto2.Repositories.RegraRepository;
-import com.example.projeto2.Repositories.RegrasLojaRepository;
-import com.example.projeto2.Repositories.TurnoRepository;
-import com.example.projeto2.Repositories.UtilizadorRepository;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.GestaoLojaService;
+import com.example.projeto2.API.Services.DayOffService;
+import com.example.projeto2.API.Services.HorarioService;
+import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.PerfilService;
+import com.example.projeto2.API.Services.PreferenciaService;
+import com.example.projeto2.API.Services.SegurancaService;
+import com.example.projeto2.API.Services.SessaoService;
+import com.example.projeto2.API.Services.SnapshotOperacionalLojaService;
+import com.example.projeto2.API.Services.UtilizadorService;
+import com.example.projeto2.API.Enums.EstadoHorario;
+import com.example.projeto2.API.Enums.EstadoUtilizador;
+import com.example.projeto2.API.Modules.Cargo;
+import com.example.projeto2.API.Modules.DayOff;
+import com.example.projeto2.API.Modules.HistoricoHorarioEstado;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.HorarioEspecialLoja;
+import com.example.projeto2.API.Modules.Loja;
+import com.example.projeto2.API.Modules.Lojautilizador;
+import com.example.projeto2.API.Modules.Preferencia;
+import com.example.projeto2.API.Modules.Regra;
+import com.example.projeto2.API.Modules.RegrasLoja;
+import com.example.projeto2.API.Modules.Turno;
+import com.example.projeto2.API.Modules.Utilizador;
+import com.example.projeto2.API.Repositories.CargoRepository;
+import com.example.projeto2.API.Repositories.DayOffRepository;
+import com.example.projeto2.API.Repositories.HistoricoHorarioEstadoRepository;
+import com.example.projeto2.API.Repositories.HorarioEspecialLojaRepository;
+import com.example.projeto2.API.Repositories.HorarioRepository;
+import com.example.projeto2.API.Repositories.LojaRepository;
+import com.example.projeto2.API.Repositories.LojautilizadorRepository;
+import com.example.projeto2.API.Repositories.PreferenciaRepository;
+import com.example.projeto2.API.Repositories.RegraRepository;
+import com.example.projeto2.API.Repositories.RegrasLojaRepository;
+import com.example.projeto2.API.Repositories.TurnoRepository;
+import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.AfterEach;
@@ -83,43 +82,40 @@ abstract class FluxosCriticosTestSupport {
     private int sequenciaTelemovel = 930000000;
 
     @Autowired
-    protected UtilizadorBLL utilizadorBLL;
+    protected UtilizadorService utilizadorBLL;
 
     @Autowired
-    protected PerfilBLL perfilBLL;
+    protected PerfilService perfilBLL;
 
     @Autowired
-    protected GestaoLojaBLL gestaoLojaBLL;
+    protected GestaoLojaService gestaoLojaBLL;
 
     @Autowired
-    protected PreferenciaBLL preferenciaBLL;
+    protected PreferenciaService preferenciaBLL;
 
     @Autowired
-    protected DayOffBLL dayOffBLL;
+    protected DayOffService dayOffBLL;
 
     @Autowired
-    protected HorarioBLL horarioBLL;
+    protected HorarioService horarioBLL;
 
     @Autowired
-    protected PermutaBLL permutaBLL;
+    protected PermutaService permutaBLL;
 
     @Autowired
-    protected GeracaoHorariosBLL geracaoHorariosBLL;
+    protected GeracaoHorariosService geracaoHorariosBLL;
 
     @Autowired
-    protected SnapshotOperacionalLojaBLL snapshotOperacionalLojaBLL;
+    protected SnapshotOperacionalLojaService snapshotOperacionalLojaBLL;
 
     @Autowired
-    protected SegurancaBLL segurancaBLL;
+    protected SegurancaService segurancaBLL;
 
     @Autowired
-    protected SessaoBLL sessaoBLL;
+    protected SessaoService sessaoBLL;
 
     @Autowired
     protected UtilizadorRepository utilizadorRepository;
-
-    @Autowired
-    protected EventoAuditoriaRepository eventoAuditoriaRepository;
 
     @Autowired
     protected JdbcTemplate jdbcTemplate;
@@ -322,14 +318,6 @@ abstract class FluxosCriticosTestSupport {
         return horarioRepository.save(horario);
     }
 
-    protected long contarEventos(String tipoEvento, String resultado, String emailReferencia) {
-        return eventoAuditoriaRepository.findAll().stream()
-                .filter(evento -> tipoEvento.equalsIgnoreCase(valorOuVazio(evento.getTipoEvento())))
-                .filter(evento -> resultado.equalsIgnoreCase(valorOuVazio(evento.getResultado())))
-                .filter(evento -> emailReferencia.equalsIgnoreCase(valorOuVazio(evento.getEmailReferencia())))
-                .count();
-    }
-
     protected List<HistoricoHorarioEstado> listarHistoricoPorHorarios(Set<Integer> idsHorario) {
         return StreamSupport.stream(historicoHorarioEstadoRepository.findAll().spliterator(), false)
                 .filter(registo -> registo.getIdHorario() != null)
@@ -369,7 +357,7 @@ abstract class FluxosCriticosTestSupport {
                                                        String observacoes) {
         gestaoLojaBLL.guardarHorarioEspecial(
                 idUtilizadorGerente,
-                new GestaoLojaBLL.ConfiguracaoHorarioEspecialRequest(
+                new GestaoLojaService.ConfiguracaoHorarioEspecialRequest(
                         null,
                         descricao,
                         dataInicio,

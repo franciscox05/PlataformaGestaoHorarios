@@ -1782,6 +1782,45 @@
     -fx-line-spacing: 6px;
 }
 
+/* ── HERO INLINE — header compacto para a nova home ─────────── */
+.home-hero-inline {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #1a191c 0%, #26242a 100%);
+    -fx-background-radius: 18px;
+    -fx-border-radius: 18px;
+    -fx-border-color: rgba(255,255,255,0.06);
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(28,27,27,0.22), 24, 0, 0, 8);
+}
+
+.home-inline-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #ffffff;
+}
+
+.home-inline-copy {
+    -fx-font-size: 13px;
+    -fx-text-fill: rgba(255,255,255,0.55);
+}
+
+/* Pills no hero inline ficam ligeiramente maiores */
+.home-hero-inline .home-filter-pill,
+.home-hero-inline .home-filter-pill-active {
+    -fx-font-size: 12px;
+    -fx-padding: 7px 14px;
+}
+
+/* ── SCHEDULE HERO — card destaque do horário semanal ───────── */
+.home-schedule-hero {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 18px;
+    -fx-border-radius: 18px;
+    -fx-border-color: #c91428;
+    -fx-border-width: 2px;
+    -fx-padding: 28px 32px;
+    -fx-effect: dropshadow(gaussian, rgba(201,20,40,0.14), 28, 0.0, 0, 10);
+}
+
 .home-card-title,
 .home-metrics-title {
     -fx-font-size: 20px;

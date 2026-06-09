@@ -1,12 +1,12 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.Enums.EstadoHorario;
-import com.example.projeto2.Enums.EstadoUtilizador;
-import com.example.projeto2.Modules.DayOff;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Preferencia;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Enums.EstadoHorario;
+import com.example.projeto2.API.Enums.EstadoUtilizador;
+import com.example.projeto2.API.Modules.DayOff;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Preferencia;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -40,8 +40,6 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 EstadoUtilizador.ativo
         );
 
-        long falhasAntes = contarEventos("login", "falha", utilizador.getEmail());
-
         Utilizador autenticado = utilizadorBLL.efetuarLogin("  " + utilizador.getEmail().toUpperCase() + "  ", " Segredo123 ");
         assertNotNull(autenticado);
 
@@ -53,7 +51,6 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
 
         Utilizador falha = utilizadorBLL.efetuarLogin(utilizador.getEmail(), "errada");
         assertEquals(null, falha);
-        assertEquals(falhasAntes + 1, contarEventos("login", "falha", utilizador.getEmail()));
     }
 
     @Test
@@ -63,8 +60,6 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 "perfil.seguro",
                 "Atual123"
         );
-
-        long alteracoesAntes = contarEventos("alteracao_password", "sucesso", utilizador.getEmail());
 
         sessaoBLL.iniciarSessao(utilizador);
         Utilizador atualizado = perfilBLL.atualizarPassword(
@@ -76,7 +71,6 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
 
         assertTrue(segurancaBLL.passwordCorresponde("Nova123", atualizado.getPasswordHash()));
         assertFalse(segurancaBLL.precisaMigrarParaHash(atualizado.getPasswordHash()));
-        assertEquals(alteracoesAntes + 1, contarEventos("alteracao_password", "sucesso", utilizador.getEmail()));
 
         IllegalArgumentException erro = assertThrows(
                 IllegalArgumentException.class,
@@ -149,7 +143,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 "Folga aprovada para o segundo dia do periodo."
         );
 
-        GeracaoHorariosBLL.PropostaResultado proposta;
+        GeracaoHorariosService.PropostaResultado proposta;
         try {
             proposta = geracaoHorariosBLL.gerarProposta(
                     gerente.getId(),
@@ -176,7 +170,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 .anyMatch(linha -> referencia.plusDays(1).equals(linha.data()) && bloqueadoPorPreferencia.getNome().equals(linha.colaborador())));
 
         geracaoHorariosBLL.enviarPropostasParaValidacao(gerente.getId(), List.of(proposta.idProposta()));
-        GeracaoHorariosBLL.PropostaResultado aprovada = geracaoHorariosBLL.aprovarProposta(
+        GeracaoHorariosService.PropostaResultado aprovada = geracaoHorariosBLL.aprovarProposta(
                 supervisor.getId(),
                 proposta.idProposta(),
                 "Validado em teste automatizado."
@@ -210,7 +204,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         criarHorarioPublicadoSemProposta(lojaFixture.colaboradores().get(1), referencia.plusDays(1), fixture.turnos().get(1));
         flushAndClear();
 
-        GeracaoHorariosBLL.PropostaResultado resultado = geracaoHorariosBLL.obterPlaneamento(
+        GeracaoHorariosService.PropostaResultado resultado = geracaoHorariosBLL.obterPlaneamento(
                 gerente.getId(),
                 referencia.getYear(),
                 referencia.getMonthValue()

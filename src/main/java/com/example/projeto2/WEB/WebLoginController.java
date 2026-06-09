@@ -1,7 +1,7 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.UtilizadorBLL;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.UtilizadorService;
+import com.example.projeto2.API.Modules.Utilizador;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,10 +15,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/web")
 public class WebLoginController {
 
-    private final UtilizadorBLL utilizadorBLL;
+    private final UtilizadorService utilizadorBLL;
     private final WebAppService webAppService;
 
-    public WebLoginController(UtilizadorBLL utilizadorBLL,
+    public WebLoginController(UtilizadorService utilizadorBLL,
                               WebAppService webAppService) {
         this.utilizadorBLL = utilizadorBLL;
         this.webAppService = webAppService;

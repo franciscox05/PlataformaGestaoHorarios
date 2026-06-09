@@ -1,7 +1,7 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.Modules.Horario;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Modules.Horario;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,11 +22,11 @@ import java.util.List;
 @RequestMapping("/web/horarios")
 public class WebHorariosController {
 
-    private final GeracaoHorariosBLL geracaoHorariosBLL;
+    private final GeracaoHorariosService geracaoHorariosBLL;
     private final WebAppService webAppService;
     private final WebPdfService webPdfService;
 
-    public WebHorariosController(GeracaoHorariosBLL geracaoHorariosBLL,
+    public WebHorariosController(GeracaoHorariosService geracaoHorariosBLL,
                                  WebAppService webAppService,
                                  WebPdfService webPdfService) {
         this.geracaoHorariosBLL = geracaoHorariosBLL;
@@ -49,8 +49,8 @@ public class WebHorariosController {
         model.addAttribute("ano", anoConsulta);
         model.addAttribute("mes", mesConsulta);
         model.addAttribute("hoje", hoje);
-        model.addAttribute("meses", MesWebOption.todos());
-        model.addAttribute("anos", MesWebOption.anosProximos(hoje.getYear(), 2));
+        model.addAttribute("meses", WebMesOption.todos());
+        model.addAttribute("anos", WebMesOption.anosProximos(hoje.getYear(), 2));
 
         try {
             List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, anoConsulta, mesConsulta);
@@ -63,7 +63,7 @@ public class WebHorariosController {
         // Carrega propostas mensais para gerentes/subgerentes
         if (geracaoHorariosBLL.utilizadorPodeGerarHorarios(utilizadorId)) {
             try {
-                List<GeracaoHorariosBLL.PropostaResumo> propostas =
+                List<GeracaoHorariosService.PropostaResumo> propostas =
                         geracaoHorariosBLL.listarPropostas(utilizadorId, anoConsulta, mesConsulta);
                 model.addAttribute("propostas", propostas);
             } catch (IllegalArgumentException ex) {
@@ -82,12 +82,12 @@ public class WebHorariosController {
                                RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
         try {
-            GeracaoHorariosBLL.PropostaResultado resultado =
+            GeracaoHorariosService.PropostaResultado resultado =
                     geracaoHorariosBLL.gerarProposta(utilizadorId, ano, mes);
             redirectAttributes.addFlashAttribute("sucesso",
                     "Proposta gerada com sucesso (" + resultado.metricas().qualidade()
                     + ", score " + resultado.metricas().pontuacao() + ").");
-        } catch (GeracaoHorariosBLL.FalhaGeracaoHorarioException ex) {
+        } catch (GeracaoHorariosService.FalhaGeracaoHorarioException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage()
                     + (ex.motivoPrincipal() != null ? " — " + ex.motivoPrincipal() : ""));
         } catch (IllegalArgumentException ex) {

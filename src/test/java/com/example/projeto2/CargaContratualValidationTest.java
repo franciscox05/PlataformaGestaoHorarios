@@ -1,10 +1,10 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.Enums.EstadoUtilizador;
-import com.example.projeto2.Modules.Cargo;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Enums.EstadoUtilizador;
+import com.example.projeto2.API.Modules.Cargo;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -46,7 +46,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
     void geracaoMensalRespeitaCargaContratualConfiguradaPorPerfil() {
         GeracaoFixture fixture = criarContextoGeracao("carga-contratual");
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -65,7 +65,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
         assertTrue(tiposComCargaAtribuida.contains("parttime"));
         assertTrue(tiposComCargaAtribuida.contains("reforco_parttime"));
 
-        for (GeracaoHorariosBLL.ResumoColaborador resumo : proposta.resumoColaboradores()) {
+        for (GeracaoHorariosService.ResumoColaborador resumo : proposta.resumoColaboradores()) {
             String tipoCargo = tiposCargoPorUtilizador.get(resumo.idColaborador());
             Long limiteMinutos = LIMITES_MINUTOS_POR_CARGO.get(tipoCargo);
 
@@ -83,7 +83,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
     void reforcoDeFimDeSemanaSoRecebeTurnosAoSabadoOuDomingo() {
         GeracaoFixture fixture = criarContextoGeracao("carga-reforco");
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -112,11 +112,11 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
                         fixture.referencia().getMonthValue()
                 )
                 .stream()
-                .map(GeracaoHorariosBLL.ColaboradorElegivel::idColaborador)
+                .map(GeracaoHorariosService.ColaboradorElegivel::idColaborador)
                 .filter(idColaborador -> !colaboradorExcluido.getId().equals(idColaborador))
                 .toList();
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue(),
@@ -131,7 +131,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
     void fullTimeEGestaoNaoRecebemTurnosComMenosDeOitoHoras() {
         GeracaoFixture fixture = criarContextoGeracao("carga-turnos-ft");
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -156,7 +156,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
     void geracaoRespeitaPeloMenosOitoHorasDeDescansoEntreDiasConsecutivos() {
         GeracaoFixture fixture = criarContextoGeracao("carga-descanso-entre-turnos");
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -214,7 +214,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
 
         flushAndClear();
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -239,9 +239,9 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
                 ));
     }
 
-    private boolean contemColaborador(GeracaoHorariosBLL.PropostaResultado proposta, String nome) {
-        Predicate<GeracaoHorariosBLL.HorarioLinha> noHorario = linha -> nome.equals(linha.colaborador());
-        Predicate<GeracaoHorariosBLL.ResumoColaborador> noResumo = resumo -> nome.equals(resumo.nome());
+    private boolean contemColaborador(GeracaoHorariosService.PropostaResultado proposta, String nome) {
+        Predicate<GeracaoHorariosService.HorarioLinha> noHorario = linha -> nome.equals(linha.colaborador());
+        Predicate<GeracaoHorariosService.ResumoColaborador> noResumo = resumo -> nome.equals(resumo.nome());
 
         return proposta.linhas().stream().anyMatch(noHorario)
                 || proposta.resumoColaboradores().stream().anyMatch(noResumo);

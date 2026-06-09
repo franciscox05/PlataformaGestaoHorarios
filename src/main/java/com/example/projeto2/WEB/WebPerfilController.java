@@ -1,7 +1,7 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.PerfilBLL;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.PerfilService;
+import com.example.projeto2.API.Modules.Utilizador;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,10 +16,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class WebPerfilController {
 
     private final WebAppService webAppService;
-    private final PerfilBLL perfilBLL;
+    private final PerfilService perfilBLL;
 
     public WebPerfilController(WebAppService webAppService,
-                               PerfilBLL perfilBLL) {
+                               PerfilService perfilBLL) {
         this.webAppService = webAppService;
         this.perfilBLL = perfilBLL;
     }
@@ -31,7 +31,7 @@ public class WebPerfilController {
 
         try {
             Utilizador utilizador = perfilBLL.obterUtilizadorPorId(utilizadorId);
-            PerfilBLL.PerfilResumo resumo = perfilBLL.obterResumoPerfil(utilizador);
+            PerfilService.PerfilResumo resumo = perfilBLL.obterResumoPerfil(utilizador);
             model.addAttribute("resumo", resumo);
         } catch (IllegalArgumentException ex) {
             model.addAttribute("erro", ex.getMessage());

@@ -2,19 +2,19 @@ package com.example.projeto2.API.Services;
 
 import com.example.projeto2.API.Modules.UtilizadorApiModels.CriarUtilizadorRequest;
 import com.example.projeto2.API.Modules.UtilizadorApiModels.UtilizadorResponse;
-import com.example.projeto2.BLL.GestaoFuncionariosBLL;
-import com.example.projeto2.Modules.Utilizador;
-import com.example.projeto2.Repositories.UtilizadorRepository;
+import com.example.projeto2.API.Services.GestaoFuncionariosService;
+import com.example.projeto2.API.Modules.Utilizador;
+import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UtilizadoresApiService {
 
-    private final GestaoFuncionariosBLL gestaoFuncionariosBLL;
+    private final GestaoFuncionariosService gestaoFuncionariosBLL;
     private final UtilizadorRepository utilizadorRepository;
 
-    public UtilizadoresApiService(GestaoFuncionariosBLL gestaoFuncionariosBLL,
+    public UtilizadoresApiService(GestaoFuncionariosService gestaoFuncionariosBLL,
                                   UtilizadorRepository utilizadorRepository) {
         this.gestaoFuncionariosBLL = gestaoFuncionariosBLL;
         this.utilizadorRepository = utilizadorRepository;
@@ -36,7 +36,7 @@ public class UtilizadoresApiService {
 
         Integer idCriado = gestaoFuncionariosBLL.guardarColaborador(
                 idGestor,
-                new GestaoFuncionariosBLL.ColaboradorRequest(
+                new GestaoFuncionariosService.ColaboradorRequest(
                         null,
                         request.nome(),
                         request.email(),

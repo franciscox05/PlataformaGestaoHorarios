@@ -23,7 +23,7 @@
       stylesheets="@dashboard.css"
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.example.projeto2.Controller.GeracaoHorariosController">
+      fx:controller="com.example.projeto2.DESKTOP.GeracaoHorariosController">
 
     <!-- ░░ CABEÇALHO ░░ -->
     <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-card modulo-banner-horarios"

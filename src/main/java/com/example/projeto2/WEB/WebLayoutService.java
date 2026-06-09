@@ -1,23 +1,23 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.BLL.GestaoLojaBLL;
-import com.example.projeto2.BLL.RelatorioHorasBLL;
-import com.example.projeto2.Repositories.LojautilizadorRepository;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.GestaoLojaService;
+import com.example.projeto2.API.Services.RelatorioHorasService;
+import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 
 @Service
 public class WebLayoutService {
 
-    private final GestaoLojaBLL gestaoLojaBLL;
-    private final GeracaoHorariosBLL geracaoHorariosBLL;
-    private final RelatorioHorasBLL relatorioHorasBLL;
+    private final GestaoLojaService gestaoLojaBLL;
+    private final GeracaoHorariosService geracaoHorariosBLL;
+    private final RelatorioHorasService relatorioHorasBLL;
     private final LojautilizadorRepository lojautilizadorRepository;
 
-    public WebLayoutService(GestaoLojaBLL gestaoLojaBLL,
-                            GeracaoHorariosBLL geracaoHorariosBLL,
-                            RelatorioHorasBLL relatorioHorasBLL,
+    public WebLayoutService(GestaoLojaService gestaoLojaBLL,
+                            GeracaoHorariosService geracaoHorariosBLL,
+                            RelatorioHorasService relatorioHorasBLL,
                             LojautilizadorRepository lojautilizadorRepository) {
         this.gestaoLojaBLL = gestaoLojaBLL;
         this.geracaoHorariosBLL = geracaoHorariosBLL;

@@ -1,12 +1,12 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.DayOffBLL;
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.BLL.HorarioBLL;
-import com.example.projeto2.BLL.PermutaBLL;
-import com.example.projeto2.BLL.PreferenciaBLL;
-import com.example.projeto2.BLL.UtilizadorBLL;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.DayOffService;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.HorarioService;
+import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.PreferenciaService;
+import com.example.projeto2.API.Services.UtilizadorService;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -38,22 +38,22 @@ class WebAccessIntegrationTest {
     private int port;
 
     @MockitoBean
-    private UtilizadorBLL utilizadorBLL;
+    private UtilizadorService utilizadorBLL;
 
     @MockitoBean
-    private GeracaoHorariosBLL geracaoHorariosBLL;
+    private GeracaoHorariosService geracaoHorariosBLL;
 
     @MockitoBean
-    private PreferenciaBLL preferenciaBLL;
+    private PreferenciaService preferenciaBLL;
 
     @MockitoBean
-    private DayOffBLL dayOffBLL;
+    private DayOffService dayOffBLL;
 
     @MockitoBean
-    private PermutaBLL permutaBLL;
+    private PermutaService permutaBLL;
 
     @MockitoBean
-    private HorarioBLL horarioBLL;
+    private HorarioService horarioBLL;
 
     @Test
     void loginPageSemSessaoDeveResponderOk() throws Exception {

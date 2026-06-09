@@ -1,10 +1,10 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.BLL.HorarioGeneratorEngine;
-import com.example.projeto2.Modules.Preferencia;
-import com.example.projeto2.Modules.Turno;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.HorarioGeneratorEngine;
+import com.example.projeto2.API.Modules.Preferencia;
+import com.example.projeto2.API.Modules.Turno;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -85,7 +85,7 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
                 "Preferencia temporaria para o inicio do periodo."
         );
 
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 referencia.getYear(),
                 referencia.getMonthValue()

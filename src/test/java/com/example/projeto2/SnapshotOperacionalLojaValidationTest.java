@@ -1,12 +1,12 @@
 package com.example.projeto2;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.BLL.SnapshotOperacionalLojaBLL;
-import com.example.projeto2.Modules.DayOff;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Permuta;
-import com.example.projeto2.Modules.Preferencia;
-import com.example.projeto2.Modules.Utilizador;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.SnapshotOperacionalLojaService;
+import com.example.projeto2.API.Modules.DayOff;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Permuta;
+import com.example.projeto2.API.Modules.Preferencia;
+import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -39,7 +39,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
 
         gerarEAprovarHorarios(gerente, supervisor, referencia);
 
-        SnapshotOperacionalLojaBLL.SnapshotOperacionalLoja snapshot = snapshotOperacionalLojaBLL.carregarSnapshot(
+        SnapshotOperacionalLojaService.SnapshotOperacionalLoja snapshot = snapshotOperacionalLojaBLL.carregarSnapshot(
                 gerente.getId(),
                 diaAnalise
         );
@@ -58,7 +58,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
                 .allMatch(turno -> diaAnalise.equals(turno.data())));
 
         long idsUnicos = snapshot.equipaEscalada().stream()
-                .map(SnapshotOperacionalLojaBLL.ColaboradorEscala::idUtilizador)
+                .map(SnapshotOperacionalLojaService.ColaboradorEscala::idUtilizador)
                 .distinct()
                 .count();
         assertEquals(snapshot.equipaEscalada().size(), idsUnicos);
@@ -76,7 +76,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
         criarDayOffAprovado(colaboradorAusente, diaAnalise, "Consulta medica.");
         gerarEAprovarHorarios(gerente, supervisor, referencia);
 
-        SnapshotOperacionalLojaBLL.SnapshotOperacionalLoja snapshot = snapshotOperacionalLojaBLL.carregarSnapshot(
+        SnapshotOperacionalLojaService.SnapshotOperacionalLoja snapshot = snapshotOperacionalLojaBLL.carregarSnapshot(
                 gerente.getId(),
                 diaAnalise
         );
@@ -96,7 +96,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
         LocalDate referencia = fixture.referencia();
         LocalDate diaAnalise = referencia.plusDays(4);
 
-        GeracaoHorariosBLL.PropostaResultado proposta = gerarEAprovarHorarios(gerente, supervisor, referencia);
+        GeracaoHorariosService.PropostaResultado proposta = gerarEAprovarHorarios(gerente, supervisor, referencia);
         List<Horario> horariosDia = horarioRepository.findHorariosDaLojaNoDia(fixture.lojaFixture().loja().getId(), diaAnalise);
         assertTrue(horariosDia.size() >= 2);
 
@@ -133,7 +133,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
 
         flushAndClear();
 
-        SnapshotOperacionalLojaBLL.SnapshotOperacionalLoja snapshot = snapshotOperacionalLojaBLL.carregarSnapshot(
+        SnapshotOperacionalLojaService.SnapshotOperacionalLoja snapshot = snapshotOperacionalLojaBLL.carregarSnapshot(
                 gerente.getId(),
                 diaAnalise,
                 diaAnalise
@@ -145,28 +145,28 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
         assertEquals(1, snapshot.resumo().preferenciasPendentes());
         assertEquals(
                 Set.of(
-                        SnapshotOperacionalLojaBLL.TipoPedidoOperacional.FOLGA,
-                        SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PERMUTA,
-                        SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PREFERENCIA
+                        SnapshotOperacionalLojaService.TipoPedidoOperacional.FOLGA,
+                        SnapshotOperacionalLojaService.TipoPedidoOperacional.PERMUTA,
+                        SnapshotOperacionalLojaService.TipoPedidoOperacional.PREFERENCIA
                 ),
                 snapshot.pedidosPendentes().stream()
-                        .map(SnapshotOperacionalLojaBLL.PedidoPendenteOperacional::tipo)
+                        .map(SnapshotOperacionalLojaService.PedidoPendenteOperacional::tipo)
                         .collect(Collectors.toSet())
         );
 
-        SnapshotOperacionalLojaBLL.ContextoPedidoOperacional contextoPermuta = snapshotOperacionalLojaBLL.carregarContextoPedido(
+        SnapshotOperacionalLojaService.ContextoPedidoOperacional contextoPermuta = snapshotOperacionalLojaBLL.carregarContextoPedido(
                 gerente.getId(),
-                SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PERMUTA,
+                SnapshotOperacionalLojaService.TipoPedidoOperacional.PERMUTA,
                 permutaPendente.getId()
         );
 
-        assertEquals(SnapshotOperacionalLojaBLL.TipoPedidoOperacional.PERMUTA, contextoPermuta.pedido().tipo());
+        assertEquals(SnapshotOperacionalLojaService.TipoPedidoOperacional.PERMUTA, contextoPermuta.pedido().tipo());
         assertEquals(diaAnalise, contextoPermuta.snapshotRelacionada().intervalo().dataInicio());
         assertEquals(2, contextoPermuta.colaboradoresEnvolvidos().size());
         assertTrue(contextoPermuta.colaboradoresEnvolvidos().stream()
                 .allMatch(colaborador -> !colaborador.turnosNoPeriodo().isEmpty()));
         assertTrue(contextoPermuta.colaboradoresEnvolvidos().stream()
-                .map(SnapshotOperacionalLojaBLL.ColaboradorContexto::idUtilizador)
+                .map(SnapshotOperacionalLojaService.ColaboradorContexto::idUtilizador)
                 .collect(Collectors.toSet())
                 .containsAll(List.of(
                         horarioOrigem.getIdLojautilizador().getIdUtilizador().getId(),
@@ -178,10 +178,10 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
         assertNotNull(preferenciaPendente.getId());
     }
 
-    private GeracaoHorariosBLL.PropostaResultado gerarEAprovarHorarios(Utilizador gerente,
+    private GeracaoHorariosService.PropostaResultado gerarEAprovarHorarios(Utilizador gerente,
                                                                        Utilizador supervisor,
                                                                        LocalDate referencia) {
-        GeracaoHorariosBLL.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 referencia.getYear(),
                 referencia.getMonthValue()

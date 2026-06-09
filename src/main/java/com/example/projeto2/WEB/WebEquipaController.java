@@ -1,18 +1,18 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.DayOffBLL;
-import com.example.projeto2.BLL.GestaoFuncionariosBLL;
-import com.example.projeto2.BLL.HorarioBLL;
-import com.example.projeto2.BLL.PermutaBLL;
-import com.example.projeto2.BLL.PreferenciaBLL;
-import com.example.projeto2.Modules.DayOff;
-import com.example.projeto2.Modules.Horario;
-import com.example.projeto2.Modules.Lojautilizador;
-import com.example.projeto2.Modules.Permuta;
-import com.example.projeto2.Modules.Preferencia;
-import com.example.projeto2.Modules.Utilizador;
-import com.example.projeto2.Repositories.LojautilizadorRepository;
-import com.example.projeto2.Repositories.UtilizadorRepository;
+import com.example.projeto2.API.Services.DayOffService;
+import com.example.projeto2.API.Services.GestaoFuncionariosService;
+import com.example.projeto2.API.Services.HorarioService;
+import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.PreferenciaService;
+import com.example.projeto2.API.Modules.DayOff;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Lojautilizador;
+import com.example.projeto2.API.Modules.Permuta;
+import com.example.projeto2.API.Modules.Preferencia;
+import com.example.projeto2.API.Modules.Utilizador;
+import com.example.projeto2.API.Repositories.LojautilizadorRepository;
+import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -41,20 +41,20 @@ public class WebEquipaController {
     private final WebAppService webAppService;
     private final UtilizadorRepository utilizadorRepository;
     private final LojautilizadorRepository lojautilizadorRepository;
-    private final HorarioBLL horarioBLL;
-    private final DayOffBLL dayOffBLL;
-    private final PreferenciaBLL preferenciaBLL;
-    private final PermutaBLL permutaBLL;
-    private final GestaoFuncionariosBLL gestaoFuncionariosBLL;
+    private final HorarioService horarioBLL;
+    private final DayOffService dayOffBLL;
+    private final PreferenciaService preferenciaBLL;
+    private final PermutaService permutaBLL;
+    private final GestaoFuncionariosService gestaoFuncionariosBLL;
 
     public WebEquipaController(WebAppService webAppService,
                                UtilizadorRepository utilizadorRepository,
                                LojautilizadorRepository lojautilizadorRepository,
-                               HorarioBLL horarioBLL,
-                               DayOffBLL dayOffBLL,
-                               PreferenciaBLL preferenciaBLL,
-                               PermutaBLL permutaBLL,
-                               GestaoFuncionariosBLL gestaoFuncionariosBLL) {
+                               HorarioService horarioBLL,
+                               DayOffService dayOffBLL,
+                               PreferenciaService preferenciaBLL,
+                               PermutaService permutaBLL,
+                               GestaoFuncionariosService gestaoFuncionariosBLL) {
         this.webAppService = webAppService;
         this.utilizadorRepository = utilizadorRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
@@ -84,7 +84,7 @@ public class WebEquipaController {
 
         if (podeCriarColaboradores) {
             try {
-                GestaoFuncionariosBLL.GestaoFuncionariosResumo resumoGestao = gestaoFuncionariosBLL.obterResumo(idGestor);
+                GestaoFuncionariosService.GestaoFuncionariosResumo resumoGestao = gestaoFuncionariosBLL.obterResumo(idGestor);
                 model.addAttribute("cargosDisponiveis", resumoGestao.cargosDisponiveis());
             } catch (Exception ex) {
                 model.addAttribute("cargosDisponiveis", List.of());
@@ -115,7 +115,7 @@ public class WebEquipaController {
         }
 
         List<UtilizadorResumo> utilizadores = listarUtilizadoresComContextoDaLoja(idGestor, pesquisa);
-        GestaoFuncionariosBLL.GestaoFuncionariosResumo resumoGestao = gestaoFuncionariosBLL.obterResumo(idGestor);
+        GestaoFuncionariosService.GestaoFuncionariosResumo resumoGestao = gestaoFuncionariosBLL.obterResumo(idGestor);
 
         model.addAttribute("utilizadores", utilizadores);
         model.addAttribute("pesquisa", pesquisa == null ? "" : pesquisa.trim());
@@ -203,7 +203,7 @@ public class WebEquipaController {
 
         if (podeEditarColaborador) {
             try {
-                GestaoFuncionariosBLL.GestaoFuncionariosResumo resumoGestao = gestaoFuncionariosBLL.obterResumo(idGestor);
+                GestaoFuncionariosService.GestaoFuncionariosResumo resumoGestao = gestaoFuncionariosBLL.obterResumo(idGestor);
                 model.addAttribute("cargosDisponiveis", resumoGestao.cargosDisponiveis());
             } catch (Exception ex) {
                 model.addAttribute("cargosDisponiveis", List.of());
@@ -223,8 +223,8 @@ public class WebEquipaController {
         model.addAttribute("modoNovo", false);
         model.addAttribute("ano", anoConsulta);
         model.addAttribute("mes", mesConsulta);
-        model.addAttribute("meses", MesWebOption.todos());
-        model.addAttribute("anos", MesWebOption.anosProximos(hoje.getYear(), 2));
+        model.addAttribute("meses", WebMesOption.todos());
+        model.addAttribute("anos", WebMesOption.anosProximos(hoje.getYear(), 2));
         model.addAttribute("horariosPublicados", horariosPublicados);
         model.addAttribute("historicoFolgas", historicoFolgas);
         model.addAttribute("historicoPreferencias", historicoPreferencias);
@@ -252,7 +252,7 @@ public class WebEquipaController {
         try {
             Integer idGuardado = gestaoFuncionariosBLL.guardarColaborador(
                     idGestor,
-                    new GestaoFuncionariosBLL.ColaboradorRequest(
+                    new GestaoFuncionariosService.ColaboradorRequest(
                             idUtilizador, nome, email, telemovel, password, idCargo, estado)
             );
             String msg = idUtilizador == null

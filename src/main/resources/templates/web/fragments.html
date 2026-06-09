@@ -236,14 +236,6 @@
                       th:classappend="${webModuloAtivo == 'equipa'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">groups</span>
                 Funcionários
             </a>
-            <a href="/web/auditoria"
-               th:if="${webPermissoes != null && webPermissoes.podeVerAuditoria()}"
-               th:classappend="${webModuloAtivo == 'auditoria'} ? 'nav-active' : 'text-white/40'"
-               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
-                <span class="material-symbols-outlined text-[19px]"
-                      th:classappend="${webModuloAtivo == 'auditoria'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">shield</span>
-                Auditoria
-            </a>
         </div>
 
         <div class="flex items-center gap-2 px-3 mt-5 mb-1.5">

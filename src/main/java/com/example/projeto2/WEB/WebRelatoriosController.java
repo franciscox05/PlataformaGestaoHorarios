@@ -1,6 +1,6 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.RelatorioHorasBLL;
+import com.example.projeto2.API.Services.RelatorioHorasService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,11 +18,11 @@ import java.nio.charset.StandardCharsets;
 public class WebRelatoriosController {
 
     private final WebAppService webAppService;
-    private final RelatorioHorasBLL relatorioHorasBLL;
+    private final RelatorioHorasService relatorioHorasBLL;
     private final WebPdfService webPdfService;
 
     public WebRelatoriosController(WebAppService webAppService,
-                                   RelatorioHorasBLL relatorioHorasBLL,
+                                   RelatorioHorasService relatorioHorasBLL,
                                    WebPdfService webPdfService) {
         this.webAppService = webAppService;
         this.relatorioHorasBLL = relatorioHorasBLL;
@@ -39,11 +39,11 @@ public class WebRelatoriosController {
         webAppService.preencherModeloBase(model, session, "relatorios");
 
         try {
-            RelatorioHorasBLL.RelatorioContexto contexto = relatorioHorasBLL.obterContexto(utilizadorId);
+            RelatorioHorasService.RelatorioContexto contexto = relatorioHorasBLL.obterContexto(utilizadorId);
 
             int anoConsulta = ano != null ? ano : contexto.anoAtual();
             int mesConsulta = mes != null ? mes : contexto.mesAtual();
-            RelatorioHorasBLL.RelatorioResultado resultado = relatorioHorasBLL.gerarRelatorio(
+            RelatorioHorasService.RelatorioResultado resultado = relatorioHorasBLL.gerarRelatorio(
                     utilizadorId,
                     anoConsulta,
                     mesConsulta,
@@ -55,8 +55,8 @@ public class WebRelatoriosController {
             model.addAttribute("ano", anoConsulta);
             model.addAttribute("mes", mesConsulta);
             model.addAttribute("colaboradorSelecionado", idColaborador);
-            model.addAttribute("meses", MesWebOption.todos());
-            model.addAttribute("anos", MesWebOption.anosProximos(contexto.anoAtual(), 2));
+            model.addAttribute("meses", WebMesOption.todos());
+            model.addAttribute("anos", WebMesOption.anosProximos(contexto.anoAtual(), 2));
         } catch (IllegalArgumentException ex) {
             model.addAttribute("erro", ex.getMessage());
         }
@@ -70,7 +70,7 @@ public class WebRelatoriosController {
                                               @RequestParam(value = "colaborador", required = false) Integer idColaborador,
                                               HttpSession session) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        RelatorioHorasBLL.RelatorioResultado resultado = relatorioHorasBLL.gerarRelatorio(
+        RelatorioHorasService.RelatorioResultado resultado = relatorioHorasBLL.gerarRelatorio(
                 utilizadorId,
                 ano,
                 mes,
@@ -79,7 +79,7 @@ public class WebRelatoriosController {
 
         StringBuilder csv = new StringBuilder();
         csv.append("Loja;Mes;Ano;Colaborador;Cargo;Turnos;FolgasAprovadas;Horas\n");
-        for (RelatorioHorasBLL.RelatorioLinha linha : resultado.linhas()) {
+        for (RelatorioHorasService.RelatorioLinha linha : resultado.linhas()) {
             csv.append(csvCell(resultado.nomeLoja())).append(';')
                     .append(csvCell(resultado.nomeMes())).append(';')
                     .append(resultado.ano()).append(';')
@@ -106,7 +106,7 @@ public class WebRelatoriosController {
                                               @RequestParam(value = "colaborador", required = false) Integer idColaborador,
                                               HttpSession session) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        RelatorioHorasBLL.RelatorioResultado resultado = relatorioHorasBLL.gerarRelatorio(
+        RelatorioHorasService.RelatorioResultado resultado = relatorioHorasBLL.gerarRelatorio(
                 utilizadorId, ano, mes, idColaborador);
 
         byte[] conteudo = webPdfService.gerarRelatorioHorasPdf(resultado);

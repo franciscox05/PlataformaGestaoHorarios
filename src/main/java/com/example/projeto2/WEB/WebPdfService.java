@@ -1,7 +1,7 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.BLL.GeracaoHorariosBLL;
-import com.example.projeto2.BLL.RelatorioHorasBLL;
+import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.RelatorioHorasService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -31,7 +31,7 @@ public class WebPdfService {
 
     // ── W6 — Relatório de horas ──────────────────────────────────────────────
 
-    public byte[] gerarRelatorioHorasPdf(RelatorioHorasBLL.RelatorioResultado resultado) {
+    public byte[] gerarRelatorioHorasPdf(RelatorioHorasService.RelatorioResultado resultado) {
         try (PDDocument doc = new PDDocument()) {
             PDPage page = new PDPage(PDRectangle.A4);
             doc.addPage(page);
@@ -51,7 +51,7 @@ public class WebPdfService {
                 y = writeTableHeader(cs, headers, colWidths, y);
 
                 // Linhas
-                for (RelatorioHorasBLL.RelatorioLinha linha : resultado.linhas()) {
+                for (RelatorioHorasService.RelatorioLinha linha : resultado.linhas()) {
                     if (y < MARGIN + 20) {
                         // Nova página se necessário
                         cs.close();
@@ -85,7 +85,7 @@ public class WebPdfService {
 
     // ── W7 — Horário mensal ──────────────────────────────────────────────────
 
-    public byte[] gerarHorarioMensalPdf(List<com.example.projeto2.Modules.Horario> turnos,
+    public byte[] gerarHorarioMensalPdf(List<com.example.projeto2.API.Modules.Horario> turnos,
                                          int ano, int mes, String nomeUtilizador) {
         String nomeMes = nomeMes(mes);
         try (PDDocument doc = new PDDocument()) {
@@ -110,7 +110,7 @@ public class WebPdfService {
                     y = writeTableHeader(cs, headers, colWidths, y);
 
                     DateTimeFormatter diaFmt = DateTimeFormatter.ofPattern("EEEE", new Locale("pt", "PT"));
-                    for (com.example.projeto2.Modules.Horario h : turnos) {
+                    for (com.example.projeto2.API.Modules.Horario h : turnos) {
                         if (y < MARGIN + 20) break; // limite simples
                         String data = h.getDataTurno() != null ? DATA_PT.format(h.getDataTurno()) : "-";
                         String dia = h.getDataTurno() != null
