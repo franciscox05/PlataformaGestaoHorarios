@@ -23,6 +23,9 @@ import com.example.projeto2.API.Repositories.PropostaHorarioMensalRepository;
 import com.example.projeto2.API.Repositories.RegraRepository;
 import com.example.projeto2.API.Repositories.RegrasLojaRepository;
 import com.example.projeto2.API.Repositories.TurnoRepository;
+import com.example.projeto2.API.Services.geracao.HorarioFormatters;
+import com.example.projeto2.API.Services.geracao.LojaConfiguracaoBuilder;
+import com.example.projeto2.API.Services.geracao.PreferenciasGeracaoBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -63,8 +66,9 @@ public class GeracaoHorariosService {
     private static final String ESTADO_APROVADO = "aprovado";
     private static final String ESTADO_REJEITADO = "rejeitado";
     private static final long DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS = 8 * 60L;
-    private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    // Formatadores movidos para HorarioFormatters (Fase 3.1)
+    private static final DateTimeFormatter DATA_HORA_FORMATTER = HorarioFormatters.DATA_HORA_FORMATTER;
+    private static final DateTimeFormatter DATA_FORMATTER = HorarioFormatters.DATA_FORMATTER;
     private static final Duration TEMPO_MAXIMO_GERACAO_ALTERNATIVA = Duration.ofSeconds(20);
     private final LojautilizadorRepository lojautilizadorRepository;
     private final HorarioRepository horarioRepository;
@@ -496,24 +500,21 @@ public class GeracaoHorariosService {
                 ? horarioRepository.findHorariosDaLojaEntreDatas(idLoja, inicioHistorico, dataInicio.minusDays(1))
                 : List.of();
 
-        Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador = construirBloqueiosPorUtilizador(
+        Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador = PreferenciasGeracaoBuilder.construirBloqueiosPorUtilizador(
                 dataInicio,
                 dataFim,
                 dayOffsAprovados,
                 preferenciasAprovadas
         );
-        Map<Integer, Set<LocalDate>> diasFolgaPreferidos = construirDiasFolgaPreferidosPorColaborador(
+        Map<Integer, Set<LocalDate>> diasFolgaPreferidos = PreferenciasGeracaoBuilder.construirDiasFolgaPreferidos(
                 dataInicio,
                 dataFim,
                 preferenciasAprovadas
         );
-        Map<Integer, List<Preferencia>> preferenciasTurnos = agruparPreferenciasPorTipo(preferenciasAprovadas, "turnos");
-        Map<Integer, List<Preferencia>> preferenciasColegas = agruparPreferenciasPorTipo(preferenciasAprovadas, "colegas");
-        Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData = construirConfiguracoesEspeciaisPorData(
-                loja,
-                turnos,
-                horariosEspeciais
-        );
+        Map<Integer, List<Preferencia>> preferenciasTurnos = PreferenciasGeracaoBuilder.agruparPorTipo(preferenciasAprovadas, "turnos");
+        Map<Integer, List<Preferencia>> preferenciasColegas = PreferenciasGeracaoBuilder.agruparPorTipo(preferenciasAprovadas, "colegas");
+        Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData =
+                LojaConfiguracaoBuilder.construirConfiguracoesEspeciaisPorData(loja, turnos, horariosEspeciais);
 
         return new DadosGeracao(
                 ligacaoAtiva,
@@ -756,7 +757,7 @@ public class GeracaoHorariosService {
         }
         // --- d) Construir pares de colegas preferidos (A3) ---
         Map<Integer, Set<Integer>> paresPreferisPorColaborador =
-                construirParesPreferisPorColaborador(preferenciasColegas, colaboradoresAtivos);
+                PreferenciasGeracaoBuilder.construirParesPreferidos(preferenciasColegas, colaboradoresAtivos);
 
         // --- e) Montar o PedidoGeracao ---
         HorarioGeneratorEngine.PedidoGeracao pedido = new HorarioGeneratorEngine.PedidoGeracao(
@@ -809,222 +810,10 @@ public class GeracaoHorariosService {
         return new PlaneamentoGerado(horarios, new ArrayList<>(resumos.values()), diasCobertos);
     }
 
-    private Map<Integer, Set<LocalDate>> construirBloqueiosPorUtilizador(LocalDate dataInicio,
-                                                                         LocalDate dataFim,
-                                                                         List<DayOff> dayOffsAprovados,
-                                                                         List<Preferencia> preferenciasAprovadas) {
-        Map<Integer, Set<LocalDate>> bloqueios = new HashMap<>();
-
-        // Hard blocks: DayOffs aprovados
-        for (DayOff dayOff : dayOffsAprovados) {
-            if (dayOff.getIdUtilizador() == null || dayOff.getDataAusencia() == null) {
-                continue;
-            }
-            bloqueios.computeIfAbsent(dayOff.getIdUtilizador().getId(), ignored -> new LinkedHashSet<>())
-                    .add(dayOff.getDataAusencia());
-        }
-
-        // Hard blocks: preferências aprovadas de tipo "folgas"/"ferias" com datas explícitas
-        for (Preferencia preferencia : preferenciasAprovadas) {
-            if (preferencia.getIdUtilizador() == null || preferencia.getIdUtilizador().getId() == null) {
-                continue;
-            }
-
-            String tipo = normalizarTexto(preferencia.getTipo());
-            if (!"folgas".equals(tipo) && !"ferias".equals(tipo)) {
-                continue;
-            }
-
-            LocalDate inicio = preferencia.getDataInicio() != null ? preferencia.getDataInicio() : dataInicio;
-            LocalDate fim    = preferencia.getDataFim()    != null ? preferencia.getDataFim()    : dataFim;
-            if (inicio == null) continue;
-
-            LocalDate dataAtual  = inicio.isBefore(dataInicio) ? dataInicio : inicio;
-            LocalDate ultimaData = fim.isAfter(dataFim)        ? dataFim    : fim;
-            if (ultimaData.isBefore(dataAtual)) continue;
-
-            Set<LocalDate> datas = bloqueios.computeIfAbsent(
-                    preferencia.getIdUtilizador().getId(), ignored -> new LinkedHashSet<>());
-            for (LocalDate data = dataAtual; !data.isAfter(ultimaData); data = data.plusDays(1)) {
-                datas.add(data);
-            }
-        }
-
-        return bloqueios;
-    }
-
-    /**
-     * A2: Reservado para soft constraints de folga (penalização sem hard block).
-     * As preferências aprovadas com datas explícitas já são hard blocks em
-     * {@link #construirBloqueiosPorUtilizador}. Este método destina-se a casos
-     * futuros como preferências recorrentes por dia-da-semana sem data fixa.
-     * Por agora retorna um mapa vazio.
-     */
-    private Map<Integer, Set<LocalDate>> construirDiasFolgaPreferidosPorColaborador(
-            LocalDate dataInicio,
-            LocalDate dataFim,
-            List<Preferencia> preferenciasAprovadas) {
-        return Map.of();
-    }
-
-    /**
-     * A3: Constrói o mapa de pares de colegas preferidos a partir das preferências
-     * do tipo "colegas". A descrição de cada preferência contém nomes de colegas
-     * separados por vírgula ou ponto-e-vírgula. Cada nome é comparado (por contenção
-     * case-insensitive) com os nomes dos colaboradores activos para extrair os IDs.
-     */
-    private Map<Integer, Set<Integer>> construirParesPreferisPorColaborador(
-            Map<Integer, List<Preferencia>> preferenciasColegas,
-            List<Lojautilizador> colaboradoresAtivos) {
-
-        if (preferenciasColegas == null || preferenciasColegas.isEmpty()) {
-            return Map.of();
-        }
-
-        // Mapa auxiliar: nome normalizado → id utilizador
-        Map<String, Integer> nomeParaId = new HashMap<>();
-        for (Lojautilizador lu : colaboradoresAtivos) {
-            if (lu.getIdUtilizador() != null && lu.getIdUtilizador().getNome() != null) {
-                nomeParaId.put(
-                        normalizarTexto(lu.getIdUtilizador().getNome()),
-                        lu.getIdUtilizador().getId());
-            }
-        }
-
-        Map<Integer, Set<Integer>> pares = new HashMap<>();
-        for (Map.Entry<Integer, List<Preferencia>> entrada : preferenciasColegas.entrySet()) {
-            Integer idRequerente = entrada.getKey();
-            Set<Integer> idsColaboradoresPref = new LinkedHashSet<>();
-
-            for (Preferencia pref : entrada.getValue()) {
-                String descricao = pref.getDescricao();
-                if (descricao == null || descricao.isBlank()) continue;
-
-                // Dividir por vírgula, ponto-e-vírgula ou nova linha
-                String[] partes = descricao.split("[,;\n]+");
-                for (String parte : partes) {
-                    String nomeNormalizado = normalizarTexto(parte.trim());
-                    if (nomeNormalizado.isBlank()) continue;
-
-                    // Correspondência exacta primeiro; depois por contenção
-                    Integer idEncontrado = nomeParaId.get(nomeNormalizado);
-                    if (idEncontrado == null) {
-                        for (Map.Entry<String, Integer> e : nomeParaId.entrySet()) {
-                            if (e.getKey().contains(nomeNormalizado)
-                                    || nomeNormalizado.contains(e.getKey())) {
-                                idEncontrado = e.getValue();
-                                break;
-                            }
-                        }
-                    }
-                    if (idEncontrado != null && !idEncontrado.equals(idRequerente)) {
-                        idsColaboradoresPref.add(idEncontrado);
-                    }
-                }
-            }
-
-            if (!idsColaboradoresPref.isEmpty()) {
-                pares.put(idRequerente, idsColaboradoresPref);
-            }
-        }
-
-        return pares;
-    }
-
-    private Map<LocalDate, ConfiguracaoDiaEspecial> construirConfiguracoesEspeciaisPorData(Loja loja,
-                                                                                            List<Turno> turnosBase,
-                                                                                            List<HorarioEspecialLoja> horariosEspeciais) {
-        Map<LocalDate, ConfiguracaoDiaEspecial> configuracoes = new LinkedHashMap<>();
-        if (loja == null || horariosEspeciais == null || horariosEspeciais.isEmpty()) {
-            return configuracoes;
-        }
-
-        for (HorarioEspecialLoja horarioEspecial : horariosEspeciais) {
-            if (horarioEspecial.getDataInicio() == null || horarioEspecial.getDataFim() == null) {
-                continue;
-            }
-
-            LocalDate dataAtual = horarioEspecial.getDataInicio();
-            while (!dataAtual.isAfter(horarioEspecial.getDataFim())) {
-                configuracoes.put(dataAtual, criarConfiguracaoDiaEspecial(loja, turnosBase, horarioEspecial));
-                dataAtual = dataAtual.plusDays(1);
-            }
-        }
-
-        return configuracoes;
-    }
-
-    private ConfiguracaoDiaEspecial criarConfiguracaoDiaEspecial(Loja loja,
-                                                                 List<Turno> turnosBase,
-                                                                 HorarioEspecialLoja horarioEspecial) {
-        boolean lojaEncerrada = Boolean.TRUE.equals(horarioEspecial.getLojaEncerrada());
-        if (lojaEncerrada) {
-            return new ConfiguracaoDiaEspecial(true, List.of(), null, horarioEspecial.getDescricao());
-        }
-
-        LocalTime horaAbertura = horarioEspecial.getHoraAbertura();
-        LocalTime horaFecho = horarioEspecial.getHoraFecho();
-        List<Turno> turnosCompativeis = (horaAbertura != null && horaFecho != null)
-                ? filtrarTurnosCompativeis(turnosBase, horaAbertura, horaFecho)
-                : turnosBase;
-
-        return new ConfiguracaoDiaEspecial(
-                false,
-                turnosCompativeis,
-                horarioEspecial.getMinimoColaboradoresTurno(),
-                horarioEspecial.getDescricao()
-        );
-    }
-
-    private List<Turno> filtrarTurnosCompativeis(List<Turno> turnosBase, LocalTime horaAbertura, LocalTime horaFecho) {
-        if (turnosBase == null || turnosBase.isEmpty()) {
-            return List.of();
-        }
-        if (horaAbertura == null || horaFecho == null) {
-            return turnosBase;
-        }
-
-        List<Turno> turnosComCorrespondenciaExata = turnosBase.stream()
-                .filter(turno -> turno != null)
-                .filter(turno -> horaAbertura.equals(turno.getHoraInicio()) && horaFecho.equals(turno.getHoraFim()))
-                .toList();
-        if (!turnosComCorrespondenciaExata.isEmpty()) {
-            return turnosComCorrespondenciaExata;
-        }
-
-        return turnosBase.stream()
-                .filter(turno -> turnoCabeNoHorario(turno, horaAbertura, horaFecho))
-                .toList();
-    }
-
-    private boolean turnoCabeNoHorario(Turno turno, LocalTime horaAbertura, LocalTime horaFecho) {
-        if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null
-                || horaAbertura == null || horaFecho == null) {
-            return false;
-        }
-        return !turno.getHoraInicio().isBefore(horaAbertura)
-                && !turno.getHoraFim().isAfter(horaFecho);
-    }
-
-    private Map<Integer, List<Preferencia>> agruparPreferenciasPorTipo(List<Preferencia> preferencias, String tipo) {
-        Map<Integer, List<Preferencia>> agrupadas = new HashMap<>();
-        String tipoNormalizado = normalizarTexto(tipo);
-
-        for (Preferencia preferencia : preferencias) {
-            if (preferencia.getIdUtilizador() == null || preferencia.getIdUtilizador().getId() == null) {
-                continue;
-            }
-
-            if (!tipoNormalizado.equals(normalizarTexto(preferencia.getTipo()))) {
-                continue;
-            }
-
-            agrupadas.computeIfAbsent(preferencia.getIdUtilizador().getId(), ignored -> new ArrayList<>())
-                    .add(preferencia);
-        }
-
-        return agrupadas;
-    }
+    // construirBloqueiosPorUtilizador, construirDiasFolgaPreferidos, construirParesPreferidos
+    // e agruparPreferenciasPorTipo movidos para PreferenciasGeracaoBuilder (Fase 3.2).
+    // construirConfiguracoesEspeciaisPorData, criarConfiguracaoDiaEspecial,
+    // filtrarTurnosCompativeis e turnoCabeNoHorario movidos para LojaConfiguracaoBuilder (Fase 3.3).
 
     private ParametrosGeracao resolverParametrosGeracao(List<RegraAplicada> regras, List<Turno> turnos) {
         Integer minimoGenerico = regras.stream()
@@ -2007,103 +1796,18 @@ public class GeracaoHorariosService {
         return normalizarTexto(turno != null && turno.getTipo() != null ? String.valueOf(turno.getTipo()) : "");
     }
 
-    private String formatarTurno(Turno turno) {
-        if (turno == null || turno.getTipo() == null) {
-            return "-";
-        }
-        String tipo = String.valueOf(turno.getTipo()).toLowerCase(Locale.ROOT);
-        return Character.toUpperCase(tipo.charAt(0)) + tipo.substring(1);
-    }
-
-    private String formatarPeriodo(Turno turno) {
-        if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null) {
-            return "-";
-        }
-        return turno.getHoraInicio() + " - " + turno.getHoraFim();
-    }
-
-    private String formatarPeriodoVinculo(Lojautilizador ligacao) {
-        if (ligacao == null || ligacao.getDataInicio() == null) {
-            return "-";
-        }
-        String inicio = DATA_FORMATTER.format(ligacao.getDataInicio());
-        String fim = ligacao.getDataFim() != null ? DATA_FORMATTER.format(ligacao.getDataFim()) : "sem fim";
-        return inicio + " a " + fim;
-    }
-
-    private String formatarEstado(String estado) {
-        if (estado == null || estado.isBlank()) {
-            return "-";
-        }
-        String valor = estado.trim().toLowerCase(Locale.ROOT).replace('_', ' ');
-        return Character.toUpperCase(valor.charAt(0)) + valor.substring(1);
-    }
-
-    private String formatarDuracao(long minutosTotais) {
-        long horas = minutosTotais / 60;
-        long minutos = minutosTotais % 60;
-        return horas + "h " + minutos + "m";
-    }
-
-    private String formatarDiferencaDuracao(long minutosTotais) {
-        String sinal = minutosTotais > 0 ? "+" : minutosTotais < 0 ? "-" : "";
-        return sinal + formatarDuracao(Math.abs(minutosTotais));
-    }
-
-    private String nomeMes(int mes) {
-        return switch (Month.of(mes)) {
-            case JANUARY -> "Janeiro";
-            case FEBRUARY -> "Fevereiro";
-            case MARCH -> "Marco";
-            case APRIL -> "Abril";
-            case MAY -> "Maio";
-            case JUNE -> "Junho";
-            case JULY -> "Julho";
-            case AUGUST -> "Agosto";
-            case SEPTEMBER -> "Setembro";
-            case OCTOBER -> "Outubro";
-            case NOVEMBER -> "Novembro";
-            case DECEMBER -> "Dezembro";
-        };
-    }
-
-    private String nomeDiaSemana(LocalDate data) {
-        return switch (data.getDayOfWeek()) {
-            case MONDAY -> "Segunda";
-            case TUESDAY -> "Terca";
-            case WEDNESDAY -> "Quarta";
-            case THURSDAY -> "Quinta";
-            case FRIDAY -> "Sexta";
-            case SATURDAY -> "Sabado";
-            case SUNDAY -> "Domingo";
-        };
-    }
-
-    private String valorOuTraco(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return "-";
-        }
-        return valor;
-    }
-
-    private String normalizarTexto(String texto) {
-        if (texto == null) {
-            return "";
-        }
-
-        String semAcentos = Normalizer.normalize(texto, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "");
-        return semAcentos.toLowerCase(Locale.ROOT).trim();
-    }
-
-    private String limparTexto(String texto) {
-        if (texto == null) {
-            return null;
-        }
-
-        String textoLimpo = texto.trim();
-        return textoLimpo.isEmpty() ? null : textoLimpo;
-    }
+    // Formatadores delegados a HorarioFormatters (Fase 3.1) — wrappers manter callsites curtos
+    private String formatarTurno(Turno turno)                 { return HorarioFormatters.formatarTurno(turno); }
+    private String formatarPeriodo(Turno turno)               { return HorarioFormatters.formatarPeriodo(turno); }
+    private String formatarPeriodoVinculo(Lojautilizador l)   { return HorarioFormatters.formatarPeriodoVinculo(l); }
+    private String formatarEstado(String estado)              { return HorarioFormatters.formatarEstado(estado); }
+    private String formatarDuracao(long minutosTotais)        { return HorarioFormatters.formatarDuracao(minutosTotais); }
+    private String formatarDiferencaDuracao(long minutos)     { return HorarioFormatters.formatarDiferencaDuracao(minutos); }
+    private String nomeMes(int mes)                           { return HorarioFormatters.nomeMes(mes); }
+    private String nomeDiaSemana(LocalDate data)              { return HorarioFormatters.nomeDiaSemana(data); }
+    private String valorOuTraco(String valor)                 { return HorarioFormatters.valorOuTraco(valor); }
+    private String normalizarTexto(String texto)              { return HorarioFormatters.normalizarTexto(texto); }
+    private String limparTexto(String texto)                  { return HorarioFormatters.limparTexto(texto); }
 
     public record GeracaoContexto(
             Integer idLoja,
@@ -2312,7 +2016,7 @@ public class GeracaoHorariosService {
     ) {
     }
 
-    private record ConfiguracaoDiaEspecial(
+    public record ConfiguracaoDiaEspecial(
             boolean lojaEncerrada,
             List<Turno> turnosCompativeis,
             Integer minimoColaboradoresTurno,
