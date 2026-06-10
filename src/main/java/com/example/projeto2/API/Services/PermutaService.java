@@ -5,7 +5,6 @@ import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Permuta;
 import com.example.projeto2.API.Repositories.HorarioRepository;
-import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.API.Repositories.PermutaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,17 +19,15 @@ import java.util.Set;
 @Service
 public class PermutaService {
 
-    private static final Set<String> CARGOS_COM_APROVACAO = Set.of("gerente", "subgerente", "supervisor");
-
     private final PermutaRepository permutaRepository;
-    private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
     private final HorarioRepository horarioRepository;
 
     public PermutaService(PermutaRepository permutaRepository,
-                      LojautilizadorRepository lojautilizadorRepository,
+                      LojautilizadorHelper lojautilizadorHelper,
                       HorarioRepository horarioRepository) {
         this.permutaRepository = permutaRepository;
-        this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
     }
 
@@ -62,16 +59,14 @@ public class PermutaService {
 
     @Transactional(readOnly = true)
     public boolean utilizadorPodeAprovarPermutas(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .map(Lojautilizador::getIdCargo)
-                .map(cargo -> cargo.getTipo() != null && CARGOS_COM_APROVACAO.contains(cargo.getTipo().toLowerCase()))
-                .orElse(false);
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.APROVACAO);
     }
 
     @Transactional(readOnly = true)
     public List<Permuta> listarPedidosPendentesParaAprovacao(Integer idUtilizadorAprovador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
-        validarPermissaoDeAprovacao(ligacaoAtiva);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para aprovar permutas.");
 
         return permutaRepository.findPedidosPendentesDaLoja(
                 ligacaoAtiva.getIdLoja().getId(),
@@ -81,10 +76,7 @@ public class PermutaService {
 
     @Transactional(readOnly = true)
     public int contarPendentesParaAprovacao(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .filter(lu -> lu.getIdCargo() != null
-                        && lu.getIdCargo().getTipo() != null
-                        && CARGOS_COM_APROVACAO.contains(lu.getIdCargo().getTipo().toLowerCase()))
+        return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, LojautilizadorHelper.APROVACAO)
                 .map(lu -> (int) permutaRepository.countPedidosPendentesDaLoja(
                         lu.getIdLoja().getId(), idUtilizador))
                 .orElse(0);
@@ -231,17 +223,14 @@ public class PermutaService {
     /**
      * Valida que a permuta não viola o descanso mínimo de 11 horas entre turnos
      * de dias consecutivos para o colaborador dado.
-     * Verifica gap entre o último turno do dia anterior e o turno pós-permuta,
-     * e entre o turno pós-permuta e o primeiro turno do dia seguinte.
      */
     private void validarDescansoMinimoPosPermuta(Integer idColaborador, com.example.projeto2.API.Modules.Turno turnoNovo, java.time.LocalDate data) {
         final int DESCANSO_MINIMO_HORAS = 11;
 
         if (turnoNovo == null || turnoNovo.getHoraInicio() == null || turnoNovo.getHoraFim() == null) {
-            return; // não é possível validar sem dados do turno
+            return;
         }
 
-        // Verificar gap com turno do dia anterior
         List<Horario> turnosD_1 = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
                 idColaborador, data.minusDays(1), data.minusDays(1));
         for (Horario h : turnosD_1) {
@@ -257,7 +246,6 @@ public class PermutaService {
             }
         }
 
-        // Verificar gap com turno do dia seguinte
         List<Horario> turnosD1 = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
                 idColaborador, data.plusDays(1), data.plusDays(1));
         for (Horario h : turnosD1) {
@@ -288,8 +276,9 @@ public class PermutaService {
             throw new IllegalArgumentException("O pedido de permuta selecionado e obrigatorio.");
         }
 
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
-        validarPermissaoDeAprovacao(ligacaoAtiva);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para aprovar permutas.");
 
         Permuta pedido = permutaRepository.findDetalhadaById(idPermuta)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido de permuta nao encontrado."));
@@ -308,21 +297,5 @@ public class PermutaService {
         }
 
         return pedido;
-    }
-
-    private Lojautilizador obterLigacaoAtiva(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
-        }
-
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador."));
-    }
-
-    private void validarPermissaoDeAprovacao(Lojautilizador ligacaoAtiva) {
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
-        if (tipoCargo == null || !CARGOS_COM_APROVACAO.contains(tipoCargo.toLowerCase())) {
-            throw new IllegalArgumentException("Este utilizador nao tem permissao para aprovar permutas.");
-        }
     }
 }

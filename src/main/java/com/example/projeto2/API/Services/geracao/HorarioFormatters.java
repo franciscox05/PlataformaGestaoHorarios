@@ -3,6 +3,9 @@ package com.example.projeto2.API.Services.geracao;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Turno;
 
+import java.time.Duration;
+import java.time.LocalTime;
+
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.Month;
@@ -118,5 +121,18 @@ public final class HorarioFormatters {
         }
         String textoLimpo = texto.trim();
         return textoLimpo.isEmpty() ? null : textoLimpo;
+    }
+
+    public static long calcularDuracaoEmMinutos(Turno turno) {
+        if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null) {
+            return 0;
+        }
+        LocalTime inicio = turno.getHoraInicio();
+        LocalTime fim = turno.getHoraFim();
+        if (!fim.isBefore(inicio)) {
+            return Duration.between(inicio, fim).toMinutes();
+        }
+        return Duration.between(inicio, LocalTime.MAX).plusMinutes(1).toMinutes()
+                + Duration.between(LocalTime.MIN, fim).toMinutes();
     }
 }

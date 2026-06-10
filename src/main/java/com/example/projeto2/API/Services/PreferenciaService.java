@@ -21,18 +21,20 @@ public class PreferenciaService {
 
     private static final Set<String> TIPOS_VALIDOS = Set.of("folgas", "ferias", "colegas", "turnos");
     private static final Set<String> ESTADOS_VALIDOS = Set.of("pendente", "aprovado", "rejeitado");
-    private static final Set<String> CARGOS_COM_APROVACAO = Set.of("gerente", "subgerente");
 
     private final PreferenciaRepository preferenciaRepository;
     private final UtilizadorRepository utilizadorRepository;
     private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
 
     public PreferenciaService(PreferenciaRepository preferenciaRepository,
                           UtilizadorRepository utilizadorRepository,
-                          LojautilizadorRepository lojautilizadorRepository) {
+                          LojautilizadorRepository lojautilizadorRepository,
+                          LojautilizadorHelper lojautilizadorHelper) {
         this.preferenciaRepository = preferenciaRepository;
         this.utilizadorRepository = utilizadorRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
     }
 
     @Transactional(readOnly = true)
@@ -55,18 +57,14 @@ public class PreferenciaService {
 
     @Transactional(readOnly = true)
     public boolean utilizadorPodeAprovarPreferencias(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .map(Lojautilizador::getIdCargo)
-                .map(cargo -> cargo != null
-                        && cargo.getTipo() != null
-                        && CARGOS_COM_APROVACAO.contains(cargo.getTipo().toLowerCase()))
-                .orElse(false);
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.GESTAO);
     }
 
     @Transactional(readOnly = true)
     public List<Preferencia> listarPreferenciasPendentesParaAprovacao(Integer idUtilizadorAprovador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
-        validarPermissaoAprovacao(ligacaoAtiva);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para aprovar preferencias.");
 
         return preferenciaRepository.findPreferenciasPendentesDaLoja(
                 ligacaoAtiva.getIdLoja().getId(),
@@ -76,10 +74,7 @@ public class PreferenciaService {
 
     @Transactional(readOnly = true)
     public int contarPendentesParaAprovacao(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .filter(lu -> lu.getIdCargo() != null
-                        && lu.getIdCargo().getTipo() != null
-                        && CARGOS_COM_APROVACAO.contains(lu.getIdCargo().getTipo().toLowerCase()))
+        return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, LojautilizadorHelper.GESTAO)
                 .map(lu -> (int) preferenciaRepository.countPreferenciasPendentesDaLoja(
                         lu.getIdLoja().getId(), idUtilizador))
                 .orElse(0);
@@ -87,15 +82,16 @@ public class PreferenciaService {
 
     @Transactional(readOnly = true)
     public List<Preferencia> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
-        validarPermissaoAprovacao(ligacaoAtiva);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para aprovar preferencias.");
 
         return preferenciaRepository.findHistoricoDecisoesDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
     @Transactional(readOnly = true)
     public List<String> listarColegasDaLoja(Integer idUtilizador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizador);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtiva(idUtilizador);
 
         return lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(ligacaoAtiva.getIdLoja().getId()).stream()
                 .filter(ligacao -> ligacao.getIdUtilizador() != null && ligacao.getIdUtilizador().getId() != null)
@@ -212,20 +208,6 @@ public class PreferenciaService {
                 .orElseThrow(() -> new IllegalArgumentException("Nao foi possivel encontrar o utilizador autenticado."));
     }
 
-    private Lojautilizador obterLigacaoAtiva(Integer idUtilizador) {
-        validarUtilizador(idUtilizador);
-
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador."));
-    }
-
-    private void validarPermissaoAprovacao(Lojautilizador ligacaoAtiva) {
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
-        if (tipoCargo == null || !CARGOS_COM_APROVACAO.contains(tipoCargo.toLowerCase())) {
-            throw new IllegalArgumentException("Nao tens permissao para aprovar preferencias.");
-        }
-    }
-
     private Preferencia decidirPreferencia(Integer idPreferencia,
                                            Integer idUtilizadorAprovador,
                                            String novoEstado,
@@ -234,8 +216,9 @@ public class PreferenciaService {
             throw new IllegalArgumentException("A preferencia selecionada e obrigatoria.");
         }
 
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
-        validarPermissaoAprovacao(ligacaoAtiva);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para aprovar preferencias.");
 
         Preferencia preferencia = preferenciaRepository.findPreferenciaDaLoja(idPreferencia, ligacaoAtiva.getIdLoja().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Nao foi possivel encontrar a preferencia selecionada."));

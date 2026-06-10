@@ -9,6 +9,7 @@ import com.example.projeto2.API.Repositories.DayOffRepository;
 import com.example.projeto2.API.Repositories.HorarioRepository;
 import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.API.Repositories.UtilizadorRepository;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.valorOuTraco;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -300,13 +301,6 @@ public class PerfilService {
         }
 
         return Character.toUpperCase(valor.charAt(0)) + valor.substring(1).toLowerCase();
-    }
-
-    private String valorOuTraco(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return "-";
-        }
-        return valor;
     }
 
     private Utilizador obterUtilizadorPersistido(Integer idUtilizador) {

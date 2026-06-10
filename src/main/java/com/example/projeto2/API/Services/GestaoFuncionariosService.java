@@ -2,6 +2,7 @@ package com.example.projeto2.API.Services;
 
 import com.example.projeto2.API.Enums.EstadoUtilizador;
 import com.example.projeto2.API.Modules.Cargo;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.valorOuTraco;
 import com.example.projeto2.API.Modules.Loja;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Utilizador;
@@ -24,19 +25,21 @@ import java.util.regex.Pattern;
 @Service
 public class GestaoFuncionariosService {
 
-    private static final Set<String> CARGOS_COM_GESTAO_FUNCIONARIOS = Set.of("gerente", "subgerente");
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
     private final UtilizadorRepository utilizadorRepository;
     private final CargoRepository cargoRepository;
     private final SegurancaService segurancaBLL;
 
     public GestaoFuncionariosService(LojautilizadorRepository lojautilizadorRepository,
+                                 LojautilizadorHelper lojautilizadorHelper,
                                  UtilizadorRepository utilizadorRepository,
                                  CargoRepository cargoRepository,
                                  SegurancaService segurancaBLL) {
         this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
         this.utilizadorRepository = utilizadorRepository;
         this.cargoRepository = cargoRepository;
         this.segurancaBLL = segurancaBLL;
@@ -47,13 +50,7 @@ public class GestaoFuncionariosService {
         if (idUtilizador == null) {
             return false;
         }
-
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .map(Lojautilizador::getIdCargo)
-                .map(Cargo::getTipo)
-                .map(tipo -> tipo != null ? tipo.toLowerCase() : "")
-                .filter(CARGOS_COM_GESTAO_FUNCIONARIOS::contains)
-                .isPresent();
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.GESTAO);
     }
 
     @Transactional(readOnly = true)
@@ -317,11 +314,11 @@ public class GestaoFuncionariosService {
     private void validarLojaNaoFicaSemGestor(Integer idLoja, Cargo cargoAtual, Cargo cargoNovo, boolean vaiFicarInativo) {
         boolean cargoAtualGerencia = cargoAtual != null
                 && cargoAtual.getTipo() != null
-                && CARGOS_COM_GESTAO_FUNCIONARIOS.contains(cargoAtual.getTipo().toLowerCase());
+                && LojautilizadorHelper.GESTAO.contains(cargoAtual.getTipo().toLowerCase());
 
         boolean cargoNovoGerencia = cargoNovo != null
                 && cargoNovo.getTipo() != null
-                && CARGOS_COM_GESTAO_FUNCIONARIOS.contains(cargoNovo.getTipo().toLowerCase());
+                && LojautilizadorHelper.GESTAO.contains(cargoNovo.getTipo().toLowerCase());
 
         if (!cargoAtualGerencia) {
             return;
@@ -333,7 +330,7 @@ public class GestaoFuncionariosService {
 
         long totalGestoresAtivos = lojautilizadorRepository.countByIdLojaIdAndIdCargoTipoInAndDataFimIsNull(
                 idLoja,
-                CARGOS_COM_GESTAO_FUNCIONARIOS
+                LojautilizadorHelper.GESTAO
         );
 
         if (totalGestoresAtivos <= 1) {
@@ -407,22 +404,9 @@ public class GestaoFuncionariosService {
     }
 
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizadorGestor) {
-        if (idUtilizadorGestor == null) {
-            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
-        }
-
-        Lojautilizador ligacaoGestor = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizadorGestor)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa a uma loja."));
-
-        String tipoCargo = ligacaoGestor.getIdCargo() != null && ligacaoGestor.getIdCargo().getTipo() != null
-                ? ligacaoGestor.getIdCargo().getTipo().toLowerCase()
-                : "";
-
-        if (!CARGOS_COM_GESTAO_FUNCIONARIOS.contains(tipoCargo)) {
-            throw new IllegalArgumentException("Nao tens permissao para gerir colaboradores.");
-        }
-
-        return ligacaoGestor;
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorGestor, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para gerir colaboradores.");
     }
 
     private Cargo obterCargo(Integer idCargo) {
@@ -510,13 +494,6 @@ public class GestaoFuncionariosService {
 
         String valorNormalizado = valor.trim();
         return valorNormalizado.isEmpty() ? null : valorNormalizado;
-    }
-
-    private String valorOuTraco(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return "-";
-        }
-        return valor;
     }
 
     public record GestaoFuncionariosResumo(

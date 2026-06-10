@@ -25,25 +25,24 @@ import java.util.Set;
 @Service
 public class RelatorioHorasService {
 
-    private static final Set<String> CARGOS_COM_RELATORIO = Set.of("gerente", "subgerente");
-
     private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
     private final HorarioRepository horarioRepository;
     private final DayOffRepository dayOffRepository;
 
     public RelatorioHorasService(LojautilizadorRepository lojautilizadorRepository,
+                             LojautilizadorHelper lojautilizadorHelper,
                              HorarioRepository horarioRepository,
                              DayOffRepository dayOffRepository) {
         this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
         this.dayOffRepository = dayOffRepository;
     }
 
     @Transactional(readOnly = true)
     public boolean utilizadorPodeConsultarRelatorios(Integer idUtilizador) {
-        return obterLigacaoAtiva(idUtilizador)
-                .map(this::temPermissaoDeRelatorio)
-                .orElse(false);
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.GESTAO);
     }
 
     @Transactional(readOnly = true)
@@ -182,28 +181,10 @@ public class RelatorioHorasService {
         );
     }
 
-    private java.util.Optional<Lojautilizador> obterLigacaoAtiva(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            return java.util.Optional.empty();
-        }
-
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
-    }
-
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para o utilizador autenticado."));
-
-        if (!temPermissaoDeRelatorio(ligacaoAtiva)) {
-            throw new IllegalArgumentException("Nao tens permissao para consultar relatorios mensais.");
-        }
-
-        return ligacaoAtiva;
-    }
-
-    private boolean temPermissaoDeRelatorio(Lojautilizador ligacaoAtiva) {
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
-        return tipoCargo != null && CARGOS_COM_RELATORIO.contains(tipoCargo.toLowerCase());
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizador, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para consultar relatorios mensais.");
     }
 
     private int normalizarAno(Integer ano) {

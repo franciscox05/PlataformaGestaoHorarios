@@ -28,21 +28,23 @@ import java.util.Set;
 @Service
 public class SnapshotOperacionalLojaService {
 
-    private static final Set<String> CARGOS_COM_ACESSO = Set.of("gerente", "subgerente");
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
     private final HorarioRepository horarioRepository;
     private final DayOffRepository dayOffRepository;
     private final PermutaRepository permutaRepository;
     private final PreferenciaRepository preferenciaRepository;
 
     public SnapshotOperacionalLojaService(LojautilizadorRepository lojautilizadorRepository,
+                                      LojautilizadorHelper lojautilizadorHelper,
                                       HorarioRepository horarioRepository,
                                       DayOffRepository dayOffRepository,
                                       PermutaRepository permutaRepository,
                                       PreferenciaRepository preferenciaRepository) {
         this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
         this.dayOffRepository = dayOffRepository;
         this.permutaRepository = permutaRepository;
@@ -473,22 +475,9 @@ public class SnapshotOperacionalLojaService {
     }
 
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
-        }
-
-        Lojautilizador ligacaoAtiva = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa a uma loja."));
-
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null && ligacaoAtiva.getIdCargo().getTipo() != null
-                ? ligacaoAtiva.getIdCargo().getTipo().toLowerCase()
-                : "";
-
-        if (!CARGOS_COM_ACESSO.contains(tipoCargo)) {
-            throw new IllegalArgumentException("Nao tens permissao para consultar o snapshot operacional da loja.");
-        }
-
-        return ligacaoAtiva;
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizador, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para consultar o snapshot operacional da loja.");
     }
 
     private String formatarPeriodo(Horario horario) {

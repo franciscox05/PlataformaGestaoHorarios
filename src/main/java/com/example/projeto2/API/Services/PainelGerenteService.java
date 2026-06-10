@@ -4,7 +4,7 @@ import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Permuta;
 import com.example.projeto2.API.Modules.Preferencia;
-import com.example.projeto2.API.Repositories.LojautilizadorRepository;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.valorOuTraco;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,24 +17,22 @@ import java.util.stream.Collectors;
 @Service
 public class PainelGerenteService {
 
-    private static final Set<String> CARGOS_COM_PAINEL = Set.of("gerente", "subgerente");
-
     private final DayOffService dayOffBLL;
     private final PermutaService permutaBLL;
     private final PreferenciaService preferenciaBLL;
     private final SnapshotOperacionalLojaService snapshotOperacionalLojaBLL;
-    private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
 
     public PainelGerenteService(DayOffService dayOffBLL,
                             PermutaService permutaBLL,
                             PreferenciaService preferenciaBLL,
                             SnapshotOperacionalLojaService snapshotOperacionalLojaBLL,
-                            LojautilizadorRepository lojautilizadorRepository) {
+                            LojautilizadorHelper lojautilizadorHelper) {
         this.dayOffBLL = dayOffBLL;
         this.permutaBLL = permutaBLL;
         this.preferenciaBLL = preferenciaBLL;
         this.snapshotOperacionalLojaBLL = snapshotOperacionalLojaBLL;
-        this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
     }
 
     @Transactional(readOnly = true)
@@ -42,14 +40,7 @@ public class PainelGerenteService {
         if (idUtilizador == null) {
             return false;
         }
-
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .map(Lojautilizador::getIdCargo)
-                .map(cargo -> cargo != null && cargo.getTipo() != null
-                        ? cargo.getTipo().toLowerCase()
-                        : "")
-                .filter(CARGOS_COM_PAINEL::contains)
-                .isPresent();
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.GESTAO);
     }
 
     @Transactional(readOnly = true)
@@ -146,29 +137,9 @@ public class PainelGerenteService {
     }
 
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
-        }
-
-        Lojautilizador ligacaoAtiva = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa a uma loja."));
-
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null && ligacaoAtiva.getIdCargo().getTipo() != null
-                ? ligacaoAtiva.getIdCargo().getTipo().toLowerCase()
-                : "";
-
-        if (!CARGOS_COM_PAINEL.contains(tipoCargo)) {
-            throw new IllegalArgumentException("Nao tens permissao para aceder ao painel do gerente.");
-        }
-
-        return ligacaoAtiva;
-    }
-
-    private String valorOuTraco(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return "-";
-        }
-        return valor;
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizador, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para aceder ao painel do gerente.");
     }
 
     public record ContextoPainel(

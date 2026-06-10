@@ -8,7 +8,6 @@ import com.example.projeto2.API.Modules.Utilizador;
 import com.example.projeto2.API.Repositories.DayOffRepository;
 import com.example.projeto2.API.Repositories.HistoricoHorarioEstadoRepository;
 import com.example.projeto2.API.Repositories.HorarioRepository;
-import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.API.Repositories.PermutaRepository;
 import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import org.springframework.stereotype.Service;
@@ -27,23 +26,21 @@ import java.util.stream.Collectors;
 @Service
 public class DayOffService {
 
-    private static final Set<String> CARGOS_COM_APROVACAO = Set.of("gerente", "subgerente", "supervisor");
-
     private final DayOffRepository dayOffRepository;
-    private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
     private final UtilizadorRepository utilizadorRepository;
     private final HorarioRepository horarioRepository;
     private final PermutaRepository permutaRepository;
     private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
 
     public DayOffService(DayOffRepository dayOffRepository,
-                     LojautilizadorRepository lojautilizadorRepository,
+                     LojautilizadorHelper lojautilizadorHelper,
                      UtilizadorRepository utilizadorRepository,
                      HorarioRepository horarioRepository,
                      PermutaRepository permutaRepository,
                      HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository) {
         this.dayOffRepository = dayOffRepository;
-        this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
         this.utilizadorRepository = utilizadorRepository;
         this.horarioRepository = horarioRepository;
         this.permutaRepository = permutaRepository;
@@ -101,16 +98,14 @@ public class DayOffService {
 
     @Transactional(readOnly = true)
     public boolean utilizadorPodeAprovarFolgas(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .map(Lojautilizador::getIdCargo)
-                .map(cargo -> cargo.getTipo() != null && CARGOS_COM_APROVACAO.contains(cargo.getTipo().toLowerCase()))
-                .orElse(false);
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.APROVACAO);
     }
 
     @Transactional(readOnly = true)
     public List<DayOff> listarPedidosPendentesParaAprovacao(Integer idUtilizadorAprovador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
-        validarPermissaoDeAprovacao(ligacaoAtiva);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para aprovar folgas.");
 
         return dayOffRepository.findPedidosPendentesDaLoja(
                 ligacaoAtiva.getIdLoja().getId(),
@@ -120,10 +115,7 @@ public class DayOffService {
 
     @Transactional(readOnly = true)
     public int contarPendentesParaAprovacao(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .filter(lu -> lu.getIdCargo() != null
-                        && lu.getIdCargo().getTipo() != null
-                        && CARGOS_COM_APROVACAO.contains(lu.getIdCargo().getTipo().toLowerCase()))
+        return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, LojautilizadorHelper.APROVACAO)
                 .map(lu -> (int) dayOffRepository.countPedidosPendentesDaLoja(
                         lu.getIdLoja().getId(), idUtilizador))
                 .orElse(0);
@@ -178,8 +170,9 @@ public class DayOffService {
             throw new IllegalArgumentException("O pedido selecionado e obrigatorio.");
         }
 
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizadorAprovador);
-        validarPermissaoDeAprovacao(ligacaoAtiva);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para aprovar folgas.");
 
         DayOff pedido = dayOffRepository.findById(idDayOff)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido de folga nao encontrado."));
@@ -272,22 +265,6 @@ public class DayOffService {
         historicoHorarioEstadoRepository.saveAll(historicos);
     }
 
-    private Lojautilizador obterLigacaoAtiva(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
-        }
-
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador."));
-    }
-
-    private void validarPermissaoDeAprovacao(Lojautilizador ligacaoAtiva) {
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
-        if (tipoCargo == null || !CARGOS_COM_APROVACAO.contains(tipoCargo.toLowerCase())) {
-            throw new IllegalArgumentException("Este utilizador nao tem permissao para aprovar folgas.");
-        }
-    }
-
     /**
      * Resultado enriquecido da aprovação de uma folga, com aviso de cobertura.
      * Usado quando o gestor aprova uma ausência e precisa de saber o impacto na equipa.
@@ -316,13 +293,11 @@ public class DayOffService {
                     pedidoAprovado.getDataAusencia(),
                     pedidoAprovado.getDataAusencia()
             );
-            // Contar trabalhadores restantes na loja nesse dia (após a ausência)
-            Lojautilizador ligacao = obterLigacaoAtiva(idUtilizadorAprovador);
+            Lojautilizador ligacao = lojautilizadorHelper.obterLigacaoAtiva(idUtilizadorAprovador);
             List<com.example.projeto2.API.Modules.Horario> todosNoDia = horarioRepository.findHorariosDaLojaNoDia(
                     ligacao.getIdLoja().getId(),
                     pedidoAprovado.getDataAusencia()
             );
-            // Excluir o colaborador ausente
             Integer idAusente = pedidoAprovado.getIdUtilizador().getId();
             trabalhadoresRestantes = (int) todosNoDia.stream()
                     .filter(h -> h.getIdLojautilizador() != null

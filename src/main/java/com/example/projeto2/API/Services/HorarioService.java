@@ -24,15 +24,18 @@ public class HorarioService {
 
     private final HorarioRepository horarioRepository;
     private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
     private final TurnoRepository turnoRepository;
     private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
 
     public HorarioService(HorarioRepository horarioRepository,
                       LojautilizadorRepository lojautilizadorRepository,
+                      LojautilizadorHelper lojautilizadorHelper,
                       TurnoRepository turnoRepository,
                       HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository) {
         this.horarioRepository = horarioRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
         this.turnoRepository = turnoRepository;
         this.historicoHorarioEstadoRepository = historicoHorarioEstadoRepository;
     }
@@ -138,7 +141,7 @@ public class HorarioService {
     }
 
     private java.util.Optional<Lojautilizador> obterLigacaoAtiva(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
+        return lojautilizadorHelper.findLigacaoAtiva(idUtilizador);
     }
 
     // ── Aprovar Horário ──────────────────────────────────────────────────────
@@ -185,16 +188,9 @@ public class HorarioService {
             throw new IllegalArgumentException("ID do horário, do novo turno e do aprovador são obrigatórios.");
         }
 
-        // Verificar permissão
-        java.util.Optional<Lojautilizador> ligacaoOpt = obterLigacaoAtiva(idAprovador);
-        if (ligacaoOpt.isEmpty()) {
-            throw new IllegalArgumentException("Não foi encontrada uma ligação ativa para o utilizador.");
-        }
-        Lojautilizador ligacaoAprovador = ligacaoOpt.get();
-        String tipoCargo = ligacaoAprovador.getIdCargo() != null ? ligacaoAprovador.getIdCargo().getTipo() : null;
-        if (tipoCargo == null || !java.util.Set.of("gerente", "subgerente", "supervisor").contains(tipoCargo.toLowerCase())) {
-            throw new IllegalArgumentException("Não tens permissão para editar turnos publicados.");
-        }
+        Lojautilizador ligacaoAprovador = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idAprovador, LojautilizadorHelper.APROVACAO,
+                "Não tens permissão para editar turnos publicados.");
 
         Horario horario = horarioRepository.findById(idHorario)
                 .orElseThrow(() -> new IllegalArgumentException("Horário não encontrado."));

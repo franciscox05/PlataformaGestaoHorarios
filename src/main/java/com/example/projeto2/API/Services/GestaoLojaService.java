@@ -8,7 +8,7 @@ import com.example.projeto2.API.Modules.RegrasLoja;
 import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Repositories.HorarioEspecialLojaRepository;
 import com.example.projeto2.API.Repositories.LojaRepository;
-import com.example.projeto2.API.Repositories.LojautilizadorRepository;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.valorOuTraco;
 import com.example.projeto2.API.Repositories.RegraRepository;
 import com.example.projeto2.API.Repositories.RegrasLojaRepository;
 import com.example.projeto2.API.Repositories.TurnoRepository;
@@ -28,24 +28,23 @@ import java.util.Set;
 @Service
 public class GestaoLojaService {
 
-    private static final Set<String> CARGOS_COM_GESTAO_LOJA = Set.of("gerente", "subgerente");
     private static final DateTimeFormatter HORA_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
     private final LojaRepository lojaRepository;
     private final RegraRepository regraRepository;
     private final RegrasLojaRepository regrasLojaRepository;
     private final HorarioEspecialLojaRepository horarioEspecialLojaRepository;
     private final TurnoRepository turnoRepository;
 
-    public GestaoLojaService(LojautilizadorRepository lojautilizadorRepository,
+    public GestaoLojaService(LojautilizadorHelper lojautilizadorHelper,
                          LojaRepository lojaRepository,
                          RegraRepository regraRepository,
                          RegrasLojaRepository regrasLojaRepository,
                          HorarioEspecialLojaRepository horarioEspecialLojaRepository,
                          TurnoRepository turnoRepository) {
-        this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
         this.lojaRepository = lojaRepository;
         this.regraRepository = regraRepository;
         this.regrasLojaRepository = regrasLojaRepository;
@@ -56,7 +55,7 @@ public class GestaoLojaService {
     @Transactional(readOnly = true)
     public String obterNomeCargo(Integer idUtilizador) {
         if (idUtilizador == null) return null;
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
+        return lojautilizadorHelper.findLigacaoAtiva(idUtilizador)
                 .map(Lojautilizador::getIdCargo)
                 .map(cargo -> cargo.getNome() != null ? cargo.getNome() : cargo.getTipo())
                 .orElse(null);
@@ -67,12 +66,7 @@ public class GestaoLojaService {
         if (idUtilizador == null) {
             return false;
         }
-
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .map(Lojautilizador::getIdCargo)
-                .map(cargo -> cargo.getTipo() != null ? cargo.getTipo().toLowerCase() : "")
-                .filter(CARGOS_COM_GESTAO_LOJA::contains)
-                .isPresent();
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.GESTAO);
     }
 
     @Transactional(readOnly = true)
@@ -268,22 +262,9 @@ public class GestaoLojaService {
     }
 
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
-        }
-
-        Lojautilizador ligacaoAtiva = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa a uma loja."));
-
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null && ligacaoAtiva.getIdCargo().getTipo() != null
-                ? ligacaoAtiva.getIdCargo().getTipo().toLowerCase()
-                : "";
-
-        if (!CARGOS_COM_GESTAO_LOJA.contains(tipoCargo)) {
-            throw new IllegalArgumentException("Nao tens permissao para gerir a configuracao da loja.");
-        }
-
-        return ligacaoAtiva;
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizador, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para gerir a configuracao da loja.");
     }
 
     private RegraLojaResumo criarResumoRegra(Regra regra, RegrasLoja regraLoja) {
@@ -436,12 +417,6 @@ public class GestaoLojaService {
         return hora.format(HORA_FORMATTER);
     }
 
-    private String valorOuTraco(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return "-";
-        }
-        return valor;
-    }
 
     public record GestaoLojaResumo(
             Integer idLoja,

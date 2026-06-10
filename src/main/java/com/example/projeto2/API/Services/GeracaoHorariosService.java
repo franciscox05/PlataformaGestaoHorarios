@@ -10,8 +10,6 @@ import com.example.projeto2.API.Modules.Loja;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Modules.PropostaHorarioMensal;
-import com.example.projeto2.API.Modules.Regra;
-import com.example.projeto2.API.Modules.RegrasLoja;
 import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Repositories.DayOffRepository;
 import com.example.projeto2.API.Repositories.HistoricoHorarioEstadoRepository;
@@ -20,18 +18,31 @@ import com.example.projeto2.API.Repositories.HorarioRepository;
 import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.API.Repositories.PreferenciaRepository;
 import com.example.projeto2.API.Repositories.PropostaHorarioMensalRepository;
-import com.example.projeto2.API.Repositories.RegraRepository;
-import com.example.projeto2.API.Repositories.RegrasLojaRepository;
 import com.example.projeto2.API.Repositories.TurnoRepository;
 import com.example.projeto2.API.Services.geracao.HorarioFormatters;
 import com.example.projeto2.API.Services.geracao.LojaConfiguracaoBuilder;
+import com.example.projeto2.API.Services.geracao.CargaColaborador;
+import com.example.projeto2.API.Services.geracao.EstadoColaboradorResumo;
+import com.example.projeto2.API.Services.geracao.MetricasPlaneamento;
+import com.example.projeto2.API.Services.geracao.MetricasPlaneamentoCalculator;
+import com.example.projeto2.API.Services.geracao.ParametrosGeracao;
+import com.example.projeto2.API.Services.geracao.PerfilContratual;
+import com.example.projeto2.API.Services.geracao.PlaneamentoGerado;
+import com.example.projeto2.API.Services.geracao.PoliticaOtimizacao;
 import com.example.projeto2.API.Services.geracao.PreferenciasGeracaoBuilder;
+import com.example.projeto2.API.Services.geracao.RegraAplicada;
+import com.example.projeto2.API.Services.geracao.RegraGeracaoResolver;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.formatarDuracao;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.formatarDiferencaDuracao;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.formatarPeriodoVinculo;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.normalizarTexto;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.limparTexto;
+import static com.example.projeto2.API.Services.geracao.HorarioFormatters.valorOuTraco;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
@@ -58,26 +69,27 @@ import java.util.Set;
 public class GeracaoHorariosService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GeracaoHorariosService.class);
-    private static final Set<String> CARGOS_COM_GERACAO = Set.of("gerente", "subgerente");
-    private static final Set<String> CARGOS_COM_VALIDACAO = Set.of("supervisor");
+    // Cargos definidos em LojautilizadorHelper.GESTAO e LojautilizadorHelper.VALIDACAO
     private static final Set<String> CARGOS_COM_PRESENCA_OBRIGATORIA_AO_SABADO = Set.of("gerente", "subgerente");
     private static final String ESTADO_RASCUNHO = "rascunho";
     private static final String ESTADO_PENDENTE = "pendente";
     private static final String ESTADO_APROVADO = "aprovado";
     private static final String ESTADO_REJEITADO = "rejeitado";
-    private static final long DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS = 8 * 60L;
     // Formatadores movidos para HorarioFormatters (Fase 3.1)
     private static final DateTimeFormatter DATA_HORA_FORMATTER = HorarioFormatters.DATA_HORA_FORMATTER;
     private static final DateTimeFormatter DATA_FORMATTER = HorarioFormatters.DATA_FORMATTER;
     private static final Duration TEMPO_MAXIMO_GERACAO_ALTERNATIVA = Duration.ofSeconds(20);
     private final LojautilizadorRepository lojautilizadorRepository;
+    private final LojautilizadorHelper lojautilizadorHelper;
     private final HorarioRepository horarioRepository;
     private final DayOffRepository dayOffRepository;
     private final PreferenciaRepository preferenciaRepository;
     private final PropostaHorarioMensalRepository propostaHorarioMensalRepository;
     private final HorarioEspecialLojaRepository horarioEspecialLojaRepository;
-    private final RegrasLojaRepository regrasLojaRepository;
-    private final RegraRepository regraRepository;
+    private final RegraGeracaoResolver regraGeracaoResolver;
+    private final MetricasPlaneamentoCalculator metricasCalculator;
+    private final PropostaResultadoBuilder resultadoBuilder;
+    private final PropostaPersistenciaHelper persistenciaHelper;
     private final TurnoRepository turnoRepository;
     private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
 
@@ -86,25 +98,31 @@ public class GeracaoHorariosService {
     private final HorarioGeneratorEngine engine;
 
     public GeracaoHorariosService(LojautilizadorRepository lojautilizadorRepository,
+                              LojautilizadorHelper lojautilizadorHelper,
                               HorarioRepository horarioRepository,
                               DayOffRepository dayOffRepository,
                               PreferenciaRepository preferenciaRepository,
                               PropostaHorarioMensalRepository propostaHorarioMensalRepository,
                               HorarioEspecialLojaRepository horarioEspecialLojaRepository,
-                              RegrasLojaRepository regrasLojaRepository,
-                              RegraRepository regraRepository,
+                              RegraGeracaoResolver regraGeracaoResolver,
+                              MetricasPlaneamentoCalculator metricasCalculator,
+                              PropostaResultadoBuilder resultadoBuilder,
+                              PropostaPersistenciaHelper persistenciaHelper,
                               TurnoRepository turnoRepository,
                               HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository,
                               HorarioValidatorService validator,
                               HorarioGeneratorEngine engine) {
         this.lojautilizadorRepository = lojautilizadorRepository;
+        this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
         this.dayOffRepository = dayOffRepository;
         this.preferenciaRepository = preferenciaRepository;
         this.propostaHorarioMensalRepository = propostaHorarioMensalRepository;
         this.horarioEspecialLojaRepository = horarioEspecialLojaRepository;
-        this.regrasLojaRepository = regrasLojaRepository;
-        this.regraRepository = regraRepository;
+        this.regraGeracaoResolver = regraGeracaoResolver;
+        this.metricasCalculator = metricasCalculator;
+        this.resultadoBuilder = resultadoBuilder;
+        this.persistenciaHelper = persistenciaHelper;
         this.turnoRepository = turnoRepository;
         this.historicoHorarioEstadoRepository = historicoHorarioEstadoRepository;
         this.validator = validator;
@@ -113,22 +131,17 @@ public class GeracaoHorariosService {
 
     @Transactional(readOnly = true)
     public boolean utilizadorPodeGerarHorarios(Integer idUtilizador) {
-        return obterLigacaoAtiva(idUtilizador)
-                .map(this::temPermissaoDeGeracao)
-                .orElse(false);
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.GESTAO);
     }
 
     @Transactional(readOnly = true)
     public boolean utilizadorPodeValidarHorarios(Integer idUtilizador) {
-        return obterLigacaoAtiva(idUtilizador)
-                .map(this::temPermissaoDeValidacao)
-                .orElse(false);
+        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.VALIDACAO);
     }
 
     @Transactional(readOnly = true)
     public int contarHorariosPendentesValidacao(Integer idUtilizador) {
-        return obterLigacaoAtiva(idUtilizador)
-                .filter(this::temPermissaoDeValidacao)
+        return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, LojautilizadorHelper.VALIDACAO)
                 .map(lu -> (int) propostaHorarioMensalRepository.countByIdLojaIdAndEstadoIgnoreCase(
                         lu.getIdLoja().getId(), ESTADO_PENDENTE))
                 .orElse(0);
@@ -145,8 +158,8 @@ public class GeracaoHorariosService {
                 valorOuTraco(ligacaoAtiva.getIdLoja().getLocalizacao()),
                 hoje.getYear(),
                 hoje.getMonthValue(),
-                temPermissaoDeGeracao(ligacaoAtiva),
-                temPermissaoDeValidacao(ligacaoAtiva),
+                lojautilizadorHelper.temCargo(ligacaoAtiva, LojautilizadorHelper.GESTAO),
+                lojautilizadorHelper.temCargo(ligacaoAtiva, LojautilizadorHelper.VALIDACAO),
                 !obterPropostasVisiveis(ligacaoAtiva, hoje.getYear(), hoje.getMonthValue()).isEmpty()
         );
     }
@@ -169,7 +182,7 @@ public class GeracaoHorariosService {
         ).stream().findFirst();
 
         if (proposta.isPresent()) {
-            return construirResultado(proposta.get(), horarioRepository.findByIdPropostaHorarioId(proposta.get().getId()));
+            return resultadoBuilder.construirResultado(proposta.get(), horarioRepository.findByIdPropostaHorarioId(proposta.get().getId()));
         }
 
         LocalDate dataInicio = LocalDate.of(anoNormalizado, mesNormalizado, 1);
@@ -183,7 +196,7 @@ public class GeracaoHorariosService {
             return null;
         }
 
-        return construirResultadoHorariosPublicados(ligacaoAtiva.getIdLoja(), anoNormalizado, mesNormalizado, horariosPublicados);
+        return resultadoBuilder.construirResultadoHorariosPublicados(ligacaoAtiva.getIdLoja(), anoNormalizado, mesNormalizado, horariosPublicados);
     }
 
     @Transactional(readOnly = true)
@@ -197,12 +210,14 @@ public class GeracaoHorariosService {
 
     @Transactional
     public PropostaResultado aprovarProposta(Integer idUtilizador, Integer idProposta, String observacoesSupervisor) {
-        return decidirProposta(idUtilizador, idProposta, "aprovado", observacoesSupervisor);
+        return persistenciaHelper.decidirProposta(
+                obterLigacaoAtivaComPermissaoDeValidacao(idUtilizador), idProposta, "aprovado", observacoesSupervisor);
     }
 
     @Transactional
     public PropostaResultado rejeitarProposta(Integer idUtilizador, Integer idProposta, String observacoesSupervisor) {
-        return decidirProposta(idUtilizador, idProposta, "rejeitado", observacoesSupervisor);
+        return persistenciaHelper.decidirProposta(
+                obterLigacaoAtivaComPermissaoDeValidacao(idUtilizador), idProposta, "rejeitado", observacoesSupervisor);
     }
 
     @Transactional(readOnly = true)
@@ -255,7 +270,7 @@ public class GeracaoHorariosService {
                 proposta.setEstado(ESTADO_PENDENTE);
                 proposta = propostaHorarioMensalRepository.save(proposta);
             }
-            resultados.add(construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId())));
+            resultados.add(resultadoBuilder.construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId())));
         }
         return resultados;
     }
@@ -328,8 +343,8 @@ public class GeracaoHorariosService {
                     sementeAlternativa
             );
 
-            MetricasPlaneamento metricas = calcularMetricasPlaneamento(planeamento, politica);
-            PropostaHorarioMensal proposta = persistirProposta(dados.ligacaoAtiva(), dados.ano(), dados.mes(), planeamento, politica, metricas);
+            MetricasPlaneamento metricas = metricasCalculator.calcular(planeamento, politica);
+            PropostaHorarioMensal proposta = persistenciaHelper.persistirProposta(dados.ligacaoAtiva(), dados.ano(), dados.mes(), planeamento, politica, metricas);
             List<Horario> horariosPersistidos = horarioRepository.findByIdPropostaHorarioId(proposta.getId());
             LOGGER.info(
                     "Alternativa {} gerada para {}/{} em {} ms com a politica {}.",
@@ -339,7 +354,7 @@ public class GeracaoHorariosService {
                     Duration.between(inicioGeracao, Instant.now()).toMillis(),
                     politica.nome()
             );
-            resultados.add(construirResultado(proposta, horariosPersistidos));
+            resultados.add(resultadoBuilder.construirResultado(proposta, horariosPersistidos));
         }
         return resultados;
     }
@@ -352,9 +367,9 @@ public class GeracaoHorariosService {
 
         return obterPropostasVisiveis(ligacaoAtiva, anoNormalizado, mesNormalizado)
                 .stream()
-                .map(proposta -> construirResumoProposta(
+                .map(proposta -> resultadoBuilder.construirResumoProposta(
                         proposta,
-                        construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId()))
+                        resultadoBuilder.construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId()))
                 ))
                 .toList();
     }
@@ -375,7 +390,7 @@ public class GeracaoHorariosService {
             throw new IllegalArgumentException("Esta proposta ainda nao foi enviada ao supervisor.");
         }
 
-        return construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId()));
+        return resultadoBuilder.construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId()));
     }
 
     @Transactional(readOnly = true)
@@ -416,9 +431,9 @@ public class GeracaoHorariosService {
         }
 
         String resumo = "Comparacao entre "
-                + rotuloCurtoProposta(base)
+                + resultadoBuilder.rotuloCurtoProposta(base)
                 + " e "
-                + rotuloCurtoProposta(comparada)
+                + resultadoBuilder.rotuloCurtoProposta(comparada)
                 + ": "
                 + turnosDiferentes
                 + " turnos mudam de colaborador em "
@@ -432,8 +447,8 @@ public class GeracaoHorariosService {
         return new ComparacaoPropostas(
                 base.idProposta(),
                 comparada.idProposta(),
-                rotuloCurtoProposta(base),
-                rotuloCurtoProposta(comparada),
+                resultadoBuilder.rotuloCurtoProposta(base),
+                resultadoBuilder.rotuloCurtoProposta(comparada),
                 resumo,
                 turnosDiferentes,
                 diasAfetados.size(),
@@ -454,7 +469,7 @@ public class GeracaoHorariosService {
     }
 
     private boolean propostaVisivelParaUtilizador(Lojautilizador ligacaoAtiva, PropostaHorarioMensal proposta) {
-        if (temPermissaoDeGeracao(ligacaoAtiva)) {
+        if (lojautilizadorHelper.temCargo(ligacaoAtiva, LojautilizadorHelper.GESTAO)) {
             return true;
         }
         return !ESTADO_RASCUNHO.equals(normalizarTexto(proposta.getEstado()));
@@ -488,8 +503,8 @@ public class GeracaoHorariosService {
             throw new IllegalArgumentException("Nao existem turnos base configurados para gerar a proposta.");
         }
 
-        List<RegraAplicada> regras = obterRegrasAplicadas(idLoja);
-        ParametrosGeracao parametros = resolverParametrosGeracao(regras, turnos);
+        List<RegraAplicada> regras = regraGeracaoResolver.obterRegrasAplicadas(idLoja);
+        ParametrosGeracao parametros = regraGeracaoResolver.resolverParametrosGeracao(regras, turnos);
         validarJanelaDeLancamento(dataInicio, parametros.diaLimiteLancamento());
         LocalDate inicioHistorico = resolverInicioHistoricoParaGeracao(dataInicio, parametros);
 
@@ -533,169 +548,6 @@ public class GeracaoHorariosService {
                 preferenciasColegas,
                 configuracoesPorData
         );
-    }
-
-    private PropostaHorarioMensal persistirProposta(Lojautilizador ligacaoAtiva,
-                                                    int anoNormalizado,
-                                                    int mesNormalizado,
-                                                    PlaneamentoGerado planeamento,
-                                                    PoliticaOtimizacao politica,
-                                                    MetricasPlaneamento metricas) {
-        PropostaHorarioMensal proposta = new PropostaHorarioMensal();
-        proposta.setIdLoja(ligacaoAtiva.getIdLoja());
-        proposta.setIdUtilizadorGeracao(ligacaoAtiva.getIdUtilizador());
-        proposta.setAno(anoNormalizado);
-        proposta.setMes(mesNormalizado);
-        proposta.setEstado(ESTADO_RASCUNHO);
-        proposta.setResumoGeracao(criarResumoGeracao(planeamento, politica, metricas));
-        proposta.setDataGeracao(LocalDateTime.now());
-        proposta = propostaHorarioMensalRepository.save(proposta);
-
-        List<Horario> horariosPersistidos = new ArrayList<>();
-        List<HistoricoHorarioEstado> historicos = new ArrayList<>();
-        for (Horario horario : planeamento.horarios()) {
-            horario.setIdPropostaHorario(proposta);
-            horario.setEstado(EstadoHorario.pendente);
-            Horario guardado = horarioRepository.save(horario);
-            horariosPersistidos.add(guardado);
-
-            HistoricoHorarioEstado historico = new HistoricoHorarioEstado();
-            historico.setIdHorario(guardado);
-            historico.setEstadoNovo(ESTADO_PENDENTE);
-            historico.setDataRegisto(Instant.now());
-            historico.setObservacoes("Gerado automaticamente na proposta mensal.");
-            historicos.add(historico);
-        }
-        historicoHorarioEstadoRepository.saveAll(historicos);
-
-        return proposta;
-    }
-
-    private PropostaResultado decidirProposta(Integer idUtilizador,
-                                              Integer idProposta,
-                                              String novoEstado,
-                                              String observacoesSupervisor) {
-        if (idProposta == null) {
-            throw new IllegalArgumentException("Seleciona uma proposta antes de tomar uma decisao.");
-        }
-
-        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissaoDeValidacao(idUtilizador);
-        PropostaHorarioMensal proposta = propostaHorarioMensalRepository.findByIdAndIdLojaId(
-                        idProposta,
-                        ligacaoAtiva.getIdLoja().getId()
-                )
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada nenhuma proposta para a tua loja com esse identificador."));
-
-        if (ESTADO_RASCUNHO.equals(normalizarTexto(proposta.getEstado()))) {
-            throw new IllegalArgumentException("Esta proposta ainda esta em rascunho. O gerente tem de a enviar ao supervisor antes da validacao.");
-        }
-
-        if (!ESTADO_PENDENTE.equals(normalizarTexto(proposta.getEstado()))) {
-            throw new IllegalArgumentException("Esta proposta ja foi decidida e nao pode voltar a ser alterada.");
-        }
-
-        if (ESTADO_APROVADO.equals(normalizarTexto(novoEstado))) {
-            validarAprovacaoSemConflitos(proposta);
-        }
-
-        proposta.setEstado(novoEstado);
-        proposta.setIdUtilizadorDecisao(ligacaoAtiva.getIdUtilizador());
-        proposta.setDataDecisao(LocalDateTime.now());
-        proposta.setObservacoesSupervisor(limparTexto(observacoesSupervisor));
-        proposta = propostaHorarioMensalRepository.save(proposta);
-
-        List<Horario> horarios = horarioRepository.findByIdPropostaHorarioId(proposta.getId());
-        List<HistoricoHorarioEstado> historicos = new ArrayList<>();
-        for (Horario horario : horarios) {
-            horario.setEstado(EstadoHorario.valueOf(novoEstado.toLowerCase()));
-
-            HistoricoHorarioEstado historico = new HistoricoHorarioEstado();
-            historico.setIdHorario(horario);
-            historico.setEstadoNovo(novoEstado);
-            historico.setDataRegisto(Instant.now());
-            historico.setObservacoes(criarObservacaoHistoricoDecisao(proposta, novoEstado));
-            historicos.add(historico);
-        }
-
-        horarioRepository.saveAll(horarios);
-        historicoHorarioEstadoRepository.saveAll(historicos);
-        if (ESTADO_APROVADO.equals(normalizarTexto(novoEstado))) {
-            rejeitarPropostasPendentesConcorrentes(proposta, ligacaoAtiva.getIdUtilizador());
-        }
-
-        return construirResultado(proposta, horarios);
-    }
-
-    private void validarAprovacaoSemConflitos(PropostaHorarioMensal proposta) {
-        List<PropostaHorarioMensal> propostasDoPeriodo = propostaHorarioMensalRepository
-                .findByIdLojaIdAndAnoAndMesOrderByDataGeracaoDesc(
-                        proposta.getIdLoja().getId(),
-                        proposta.getAno(),
-                        proposta.getMes()
-                );
-        boolean existeOutraAprovada = propostasDoPeriodo.stream()
-                .filter(outra -> !Objects.equals(outra.getId(), proposta.getId()))
-                .anyMatch(outra -> ESTADO_APROVADO.equals(normalizarTexto(outra.getEstado())));
-        if (existeOutraAprovada) {
-            throw new IllegalArgumentException("Ja existe uma proposta aprovada para este periodo.");
-        }
-
-        LocalDate dataInicio = LocalDate.of(proposta.getAno(), proposta.getMes(), 1);
-        LocalDate dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
-        long horariosVisiveis = horarioRepository.countHorariosVisiveisDaLojaEntreDatas(
-                proposta.getIdLoja().getId(),
-                dataInicio,
-                dataFim
-        );
-        if (horariosVisiveis > 0) {
-            throw new IllegalArgumentException("Ja existem horarios publicados neste periodo. Nao e seguro publicar outra alternativa.");
-        }
-    }
-
-    private void rejeitarPropostasPendentesConcorrentes(PropostaHorarioMensal propostaAprovada, com.example.projeto2.API.Modules.Utilizador decisor) {
-        List<PropostaHorarioMensal> propostasDoPeriodo = propostaHorarioMensalRepository
-                .findByIdLojaIdAndAnoAndMesOrderByDataGeracaoDesc(
-                        propostaAprovada.getIdLoja().getId(),
-                        propostaAprovada.getAno(),
-                        propostaAprovada.getMes()
-                );
-
-        List<PropostaHorarioMensal> propostasParaRejeitar = propostasDoPeriodo.stream()
-                .filter(proposta -> !Objects.equals(proposta.getId(), propostaAprovada.getId()))
-                .filter(proposta -> ESTADO_PENDENTE.equals(normalizarTexto(proposta.getEstado())))
-                .toList();
-        if (propostasParaRejeitar.isEmpty()) {
-            return;
-        }
-
-        List<Horario> horariosParaAtualizar = new ArrayList<>();
-        List<HistoricoHorarioEstado> historicos = new ArrayList<>();
-        for (PropostaHorarioMensal proposta : propostasParaRejeitar) {
-            proposta.setEstado(ESTADO_REJEITADO);
-            proposta.setIdUtilizadorDecisao(decisor);
-            proposta.setDataDecisao(LocalDateTime.now());
-            proposta.setObservacoesSupervisor(
-                    "Rejeitada automaticamente porque a proposta #"
-                            + propostaAprovada.getId()
-                            + " foi aprovada para o mesmo periodo."
-            );
-
-            for (Horario horario : horarioRepository.findByIdPropostaHorarioId(proposta.getId())) {
-                horario.setEstado(EstadoHorario.rejeitado);
-                horariosParaAtualizar.add(horario);
-
-                HistoricoHorarioEstado historico = new HistoricoHorarioEstado();
-                historico.setIdHorario(horario);
-                historico.setEstadoNovo(ESTADO_REJEITADO);
-                historico.setDataRegisto(Instant.now());
-                historico.setObservacoes("Rejeitado automaticamente apos aprovacao de uma alternativa concorrente.");
-                historicos.add(historico);
-            }
-        }
-
-        propostaHorarioMensalRepository.saveAll(propostasParaRejeitar);
-        horarioRepository.saveAll(horariosParaAtualizar);
-        historicoHorarioEstadoRepository.saveAll(historicos);
     }
 
     // =========================================================================
@@ -814,194 +666,7 @@ public class GeracaoHorariosService {
     // e agruparPreferenciasPorTipo movidos para PreferenciasGeracaoBuilder (Fase 3.2).
     // construirConfiguracoesEspeciaisPorData, criarConfiguracaoDiaEspecial,
     // filtrarTurnosCompativeis e turnoCabeNoHorario movidos para LojaConfiguracaoBuilder (Fase 3.3).
-
-    private ParametrosGeracao resolverParametrosGeracao(List<RegraAplicada> regras, List<Turno> turnos) {
-        Integer minimoGenerico = regras.stream()
-                .filter(this::ehRegraDeMinimos)
-                .map(RegraAplicada::valor)
-                .filter(Objects::nonNull)
-                .filter(valor -> valor > 0)
-                .findFirst()
-                .orElse(null);
-
-        Map<Integer, Integer> minimosPorTurno = new LinkedHashMap<>();
-        for (Turno turno : turnos) {
-            String tipoTurno = normalizarTurno(turno);
-            Integer minimoEspecifico = regras.stream()
-                    .filter(this::ehRegraDeMinimos)
-                    .filter(regra -> regraMencionaTurno(regra, tipoTurno))
-                    .map(RegraAplicada::valor)
-                    .filter(Objects::nonNull)
-                    .filter(valor -> valor > 0)
-                    .findFirst()
-                    .orElse(null);
-
-            Integer minimo = minimoEspecifico != null ? minimoEspecifico : minimoGenerico;
-            if (minimo == null || minimo <= 0) {
-                throw new IllegalArgumentException("Nao existe uma regra minima valida para gerar o turno " + formatarTurno(turno) + ".");
-            }
-            minimosPorTurno.put(turno.getId(), minimo);
-        }
-
-        int maxDiasConsecutivos = regras.stream()
-                .filter(this::ehRegraDiasConsecutivos)
-                .map(RegraAplicada::valor)
-                .filter(Objects::nonNull)
-                .filter(valor -> valor > 0)
-                .findFirst()
-                .orElse(5);
-
-        int descansoMinimoHoras = regras.stream()
-                .filter(this::ehRegraDescanso)
-                .map(RegraAplicada::valor)
-                .filter(Objects::nonNull)
-                .filter(valor -> valor > 0)
-                .findFirst()
-                .orElse(8);
-
-        int descansoSemanalMinimoDias = regras.stream()
-                .filter(this::ehRegraDescansoSemanal)
-                .map(RegraAplicada::valor)
-                .filter(Objects::nonNull)
-                .filter(valor -> valor >= 1 && valor <= 6)
-                .findFirst()
-                .orElse(2);
-
-        int janelaRotacaoFinsDeSemanaSemanas = regras.stream()
-                .filter(this::ehRegraRotacaoFinsDeSemana)
-                .map(RegraAplicada::valor)
-                .filter(Objects::nonNull)
-                .filter(valor -> valor >= 2)
-                .findFirst()
-                .orElse(2);
-
-        int diaLimiteLancamento = regras.stream()
-                .filter(this::ehRegraDiaLimiteLancamento)
-                .map(RegraAplicada::valor)
-                .filter(Objects::nonNull)
-                .filter(valor -> valor >= 1 && valor <= 31)
-                .findFirst()
-                .orElse(15);
-
-        boolean exigirChefiaAoSabado = regras.stream()
-                .filter(this::ehRegraChefiaAoSabado)
-                .map(RegraAplicada::valor)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .map(valor -> valor > 0)
-                .orElse(true);
-
-        Map<PerfilContratual, Long> cargaMaximaMinutosPorPerfil = new EnumMap<>(PerfilContratual.class);
-        for (PerfilContratual perfilContratual : PerfilContratual.values()) {
-            Integer horasMensais = regras.stream()
-                    .filter(this::ehRegraCargaContratual)
-                    .filter(regra -> regraMencionaPerfilContratual(regra, perfilContratual))
-                    .map(RegraAplicada::valor)
-                    .filter(Objects::nonNull)
-                    .filter(valor -> valor > 0)
-                    .findFirst()
-                    .orElse(perfilContratual.cargaMensalHorasPadrao());
-
-            if (horasMensais == null || horasMensais <= 0) {
-                throw new IllegalArgumentException("Nao existe uma regra de carga contratual valida para o perfil " + perfilContratual.descricaoCurta() + ".");
-            }
-
-            cargaMaximaMinutosPorPerfil.put(perfilContratual, horasMensais * 60L);
-        }
-
-        if (!validator.janelaRotacaoRespeiraMinimo(janelaRotacaoFinsDeSemanaSemanas)) {
-            LOGGER.warn(
-                    "A janela de rotacao de fins de semana configurada ({} semanas) e inferior ao minimo legal recomendado de 7 semanas. "
-                    + "Considera atualizar a regra RFS08 da loja.",
-                    janelaRotacaoFinsDeSemanaSemanas);
-        }
-
-        return new ParametrosGeracao(
-                minimosPorTurno,
-                maxDiasConsecutivos,
-                descansoMinimoHoras,
-                descansoSemanalMinimoDias,
-                janelaRotacaoFinsDeSemanaSemanas,
-                diaLimiteLancamento,
-                exigirChefiaAoSabado,
-                cargaMaximaMinutosPorPerfil
-        );
-    }
-
-    private boolean ehRegraDeMinimos(RegraAplicada regra) {
-        String texto = regra.textoNormalizado();
-        boolean mencionaMinimo = texto.contains("min") || texto.contains("minim");
-        boolean mencionaCobertura = texto.contains("colaborador")
-                || texto.contains("equipa")
-                || texto.contains("pessoas")
-                || texto.contains("funcionario")
-                || (texto.contains("turno") && (texto.contains("por") || texto.contains("cobertura") || texto.contains("loja")));
-        boolean pareceOutraRegra = texto.contains("descanso")
-                || texto.contains("carga")
-                || texto.contains("contrat")
-                || texto.contains("lancamento")
-                || texto.contains("publicacao");
-        return mencionaMinimo && mencionaCobertura && !pareceOutraRegra;
-    }
-
-    private boolean ehRegraDiasConsecutivos(RegraAplicada regra) {
-        String texto = regra.textoNormalizado();
-        return (texto.contains("dias") || texto.contains("dia"))
-                && (texto.contains("consecut") || texto.contains("seguid"))
-                && !texto.contains("hora");
-    }
-
-    private boolean ehRegraDescanso(RegraAplicada regra) {
-        String texto = regra.textoNormalizado();
-        return (texto.contains("descanso") && (texto.contains("hora") || texto.contains("interval")))
-                || (texto.contains("entre") && texto.contains("turno"));
-    }
-
-    private boolean ehRegraDescansoSemanal(RegraAplicada regra) {
-        String texto = regra.textoNormalizado();
-        return texto.contains("descanso")
-                && (texto.contains("seman") || texto.contains("folga"))
-                && texto.contains("dia");
-    }
-
-    private boolean ehRegraRotacaoFinsDeSemana(RegraAplicada regra) {
-        String texto = regra.textoNormalizado();
-        return (texto.contains("rotacao") || texto.contains("janela"))
-                && (texto.contains("fim de semana") || texto.contains("weekend"));
-    }
-
-    private boolean ehRegraDiaLimiteLancamento(RegraAplicada regra) {
-        String texto = regra.textoNormalizado();
-        return texto.contains("dia")
-                && texto.contains("limite")
-                && (texto.contains("lancamento") || texto.contains("publicacao") || texto.contains("publicar"));
-    }
-
-    private boolean ehRegraChefiaAoSabado(RegraAplicada regra) {
-        String texto = regra.textoNormalizado();
-        return texto.contains("sabado")
-                && (texto.contains("gerente") || texto.contains("subgerente") || texto.contains("chefia") || texto.contains("gestao"));
-    }
-
-    private boolean ehRegraCargaContratual(RegraAplicada regra) {
-        String texto = regra.textoNormalizado();
-        return texto.contains("carga")
-                && (texto.contains("contrat") || texto.contains("mensal"))
-                && (texto.contains("hora") || texto.contains("horas"));
-    }
-
-    private boolean regraMencionaTurno(RegraAplicada regra, String tipoTurno) {
-        for (String alias : aliasesTurno(tipoTurno)) {
-            if (!alias.isBlank() && regra.textoNormalizado().contains(alias)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean regraMencionaPerfilContratual(RegraAplicada regra, PerfilContratual perfilContratual) {
-        return perfilContratual.correspondeRegra(regra.textoNormalizado());
-    }
+    // resolverParametrosGeracao, obterRegrasAplicadas e ehRegra* movidos para RegraGeracaoResolver (Fase 2).
 
     private List<Lojautilizador> filtrarColaboradoresSelecionados(List<Lojautilizador> colaboradoresElegiveis,
                                                                   Collection<Integer> idsColaboradoresSelecionados) {
@@ -1036,45 +701,6 @@ public class GeracaoHorariosService {
                 .filter(ligacao -> ligacao.getIdUtilizador() != null)
                 .filter(ligacao -> idsSelecionados.contains(ligacao.getIdUtilizador().getId()))
                 .toList();
-    }
-
-    private List<String> aliasesTurno(String tipoTurno) {
-        return switch (tipoTurno) {
-            case "manha" -> List.of("manha", "abertura", "morning", "cedo");
-            case "intermedio", "tarde" -> List.of(
-                    "intermedio",
-                    "tarde",
-                    "afternoon",
-                    "meio dia",
-                    "meio-dia",
-                    "central"
-            );
-            case "noite" -> List.of("noite", "fecho", "encerramento", "night");
-            default -> List.of(tipoTurno);
-        };
-    }
-
-    private List<RegraAplicada> obterRegrasAplicadas(Integer idLoja) {
-        Map<Integer, RegrasLoja> overrides = new HashMap<>();
-        for (RegrasLoja regraLoja : regrasLojaRepository.findByIdLojaWithRegraOrderByDescricao(idLoja)) {
-            if (regraLoja.getIdRegra() != null && regraLoja.getIdRegra().getId() != null) {
-                overrides.put(regraLoja.getIdRegra().getId(), regraLoja);
-            }
-        }
-
-        List<RegraAplicada> regras = new ArrayList<>();
-        for (Regra regra : regraRepository.findAllByOrderByDescricaoAsc()) {
-            RegrasLoja override = overrides.get(regra.getId());
-            Integer valor = override != null && override.getValorEspecifico() != null
-                    ? override.getValorEspecifico()
-                    : regra.getValorPadrao();
-            regras.add(new RegraAplicada(
-                    valorOuTraco(regra.getDescricao()),
-                    valorOuTraco(regra.getTipo()),
-                    valor
-            ));
-        }
-        return regras;
     }
 
     private List<Lojautilizador> obterColaboradoresElegiveis(Integer idLoja, LocalDate dataInicio, LocalDate dataFim) {
@@ -1140,7 +766,7 @@ public class GeracaoHorariosService {
         if (LocalDate.now().isAfter(dataLimite)) {
             throw new IllegalArgumentException(
                     "A proposta de "
-                            + nomeMes(dataInicioPeriodo.getMonthValue())
+                            + HorarioFormatters.nomeMes(dataInicioPeriodo.getMonthValue())
                             + " de "
                             + dataInicioPeriodo.getYear()
                             + " tinha de ser lancada ate "
@@ -1202,201 +828,6 @@ public class GeracaoHorariosService {
         }
     }
 
-    private String criarResumoGeracao(PlaneamentoGerado planeamento,
-                                      PoliticaOtimizacao politica,
-                                      MetricasPlaneamento metricas) {
-        int colaboradoresComTurnos = (int) planeamento.estados().stream()
-                .filter(estado -> estado.turnosAtribuidos() > 0)
-                .count();
-        return "Modelo IO: satisfacao de restricoes com funcao objetivo ponderada ("
-                + politica.nome()
-                + "). Proposta gerada automaticamente com "
-                + planeamento.horarios().size()
-                + " turnos distribuidos por "
-                + colaboradoresComTurnos
-                + " colaboradores. Pontuacao: "
-                + metricas.pontuacao()
-                + " (menor e melhor). Carga: desvio medio "
-                + metricas.desvioMedioHoras()
-                + ", amplitude "
-                + metricas.amplitudeHoras()
-                + ". Politica: "
-                + politica.descricao()
-                + ".";
-    }
-
-    private MetricasPlaneamento calcularMetricasPlaneamento(PlaneamentoGerado planeamento, PoliticaOtimizacao politica) {
-        Map<Integer, CargaColaborador> cargas = new LinkedHashMap<>();
-        for (EstadoColaboradorResumo estado : planeamento.estados()) {
-            cargas.put(
-                    estado.idUtilizador(),
-                    new CargaColaborador(
-                            estado.idUtilizador(),
-                            valorOuTraco(estado.ligacao().getIdUtilizador().getNome()),
-                            estado.minutosAtribuidos,
-                            estado.cargaMaximaMinutos,
-                            estado.totalFinsDeSemanaTrabalhados
-                    )
-            );
-        }
-        return calcularMetricasPlaneamento(planeamento.horarios(), cargas, politica);
-    }
-
-    private MetricasPlaneamento calcularMetricasPlaneamento(List<Horario> horarios, PoliticaOtimizacao politica) {
-        Map<Integer, CargaColaborador> cargas = new LinkedHashMap<>();
-        Map<Integer, Set<LocalDate>> finsDeSemanaPorColaborador = new HashMap<>();
-        for (Horario horario : horarios) {
-            if (horario.getIdLojautilizador() == null
-                    || horario.getIdLojautilizador().getIdUtilizador() == null
-                    || horario.getIdLojautilizador().getIdUtilizador().getId() == null) {
-                continue;
-            }
-
-            Integer idColaborador = horario.getIdLojautilizador().getIdUtilizador().getId();
-            long minutosTurno = calcularDuracaoEmMinutos(horario.getIdTurno());
-            CargaColaborador atual = cargas.get(idColaborador);
-            long minutos = (atual != null ? atual.minutos() : 0) + minutosTurno;
-            long cargaMaxima = resolverPerfilContratual(horario.getIdLojautilizador())
-                    .map(PerfilContratual::cargaMensalHorasPadrao)
-                    .map(horas -> horas * 60L)
-                    .orElse(0L);
-
-            if (horario.getDataTurno() != null && ehFimDeSemana(horario.getDataTurno())) {
-                finsDeSemanaPorColaborador
-                        .computeIfAbsent(idColaborador, ignored -> new LinkedHashSet<>())
-                        .add(inicioFimDeSemana(horario.getDataTurno()));
-            }
-
-            cargas.put(
-                    idColaborador,
-                    new CargaColaborador(
-                            idColaborador,
-                            valorOuTraco(horario.getIdLojautilizador().getIdUtilizador().getNome()),
-                            minutos,
-                            cargaMaxima,
-                            finsDeSemanaPorColaborador.getOrDefault(idColaborador, Set.of()).size()
-                    )
-            );
-        }
-        return calcularMetricasPlaneamento(horarios, cargas, politica);
-    }
-
-    private MetricasPlaneamento calcularMetricasPlaneamento(List<Horario> horarios,
-                                                           Map<Integer, CargaColaborador> cargas,
-                                                           PoliticaOtimizacao politica) {
-        PoliticaOtimizacao politicaSegura = politica != null ? politica : PoliticaOtimizacao.EQUILIBRIO;
-        if (cargas.isEmpty()) {
-            return new MetricasPlaneamento(
-                    1000,
-                    "Sem dados",
-                    politicaSegura.nome(),
-                    politicaSegura.descricao(),
-                    "0h 0m",
-                    "0h 0m",
-                    0,
-                    "Sem colaboradores elegiveis para avaliar."
-            );
-        }
-
-        List<Long> minutos = cargas.values().stream()
-                .map(CargaColaborador::minutos)
-                .toList();
-        long minimo = minutos.stream().mapToLong(Long::longValue).min().orElse(0);
-        long maximo = minutos.stream().mapToLong(Long::longValue).max().orElse(0);
-        double media = minutos.stream().mapToLong(Long::longValue).average().orElse(0);
-        long desvioMedio = Math.round(minutos.stream()
-                .mapToDouble(valor -> Math.abs(valor - media))
-                .average()
-                .orElse(0));
-
-        List<Integer> finsDeSemana = cargas.values().stream()
-                .map(CargaColaborador::finsDeSemanaTrabalhados)
-                .toList();
-        int minimoFinsDeSemana = finsDeSemana.stream().mapToInt(Integer::intValue).min().orElse(0);
-        int maximoFinsDeSemana = finsDeSemana.stream().mapToInt(Integer::intValue).max().orElse(0);
-        int amplitudeFinsDeSemana = maximoFinsDeSemana - minimoFinsDeSemana;
-
-        long amplitude = maximo - minimo;
-        int pontuacao = (int) Math.round(
-                (amplitude / 30.0)
-                        + (desvioMedio / 15.0)
-                        + (amplitudeFinsDeSemana * 20.0)
-                        + penalizacaoUtilizacaoContratual(cargas.values())
-        );
-        String qualidade;
-        if (pontuacao <= 60) {
-            qualidade = "Alta";
-        } else if (pontuacao <= 120) {
-            qualidade = "Boa";
-        } else {
-            qualidade = "A rever";
-        }
-
-        String resumo = qualidade
-                + " · score "
-                + pontuacao
-                + " · desvio medio "
-                + formatarDuracao(desvioMedio)
-                + " · amplitude "
-                + formatarDuracao(amplitude)
-                + " · amplitude FDS "
-                + amplitudeFinsDeSemana;
-
-        return new MetricasPlaneamento(
-                pontuacao,
-                qualidade,
-                politicaSegura.nome(),
-                politicaSegura.descricao(),
-                formatarDuracao(amplitude),
-                formatarDuracao(desvioMedio),
-                amplitudeFinsDeSemana,
-                resumo
-        );
-    }
-
-    private double penalizacaoUtilizacaoContratual(Collection<CargaColaborador> cargas) {
-        List<Double> utilizacoes = cargas.stream()
-                .filter(carga -> carga.cargaMaximaMinutos() > 0)
-                .map(carga -> carga.minutos() / (double) carga.cargaMaximaMinutos())
-                .toList();
-        if (utilizacoes.isEmpty()) {
-            return 0;
-        }
-
-        double media = utilizacoes.stream().mapToDouble(Double::doubleValue).average().orElse(0);
-        return utilizacoes.stream()
-                .mapToDouble(valor -> Math.abs(valor - media) * 35)
-                .sum();
-    }
-
-    private PoliticaOtimizacao extrairPoliticaOtimizacao(String resumoGeracao) {
-        String resumoNormalizado = normalizarTexto(resumoGeracao);
-        for (PoliticaOtimizacao politica : PoliticaOtimizacao.values()) {
-            if (resumoNormalizado.contains(normalizarTexto(politica.nome()))) {
-                return politica;
-            }
-        }
-        return PoliticaOtimizacao.EQUILIBRIO;
-    }
-
-    private PropostaResumo construirResumoProposta(PropostaHorarioMensal proposta, PropostaResultado resultado) {
-        return new PropostaResumo(
-                proposta.getId(),
-                rotuloCurtoProposta(resultado),
-                resultado.estado(),
-                resultado.dataGeracao(),
-                resultado.geradoPor(),
-                resultado.metricas().politicaOtimizacao(),
-                resultado.metricas().pontuacao(),
-                resultado.metricas().qualidade(),
-                resultado.metricas().desvioMedioHoras(),
-                resultado.metricas().amplitudeHoras(),
-                resultado.resumo().colaboradores(),
-                resultado.resumo().turnos(),
-                resultado.resumo().diasCobertos()
-        );
-    }
-
     private Map<Integer, ResumoColaborador> indexarResumoPorColaborador(List<ResumoColaborador> resumos) {
         Map<Integer, ResumoColaborador> porColaborador = new LinkedHashMap<>();
         for (ResumoColaborador resumo : resumos) {
@@ -1452,243 +883,22 @@ public class GeracaoHorariosService {
         }
     }
 
-    private String rotuloCurtoProposta(PropostaResultado proposta) {
-        if (proposta == null || proposta.idProposta() == null) {
-            return "Horarios publicados";
-        }
-        return proposta.nomeMes()
-                + " " + proposta.ano()
-                + " · #" + proposta.idProposta()
-                + " · " + proposta.estado();
-    }
-
-    private String criarObservacaoHistoricoDecisao(PropostaHorarioMensal proposta, String novoEstado) {
-        String acao = ESTADO_APROVADO.equals(normalizarTexto(novoEstado)) ? "aprovado" : "rejeitado";
-        String observacoes = limparTexto(proposta.getObservacoesSupervisor());
-        if (observacoes == null) {
-            return "Horario " + acao + " pelo supervisor.";
-        }
-        return "Horario " + acao + " pelo supervisor. Observacoes: " + observacoes;
-    }
-
-    private PropostaResultado construirResultado(PropostaHorarioMensal proposta, List<Horario> horarios) {
-        return construirResultado(
-                proposta.getId(),
-                valorOuTraco(proposta.getIdLoja().getNome()),
-                proposta.getAno(),
-                proposta.getMes(),
-                nomeMes(proposta.getMes()),
-                formatarEstado(proposta.getEstado()),
-                construirOrigemPlaneamento(proposta),
-                proposta.getResumoGeracao(),
-                valorOuTraco(proposta.getIdUtilizadorGeracao().getNome()),
-                proposta.getDataGeracao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataGeracao()) : "-",
-                proposta.getIdUtilizadorDecisao() != null ? valorOuTraco(proposta.getIdUtilizadorDecisao().getNome()) : "-",
-                proposta.getDataDecisao() != null ? DATA_HORA_FORMATTER.format(proposta.getDataDecisao()) : "-",
-                valorOuTraco(proposta.getObservacoesSupervisor()),
-                ESTADO_PENDENTE.equals(normalizarTexto(proposta.getEstado())),
-                horarios
-        );
-    }
-
-    private PropostaResultado construirResultadoHorariosPublicados(Loja loja,
-                                                                   int ano,
-                                                                   int mes,
-                                                                   List<Horario> horarios) {
-        String resumoPublicacao = "Foram encontrados "
-                + horarios.size()
-                + " turnos ja publicados para "
-                + nomeMes(mes).toLowerCase(Locale.ROOT)
-                + " de "
-                + ano
-                + ". Podes consultar o planeamento atual, mesmo sem existir uma proposta mensal guardada.";
-
-        return construirResultado(
-                null,
-                valorOuTraco(loja.getNome()),
-                ano,
-                mes,
-                nomeMes(mes),
-                "Publicado",
-                "Horarios publicados",
-                resumoPublicacao,
-                "-",
-                "-",
-                "-",
-                "-",
-                "Estes horarios ja estao publicados na loja e podem ser analisados diretamente neste ecra.",
-                false,
-                horarios
-        );
-    }
-
-    private PropostaResultado construirResultado(Integer idProposta,
-                                                 String nomeLoja,
-                                                 Integer ano,
-                                                 Integer mes,
-                                                 String nomeMes,
-                                                 String estado,
-                                                 String origemPlaneamento,
-                                                 String resumoGeracao,
-                                                 String geradoPor,
-                                                 String dataGeracao,
-                                                 String decididoPor,
-                                                 String dataDecisao,
-                                                 String observacoesSupervisor,
-                                                 boolean podeSerDecidida,
-                                                 List<Horario> horarios) {
-        List<HorarioLinha> linhas = horarios.stream()
-                .sorted(Comparator
-                        .comparing(Horario::getDataTurno, Comparator.nullsLast(Comparator.naturalOrder()))
-                        .thenComparing(horario -> horario.getIdTurno() != null ? horario.getIdTurno().getHoraInicio() : LocalTime.MIN)
-                        .thenComparing(horario -> horario.getIdLojautilizador().getIdUtilizador().getNome(), String.CASE_INSENSITIVE_ORDER))
-                .map(this::mapearLinhaHorario)
-                .toList();
-
-        Map<Integer, ResumoAcumulado> acumulado = new LinkedHashMap<>();
-        for (Horario horario : horarios) {
-            if (horario.getIdLojautilizador() == null || horario.getIdLojautilizador().getIdUtilizador() == null) {
-                continue;
-            }
-            Integer idColaborador = horario.getIdLojautilizador().getIdUtilizador().getId();
-            ResumoAcumulado resumo = acumulado.computeIfAbsent(
-                    idColaborador,
-                    ignored -> new ResumoAcumulado(
-                            idColaborador,
-                            valorOuTraco(horario.getIdLojautilizador().getIdUtilizador().getNome()),
-                            horario.getIdLojautilizador().getIdCargo() != null
-                                    ? valorOuTraco(horario.getIdLojautilizador().getIdCargo().getNome())
-                                    : "-"
-                    )
-            );
-            acumulado.put(idColaborador, resumo.comTurno(calcularDuracaoEmMinutos(horario.getIdTurno())));
-        }
-
-        List<ResumoColaborador> resumoColaboradores = acumulado.values().stream()
-                .sorted(Comparator.comparing(ResumoAcumulado::nomeColaborador, String.CASE_INSENSITIVE_ORDER))
-                .map(resumo -> new ResumoColaborador(
-                        resumo.idColaborador(),
-                        resumo.nomeColaborador(),
-                        resumo.cargo(),
-                        resumo.turnos(),
-                        resumo.minutos(),
-                        formatarDuracao(resumo.minutos())
-                ))
-                .toList();
-
-        Set<LocalDate> diasCobertos = new LinkedHashSet<>();
-        for (Horario horario : horarios) {
-            if (horario.getDataTurno() != null) {
-                diasCobertos.add(horario.getDataTurno());
-            }
-        }
-
-        return new PropostaResultado(
-                idProposta,
-                nomeLoja,
-                ano,
-                mes,
-                nomeMes,
-                estado,
-                origemPlaneamento,
-                resumoGeracao,
-                geradoPor,
-                dataGeracao,
-                decididoPor,
-                dataDecisao,
-                observacoesSupervisor,
-                podeSerDecidida,
-                linhas,
-                resumoColaboradores,
-                calcularMetricasPlaneamento(horarios, extrairPoliticaOtimizacao(resumoGeracao)),
-                new ResumoGeral(
-                        resumoColaboradores.size(),
-                        horarios.size(),
-                        diasCobertos.size()
-                )
-        );
-    }
-
-    private HorarioLinha mapearLinhaHorario(Horario horario) {
-        Integer idColaborador = horario.getIdLojautilizador() != null && horario.getIdLojautilizador().getIdUtilizador() != null
-                ? horario.getIdLojautilizador().getIdUtilizador().getId()
-                : null;
-        String colaborador = horario.getIdLojautilizador() != null && horario.getIdLojautilizador().getIdUtilizador() != null
-                ? valorOuTraco(horario.getIdLojautilizador().getIdUtilizador().getNome())
-                : "-";
-        String cargo = horario.getIdLojautilizador() != null && horario.getIdLojautilizador().getIdCargo() != null
-                ? valorOuTraco(horario.getIdLojautilizador().getIdCargo().getNome())
-                : "-";
-
-        return new HorarioLinha(
-                horario.getId(),
-                idColaborador,
-                horario.getDataTurno(),
-                horario.getDataTurno() != null ? nomeDiaSemana(horario.getDataTurno()) : "-",
-                formatarTurno(horario.getIdTurno()),
-                formatarPeriodo(horario.getIdTurno()),
-                colaborador,
-                cargo,
-                formatarEstado(horario.getEstado() != null ? horario.getEstado().name() : null)
-        );
-    }
-
-    private String construirOrigemPlaneamento(PropostaHorarioMensal proposta) {
-        String estadoNormalizado = normalizarTexto(proposta.getEstado());
-        return switch (estadoNormalizado) {
-            case ESTADO_APROVADO -> "Horarios publicados a partir de proposta aprovada";
-            case ESTADO_REJEITADO -> "Proposta mensal rejeitada";
-            case ESTADO_RASCUNHO -> "Rascunho do gerente";
-            case ESTADO_PENDENTE -> "Enviada ao supervisor";
-            default -> "Proposta mensal";
-        };
-    }
-
-    private Optional<Lojautilizador> obterLigacaoAtiva(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            return Optional.empty();
-        }
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
-    }
-
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para o utilizador autenticado."));
-
-        if (!temPermissaoDeGeracao(ligacaoAtiva)) {
-            throw new IllegalArgumentException("Nao tens permissao para gerar propostas de horario.");
-        }
-        return ligacaoAtiva;
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizador, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para gerar propostas de horario.");
     }
 
     private Lojautilizador obterLigacaoAtivaComAcessoAoPainel(Integer idUtilizador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para o utilizador autenticado."));
-
-        if (!temPermissaoDeGeracao(ligacaoAtiva) && !temPermissaoDeValidacao(ligacaoAtiva)) {
-            throw new IllegalArgumentException("Nao tens permissao para consultar o painel de horarios da loja.");
-        }
-        return ligacaoAtiva;
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizador, LojautilizadorHelper.APROVACAO,
+                "Nao tens permissao para consultar o painel de horarios da loja.");
     }
 
     private Lojautilizador obterLigacaoAtivaComPermissaoDeValidacao(Integer idUtilizador) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtiva(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para o utilizador autenticado."));
-
-        if (!temPermissaoDeValidacao(ligacaoAtiva)) {
-            throw new IllegalArgumentException("Nao tens permissao para validar a proposta mensal.");
-        }
-        return ligacaoAtiva;
-    }
-
-    private boolean temPermissaoDeGeracao(Lojautilizador ligacaoAtiva) {
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
-        return tipoCargo != null && CARGOS_COM_GERACAO.contains(normalizarTexto(tipoCargo));
-    }
-
-    private boolean temPermissaoDeValidacao(Lojautilizador ligacaoAtiva) {
-        String tipoCargo = ligacaoAtiva.getIdCargo() != null ? ligacaoAtiva.getIdCargo().getTipo() : null;
-        return tipoCargo != null && CARGOS_COM_VALIDACAO.contains(normalizarTexto(tipoCargo));
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizador, LojautilizadorHelper.VALIDACAO,
+                "Nao tens permissao para validar a proposta mensal.");
     }
 
     private Optional<PerfilContratual> resolverPerfilContratual(Lojautilizador ligacao) {
@@ -1795,19 +1005,6 @@ public class GeracaoHorariosService {
     private String normalizarTurno(Turno turno) {
         return normalizarTexto(turno != null && turno.getTipo() != null ? String.valueOf(turno.getTipo()) : "");
     }
-
-    // Formatadores delegados a HorarioFormatters (Fase 3.1) — wrappers manter callsites curtos
-    private String formatarTurno(Turno turno)                 { return HorarioFormatters.formatarTurno(turno); }
-    private String formatarPeriodo(Turno turno)               { return HorarioFormatters.formatarPeriodo(turno); }
-    private String formatarPeriodoVinculo(Lojautilizador l)   { return HorarioFormatters.formatarPeriodoVinculo(l); }
-    private String formatarEstado(String estado)              { return HorarioFormatters.formatarEstado(estado); }
-    private String formatarDuracao(long minutosTotais)        { return HorarioFormatters.formatarDuracao(minutosTotais); }
-    private String formatarDiferencaDuracao(long minutos)     { return HorarioFormatters.formatarDiferencaDuracao(minutos); }
-    private String nomeMes(int mes)                           { return HorarioFormatters.nomeMes(mes); }
-    private String nomeDiaSemana(LocalDate data)              { return HorarioFormatters.nomeDiaSemana(data); }
-    private String valorOuTraco(String valor)                 { return HorarioFormatters.valorOuTraco(valor); }
-    private String normalizarTexto(String texto)              { return HorarioFormatters.normalizarTexto(texto); }
-    private String limparTexto(String texto)                  { return HorarioFormatters.limparTexto(texto); }
 
     public record GeracaoContexto(
             Integer idLoja,
@@ -1958,18 +1155,6 @@ public class GeracaoHorariosService {
     ) {
     }
 
-    public record MetricasPlaneamento(
-            int pontuacao,
-            String qualidade,
-            String politicaOtimizacao,
-            String descricaoPolitica,
-            String amplitudeHoras,
-            String desvioMedioHoras,
-            int amplitudeFinsDeSemana,
-            String resumo
-    ) {
-    }
-
     public record PropostaResumo(
             Integer idProposta,
             String rotulo,
@@ -2024,18 +1209,6 @@ public class GeracaoHorariosService {
     ) {
     }
 
-    private record ParametrosGeracao(
-            Map<Integer, Integer> minimosPorTurno,
-            int maxDiasConsecutivos,
-            int descansoMinimoHoras,
-            int descansoSemanalMinimoDias,
-            int janelaRotacaoFinsDeSemanaSemanas,
-            int diaLimiteLancamento,
-            boolean exigirChefiaAoSabado,
-            Map<PerfilContratual, Long> cargaMaximaMinutosPorPerfil
-    ) {
-    }
-
     private record DadosGeracao(
             Lojautilizador ligacaoAtiva,
             Loja loja,
@@ -2056,250 +1229,4 @@ public class GeracaoHorariosService {
     }
 
 
-    private enum PerfilContratual {
-        GESTAO(Set.of("gerente", "subgerente", "supervisor"), 176, false),
-        FULLTIME(Set.of("fulltime"), 176, false),
-        PARTTIME(Set.of("parttime"), 96, false),
-        REFORCO_FIM_DE_SEMANA(Set.of("reforco_parttime"), 64, true);
-
-        private final Set<String> tiposCargo;
-        private final int cargaMensalHorasPadrao;
-        private final boolean apenasFimDeSemana;
-
-        PerfilContratual(Set<String> tiposCargo, int cargaMensalHorasPadrao, boolean apenasFimDeSemana) {
-            this.tiposCargo = tiposCargo;
-            this.cargaMensalHorasPadrao = cargaMensalHorasPadrao;
-            this.apenasFimDeSemana = apenasFimDeSemana;
-        }
-
-        private static Optional<PerfilContratual> fromCargoTipo(String tipoCargo) {
-            String tipoNormalizado = normalizarTextoEstatico(tipoCargo);
-            if (tipoNormalizado.isBlank()) {
-                return Optional.empty();
-            }
-
-            for (PerfilContratual perfilContratual : values()) {
-                if (perfilContratual.tiposCargo.contains(tipoNormalizado)) {
-                    return Optional.of(perfilContratual);
-                }
-            }
-            return Optional.empty();
-        }
-
-        private int cargaMensalHorasPadrao() {
-            return cargaMensalHorasPadrao;
-        }
-
-        private boolean permiteData(LocalDate data) {
-            if (!apenasFimDeSemana || data == null) {
-                return true;
-            }
-            DayOfWeek dayOfWeek = data.getDayOfWeek();
-            return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY;
-        }
-
-        private boolean permiteTurno(long minutosTurno) {
-            if (this != GESTAO && this != FULLTIME) {
-                return true;
-            }
-            return minutosTurno >= DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS;
-        }
-
-        private boolean correspondeRegra(String textoNormalizado) {
-            return switch (this) {
-                case GESTAO -> textoNormalizado.contains("gestao")
-                        || textoNormalizado.contains("gerencia")
-                        || textoNormalizado.contains("gestor")
-                        || textoNormalizado.contains("supervisor");
-                case FULLTIME -> textoNormalizado.contains("fulltime")
-                        || (textoNormalizado.contains("full") && textoNormalizado.contains("time"))
-                        || textoNormalizado.contains("tempo inteiro");
-                case PARTTIME -> textoNormalizado.contains("parttime")
-                        || (textoNormalizado.contains("part") && textoNormalizado.contains("time"))
-                        || textoNormalizado.contains("tempo parcial");
-                case REFORCO_FIM_DE_SEMANA -> textoNormalizado.contains("reforco")
-                        || textoNormalizado.contains("fim de semana")
-                        || textoNormalizado.contains("weekend");
-            };
-        }
-
-        private String descricaoCurta() {
-            return switch (this) {
-                case GESTAO -> "gestao";
-                case FULLTIME -> "full-time";
-                case PARTTIME -> "part-time";
-                case REFORCO_FIM_DE_SEMANA -> "reforco de fim de semana";
-            };
-        }
-
-        private static String normalizarTextoEstatico(String valor) {
-            if (valor == null) {
-                return "";
-            }
-            return Normalizer.normalize(valor, Normalizer.Form.NFD)
-                    .replaceAll("\\p{M}+", "")
-                    .toLowerCase(Locale.ROOT)
-                    .trim();
-        }
-    }
-
-    private record RegraAplicada(
-            String descricao,
-            String tipo,
-            Integer valor
-    ) {
-        private String textoNormalizado() {
-            return Normalizer.normalize((descricao + " " + tipo), Normalizer.Form.NFD)
-                    .replaceAll("\\p{M}+", "")
-                    .toLowerCase(Locale.ROOT)
-                    .trim();
-        }
-    }
-
-    private record CargaColaborador(
-            Integer idColaborador,
-            String nome,
-            long minutos,
-            long cargaMaximaMinutos,
-            int finsDeSemanaTrabalhados
-    ) {
-    }
-
-    private record PlaneamentoGerado(
-            List<Horario> horarios,
-            List<EstadoColaboradorResumo> estados,
-            Collection<LocalDate> diasCobertos
-    ) {
-    }
-
-
-    private record ResumoAcumulado(
-            Integer idColaborador,
-            String nomeColaborador,
-            String cargo,
-            int turnos,
-            long minutos
-    ) {
-        private ResumoAcumulado(Integer idColaborador, String nomeColaborador, String cargo) {
-            this(idColaborador, nomeColaborador, cargo, 0, 0);
-        }
-
-        private ResumoAcumulado comTurno(long minutosTurno) {
-            return new ResumoAcumulado(idColaborador, nomeColaborador, cargo, turnos + 1, minutos + minutosTurno);
-        }
-    }
-
-    private enum PoliticaOtimizacao {
-        EQUILIBRIO("Equilibrio", "minimizar desvios de carga e evitar concentracao semanal", 4, 1, 2, 2, 2, 0, 0),
-        PREFERENCIAS("Preferencias", "maximizar preferencias aprovadas sem violar restricoes legais", 2, 5, 2, 1, 2, 7, 1),
-        FINS_DE_SEMANA("Fins de semana", "reforcar rotacao e uso adequado da equipa de fim de semana", 2, 1, 5, 2, 2, 13, 1),
-        CARGA_CONTRATUAL("Carga contratual", "aproximar utilizacao de cada contrato ao perfil esperado", 5, 1, 2, 3, 1, 19, 1),
-        DIVERSIFICADA("Diversificada", "explorar uma alternativa viavel com desempates diferentes", 3, 2, 3, 2, 4, 29, 2);
-
-        private final String nome;
-        private final String descricao;
-        private final int pesoEquilibrioCarga;
-        private final int pesoPreferencias;
-        private final int pesoFinsDeSemana;
-        private final int pesoReservaOperacional;
-        private final int pesoTurnoRepetido;
-        private final int sementeDiversificacao;
-        private final int pesoDiversificacao;
-
-        PoliticaOtimizacao(String nome,
-                           String descricao,
-                           int pesoEquilibrioCarga,
-                           int pesoPreferencias,
-                           int pesoFinsDeSemana,
-                           int pesoReservaOperacional,
-                           int pesoTurnoRepetido,
-                           int sementeDiversificacao,
-                           int pesoDiversificacao) {
-            this.nome = nome;
-            this.descricao = descricao;
-            this.pesoEquilibrioCarga = pesoEquilibrioCarga;
-            this.pesoPreferencias = pesoPreferencias;
-            this.pesoFinsDeSemana = pesoFinsDeSemana;
-            this.pesoReservaOperacional = pesoReservaOperacional;
-            this.pesoTurnoRepetido = pesoTurnoRepetido;
-            this.sementeDiversificacao = sementeDiversificacao;
-            this.pesoDiversificacao = pesoDiversificacao;
-        }
-
-        private static PoliticaOtimizacao porIndice(int indice) {
-            PoliticaOtimizacao[] valores = values();
-            return valores[Math.floorMod(indice, valores.length)];
-        }
-
-        private String nome() {
-            return nome;
-        }
-
-        private String descricao() {
-            return descricao;
-        }
-
-        private int pesoEquilibrioCarga() {
-            return pesoEquilibrioCarga;
-        }
-
-        private int pesoPreferencias() {
-            return pesoPreferencias;
-        }
-
-        private int pesoFinsDeSemana() {
-            return pesoFinsDeSemana;
-        }
-
-        private int pesoReservaOperacional() {
-            return pesoReservaOperacional;
-        }
-
-        private int pesoTurnoRepetido() {
-            return pesoTurnoRepetido;
-        }
-
-        private int sementeDiversificacao() {
-            return sementeDiversificacao;
-        }
-
-        private int pesoDiversificacao() {
-            return pesoDiversificacao;
-        }
-    }
-
-
-    // =========================================================================
-    // EstadoColaboradorResumo — substitui EstadoColaborador para métricas pós-geração
-    // Não contém lógica de algoritmo; apenas acumula carga para calcularMetricasPlaneamento.
-    // =========================================================================
-    private static final class EstadoColaboradorResumo {
-        private final Lojautilizador ligacao;
-        final long cargaMaximaMinutos;
-        long minutosAtribuidos;
-        int turnosAtribuidos;
-        int totalFinsDeSemanaTrabalhados;
-
-        EstadoColaboradorResumo(Lojautilizador ligacao, long cargaMaximaMinutos) {
-            this.ligacao = ligacao;
-            this.cargaMaximaMinutos = cargaMaximaMinutos;
-        }
-
-        Integer idUtilizador() {
-            return ligacao.getIdUtilizador() != null ? ligacao.getIdUtilizador().getId() : null;
-        }
-
-        Lojautilizador ligacao() {
-            return ligacao;
-        }
-
-        void registarTurno(long minutos) {
-            minutosAtribuidos += minutos;
-            turnosAtribuidos++;
-        }
-
-        int turnosAtribuidos() {
-            return turnosAtribuidos;
-        }
-    }
 }
