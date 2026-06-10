@@ -1,20 +1,26 @@
 package com.example.projeto2.DESKTOP;
 
-import com.example.projeto2.API.Services.PainelGerenteService;
-import com.example.projeto2.API.Services.SnapshotOperacionalLojaService;
-import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
-import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Modules.Permuta;
 import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Modules.Utilizador;
-import javafx.beans.binding.Bindings;
+import com.example.projeto2.API.Services.PainelGerenteService;
+import com.example.projeto2.API.Services.SnapshotOperacionalLojaService;
+import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
+import com.example.projeto2.DESKTOP.support.FolgasPainelSection;
+import com.example.projeto2.DESKTOP.support.PainelPedidosCoordinator;
+import com.example.projeto2.DESKTOP.support.PermutasPainelSection;
+import com.example.projeto2.DESKTOP.support.PreferenciasPainelSection;
+import static com.example.projeto2.DESKTOP.support.PedidosFormatters.descreverPedido;
+import static com.example.projeto2.DESKTOP.support.PedidosFormatters.descreverPeriodoContexto;
+import static com.example.projeto2.DESKTOP.support.PedidosFormatters.formatarAusenciasColaborador;
+import static com.example.projeto2.DESKTOP.support.PedidosFormatters.formatarTexto;
+import static com.example.projeto2.DESKTOP.support.PedidosFormatters.formatarTurnosColaborador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -26,25 +32,15 @@ import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import javafx.animation.PauseTransition;
-import javafx.util.Duration;
-
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @Component
 @Scope("prototype")
 public class PainelGerentePedidosController {
-
-    private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final Locale LOCALE_PT = Locale.forLanguageTag("pt-PT");
 
     @FXML
     private Label lblLoja;
@@ -208,10 +204,13 @@ public class PainelGerentePedidosController {
     private final PainelGerenteService painelGerenteBLL;
     private final SnapshotOperacionalLojaService snapshotOperacionalLojaBLL;
     private Utilizador utilizadorLogado;
-    private Map<Integer, String> nomesFolgasPendentes = Map.of();
     private boolean aSincronizarSelecao;
     private DashboardNavigator dashboardNavigation;
     private LocalDate inicioSemanaContextoAtual = CalendarioSemanalHelper.inicioSemana(LocalDate.now());
+
+    private FolgasPainelSection folgasSection;
+    private PermutasPainelSection permutasSection;
+    private PreferenciasPainelSection preferenciasSection;
 
     public PainelGerentePedidosController(PainelGerenteService painelGerenteBLL,
                                           SnapshotOperacionalLojaService snapshotOperacionalLojaBLL) {
@@ -221,45 +220,55 @@ public class PainelGerentePedidosController {
 
     @FXML
     public void initialize() {
-        configurarTabelaFolgas();
-        configurarTabelaPermutas();
-        configurarTabelaPreferencias();
+        PainelPedidosCoordinator coord = new PainelPedidosCoordinator() {
+            @Override
+            public Integer obterIdUtilizadorLogado() {
+                return utilizadorLogado != null ? utilizadorLogado.getId() : null;
+            }
+
+            @Override
+            public Window obterJanela() {
+                return PainelGerentePedidosController.this.obterJanela();
+            }
+
+            @Override
+            public void aposAcaoBemSucedida() {
+                limparContextoOperacional();
+                carregarPainel();
+            }
+        };
+
+        folgasSection = new FolgasPainelSection(
+                tabelaFolgasPendentes,
+                colFolgaColaborador, colFolgaData, colFolgaTipo, colFolgaMotivo,
+                lblFeedbackFolgas, btnAprovarFolga, btnRejeitarFolga,
+                painelGerenteBLL, coord);
+
+        permutasSection = new PermutasPainelSection(
+                tabelaPermutasPendentes,
+                colPermutaColaborador, colPermutaPedido, colPermutaOrigem, colPermutaDestino,
+                lblFeedbackPermutas, btnAprovarPermuta, btnRejeitarPermuta,
+                painelGerenteBLL, coord);
+
+        preferenciasSection = new PreferenciasPainelSection(
+                tabelaPreferenciasPendentes,
+                colPreferenciaColaborador, colPreferenciaTipo, colPreferenciaPeriodo,
+                colPreferenciaPrioridade, colPreferenciaDescricao,
+                txtDecisaoPreferencia, lblFeedbackPreferencias,
+                btnAprovarPreferencia, btnRejeitarPreferencia,
+                painelGerenteBLL, coord);
+
+        folgasSection.configurar();
+        permutasSection.configurar();
+        preferenciasSection.configurar();
+
         configurarTabelaContexto();
-
-        esconderFeedback(lblFeedbackFolgas);
-        esconderFeedback(lblFeedbackPermutas);
-        esconderFeedback(lblFeedbackPreferencias);
-
-        tabelaFolgasPendentes.setPlaceholder(new Label("Não existem pedidos de folga pendentes nesta loja."));
-        tabelaPermutasPendentes.setPlaceholder(new Label("Não existem pedidos de permuta pendentes nesta loja."));
-        tabelaPreferenciasPendentes.setPlaceholder(new Label("Não existem preferências pendentes nesta loja."));
         tabelaColaboradoresEnvolvidos.setPlaceholder(new Label("Seleciona um pedido para veres os colaboradores envolvidos."));
-
-        btnAprovarFolga.disableProperty().bind(Bindings.isNull(tabelaFolgasPendentes.getSelectionModel().selectedItemProperty()));
-        btnRejeitarFolga.disableProperty().bind(Bindings.isNull(tabelaFolgasPendentes.getSelectionModel().selectedItemProperty()));
-        btnAprovarPermuta.disableProperty().bind(Bindings.isNull(tabelaPermutasPendentes.getSelectionModel().selectedItemProperty()));
-        btnRejeitarPermuta.disableProperty().bind(Bindings.isNull(tabelaPermutasPendentes.getSelectionModel().selectedItemProperty()));
-        btnAprovarPreferencia.disableProperty().bind(Bindings.isNull(tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty()));
-        btnRejeitarPreferencia.disableProperty().bind(Bindings.isNull(tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty()));
-
-        // Tooltips
-        btnAprovarFolga.setTooltip(new Tooltip("Aprovar o pedido de folga selecionado"));
-        btnRejeitarFolga.setTooltip(new Tooltip("Rejeitar o pedido de folga selecionado"));
-        btnAprovarPermuta.setTooltip(new Tooltip("Aprovar a permuta de turno selecionada"));
-        btnRejeitarPermuta.setTooltip(new Tooltip("Rejeitar a permuta de turno selecionada"));
-        btnAprovarPreferencia.setTooltip(new Tooltip("Aprovar a preferência selecionada"));
-        btnRejeitarPreferencia.setTooltip(new Tooltip("Rejeitar a preferência selecionada"));
 
         btnAtalhoFolgas.setTooltip(new Tooltip("Abrir módulo de folgas (Ctrl+1)"));
         btnAtalhoPermutas.setTooltip(new Tooltip("Abrir módulo de permutas (Ctrl+2)"));
         btnAtalhoPreferencias.setTooltip(new Tooltip("Abrir módulo de preferências (Ctrl+3)"));
         btnAtalhoHorarios.setTooltip(new Tooltip("Abrir módulo de horários (Ctrl+4)"));
-
-        txtDecisaoPreferencia.textProperty().addListener((obs, oldValue, newValue) -> esconderFeedback(lblFeedbackPreferencias));
-        tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
-            txtDecisaoPreferencia.clear();
-            esconderFeedback(lblFeedbackPreferencias);
-        });
 
         configurarSelecaoContextual();
         configurarAtalhosRapidos();
@@ -277,32 +286,32 @@ public class PainelGerentePedidosController {
 
     @FXML
     public void onAprovarFolgaClick() {
-        tratarFolga(true);
+        folgasSection.tratar(true);
     }
 
     @FXML
     public void onRejeitarFolgaClick() {
-        tratarFolga(false);
+        folgasSection.tratar(false);
     }
 
     @FXML
     public void onAprovarPermutaClick() {
-        tratarPermuta(true);
+        permutasSection.tratar(true);
     }
 
     @FXML
     public void onRejeitarPermutaClick() {
-        tratarPermuta(false);
+        permutasSection.tratar(false);
     }
 
     @FXML
     public void onAprovarPreferenciaClick() {
-        tratarPreferencia(true);
+        preferenciasSection.tratar(true);
     }
 
     @FXML
     public void onRejeitarPreferenciaClick() {
-        tratarPreferencia(false);
+        preferenciasSection.tratar(false);
     }
 
     @FXML
@@ -359,109 +368,6 @@ public class PainelGerentePedidosController {
         });
     }
 
-    private void configurarTabelaFolgas() {
-        colFolgaColaborador.setCellValueFactory(cellData -> {
-            var utilizadorFolga = cellData.getValue().getIdUtilizador();
-            Integer idColaborador = (utilizadorFolga != null) ? utilizadorFolga.getId() : null;
-            return new SimpleStringProperty(nomesFolgasPendentes.getOrDefault(
-                    idColaborador,
-                    idColaborador != null ? "Colaborador #" + idColaborador : "Colaborador"));
-        });
-
-        colFolgaData.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarData(cellData.getValue().getDataAusencia())));
-
-        colFolgaTipo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTipoFolga(cellData.getValue().getTipo())));
-        colFolgaTipo.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(String tipo, boolean empty) {
-                super.updateItem(tipo, empty);
-                if (empty || tipo == null) { setGraphic(null); setText(null); return; }
-                Label badge = new Label(tipo);
-                badge.getStyleClass().addAll("badge-estado",
-                        tipo.toLowerCase().contains("folga") ? "badge-folga" : "badge-pendente");
-                setGraphic(badge);
-                setText(null);
-            }
-        });
-
-        colFolgaMotivo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().getMotivo())));
-    }
-
-    private void configurarTabelaPermutas() {
-        colPermutaColaborador.setCellValueFactory(cellData ->
-                new SimpleStringProperty(obterNomePermuta(cellData.getValue())));
-
-        colPermutaPedido.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarDataHora(cellData.getValue().getDataPedido())));
-
-        colPermutaOrigem.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTurno(cellData.getValue().getIdHorarioOrigem(), false)));
-
-        colPermutaDestino.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTurno(cellData.getValue().getIdHorarioDestino(), true)));
-    }
-
-    private void configurarTabelaPreferencias() {
-        colPreferenciaColaborador.setCellValueFactory(cellData ->
-                new SimpleStringProperty(obterNomePreferencia(cellData.getValue())));
-
-        colPreferenciaTipo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTipoPreferencia(cellData.getValue().getTipo())));
-        colPreferenciaTipo.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(String tipo, boolean empty) {
-                super.updateItem(tipo, empty);
-                if (empty || tipo == null || tipo.isBlank()) {
-                    setGraphic(null);
-                    setText(null);
-                    return;
-                }
-                Label badge = new Label(tipo.toUpperCase(LOCALE_PT));
-                badge.getStyleClass().addAll("badge-estado",
-                        (tipo.toLowerCase(LOCALE_PT).contains("folga") || tipo.toLowerCase(LOCALE_PT).contains("fer"))
-                                ? "badge-folga"
-                                : "badge-enviado");
-                setGraphic(badge);
-                setText(null);
-            }
-        });
-
-        colPreferenciaPeriodo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarPeriodo(cellData.getValue().getDataInicio(), cellData.getValue().getDataFim())));
-
-        colPreferenciaPrioridade.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarVigencia(cellData.getValue())));
-        colPreferenciaPrioridade.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(String vigencia, boolean empty) {
-                super.updateItem(vigencia, empty);
-                if (empty || vigencia == null || vigencia.isBlank()) {
-                    setGraphic(null);
-                    setText(null);
-                    return;
-                }
-                Label badge = new Label(vigencia.toUpperCase(LOCALE_PT));
-                badge.getStyleClass().add("badge-estado");
-                String normalizado = vigencia.toLowerCase(LOCALE_PT);
-                if (normalizado.contains("permanente")) {
-                    badge.getStyleClass().add("badge-aprovado");
-                } else if (normalizado.contains("tempor")) {
-                    badge.getStyleClass().add("badge-pendente");
-                } else {
-                    badge.getStyleClass().add("badge-rascunho");
-                }
-                setGraphic(badge);
-                setText(null);
-            }
-        });
-
-        colPreferenciaDescricao.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTexto(cellData.getValue().getDescricao())));
-    }
-
     private void configurarTabelaContexto() {
         colContextoColaborador.setCellValueFactory(cellData ->
                 new SimpleStringProperty(formatarTexto(cellData.getValue().nome())));
@@ -474,7 +380,7 @@ public class PainelGerentePedidosController {
     }
 
     private void configurarSelecaoContextual() {
-        tabelaFolgasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
+        folgasSection.getTabela().getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
             if (aSincronizarSelecao) {
                 return;
             }
@@ -487,7 +393,7 @@ public class PainelGerentePedidosController {
             }
         });
 
-        tabelaPermutasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
+        permutasSection.getTabela().getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
             if (aSincronizarSelecao) {
                 return;
             }
@@ -500,7 +406,7 @@ public class PainelGerentePedidosController {
             }
         });
 
-        tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
+        preferenciasSection.getTabela().getSelectionModel().selectedItemProperty().addListener((obs, antiga, nova) -> {
             if (aSincronizarSelecao) {
                 return;
             }
@@ -534,169 +440,15 @@ public class PainelGerentePedidosController {
             lblTotalPermutas.setText(String.valueOf(snapshot.resumo().permutasPendentes()));
             lblTotalPreferencias.setText(String.valueOf(snapshot.resumo().preferenciasPendentes()));
 
-            nomesFolgasPendentes = snapshot.nomesFolgasPendentes();
-            tabelaFolgasPendentes.setItems(FXCollections.observableArrayList(snapshot.folgasPendentes()));
-            tabelaFolgasPendentes.refresh();
-
-            tabelaPermutasPendentes.setItems(FXCollections.observableArrayList(snapshot.permutasPendentes()));
-            tabelaPermutasPendentes.refresh();
-
-            tabelaPreferenciasPendentes.setItems(FXCollections.observableArrayList(snapshot.preferenciasPendentes()));
-            tabelaPreferenciasPendentes.refresh();
+            folgasSection.mostrarDados(snapshot.folgasPendentes(), snapshot.nomesFolgasPendentes());
+            permutasSection.mostrarDados(snapshot.permutasPendentes());
+            preferenciasSection.mostrarDados(snapshot.preferenciasPendentes());
 
             if (!haPedidoSelecionado()) {
                 limparContextoOperacional();
             }
         } catch (IllegalArgumentException e) {
-            mostrarFeedback(lblFeedbackFolgas, e.getMessage(), false);
-        }
-    }
-
-    private void tratarFolga(boolean aprovar) {
-        try {
-            DayOff pedidoSelecionado = tabelaFolgasPendentes.getSelectionModel().getSelectedItem();
-            if (pedidoSelecionado == null) {
-                throw new IllegalArgumentException("Seleciona um pedido de folga primeiro.");
-            }
-
-            // Construir contexto da folga para o diálogo
-            String nomeColaboradorFolga = nomesFolgasPendentes.getOrDefault(
-                    pedidoSelecionado.getIdUtilizador() != null ? pedidoSelecionado.getIdUtilizador().getId() : null,
-                    "Colaborador");
-            String dataFolga = pedidoSelecionado.getDataAusencia() != null
-                    ? pedidoSelecionado.getDataAusencia().format(DATA_FORMATTER) : "-";
-            String tipoFolga = pedidoSelecionado.getTipo() != null ? pedidoSelecionado.getTipo() : "-";
-            String motivoFolga = pedidoSelecionado.getMotivo() != null && !pedidoSelecionado.getMotivo().isBlank()
-                    ? "\nMotivo: " + pedidoSelecionado.getMotivo() : "";
-            String detalhesFolga = String.format("Colaborador: %s%nData: %s%nTipo: %s%s",
-                    nomeColaboradorFolga, dataFolga, tipoFolga, motivoFolga);
-
-            if (!DialogosHelper.confirmarAcao(
-                    obterJanela(),
-                    aprovar ? "Aprovar folga" : "Rejeitar folga",
-                    aprovar ? "Confirmas a aprovação?" : "Confirmas a rejeição?",
-                    detalhesFolga
-            )) {
-                return;
-            }
-
-            if (aprovar) {
-                painelGerenteBLL.aprovarFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                mostrarFeedback(lblFeedbackFolgas, "Pedido de folga aprovado com sucesso.", true);
-            } else {
-                painelGerenteBLL.rejeitarFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                mostrarFeedback(lblFeedbackFolgas, "Pedido de folga rejeitado com sucesso.", true);
-            }
-
-            tabelaFolgasPendentes.getSelectionModel().clearSelection();
-            limparContextoOperacional();
-            carregarPainel();
-        } catch (IllegalArgumentException e) {
-            mostrarFeedback(lblFeedbackFolgas, e.getMessage(), false);
-        } catch (Exception e) {
-            mostrarFeedback(lblFeedbackFolgas, "Não foi possível atualizar o pedido de folga.", false);
-        }
-    }
-
-    private void tratarPermuta(boolean aprovar) {
-        try {
-            Permuta pedidoSelecionado = tabelaPermutasPendentes.getSelectionModel().getSelectedItem();
-            if (pedidoSelecionado == null) {
-                throw new IllegalArgumentException("Seleciona um pedido de permuta primeiro.");
-            }
-
-            // Construir contexto da permuta para o diálogo
-            String nomeOrigem = pedidoSelecionado.getIdHorarioOrigem() != null
-                    && pedidoSelecionado.getIdHorarioOrigem().getIdLojautilizador() != null
-                    && pedidoSelecionado.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador() != null
-                    ? pedidoSelecionado.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador().getNome()
-                    : "Colaborador A";
-            String nomeDestino = pedidoSelecionado.getIdHorarioDestino() != null
-                    && pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador() != null
-                    && pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador().getIdUtilizador() != null
-                    ? pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador().getIdUtilizador().getNome()
-                    : "Colaborador B";
-            String dataOrigem = pedidoSelecionado.getIdHorarioOrigem() != null
-                    && pedidoSelecionado.getIdHorarioOrigem().getDataTurno() != null
-                    ? pedidoSelecionado.getIdHorarioOrigem().getDataTurno().format(DATA_FORMATTER) : "-";
-            String dataDestino = pedidoSelecionado.getIdHorarioDestino() != null
-                    && pedidoSelecionado.getIdHorarioDestino().getDataTurno() != null
-                    ? pedidoSelecionado.getIdHorarioDestino().getDataTurno().format(DATA_FORMATTER) : "-";
-            String detalhesPermuta = String.format("%s (%s)  ↔  %s (%s)", nomeOrigem, dataOrigem, nomeDestino, dataDestino);
-
-            if (!DialogosHelper.confirmarAcao(
-                    obterJanela(),
-                    aprovar ? "Aprovar permuta" : "Rejeitar permuta",
-                    aprovar ? "Confirmas a aprovação desta troca de turno?" : "Confirmas a rejeição desta troca de turno?",
-                    detalhesPermuta
-            )) {
-                return;
-            }
-
-            if (aprovar) {
-                painelGerenteBLL.aprovarPermuta(pedidoSelecionado.getId(), utilizadorLogado.getId());
-                mostrarFeedback(lblFeedbackPermutas, "Pedido de permuta aprovado com sucesso.", true);
-            } else {
-                painelGerenteBLL.rejeitarPermuta(pedidoSelecionado.getId(), utilizadorLogado.getId());
-                mostrarFeedback(lblFeedbackPermutas, "Pedido de permuta rejeitado com sucesso.", true);
-            }
-
-            tabelaPermutasPendentes.getSelectionModel().clearSelection();
-            limparContextoOperacional();
-            carregarPainel();
-        } catch (IllegalArgumentException e) {
-            mostrarFeedback(lblFeedbackPermutas, e.getMessage(), false);
-        } catch (Exception e) {
-            mostrarFeedback(lblFeedbackPermutas, "Não foi possível atualizar o pedido de permuta.", false);
-        }
-    }
-
-    private void tratarPreferencia(boolean aprovar) {
-        try {
-            Preferencia preferenciaSelecionada = tabelaPreferenciasPendentes.getSelectionModel().getSelectedItem();
-            if (preferenciaSelecionada == null) {
-                throw new IllegalArgumentException("Seleciona uma preferência primeiro.");
-            }
-
-            // Construir contexto da preferência para o diálogo
-            String nomeColabPref = preferenciaSelecionada.getIdUtilizador() != null
-                    && preferenciaSelecionada.getIdUtilizador().getNome() != null
-                    ? preferenciaSelecionada.getIdUtilizador().getNome() : "Colaborador";
-            String tipoPref = preferenciaSelecionada.getTipo() != null ? preferenciaSelecionada.getTipo() : "-";
-            String dataInicioPref = preferenciaSelecionada.getDataInicio() != null
-                    ? preferenciaSelecionada.getDataInicio().format(DATA_FORMATTER) : "-";
-            String dataFimPref = preferenciaSelecionada.getDataFim() != null
-                    ? preferenciaSelecionada.getDataFim().format(DATA_FORMATTER) : "-";
-            String descPref = preferenciaSelecionada.getDescricao() != null && !preferenciaSelecionada.getDescricao().isBlank()
-                    ? "\n\"" + preferenciaSelecionada.getDescricao() + "\"" : "";
-            String detalhesPref = String.format("Colaborador: %s%nTipo: %s%nPeríodo: %s a %s%s",
-                    nomeColabPref, tipoPref, dataInicioPref, dataFimPref, descPref);
-
-            if (!DialogosHelper.confirmarAcao(
-                    obterJanela(),
-                    aprovar ? "Aprovar preferência" : "Rejeitar preferência",
-                    aprovar ? "Confirmas a aprovação desta preferência?" : "Confirmas a rejeição desta preferência?",
-                    detalhesPref
-            )) {
-                return;
-            }
-
-            if (aprovar) {
-                painelGerenteBLL.aprovarPreferencia(preferenciaSelecionada.getId(), utilizadorLogado.getId(), txtDecisaoPreferencia.getText());
-                mostrarFeedback(lblFeedbackPreferencias, "Preferência aprovada com sucesso.", true);
-            } else {
-                painelGerenteBLL.rejeitarPreferencia(preferenciaSelecionada.getId(), utilizadorLogado.getId(), txtDecisaoPreferencia.getText());
-                mostrarFeedback(lblFeedbackPreferencias, "Preferência rejeitada com sucesso.", true);
-            }
-
-            txtDecisaoPreferencia.clear();
-            tabelaPreferenciasPendentes.getSelectionModel().clearSelection();
-            limparContextoOperacional();
-            carregarPainel();
-        } catch (IllegalArgumentException e) {
-            mostrarFeedback(lblFeedbackPreferencias, e.getMessage(), false);
-        } catch (Exception e) {
-            mostrarFeedback(lblFeedbackPreferencias, "Não foi possível atualizar a preferência.", false);
+            folgasSection.mostrarErro(e.getMessage());
         }
     }
 
@@ -764,13 +516,13 @@ public class PainelGerentePedidosController {
         aSincronizarSelecao = true;
         try {
             if (tipoMantido != SnapshotOperacionalLojaService.TipoPedidoOperacional.FOLGA) {
-                tabelaFolgasPendentes.getSelectionModel().clearSelection();
+                folgasSection.getTabela().getSelectionModel().clearSelection();
             }
             if (tipoMantido != SnapshotOperacionalLojaService.TipoPedidoOperacional.PERMUTA) {
-                tabelaPermutasPendentes.getSelectionModel().clearSelection();
+                permutasSection.getTabela().getSelectionModel().clearSelection();
             }
             if (tipoMantido != SnapshotOperacionalLojaService.TipoPedidoOperacional.PREFERENCIA) {
-                tabelaPreferenciasPendentes.getSelectionModel().clearSelection();
+                preferenciasSection.getTabela().getSelectionModel().clearSelection();
             }
         } finally {
             aSincronizarSelecao = false;
@@ -778,195 +530,9 @@ public class PainelGerentePedidosController {
     }
 
     private boolean haPedidoSelecionado() {
-        return tabelaFolgasPendentes.getSelectionModel().getSelectedItem() != null
-                || tabelaPermutasPendentes.getSelectionModel().getSelectedItem() != null
-                || tabelaPreferenciasPendentes.getSelectionModel().getSelectedItem() != null;
-    }
-
-    private void mostrarFeedback(Label label, String mensagem, boolean sucesso) {
-        label.setText(mensagem);
-        label.getStyleClass().removeAll("mensagem-sucesso", "mensagem-erro");
-        if (!label.getStyleClass().contains("mensagem-feedback")) {
-            label.getStyleClass().add("mensagem-feedback");
-        }
-        label.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
-        label.setManaged(true);
-        label.setVisible(true);
-
-        // Auto-dismiss após 5 s em mensagens de sucesso
-        if (sucesso) {
-            PauseTransition pausa = new PauseTransition(Duration.seconds(5));
-            pausa.setOnFinished(e -> esconderFeedback(label));
-            pausa.play();
-        }
-    }
-
-    private void esconderFeedback(Label label) {
-        label.setText("");
-        label.setManaged(false);
-        label.setVisible(false);
-        label.getStyleClass().removeAll("mensagem-sucesso", "mensagem-erro");
-        if (!label.getStyleClass().contains("mensagem-feedback")) {
-            label.getStyleClass().add("mensagem-feedback");
-        }
-    }
-
-    private String formatarData(LocalDate data) {
-        return data == null ? "-" : DATA_FORMATTER.format(data);
-    }
-
-    private String formatarDataHora(java.time.Instant dataPedido) {
-        return dataPedido == null ? "-" : DATA_HORA_FORMATTER.format(dataPedido.atZone(ZoneId.systemDefault()));
-    }
-
-    private String formatarTipoFolga(String tipo) {
-        if (tipo == null || tipo.isBlank()) {
-            return "-";
-        }
-
-        return switch (tipo.toLowerCase(LOCALE_PT)) {
-            case "ferias" -> "Férias";
-            case "folgas" -> "Folgas";
-            case "baixa" -> "Baixa";
-            default -> tipo;
-        };
-    }
-
-    private String formatarTipoPreferencia(String tipo) {
-        if (tipo == null || tipo.isBlank()) {
-            return "-";
-        }
-
-        return switch (tipo.toLowerCase(LOCALE_PT)) {
-            case "folgas" -> "Folgas";
-            case "ferias" -> "Férias";
-            case "colegas" -> "Colegas";
-            case "turnos" -> "Turnos";
-            default -> tipo;
-        };
-    }
-
-    private String formatarPeriodo(LocalDate dataInicio, LocalDate dataFim) {
-        if (dataInicio == null && dataFim == null) {
-            return "Sem período";
-        }
-
-        if (dataInicio != null && dataFim != null) {
-            return DATA_FORMATTER.format(dataInicio) + " a " + DATA_FORMATTER.format(dataFim);
-        }
-
-        return dataInicio != null ? formatarData(dataInicio) : formatarData(dataFim);
-    }
-
-    private String formatarVigencia(Preferencia preferencia) {
-        if (preferencia == null) {
-            return "-";
-        }
-
-        if (preferencia.getDataFim() == null && preferencia.getDataInicio() != null) {
-            return ("colegas".equalsIgnoreCase(preferencia.getTipo()) || "turnos".equalsIgnoreCase(preferencia.getTipo()))
-                    ? "Permanente"
-                    : "Data única";
-        }
-
-        if (preferencia.getDataInicio() != null || preferencia.getDataFim() != null) {
-            return "Temporária";
-        }
-
-        return "Sem período";
-    }
-
-    private String formatarTexto(String texto) {
-        return texto == null || texto.isBlank() ? "-" : texto;
-    }
-
-    private String obterNomePermuta(Permuta permuta) {
-        if (permuta == null
-                || permuta.getIdHorarioOrigem() == null
-                || permuta.getIdHorarioOrigem().getIdLojautilizador() == null
-                || permuta.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador() == null) {
-            return "-";
-        }
-
-        return formatarTexto(permuta.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador().getNome());
-    }
-
-    private String obterNomePreferencia(Preferencia preferencia) {
-        if (preferencia == null || preferencia.getIdUtilizador() == null) {
-            return "-";
-        }
-
-        return formatarTexto(preferencia.getIdUtilizador().getNome());
-    }
-
-    private String formatarTurno(com.example.projeto2.API.Modules.Horario horario, boolean incluirNome) {
-        if (horario == null || horario.getDataTurno() == null || horario.getIdTurno() == null) {
-            return "-";
-        }
-
-        String base = DATA_FORMATTER.format(horario.getDataTurno())
-                + " | "
-                + horario.getIdTurno().getHoraInicio()
-                + " - "
-                + horario.getIdTurno().getHoraFim();
-
-        if (!incluirNome
-                || horario.getIdLojautilizador() == null
-                || horario.getIdLojautilizador().getIdUtilizador() == null
-                || horario.getIdLojautilizador().getIdUtilizador().getNome() == null) {
-            return base;
-        }
-
-        return horario.getIdLojautilizador().getIdUtilizador().getNome() + " | " + base;
-    }
-
-    private String formatarTurnosColaborador(List<SnapshotOperacionalLojaService.TurnoPlaneado> turnos) {
-        if (turnos == null || turnos.isEmpty()) {
-            return "Sem turnos planeados no período";
-        }
-
-        return turnos.stream()
-                .map(turno -> formatarData(turno.data()) + " | " + formatarTexto(turno.periodo()))
-                .reduce((primeiro, segundo) -> primeiro + "; " + segundo)
-                .orElse("-");
-    }
-
-    private String formatarAusenciasColaborador(List<SnapshotOperacionalLojaService.AusenciaOperacional> ausencias) {
-        if (ausencias == null || ausencias.isEmpty()) {
-            return "Sem ausências aprovadas no período";
-        }
-
-        return ausencias.stream()
-                .map(ausencia -> formatarData(ausencia.data()) + " | " + formatarTexto(ausencia.tipo()))
-                .reduce((primeiro, segundo) -> primeiro + "; " + segundo)
-                .orElse("-");
-    }
-
-    private String descreverPedido(SnapshotOperacionalLojaService.ContextoPedidoOperacional contexto) {
-        if (contexto == null || contexto.pedido() == null) {
-            return "Contexto operacional indisponível";
-        }
-
-        return switch (contexto.pedido().tipo()) {
-            case FOLGA -> "Pedido de folga de " + contexto.pedido().colaboradorPrincipal();
-            case PERMUTA -> "Pedido de permuta de " + contexto.pedido().colaboradorPrincipal();
-            case PREFERENCIA -> "Preferência de " + contexto.pedido().colaboradorPrincipal();
-        };
-    }
-
-    private String descreverPeriodoContexto(SnapshotOperacionalLojaService.IntervaloOperacional intervalo) {
-        if (intervalo == null) {
-            return "-";
-        }
-
-        if (intervalo.unicoDia()) {
-            return "Contexto de loja para " + formatarData(intervalo.dataInicio());
-        }
-
-        return "Contexto de loja de "
-                + formatarData(intervalo.dataInicio())
-                + " a "
-                + formatarData(intervalo.dataFim());
+        return folgasSection.getTabela().getSelectionModel().getSelectedItem() != null
+                || permutasSection.getTabela().getSelectionModel().getSelectedItem() != null
+                || preferenciasSection.getTabela().getSelectionModel().getSelectedItem() != null;
     }
 
     private void atualizarDetalheColaborador(SnapshotOperacionalLojaService.ColaboradorContexto colaborador) {

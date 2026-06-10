@@ -189,6 +189,33 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
     }
 
     @Test
+    void painelGerentePedidosViewCarregaSemFalhas() throws Exception {
+        // Protege a FXML do painel de gestão de pedidos: confirma que todos os fx:id
+        // e onAction continuam ligados após a divisão em sections (Fase 4 — folgas,
+        // permutas e preferências passaram a ser delegadas a classes auxiliares).
+        AtomicReference<Throwable> erro = new AtomicReference<>();
+        AtomicReference<Parent> rootRef = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/projeto2/dashboard/painel-gerente-pedidos-view.fxml"));
+                loader.setControllerFactory(applicationContext::getBean);
+                Parent root = loader.load();
+                rootRef.set(root);
+            } catch (Throwable throwable) {
+                erro.set(throwable);
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertTrue(latch.await(45, TimeUnit.SECONDS));
+        assertNull(erro.get(), () -> erro.get() == null ? "" : erro.get().toString());
+        assertNotNull(rootRef.get());
+    }
+
+    @Test
     void dashboardInicialNaoFicaComCentroVazioDepoisDoLogin() throws Exception {
         GeracaoFixture fixture = criarContextoGeracao("dashboard-login");
         AtomicReference<Throwable> erro = new AtomicReference<>();
