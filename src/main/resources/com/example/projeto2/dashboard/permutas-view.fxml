@@ -14,7 +14,6 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.SVGPath?>
-<?import javafx.scene.shape.Circle?>
 
 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
             styleClass="conteudo-scroll"
@@ -68,16 +67,8 @@
                                 </StackPane>
                                 <Label styleClass="campo-titulo" text="O teu turno a ceder" />
                             </HBox>
-                            <ScrollPane fx:id="scrollMeusTurnos" fitToHeight="true"
-                                        hbarPolicy="AS_NEEDED" vbarPolicy="NEVER"
-                                        styleClass="permutas-scroll-cartoes" minHeight="148.0">
-                                <HBox fx:id="containerMeusTurnos" spacing="10.0"
-                                      styleClass="permutas-container-cartoes">
-                                    <padding><Insets top="6.0" bottom="6.0" left="4.0" right="4.0" /></padding>
-                                </HBox>
-                            </ScrollPane>
-                            <!-- combo oculto mantém os bindings e a lógica existente -->
-                            <ComboBox fx:id="cbMeuTurno" managed="false" visible="false" />
+                            <ComboBox fx:id="cbMeuTurno" maxWidth="Infinity"
+                                      promptText="Escolhe o teu turno..." />
                         </VBox>
 
                         <VBox spacing="10.0" styleClass="step-container">
@@ -85,14 +76,14 @@
                                 <StackPane styleClass="step-badge" prefWidth="28.0" prefHeight="28.0">
                                     <Label styleClass="step-numero" text="2" />
                                 </StackPane>
-                                <Label styleClass="campo-titulo" text="Troca dispon&#237;vel" />
+                                <Label styleClass="campo-titulo" text="Colega e turno pretendido" />
                             </HBox>
                             <Label fx:id="lblTurnosElegiveis" styleClass="texto-ajuda"
                                    text="Seleciona primeiro um dos teus turnos." wrapText="true" />
-                            <VBox fx:id="containerOpcoesTroca" spacing="8.0" />
-                            <!-- combos ocultos mantêm os bindings e a lógica existente -->
-                            <ComboBox fx:id="cbColegaElegivel" managed="false" visible="false" />
-                            <ComboBox fx:id="cbTurnoColega" managed="false" visible="false" />
+                            <ComboBox fx:id="cbColegaElegivel" maxWidth="Infinity"
+                                      promptText="Colega elegível..." />
+                            <ComboBox fx:id="cbTurnoColega" maxWidth="Infinity"
+                                      promptText="Turno do colega..." />
                         </VBox>
 
                         <Label fx:id="lblMensagem" styleClass="mensagem-feedback"
