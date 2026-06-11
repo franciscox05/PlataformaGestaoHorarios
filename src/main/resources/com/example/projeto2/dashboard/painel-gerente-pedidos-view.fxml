@@ -4,9 +4,13 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -23,267 +27,270 @@
                 <Insets bottom="56.0" left="40.0" right="40.0" top="40.0" />
             </padding>
 
+            <!-- Banner -->
             <VBox spacing="8.0" styleClass="modulo-banner modulo-banner-card modulo-banner-pedidos"
                   style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9b1c1c 0%, #450a0a 100%); -fx-background-insets: 0; -fx-background-radius: 16px;">
                 <padding><Insets bottom="26.0" left="30.0" right="30.0" top="26.0" /></padding>
                 <Label styleClass="modulo-titulo" text="Painel de Gest&#227;o de Pedidos" />
                 <Label styleClass="modulo-subtitulo"
-                       text="Decide num &#250;nico ecr&#227; os pedidos pendentes de folgas, permutas e prefer&#234;ncias da tua loja."
+                       text="Folgas · Permutas · Prefer&#234;ncias — decide num &#250;nico ecr&#227; organizado por tipo."
                        wrapText="true" />
             </VBox>
 
             <Region minHeight="24.0" />
 
-            <HBox spacing="0.0" styleClass="context-bar">
+            <!-- Context bar + quick-nav buttons -->
+            <HBox alignment="CENTER_LEFT" spacing="0.0" styleClass="context-bar">
                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                     <Label styleClass="meta-etiqueta" text="LOJA" />
                     <Label fx:id="lblLoja" styleClass="meta-valor" text="-" />
                 </VBox>
                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                    <Label styleClass="meta-etiqueta" text="LOCALIZAÇÃO" />
+                    <Label styleClass="meta-etiqueta" text="LOCALIZA&#199;&#195;O" />
                     <Label fx:id="lblLocalizacao" styleClass="meta-valor" text="-" />
                 </VBox>
                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                    <Label styleClass="meta-etiqueta" text="PERFIL DE GESTÃO" />
+                    <Label styleClass="meta-etiqueta" text="PERFIL DE GEST&#195;O" />
                     <Label fx:id="lblCargo" styleClass="meta-valor" text="-" />
                 </VBox>
+                <HBox alignment="CENTER_RIGHT" spacing="8.0">
+                    <Button fx:id="btnAtalhoFolgas"         onAction="#onAtalhoFolgasClick"
+                            styleClass="botao-secundario" text="Folgas" />
+                    <Button fx:id="btnAtalhoPermutas"       onAction="#onAtalhoPermutasClick"
+                            styleClass="botao-secundario" text="Permutas" />
+                    <Button fx:id="btnAtalhoPreferencias"   onAction="#onAtalhoPreferenciasClick"
+                            styleClass="botao-secundario" text="Prefer&#234;ncias" />
+                    <Button fx:id="btnAtalhoHorarios"       onAction="#onAtalhoHorariosClick"
+                            styleClass="botao-secundario" text="Hor&#225;rios" />
+                </HBox>
             </HBox>
 
-            <Region minHeight="28.0" />
+            <Region minHeight="24.0" />
 
+            <!-- KPI summary cards -->
             <HBox spacing="16.0">
-
-                <VBox alignment="CENTER" spacing="8.0"
-                      styleClass="stat-card"
-                      HBox.hgrow="ALWAYS">
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                     <SVGPath fill="#c41230" styleClass="stat-icon"
                              content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
                     <Label fx:id="lblTotalPendentes" styleClass="stat-numero" text="-" />
                     <Label styleClass="stat-titulo" text="Total pendente" />
                 </VBox>
-
-                <VBox alignment="CENTER" spacing="8.0"
-                      styleClass="stat-card"
-                      HBox.hgrow="ALWAYS">
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                     <SVGPath fill="#c41230" styleClass="stat-icon"
                              content="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
                     <Label fx:id="lblTotalFolgas" styleClass="stat-numero" text="-" />
                     <Label styleClass="stat-titulo" text="Folgas" />
                 </VBox>
-
-                <VBox alignment="CENTER" spacing="8.0"
-                      styleClass="stat-card"
-                      HBox.hgrow="ALWAYS">
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                     <SVGPath fill="#c41230" styleClass="stat-icon"
                              content="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z" />
                     <Label fx:id="lblTotalPermutas" styleClass="stat-numero" text="-" />
                     <Label styleClass="stat-titulo" text="Permutas" />
                 </VBox>
-
-                <VBox alignment="CENTER" spacing="8.0"
-                      styleClass="stat-card"
-                      HBox.hgrow="ALWAYS">
+                <VBox alignment="CENTER" spacing="8.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
                     <SVGPath fill="#c41230" styleClass="stat-icon"
                              content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
                     <Label fx:id="lblTotalPreferencias" styleClass="stat-numero" text="-" />
-                    <Label styleClass="stat-titulo" text="Preferências" />
+                    <Label styleClass="stat-titulo" text="Prefer&#234;ncias" />
                 </VBox>
-
             </HBox>
-
-            <Region minHeight="32.0" />
-
-            <VBox fx:id="painelContextoOperacional" spacing="20.0" styleClass="info-card">
-
-                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                    <SVGPath fill="#c41230" styleClass="card-icon"
-                             content="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z" />
-                    <Label styleClass="card-titulo" text="Contexto Operacional da Decisão" />
-                </HBox>
-
-                <VBox spacing="4.0">
-                    <Label fx:id="lblContextoPedidoSelecionado"
-                           styleClass="subtitulo"
-                           text="Seleciona um pedido pendente para veres o contexto operacional."
-                           wrapText="true" />
-                    <Label fx:id="lblContextoPeriodo" styleClass="texto-ajuda" text="-" wrapText="true" />
-                    <Label fx:id="lblContextoResumo"  styleClass="texto-ajuda"
-                           text="Aqui vão aparecer os colaboradores envolvidos e a escala da loja no período relevante."
-                           wrapText="true" />
-                </VBox>
-
-                <HBox alignment="CENTER_LEFT" spacing="10.0">
-                    <Button fx:id="btnAtalhoFolgas"
-                            onAction="#onAtalhoFolgasClick"
-                            styleClass="botao-secundario" text="Folgas" />
-                    <Button fx:id="btnAtalhoPermutas"
-                            onAction="#onAtalhoPermutasClick"
-                            styleClass="botao-secundario" text="Permutas" />
-                    <Button fx:id="btnAtalhoPreferencias"
-                            onAction="#onAtalhoPreferenciasClick"
-                            styleClass="botao-secundario" text="Preferências" />
-                    <Button fx:id="btnAtalhoHorarios"
-                            onAction="#onAtalhoHorariosClick"
-                            styleClass="botao-secundario" text="Horários" />
-                </HBox>
-
-                <HBox spacing="12.0">
-                    <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <Label fx:id="lblContextoColaboradoresEscalados" styleClass="stat-numero" text="-" />
-                        <Label styleClass="stat-titulo" text="Escalados" wrapText="true" />
-                    </VBox>
-                    <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <Label fx:id="lblContextoTurnosPlaneados" styleClass="stat-numero" text="-" />
-                        <Label styleClass="stat-titulo" text="Turnos" />
-                    </VBox>
-                    <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <Label fx:id="lblContextoAusencias" styleClass="stat-numero" text="-" />
-                        <Label styleClass="stat-titulo" text="Ausências" wrapText="true" />
-                    </VBox>
-                    <VBox alignment="CENTER" spacing="6.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
-                        <Label fx:id="lblContextoPedidosPendentes" styleClass="stat-numero" text="-" />
-                        <Label styleClass="stat-titulo" text="Pendentes" wrapText="true" />
-                    </VBox>
-                </HBox>
-
-                <VBox spacing="8.0">
-                    <HBox alignment="CENTER_LEFT" spacing="8.0">
-                        <SVGPath fill="#888888" styleClass="card-icon"
-                                 content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                        <Label styleClass="campo-titulo" text="COLABORADORES ENVOLVIDOS" />
-                    </HBox>
-                <TableView fx:id="tabelaColaboradoresEnvolvidos" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
-                        <columnResizePolicy>
-                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                        </columnResizePolicy>
-                        <columns>
-                            <TableColumn fx:id="colContextoColaborador" text="Colaborador" />
-                            <TableColumn fx:id="colContextoCargo"       text="Cargo" />
-                            <TableColumn fx:id="colContextoTurnos"      text="Turnos no período" />
-                            <TableColumn fx:id="colContextoAusencias"   text="Ausências" />
-                        </columns>
-                    </TableView>
-                </VBox>
-
-                <VBox spacing="8.0">
-                    <Label styleClass="campo-titulo" text="HORÁRIO DO COLABORADOR SELECIONADO" />
-                    <Label fx:id="lblContextoColaboradorSelecionado"
-                           styleClass="texto-ajuda"
-                           text="Seleciona um colaborador para veres o horário em calendário."
-                           wrapText="true" />
-                    <HBox fx:id="boxHorarioColaborador" spacing="10.0" styleClass="calendario-semana" />
-                </VBox>
-
-                <VBox spacing="8.0">
-                    <Label styleClass="campo-titulo" text="ESCALA PUBLICADA DA LOJA — MESMO PERÍODO" />
-                    <HBox fx:id="boxEscalaLoja" spacing="10.0" styleClass="calendario-semana" />
-                </VBox>
-
-            </VBox>
 
             <Region minHeight="28.0" />
 
-            <VBox spacing="16.0" styleClass="info-card">
-                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                    <SVGPath fill="#c41230" styleClass="card-icon"
-                             content="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
-                    <Label styleClass="card-titulo" text="Folgas Pendentes" />
-                </HBox>
-                <Label styleClass="texto-ajuda"
-                       text="Analisa os pedidos de ausência da loja e decide de imediato os casos pendentes."
-                       wrapText="true" />
-                <TableView fx:id="tabelaFolgasPendentes" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                    </columnResizePolicy>
-                    <columns>
-                        <TableColumn fx:id="colFolgaColaborador" text="Colaborador" />
-                        <TableColumn fx:id="colFolgaData"        text="Data" />
-                        <TableColumn fx:id="colFolgaTipo"        text="Tipo" />
-                        <TableColumn fx:id="colFolgaMotivo"      text="Motivo" />
-                    </columns>
-                </TableView>
-                <Label fx:id="lblFeedbackFolgas" managed="false" styleClass="mensagem-feedback"
-                       text="Mensagem" visible="false" wrapText="true" />
-                <HBox alignment="CENTER_RIGHT" spacing="10.0">
-                    <Button fx:id="btnRejeitarFolga" onAction="#onRejeitarFolgaClick"
-                            styleClass="botao-secundario" text="Rejeitar" />
-                    <Button fx:id="btnAprovarFolga"  onAction="#onAprovarFolgaClick"
-                            styleClass="botao-acao"   text="Aprovar" />
-                </HBox>
-            </VBox>
+            <!-- Main two-column body -->
+            <GridPane hgap="24.0">
+                <columnConstraints>
+                    <ColumnConstraints hgrow="ALWAYS" percentWidth="44.0" />
+                    <ColumnConstraints hgrow="ALWAYS" percentWidth="56.0" />
+                </columnConstraints>
 
-            <Region minHeight="20.0" />
+                <!-- LEFT: TabPane with the three request types -->
+                <VBox GridPane.columnIndex="0" GridPane.rowIndex="0">
+                    <TabPane styleClass="modulo-tabs" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
 
-            <VBox spacing="16.0" styleClass="info-card">
-                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                    <SVGPath fill="#c41230" styleClass="card-icon"
-                             content="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z" />
-                    <Label styleClass="card-titulo" text="Permutas Pendentes" />
-                </HBox>
-                <Label styleClass="texto-ajuda"
-                       text="Revê as trocas de turno entre colaboradores e decide a aprovação diretamente neste painel."
-                       wrapText="true" />
-                <TableView fx:id="tabelaPermutasPendentes" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                    </columnResizePolicy>
-                    <columns>
-                        <TableColumn fx:id="colPermutaColaborador" text="Solicitante" />
-                        <TableColumn fx:id="colPermutaPedido"      text="Pedido" />
-                        <TableColumn fx:id="colPermutaOrigem"      text="Turno de origem" />
-                        <TableColumn fx:id="colPermutaDestino"     text="Turno pretendido" />
-                    </columns>
-                </TableView>
-                <Label fx:id="lblFeedbackPermutas" managed="false" styleClass="mensagem-feedback"
-                       text="Mensagem" visible="false" wrapText="true" />
-                <HBox alignment="CENTER_RIGHT" spacing="10.0">
-                    <Button fx:id="btnRejeitarPermuta" onAction="#onRejeitarPermutaClick"
-                            styleClass="botao-secundario" text="Rejeitar" />
-                    <Button fx:id="btnAprovarPermuta"  onAction="#onAprovarPermutaClick"
-                            styleClass="botao-acao"     text="Aprovar" />
-                </HBox>
-            </VBox>
+                        <!-- Tab: Folgas -->
+                        <Tab text="Folgas">
+                            <content>
+                                <VBox spacing="12.0">
+                                    <padding><Insets top="16.0" left="4.0" right="4.0" bottom="8.0" /></padding>
+                                    <Label styleClass="texto-ajuda" wrapText="true"
+                                           text="Pedidos de aus&#234;ncia da loja. Seleciona uma linha para ver o contexto operacional &#224; direita." />
+                                    <TableView fx:id="tabelaFolgasPendentes" VBox.vgrow="ALWAYS"
+                                               minHeight="340.0" styleClass="tabela-premium">
+                                        <columnResizePolicy>
+                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                        </columnResizePolicy>
+                                        <columns>
+                                            <TableColumn fx:id="colFolgaColaborador" text="Colaborador" />
+                                            <TableColumn fx:id="colFolgaData"        text="Data" />
+                                            <TableColumn fx:id="colFolgaTipo"        text="Tipo" />
+                                            <TableColumn fx:id="colFolgaMotivo"      text="Motivo" />
+                                        </columns>
+                                    </TableView>
+                                    <Label fx:id="lblFeedbackFolgas" managed="false"
+                                           styleClass="mensagem-feedback" text="Mensagem"
+                                           visible="false" wrapText="true" />
+                                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                        <Button fx:id="btnRejeitarFolga" onAction="#onRejeitarFolgaClick"
+                                                styleClass="botao-secundario" text="Rejeitar" />
+                                        <Button fx:id="btnAprovarFolga"  onAction="#onAprovarFolgaClick"
+                                                styleClass="botao-acao"   text="Aprovar" />
+                                    </HBox>
+                                </VBox>
+                            </content>
+                        </Tab>
 
-            <Region minHeight="20.0" />
+                        <!-- Tab: Permutas -->
+                        <Tab text="Permutas">
+                            <content>
+                                <VBox spacing="12.0">
+                                    <padding><Insets top="16.0" left="4.0" right="4.0" bottom="8.0" /></padding>
+                                    <Label styleClass="texto-ajuda" wrapText="true"
+                                           text="Trocas de turno entre colaboradores. Seleciona uma linha para ver o contexto operacional." />
+                                    <TableView fx:id="tabelaPermutasPendentes" VBox.vgrow="ALWAYS"
+                                               minHeight="340.0" styleClass="tabela-premium">
+                                        <columnResizePolicy>
+                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                        </columnResizePolicy>
+                                        <columns>
+                                            <TableColumn fx:id="colPermutaColaborador" text="Solicitante" />
+                                            <TableColumn fx:id="colPermutaPedido"      text="Pedido" />
+                                            <TableColumn fx:id="colPermutaOrigem"      text="Turno de origem" />
+                                            <TableColumn fx:id="colPermutaDestino"     text="Turno pretendido" />
+                                        </columns>
+                                    </TableView>
+                                    <Label fx:id="lblFeedbackPermutas" managed="false"
+                                           styleClass="mensagem-feedback" text="Mensagem"
+                                           visible="false" wrapText="true" />
+                                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                        <Button fx:id="btnRejeitarPermuta" onAction="#onRejeitarPermutaClick"
+                                                styleClass="botao-secundario" text="Rejeitar" />
+                                        <Button fx:id="btnAprovarPermuta"  onAction="#onAprovarPermutaClick"
+                                                styleClass="botao-acao"     text="Aprovar" />
+                                    </HBox>
+                                </VBox>
+                            </content>
+                        </Tab>
 
-            <VBox spacing="16.0" styleClass="info-card">
-                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                    <SVGPath fill="#c41230" styleClass="card-icon"
-                             content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
-                    <Label styleClass="card-titulo" text="Preferências Pendentes" />
-                </HBox>
-                <Label styleClass="texto-ajuda"
-                       text="Fecha a decisão das preferências da loja antes da geração e validação do horário."
-                       wrapText="true" />
-                <TableView fx:id="tabelaPreferenciasPendentes" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                    </columnResizePolicy>
-                    <columns>
-                        <TableColumn fx:id="colPreferenciaColaborador" text="Colaborador" />
-                        <TableColumn fx:id="colPreferenciaTipo"        text="Tipo" />
-                        <TableColumn fx:id="colPreferenciaPeriodo"     text="Período" />
-                        <TableColumn fx:id="colPreferenciaPrioridade"  text="Vigência" />
-                        <TableColumn fx:id="colPreferenciaDescricao"   text="Descrição" />
-                    </columns>
-                </TableView>
-                <VBox spacing="6.0">
-                    <Label styleClass="campo-titulo" text="OBSERVAÇÃO DA DECISÃO" />
-                    <TextArea fx:id="txtDecisaoPreferencia"
-                              promptText="Opcional: indica o contexto da aprovação ou rejeição."
-                              styleClass="campo-textarea"
-                              wrapText="true" />
+                        <!-- Tab: Preferências -->
+                        <Tab text="Prefer&#234;ncias">
+                            <content>
+                                <VBox spacing="12.0">
+                                    <padding><Insets top="16.0" left="4.0" right="4.0" bottom="8.0" /></padding>
+                                    <Label styleClass="texto-ajuda" wrapText="true"
+                                           text="Fecha a decis&#227;o das prefer&#234;ncias antes da gera&#231;&#227;o do hor&#225;rio. Podes deixar uma observa&#231;&#227;o." />
+                                    <TableView fx:id="tabelaPreferenciasPendentes" VBox.vgrow="ALWAYS"
+                                               minHeight="270.0" styleClass="tabela-premium">
+                                        <columnResizePolicy>
+                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                        </columnResizePolicy>
+                                        <columns>
+                                            <TableColumn fx:id="colPreferenciaColaborador" text="Colaborador" />
+                                            <TableColumn fx:id="colPreferenciaTipo"        text="Tipo" />
+                                            <TableColumn fx:id="colPreferenciaPeriodo"     text="Per&#237;odo" />
+                                            <TableColumn fx:id="colPreferenciaPrioridade"  text="Vig&#234;ncia" />
+                                            <TableColumn fx:id="colPreferenciaDescricao"   text="Descri&#231;&#227;o" />
+                                        </columns>
+                                    </TableView>
+                                    <VBox spacing="6.0">
+                                        <Label styleClass="campo-titulo" text="OBSERVA&#199;&#195;O DA DECIS&#195;O" />
+                                        <TextArea fx:id="txtDecisaoPreferencia"
+                                                  promptText="Opcional: indica o contexto da aprova&#231;&#227;o ou rejei&#231;&#227;o."
+                                                  styleClass="campo-textarea"
+                                                  prefRowCount="3"
+                                                  wrapText="true" />
+                                    </VBox>
+                                    <Label fx:id="lblFeedbackPreferencias" managed="false"
+                                           styleClass="mensagem-feedback" text="Mensagem"
+                                           visible="false" wrapText="true" />
+                                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                        <Button fx:id="btnRejeitarPreferencia" onAction="#onRejeitarPreferenciaClick"
+                                                styleClass="botao-secundario" text="Rejeitar" />
+                                        <Button fx:id="btnAprovarPreferencia"  onAction="#onAprovarPreferenciaClick"
+                                                styleClass="botao-acao"        text="Aprovar" />
+                                    </HBox>
+                                </VBox>
+                            </content>
+                        </Tab>
+
+                    </TabPane>
                 </VBox>
-                <Label fx:id="lblFeedbackPreferencias" managed="false" styleClass="mensagem-feedback"
-                       text="Mensagem" visible="false" wrapText="true" />
-                <HBox alignment="CENTER_RIGHT" spacing="10.0">
-                    <Button fx:id="btnRejeitarPreferencia" onAction="#onRejeitarPreferenciaClick"
-                            styleClass="botao-secundario" text="Rejeitar" />
-                    <Button fx:id="btnAprovarPreferencia"  onAction="#onAprovarPreferenciaClick"
-                            styleClass="botao-acao"        text="Aprovar" />
-                </HBox>
-            </VBox>
+
+                <!-- RIGHT: Operational context panel -->
+                <VBox fx:id="painelContextoOperacional" spacing="20.0" styleClass="info-card"
+                      GridPane.columnIndex="1" GridPane.rowIndex="0">
+
+                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                        <SVGPath fill="#c41230" styleClass="card-icon"
+                                 content="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z" />
+                        <Label styleClass="card-titulo" text="Contexto Operacional da Decis&#227;o" />
+                    </HBox>
+
+                    <VBox spacing="6.0">
+                        <Label fx:id="lblContextoPedidoSelecionado" styleClass="subtitulo"
+                               text="Seleciona um pedido pendente para veres o contexto operacional."
+                               wrapText="true" />
+                        <Label fx:id="lblContextoPeriodo" styleClass="texto-ajuda" text="-" wrapText="true" />
+                        <Label fx:id="lblContextoResumo"  styleClass="texto-ajuda"
+                               text="Aqui v&#227;o aparecer os colaboradores envolvidos e a escala da loja no per&#237;odo relevante."
+                               wrapText="true" />
+                    </VBox>
+
+                    <HBox spacing="10.0">
+                        <VBox alignment="CENTER" spacing="5.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                            <Label fx:id="lblContextoColaboradoresEscalados" styleClass="stat-numero" text="0" />
+                            <Label styleClass="stat-titulo" text="Escalados" wrapText="true" />
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="5.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                            <Label fx:id="lblContextoTurnosPlaneados" styleClass="stat-numero" text="0" />
+                            <Label styleClass="stat-titulo" text="Turnos" />
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="5.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                            <Label fx:id="lblContextoAusencias" styleClass="stat-numero" text="0" />
+                            <Label styleClass="stat-titulo" text="Aus&#234;ncias" wrapText="true" />
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="5.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                            <Label fx:id="lblContextoPedidosPendentes" styleClass="stat-numero" text="0" />
+                            <Label styleClass="stat-titulo" text="Pendentes" wrapText="true" />
+                        </VBox>
+                    </HBox>
+
+                    <VBox spacing="8.0">
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                            <SVGPath fill="#888888" styleClass="card-icon"
+                                     content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                            <Label styleClass="campo-titulo" text="COLABORADORES ENVOLVIDOS" />
+                        </HBox>
+                        <TableView fx:id="tabelaColaboradoresEnvolvidos" VBox.vgrow="ALWAYS"
+                                   minHeight="120.0" styleClass="tabela-premium">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                            <columns>
+                                <TableColumn fx:id="colContextoColaborador" text="Colaborador" />
+                                <TableColumn fx:id="colContextoCargo"       text="Cargo" />
+                                <TableColumn fx:id="colContextoTurnos"      text="Turnos no per&#237;odo" />
+                                <TableColumn fx:id="colContextoAusencias"   text="Aus&#234;ncias" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+
+                    <VBox spacing="8.0">
+                        <Label styleClass="campo-titulo" text="HOR&#193;RIO DO COLABORADOR SELECIONADO" />
+                        <Label fx:id="lblContextoColaboradorSelecionado" styleClass="texto-ajuda"
+                               text="Seleciona um colaborador para veres o hor&#225;rio em calend&#225;rio."
+                               wrapText="true" />
+                        <HBox fx:id="boxHorarioColaborador" spacing="10.0" styleClass="calendario-semana" />
+                    </VBox>
+
+                    <VBox spacing="8.0">
+                        <Label styleClass="campo-titulo" text="ESCALA PUBLICADA DA LOJA &#8212; MESMO PER&#237;ODO" />
+                        <HBox fx:id="boxEscalaLoja" spacing="10.0" styleClass="calendario-semana" />
+                    </VBox>
+
+                </VBox>
+
+            </GridPane>
 
         </VBox>
     </content>
