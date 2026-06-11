@@ -6,6 +6,7 @@ import com.example.projeto2.API.Services.HorarioService;
 import com.example.projeto2.API.Services.PerfilService;
 import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.PreferenciaService;
+import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.PreferenciaFormatters;
@@ -32,13 +33,16 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -82,6 +86,9 @@ public class GestaoFuncionariosController {
     @FXML private Label lblSemanaColaborador;
     @FXML private Label lblResumoHorarioColaborador;
     @FXML private HBox boxSemanaColaborador;
+    @FXML private GridPane grelhaHorarioMensalColaborador;
+    @FXML private Button btnModoSemanal;
+    @FXML private Button btnModoMensal;
     @FXML private Label lblPerfilOperacionalResumo;
     @FXML private TableView<FolgaLinha> tabelaFolgasColaborador;
     @FXML private TableColumn<FolgaLinha, String> colFolgaData;
@@ -113,6 +120,9 @@ public class GestaoFuncionariosController {
     private Utilizador utilizadorLogado;
     private Integer idColaboradorEmEdicao;
     private LocalDate semanaColaboradorInicio;
+    private YearMonth mesColaboradorAtual = YearMonth.now();
+    private boolean modoMensalAtivo = false;
+    private static final Locale LOCALE_PT_GF = Locale.forLanguageTag("pt-PT");
 
     public GestaoFuncionariosController(GestaoFuncionariosService gestaoFuncionariosBLL,
                                         HorarioService horarioBLL,
@@ -149,10 +159,15 @@ public class GestaoFuncionariosController {
         tabelaColaboradores.getSelectionModel().selectedItemProperty().addListener((observavel, anterior, selecionado) -> {
             if (selecionado != null) {
                 preencherFormulario(selecionado);
-                carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+                if (modoMensalAtivo) {
+                    carregarHorarioMensalColaborador(selecionado.idUtilizador(), selecionado.nome());
+                } else {
+                    carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+                }
                 carregarPerfilOperacionalColaborador(selecionado);
             } else {
                 limparHorarioSemanalColaborador();
+                limparHorarioMensalColaborador();
                 limparPerfilOperacionalColaborador();
             }
         });
@@ -160,8 +175,10 @@ public class GestaoFuncionariosController {
         esconderMensagem();
         limparFormularioParaNovo();
         semanaColaboradorInicio = CalendarioSemanalHelper.inicioSemana(LocalDate.now());
+        mesColaboradorAtual = YearMonth.now();
         atualizarCabecalhoSemanaColaborador();
         limparHorarioSemanalColaborador();
+        limparHorarioMensalColaborador();
         limparPerfilOperacionalColaborador();
     }
 
@@ -315,26 +332,62 @@ public class GestaoFuncionariosController {
     }
 
     @FXML
-    public void onSemanaColaboradorAnteriorClick() {
-        semanaColaboradorInicio = semanaColaboradorInicio.minusWeeks(1);
+    public void onModoSemanalClick() {
+        modoMensalAtivo = false;
+        boxSemanaColaborador.setVisible(true);
+        boxSemanaColaborador.setManaged(true);
+        grelhaHorarioMensalColaborador.setVisible(false);
+        grelhaHorarioMensalColaborador.setManaged(false);
+        definirBotaoModoAtivo(btnModoSemanal, btnModoMensal);
         atualizarCabecalhoSemanaColaborador();
         ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
-        if (selecionado != null) {
-            carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+        if (selecionado != null) carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+        else limparHorarioSemanalColaborador();
+    }
+
+    @FXML
+    public void onModoMensalClick() {
+        modoMensalAtivo = true;
+        boxSemanaColaborador.setVisible(false);
+        boxSemanaColaborador.setManaged(false);
+        grelhaHorarioMensalColaborador.setVisible(true);
+        grelhaHorarioMensalColaborador.setManaged(true);
+        definirBotaoModoAtivo(btnModoMensal, btnModoSemanal);
+        atualizarCabecalhoMesColaborador();
+        ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
+        if (selecionado != null) carregarHorarioMensalColaborador(selecionado.idUtilizador(), selecionado.nome());
+        else limparHorarioMensalColaborador();
+    }
+
+    @FXML
+    public void onSemanaColaboradorAnteriorClick() {
+        ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
+        if (modoMensalAtivo) {
+            mesColaboradorAtual = mesColaboradorAtual.minusMonths(1);
+            atualizarCabecalhoMesColaborador();
+            if (selecionado != null) carregarHorarioMensalColaborador(selecionado.idUtilizador(), selecionado.nome());
+            else limparHorarioMensalColaborador();
         } else {
-            limparHorarioSemanalColaborador();
+            semanaColaboradorInicio = semanaColaboradorInicio.minusWeeks(1);
+            atualizarCabecalhoSemanaColaborador();
+            if (selecionado != null) carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+            else limparHorarioSemanalColaborador();
         }
     }
 
     @FXML
     public void onSemanaColaboradorSeguinteClick() {
-        semanaColaboradorInicio = semanaColaboradorInicio.plusWeeks(1);
-        atualizarCabecalhoSemanaColaborador();
         ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
-        if (selecionado != null) {
-            carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+        if (modoMensalAtivo) {
+            mesColaboradorAtual = mesColaboradorAtual.plusMonths(1);
+            atualizarCabecalhoMesColaborador();
+            if (selecionado != null) carregarHorarioMensalColaborador(selecionado.idUtilizador(), selecionado.nome());
+            else limparHorarioMensalColaborador();
         } else {
-            limparHorarioSemanalColaborador();
+            semanaColaboradorInicio = semanaColaboradorInicio.plusWeeks(1);
+            atualizarCabecalhoSemanaColaborador();
+            if (selecionado != null) carregarHorarioSemanalColaborador(selecionado.idUtilizador(), selecionado.nome());
+            else limparHorarioSemanalColaborador();
         }
     }
 
@@ -660,6 +713,49 @@ public class GestaoFuncionariosController {
     private void limparHorarioSemanalColaborador() {
         CalendarioSemanalHelper.preencherCalendario(boxSemanaColaborador, semanaColaboradorInicio, Map.of(), "Seleciona um colaborador");
         lblResumoHorarioColaborador.setText("Seleciona um colaborador para veres o horário publicado da semana.");
+    }
+
+    private void atualizarCabecalhoMesColaborador() {
+        String nomeMes = mesColaboradorAtual.getMonth()
+                .getDisplayName(TextStyle.FULL, LOCALE_PT_GF);
+        String capitalizado = Character.toUpperCase(nomeMes.charAt(0)) + nomeMes.substring(1);
+        lblSemanaColaborador.setText(capitalizado + " " + mesColaboradorAtual.getYear());
+    }
+
+    private void carregarHorarioMensalColaborador(Integer idColaborador, String nomeColaborador) {
+        try {
+            LocalDate inicio = mesColaboradorAtual.atDay(1);
+            LocalDate fim = mesColaboradorAtual.atEndOfMonth();
+            List<Horario> horarios = horarioBLL.listarHorarioPublicadoDoUtilizador(idColaborador, inicio, fim);
+            Map<LocalDate, List<String>> eventos = new LinkedHashMap<>();
+            for (Horario h : horarios) {
+                String evento = h.getIdTurno().getHoraInicio() + " - "
+                        + h.getIdTurno().getHoraFim() + " | "
+                        + h.getIdLojautilizador().getIdLoja().getNome();
+                eventos.computeIfAbsent(h.getDataTurno(), k -> new java.util.ArrayList<>()).add(evento);
+            }
+            CalendarioMensalHelper.preencherCalendario(grelhaHorarioMensalColaborador, mesColaboradorAtual, eventos, "Sem turno");
+            lblResumoHorarioColaborador.setText(horarios.isEmpty()
+                    ? nomeColaborador + " não tem horário publicado neste mês."
+                    : nomeColaborador + " tem " + horarios.size() + " turno(s) publicados neste mês."
+            );
+        } catch (Exception e) {
+            limparHorarioMensalColaborador();
+            lblResumoHorarioColaborador.setText("Não foi possível carregar o horário mensal deste colaborador.");
+        }
+    }
+
+    private void limparHorarioMensalColaborador() {
+        if (grelhaHorarioMensalColaborador != null) {
+            CalendarioMensalHelper.preencherCalendario(grelhaHorarioMensalColaborador, mesColaboradorAtual, Map.of(), "Seleciona um colaborador");
+        }
+    }
+
+    private void definirBotaoModoAtivo(Button ativo, Button inativo) {
+        ativo.getStyleClass().remove("botao-secundario");
+        if (!ativo.getStyleClass().contains("botao-acao")) ativo.getStyleClass().add("botao-acao");
+        inativo.getStyleClass().remove("botao-acao");
+        if (!inativo.getStyleClass().contains("botao-secundario")) inativo.getStyleClass().add("botao-secundario");
     }
 
     private void carregarPerfilOperacionalColaborador(ColaboradorLinha colaborador) {

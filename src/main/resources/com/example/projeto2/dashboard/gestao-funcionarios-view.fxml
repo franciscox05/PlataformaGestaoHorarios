@@ -5,11 +5,13 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -38,7 +40,7 @@
             <!-- ═════ ABA 1 — EQUIPA ═════ -->
             <Tab text="Equipa">
                 <content>
-                    <VBox spacing="20.0" styleClass="aba-conteudo" VBox.vgrow="ALWAYS">
+                    <VBox spacing="20.0" styleClass="aba-conteudo">
                         <padding><Insets top="24.0" right="40.0" bottom="32.0" left="40.0" /></padding>
 
                         <!-- Contexto da loja -->
@@ -181,113 +183,127 @@
             <!-- ═════ ABA 2 — PERFIL DO COLABORADOR ═════ -->
             <Tab text="Perfil do colaborador">
                 <content>
-                    <VBox spacing="16.0" styleClass="aba-conteudo" VBox.vgrow="ALWAYS">
-                        <padding><Insets top="24.0" right="40.0" bottom="32.0" left="40.0" /></padding>
+                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                                styleClass="conteudo-scroll">
+                        <content>
+                            <VBox spacing="16.0" styleClass="aba-conteudo">
+                                <padding><Insets top="24.0" right="40.0" bottom="44.0" left="40.0" /></padding>
 
-                        <!-- Barra superior: resumo do colaborador + navegação semanal -->
-                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="context-bar">
-                            <Label fx:id="lblPerfilOperacionalResumo"
-                                   styleClass="meta-valor"
-                                   text="Seleciona um colaborador na aba Equipa para ver o perfil completo."
-                                   wrapText="true"
-                                   HBox.hgrow="ALWAYS" />
-                            <Region HBox.hgrow="NEVER" minWidth="24.0" />
-                            <Label styleClass="meta-etiqueta" text="SEMANA" />
-                            <Button onAction="#onSemanaColaboradorAnteriorClick"
-                                    styleClass="botao-nav" text="&#8249; Anterior" />
-                            <Label fx:id="lblSemanaColaborador"
-                                   styleClass="campo-titulo" text="—" />
-                            <Button onAction="#onSemanaColaboradorSeguinteClick"
-                                    styleClass="botao-nav" text="Seguinte &#8250;" />
-                        </HBox>
+                                <!-- ── Barra de contexto: resumo do colaborador + toggle vista + navegação ── -->
+                                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="context-bar">
+                                    <Label fx:id="lblPerfilOperacionalResumo"
+                                           styleClass="meta-valor"
+                                           text="Seleciona um colaborador na aba Equipa para ver o perfil completo."
+                                           wrapText="true"
+                                           HBox.hgrow="ALWAYS" />
+                                    <Region minWidth="16.0" />
+                                    <Button fx:id="btnModoSemanal"
+                                            onAction="#onModoSemanalClick"
+                                            styleClass="botao-acao"
+                                            text="Semana" />
+                                    <Button fx:id="btnModoMensal"
+                                            onAction="#onModoMensalClick"
+                                            styleClass="botao-secundario"
+                                            text="M&#234;s" />
+                                    <Region minWidth="8.0" />
+                                    <Button onAction="#onSemanaColaboradorAnteriorClick"
+                                            styleClass="botao-nav" text="&#8249; Anterior" />
+                                    <Label fx:id="lblSemanaColaborador"
+                                           styleClass="campo-titulo" text="&#8212;" />
+                                    <Button onAction="#onSemanaColaboradorSeguinteClick"
+                                            styleClass="botao-nav" text="Seguinte &#8250;" />
+                                </HBox>
 
-                        <!-- Conteúdo principal: horário (esq) + dados operacionais (dir) -->
-                        <HBox spacing="20.0" VBox.vgrow="ALWAYS">
+                                <!-- ── Horário do colaborador (full-width) ── -->
+                                <VBox spacing="12.0" styleClass="info-card">
+                                    <Label styleClass="card-titulo" text="Hor&#225;rio do colaborador" />
+                                    <Label fx:id="lblResumoHorarioColaborador"
+                                           styleClass="texto-ajuda"
+                                           text="Seleciona um colaborador para ver o hor&#225;rio publicado."
+                                           wrapText="true" />
 
-                            <!-- Horário semanal — coluna esquerda -->
-                            <VBox spacing="12.0" styleClass="info-card"
-                                  prefWidth="300.0" minWidth="260.0" HBox.hgrow="NEVER">
-                                <Label styleClass="card-titulo" text="Hor&#225;rio semanal" />
-                                <Label fx:id="lblResumoHorarioColaborador"
-                                       styleClass="texto-ajuda"
-                                       text="Seleciona um colaborador para ver o hor&#225;rio publicado."
-                                       wrapText="true" />
-                                <HBox fx:id="boxSemanaColaborador" spacing="6.0"
-                                      styleClass="calendario-semana" VBox.vgrow="ALWAYS" />
+                                    <!-- Vista semanal: 7 cards lado a lado -->
+                                    <HBox fx:id="boxSemanaColaborador"
+                                          spacing="10.0"
+                                          styleClass="calendario-semana"
+                                          minHeight="160.0" />
+
+                                    <!-- Vista mensal: GridPane (gerido pelo controller) -->
+                                    <GridPane fx:id="grelhaHorarioMensalColaborador"
+                                              hgap="8.0" vgap="8.0"
+                                              managed="false" visible="false" />
+                                </VBox>
+
+                                <!-- ── Perfil operacional: Folgas / Preferências / Permutas ── -->
+                                <VBox spacing="10.0" styleClass="info-card">
+                                    <Label styleClass="card-titulo" text="Perfil operacional" />
+
+                                    <TabPane tabClosingPolicy="UNAVAILABLE"
+                                             styleClass="modulo-tabs"
+                                             prefHeight="260.0">
+                                        <tabs>
+
+                                            <Tab text="Folgas">
+                                                <content>
+                                                    <TableView fx:id="tabelaFolgasColaborador"
+                                                               styleClass="tabela-premium"
+                                                               prefHeight="200.0">
+                                                        <columnResizePolicy>
+                                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                                        </columnResizePolicy>
+                                                        <columns>
+                                                            <TableColumn fx:id="colFolgaData"   text="Data" />
+                                                            <TableColumn fx:id="colFolgaTipo"   text="Tipo" />
+                                                            <TableColumn fx:id="colFolgaEstado" text="Estado" />
+                                                            <TableColumn fx:id="colFolgaAcao"   text="A&#231;&#227;o" />
+                                                        </columns>
+                                                    </TableView>
+                                                </content>
+                                            </Tab>
+
+                                            <Tab text="Prefer&#234;ncias">
+                                                <content>
+                                                    <TableView fx:id="tabelaPreferenciasColaborador"
+                                                               styleClass="tabela-premium"
+                                                               prefHeight="200.0">
+                                                        <columnResizePolicy>
+                                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                                        </columnResizePolicy>
+                                                        <columns>
+                                                            <TableColumn fx:id="colPreferenciaTipo"    text="Tipo" />
+                                                            <TableColumn fx:id="colPreferenciaPeriodo" text="Per&#237;odo" />
+                                                            <TableColumn fx:id="colPreferenciaEstado"  text="Estado" />
+                                                            <TableColumn fx:id="colPreferenciaAcao"    text="A&#231;&#227;o" />
+                                                        </columns>
+                                                    </TableView>
+                                                </content>
+                                            </Tab>
+
+                                            <Tab text="Permutas">
+                                                <content>
+                                                    <TableView fx:id="tabelaPermutasColaborador"
+                                                               styleClass="tabela-premium"
+                                                               prefHeight="200.0">
+                                                        <columnResizePolicy>
+                                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                                        </columnResizePolicy>
+                                                        <columns>
+                                                            <TableColumn fx:id="colPermutaData"   text="Data turno" />
+                                                            <TableColumn fx:id="colPermutaTurnos" text="Troca" />
+                                                            <TableColumn fx:id="colPermutaEstado" text="Estado" />
+                                                            <TableColumn fx:id="colPermutaAcao"   text="A&#231;&#227;o" />
+                                                        </columns>
+                                                    </TableView>
+                                                </content>
+                                            </Tab>
+
+                                        </tabs>
+                                    </TabPane>
+                                </VBox>
+
                             </VBox>
-
-                            <!-- Folgas / Preferências / Permutas — coluna direita com sub-abas -->
-                            <VBox spacing="12.0" styleClass="info-card"
-                                  HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
-                                <Label styleClass="card-titulo" text="Perfil operacional" />
-
-                                <TabPane tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS"
-                                         styleClass="modulo-tabs">
-                                    <tabs>
-
-                                        <!-- Sub-aba: Folgas -->
-                                        <Tab text="Folgas">
-                                            <content>
-                                                <TableView fx:id="tabelaFolgasColaborador"
-                                                           styleClass="tabela-premium"
-                                                           maxHeight="Infinity">
-                                                    <columnResizePolicy>
-                                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                                    </columnResizePolicy>
-                                                    <columns>
-                                                        <TableColumn fx:id="colFolgaData"   text="Data" />
-                                                        <TableColumn fx:id="colFolgaTipo"   text="Tipo" />
-                                                        <TableColumn fx:id="colFolgaEstado" text="Estado" />
-                                                        <TableColumn fx:id="colFolgaAcao"   text="A&#231;&#227;o" />
-                                                    </columns>
-                                                </TableView>
-                                            </content>
-                                        </Tab>
-
-                                        <!-- Sub-aba: Preferências -->
-                                        <Tab text="Prefer&#234;ncias">
-                                            <content>
-                                                <TableView fx:id="tabelaPreferenciasColaborador"
-                                                           styleClass="tabela-premium"
-                                                           maxHeight="Infinity">
-                                                    <columnResizePolicy>
-                                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                                    </columnResizePolicy>
-                                                    <columns>
-                                                        <TableColumn fx:id="colPreferenciaTipo"    text="Tipo" />
-                                                        <TableColumn fx:id="colPreferenciaPeriodo" text="Per&#237;odo" />
-                                                        <TableColumn fx:id="colPreferenciaEstado"  text="Estado" />
-                                                        <TableColumn fx:id="colPreferenciaAcao"    text="A&#231;&#227;o" />
-                                                    </columns>
-                                                </TableView>
-                                            </content>
-                                        </Tab>
-
-                                        <!-- Sub-aba: Permutas -->
-                                        <Tab text="Permutas">
-                                            <content>
-                                                <TableView fx:id="tabelaPermutasColaborador"
-                                                           styleClass="tabela-premium"
-                                                           maxHeight="Infinity">
-                                                    <columnResizePolicy>
-                                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                                    </columnResizePolicy>
-                                                    <columns>
-                                                        <TableColumn fx:id="colPermutaData"   text="Data turno" />
-                                                        <TableColumn fx:id="colPermutaTurnos" text="Troca" />
-                                                        <TableColumn fx:id="colPermutaEstado" text="Estado" />
-                                                        <TableColumn fx:id="colPermutaAcao"   text="A&#231;&#227;o" />
-                                                    </columns>
-                                                </TableView>
-                                            </content>
-                                        </Tab>
-
-                                    </tabs>
-                                </TabPane>
-                            </VBox>
-
-                        </HBox>
-                    </VBox>
+                        </content>
+                    </ScrollPane>
                 </content>
             </Tab>
 
