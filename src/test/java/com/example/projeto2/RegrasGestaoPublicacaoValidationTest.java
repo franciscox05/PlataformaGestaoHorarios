@@ -1,6 +1,6 @@
 package com.example.projeto2;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Loja;
 import com.example.projeto2.API.Modules.Regra;
@@ -54,7 +54,7 @@ class RegrasGestaoPublicacaoValidationTest extends FluxosCriticosTestSupport {
             );
         }
 
-        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()

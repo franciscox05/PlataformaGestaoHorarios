@@ -1,13 +1,12 @@
 package com.example.projeto2.API.Services;
 
 import com.example.projeto2.API.Modules.Turno;
+import com.example.projeto2.API.Services.geracao.HorarioFormatters;
 import org.springframework.stereotype.Service;
 
-import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Locale;
 
 /**
  * Serviço responsável pela validação de regras de negócio de horários.
@@ -163,72 +162,8 @@ public class HorarioValidatorService {
      * Indica se um cargo (pelo tipo normalizado) obriga presença ao sábado (RFS03).
      */
     public boolean exigePresencaAoSabado(String tipoCargo) {
-        String normalizado = normalizarTexto(tipoCargo);
+        String normalizado = HorarioFormatters.normalizarTexto(tipoCargo);
         return normalizado.contains("gerente") || normalizado.contains("subgerente");
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers de reconhecimento do tipo de regra (a partir da descrição textual)
-    // -------------------------------------------------------------------------
-
-    /** Regra de mínimos de colaboradores por turno. */
-    public boolean ehRegraDeMinimos(String descricao, String tipo) {
-        String texto = normalizarTextoComposto(descricao, tipo);
-        return texto.contains("minim") && (texto.contains("colaborador") || texto.contains("pessoa"));
-    }
-
-    /** Regra de máximo de dias consecutivos (RFS07). */
-    public boolean ehRegraDiasConsecutivos(String descricao, String tipo) {
-        String texto = normalizarTextoComposto(descricao, tipo);
-        return (texto.contains("dias") || texto.contains("dia"))
-                && (texto.contains("consecut") || texto.contains("seguid"))
-                && !texto.contains("hora");
-    }
-
-    /** Regra de descanso mínimo entre turnos (RFS06). */
-    public boolean ehRegraDescanso(String descricao, String tipo) {
-        String texto = normalizarTextoComposto(descricao, tipo);
-        return (texto.contains("descanso") && (texto.contains("hora") || texto.contains("interval")))
-                || (texto.contains("entre") && texto.contains("turno"));
-    }
-
-    /** Regra de descanso semanal (RFS04). */
-    public boolean ehRegraDescansoSemanal(String descricao, String tipo) {
-        String texto = normalizarTextoComposto(descricao, tipo);
-        return texto.contains("descanso")
-                && (texto.contains("seman") || texto.contains("folga"))
-                && texto.contains("dia");
-    }
-
-    /** Regra de rotação de fins de semana (RFS08). */
-    public boolean ehRegraRotacaoFinsDeSemana(String descricao, String tipo) {
-        String texto = normalizarTextoComposto(descricao, tipo);
-        return (texto.contains("rotacao") || texto.contains("janela"))
-                && (texto.contains("fim de semana") || texto.contains("weekend"));
-    }
-
-    /** Regra de dia limite de lançamento de proposta (RFS09). */
-    public boolean ehRegraDiaLimiteLancamento(String descricao, String tipo) {
-        String texto = normalizarTextoComposto(descricao, tipo);
-        return texto.contains("dia")
-                && texto.contains("limite")
-                && (texto.contains("lancamento") || texto.contains("publicacao") || texto.contains("publicar"));
-    }
-
-    /** Regra de chefia obrigatória ao sábado (RFS03). */
-    public boolean ehRegraChefiaAoSabado(String descricao, String tipo) {
-        String texto = normalizarTextoComposto(descricao, tipo);
-        return texto.contains("sabado")
-                && (texto.contains("gerente") || texto.contains("subgerente")
-                || texto.contains("chefia") || texto.contains("gestao"));
-    }
-
-    /** Regra de carga contratual mensal (RFS10). */
-    public boolean ehRegraCargaContratual(String descricao, String tipo) {
-        String texto = normalizarTextoComposto(descricao, tipo);
-        return texto.contains("carga")
-                && (texto.contains("contrat") || texto.contains("mensal"))
-                && (texto.contains("hora") || texto.contains("horas"));
     }
 
     // -------------------------------------------------------------------------
@@ -300,21 +235,4 @@ public class HorarioValidatorService {
         return data.with(DayOfWeek.MONDAY);
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers internos de normalização de texto
-    // -------------------------------------------------------------------------
-
-    public String normalizarTexto(String texto) {
-        if (texto == null) {
-            return "";
-        }
-        return Normalizer.normalize(texto, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "")
-                .toLowerCase(Locale.ROOT)
-                .trim();
-    }
-
-    private String normalizarTextoComposto(String descricao, String tipo) {
-        return normalizarTexto(descricao) + " " + normalizarTexto(tipo);
-    }
 }

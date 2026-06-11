@@ -1,12 +1,16 @@
 package com.example.projeto2.API.Services.geracao;
 
 import com.example.projeto2.API.Modules.DayOff;
+import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Preferencia;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -81,14 +85,53 @@ public final class PreferenciasGeracaoBuilder {
     }
 
     /**
-     * Soft constraints de folga (penalização sem hard block). Reservado para
-     * preferências recorrentes por dia-da-semana sem data fixa. Por agora vazio —
-     * as preferências aprovadas com datas já são hard blocks.
+     * Soft constraints de folga (penalização, <b>sem</b> hard block): preferências aprovadas
+     * do tipo {@code "folga_preferida"} — uma folga recorrente semanal que o algoritmo tenta
+     * muito honrar mas pode quebrar se for preciso para a cobertura (ao contrário de "folgas"/
+     * "ferias", que são ausências concedidas e bloqueiam).
+     *
+     * <p>O dia da semana preferido vem da {@code dataInicio}; a preferência aplica-se a esse
+     * dia em cada semana do período (clamp a [dataInicio, dataFim] quando definido). Para
+     * garantir <b>uma folga preferida por semana</b>, datas extra na mesma semana ISO são
+     * descartadas (fica a mais cedo).
      */
     public static Map<Integer, Set<LocalDate>> construirDiasFolgaPreferidos(LocalDate dataInicio,
                                                                               LocalDate dataFim,
                                                                               List<Preferencia> preferenciasAprovadas) {
-        return Map.of();
+        Map<Integer, Set<LocalDate>> resultado = new HashMap<>();
+        Map<Integer, Set<LocalDate>> semanasUsadas = new HashMap<>();
+
+        for (Preferencia preferencia : preferenciasAprovadas) {
+            if (preferencia.getIdUtilizador() == null || preferencia.getIdUtilizador().getId() == null) {
+                continue;
+            }
+            if (!"folga_preferida".equals(HorarioFormatters.normalizarTexto(preferencia.getTipo()))) {
+                continue;
+            }
+
+            LocalDate referenciaDia = preferencia.getDataInicio() != null
+                    ? preferencia.getDataInicio() : dataInicio;
+            if (referenciaDia == null) continue;
+            DayOfWeek diaPreferido = referenciaDia.getDayOfWeek();
+
+            LocalDate inicio = referenciaDia.isBefore(dataInicio) ? dataInicio : referenciaDia;
+            LocalDate fim = (preferencia.getDataFim() != null && preferencia.getDataFim().isBefore(dataFim))
+                    ? preferencia.getDataFim() : dataFim;
+            if (inicio.isAfter(fim)) continue;
+
+            Integer idColaborador = preferencia.getIdUtilizador().getId();
+            Set<LocalDate> dias = resultado.computeIfAbsent(idColaborador, k -> new LinkedHashSet<>());
+            Set<LocalDate> semanas = semanasUsadas.computeIfAbsent(idColaborador, k -> new LinkedHashSet<>());
+
+            for (LocalDate data = inicio; !data.isAfter(fim); data = data.plusDays(1)) {
+                if (data.getDayOfWeek() != diaPreferido) continue;
+                LocalDate inicioSemana = data.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                if (semanas.add(inicioSemana)) { // uma folga preferida por semana
+                    dias.add(data);
+                }
+            }
+        }
+        return resultado;
     }
 
     /**
@@ -104,7 +147,7 @@ public final class PreferenciasGeracaoBuilder {
             return Map.of();
         }
 
-        Map<String, Integer> nomeParaId = new HashMap<>();
+        Map<String, Integer> nomeParaId = new LinkedHashMap<>();
         for (Lojautilizador lu : colaboradoresAtivos) {
             if (lu.getIdUtilizador() != null && lu.getIdUtilizador().getNome() != null) {
                 nomeParaId.put(
@@ -149,6 +192,54 @@ public final class PreferenciasGeracaoBuilder {
         }
 
         return pares;
+    }
+
+    /**
+     * Para cada folga preferida (soft) que o algoritmo acabou por quebrar — o colaborador
+     * foi escalado num dia que preferia de folga, por necessidade de cobertura — gera uma
+     * nota explicativa que é anexada ao resumo da proposta.
+     */
+    public static List<String> construirAvisosNaoHonrados(List<Lojautilizador> colaboradoresAtivos,
+                                                          Map<Integer, Set<LocalDate>> diasFolgaPreferidos,
+                                                          List<Horario> horarios) {
+        if (diasFolgaPreferidos == null || diasFolgaPreferidos.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Integer, String> nomePorColaborador = new HashMap<>();
+        for (Lojautilizador ligacao : colaboradoresAtivos) {
+            if (ligacao.getIdUtilizador() != null && ligacao.getIdUtilizador().getId() != null) {
+                nomePorColaborador.put(ligacao.getIdUtilizador().getId(),
+                        HorarioFormatters.valorOuTraco(ligacao.getIdUtilizador().getNome()));
+            }
+        }
+
+        Map<Integer, Set<LocalDate>> diasTrabalhados = new HashMap<>();
+        for (Horario h : horarios) {
+            if (h.getIdLojautilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador() == null
+                    || h.getDataTurno() == null) {
+                continue;
+            }
+            diasTrabalhados.computeIfAbsent(
+                    h.getIdLojautilizador().getIdUtilizador().getId(),
+                    k -> new LinkedHashSet<>()).add(h.getDataTurno());
+        }
+
+        List<String> avisos = new ArrayList<>();
+        for (Map.Entry<Integer, Set<LocalDate>> entry : diasFolgaPreferidos.entrySet()) {
+            Set<LocalDate> trabalhados = diasTrabalhados.getOrDefault(entry.getKey(), Set.of());
+            for (LocalDate diaPreferido : entry.getValue()) {
+                if (trabalhados.contains(diaPreferido)) {
+                    avisos.add("Folga preferida de "
+                            + nomePorColaborador.getOrDefault(entry.getKey(),
+                                    "Colaborador #" + entry.getKey())
+                            + " em " + HorarioFormatters.DATA_FORMATTER.format(diaPreferido)
+                            + " nao foi honrada (cobertura necessaria nesse dia).");
+                }
+            }
+        }
+        return avisos;
     }
 
     /**

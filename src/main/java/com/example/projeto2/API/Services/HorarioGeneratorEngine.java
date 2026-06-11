@@ -2,8 +2,15 @@ package com.example.projeto2.API.Services;
 
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Lojautilizador;
-import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Modules.Turno;
+import com.example.projeto2.API.Services.geracao.AvaliadorAtribuicao;
+import com.example.projeto2.API.Services.geracao.ConfiguracaoDia;
+import com.example.projeto2.API.Services.geracao.EstadoColaborador;
+import com.example.projeto2.API.Services.geracao.FalhaGeracaoHorarioException;
+import com.example.projeto2.API.Services.geracao.PedidoGeracao;
+import com.example.projeto2.API.Services.geracao.RefinadorPlaneamento;
+import com.example.projeto2.API.Services.geracao.TurnoClassifier;
+import com.example.projeto2.API.Services.geracao.diagnostico.DiagnosticoCobertura;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -11,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,27 +33,33 @@ import java.util.Set;
 /**
  * Motor de geração de horários mensais.
  *
- * Responsabilidade única: dado um conjunto de colaboradores elegíveis,
- * restrições operacionais e preferências, produzir uma lista de {@link Horario}
- * que satisfaça todas as regras de negócio.
+ * <p>Responsabilidade única: dado um {@link PedidoGeracao} (colaboradores elegíveis,
+ * restrições operacionais e preferências aprovadas), produzir uma lista de
+ * {@link Horario} que satisfaça todas as regras hard, otimizando segundo a política ativa.
  *
- * Algoritmo: pesquisa por backtracking com poda heurística (greedy-first),
- * escalando através de três orçamentos progressivos:
- *   1. Tentativa base     — orçamento reduzido, preferências activas
- *   2. Tentativa alargada — orçamento médio, preferências activas
- *   3. Tentativas de relaxação — rotação / descanso semanal relaxados (só FDS)
+ * <p>Algoritmo: pesquisa por backtracking com poda heurística (greedy-first), escalando
+ * por orçamentos progressivos e relaxando, em último recurso e apenas ao fim de semana,
+ * as restrições <em>soft-relaxáveis</em> (rotação de fins de semana e descanso semanal):
+ * <ol>
+ *   <li>Orçamento base — sem relaxação</li>
+ *   <li>Orçamento alargado — sem relaxação</li>
+ *   <li>Rotação de fins de semana relaxada (só fim de semana)</li>
+ *   <li>Descanso semanal relaxado (só fim de semana)</li>
+ * </ol>
  *
- * O motor delega todas as verificações de regras ao {@link HorarioValidatorService},
- * mantendo-se agnóstico em relação à lógica de validação.
+ * <p>No final da construção corre uma fase de <b>refinamento por pesquisa local</b>
+ * ({@link RefinadorPlaneamento}): movimentos 1-para-1 que recuperam folgas preferidas
+ * não honradas e equilibram a carga contratual entre colaboradores, sempre validados
+ * contra todas as regras hard.
  *
- * NOTA: Esta classe foi extraída da GeracaoHorariosService como parte da
- * refatorização SRP (Fase 2). A BLL original permanece intacta.
+ * <p>O motor delega: as regras hard ao {@link HorarioValidatorService}, a pontuação de
+ * candidatos ao {@link AvaliadorAtribuicao}, e o estado por colaborador ao
+ * {@link EstadoColaborador}. Mantém-se assim focado na pesquisa.
  */
 @Service
 public class HorarioGeneratorEngine {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HorarioGeneratorEngine.class);
-
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // Orçamentos progressivos de pesquisa
@@ -59,9 +71,13 @@ public class HorarioGeneratorEngine {
     private static final int LIMITE_NOS_PESQUISA_EXCECAO  = 40_000;
 
     private final HorarioValidatorService validator;
+    private final AvaliadorAtribuicao avaliador;
+    private final RefinadorPlaneamento refinador;
 
     public HorarioGeneratorEngine(HorarioValidatorService validator) {
         this.validator = validator;
+        this.avaliador = new AvaliadorAtribuicao(validator);
+        this.refinador = new RefinadorPlaneamento(validator);
     }
 
     // =========================================================================
@@ -71,36 +87,24 @@ public class HorarioGeneratorEngine {
     /**
      * Ponto de entrada principal.
      *
-     * @param pedido Objecto imutável com todos os inputs necessários à geração.
-     * @return Lista de {@link Horario} gerados (sem ID — ainda não persistidos).
+     * @param pedido inputs imutáveis da geração.
+     * @return lista de {@link Horario} gerados (sem ID — ainda não persistidos).
      * @throws IllegalArgumentException se não for possível satisfazer todas as restrições.
      */
     public List<Horario> gerar(PedidoGeracao pedido) {
         Map<Integer, EstadoColaborador> estadoPorColaborador = inicializarEstados(pedido);
         inicializarHistorico(estadoPorColaborador, pedido.historicoHorarios());
 
-        List<Horario> horarios       = new ArrayList<>();
-        Set<LocalDate> diasCobertos  = new LinkedHashSet<>();
+        List<Horario> horarios = new ArrayList<>();
         Set<LocalDate> sabadosComChefia = new LinkedHashSet<>();
-        Map<LocalDate, ReservaFimDeSemana> reservasFDS = new HashMap<>();
 
         for (LocalDate data = pedido.dataInicio(); !data.isAfter(pedido.dataFim()); data = data.plusDays(1)) {
-            validarPrazo(pedido.prazoLimite(), pedido.dataInicio(), pedido.politica());
+            validarPrazo(pedido.prazoLimite(), data, pedido.politica().nome());
 
             ConfiguracaoDia configDia = pedido.configuracoesPorData().get(data);
             if (configDia != null && configDia.lojaEncerrada()) {
                 continue;
             }
-
-            LocalDate inicioSemana = validator.inicioSemana(data);
-            ReservaFimDeSemana reservaFDS = reservasFDS.computeIfAbsent(
-                    inicioSemana,
-                    ignored -> identificarReservaFimDeSemana(estadoPorColaborador.values(),
-                            pedido, inicioSemana)
-            );
-
-            ContextoPreservacaoFDS contextoFDS = construirContextoPreservacaoFDS(
-                    data, pedido.dataFim(), pedido.turnos(), pedido, configDia);
 
             List<Turno> turnosDoDia = configDia != null ? configDia.turnosCompativeis() : pedido.turnos();
             if (turnosDoDia.isEmpty()) {
@@ -110,8 +114,7 @@ public class HorarioGeneratorEngine {
 
             List<AtribuicaoDia> atribuicoes = planearDia(
                     data, turnosDoDia, configDia, estadoPorColaborador,
-                    reservaFDS, contextoFDS, horarios,
-                    sabadosComChefia.contains(data), pedido);
+                    horarios, sabadosComChefia.contains(data), pedido);
 
             for (AtribuicaoDia a : atribuicoes) {
                 Horario h = new Horario();
@@ -124,10 +127,10 @@ public class HorarioGeneratorEngine {
                 if (data.getDayOfWeek() == DayOfWeek.SATURDAY && a.estado().ehChefiaAoSabado()) {
                     sabadosComChefia.add(data);
                 }
-                diasCobertos.add(data);
             }
         }
-        return horarios;
+        // Fase final: refinamento por pesquisa local (folgas preferidas + equilíbrio de carga)
+        return refinador.refinar(pedido, horarios);
     }
 
     // =========================================================================
@@ -140,7 +143,7 @@ public class HorarioGeneratorEngine {
             long cargaMaxima = pedido.cargaMaximaPorColaborador()
                     .getOrDefault(ligacao.getIdUtilizador().getId(), 0L);
             mapa.put(ligacao.getIdUtilizador().getId(),
-                    new EstadoColaborador(ligacao, cargaMaxima, pedido.chefiasSabadoIds()));
+                    new EstadoColaborador(ligacao, cargaMaxima, pedido.chefiasSabadoIds(), validator));
         }
         return mapa;
     }
@@ -179,8 +182,6 @@ public class HorarioGeneratorEngine {
                                            List<Turno> turnosDoDia,
                                            ConfiguracaoDia configDia,
                                            Map<Integer, EstadoColaborador> estadoPorColaborador,
-                                           ReservaFimDeSemana reservaFDS,
-                                           ContextoPreservacaoFDS contextoFDS,
                                            List<Horario> horariosJaGerados,
                                            boolean sabadoJaTemChefia,
                                            PedidoGeracao pedido) {
@@ -191,69 +192,52 @@ public class HorarioGeneratorEngine {
                 && data.getDayOfWeek() == DayOfWeek.SATURDAY
                 && !sabadoJaTemChefia;
 
-        if (precisaChefia && !existeChefiaPossivel(data, slots, estadoPorColaborador.values(),
-                pedido, reservaFDS)) {
+        if (precisaChefia && !existeChefiaPossivel(data, slots, estadoPorColaborador.values(), pedido)) {
             throw new IllegalArgumentException(
                     "Nao foi possivel garantir presenca de gerente/subgerente no sabado "
                             + DATA_FORMATTER.format(data) + ".");
         }
 
         int minimoChefiasNoDia = (validator.ehFimDeSemana(data) || precisaChefia) ? 1 : 0;
+        boolean fimDeSemana = validator.ehFimDeSemana(data);
 
-        // Tentativa 1: base
-        ResultadoTentativa t1 = executarTentativa(data, slots, estadoPorColaborador, reservaFDS,
-                contextoFDS, horariosJaGerados, pedido,
-                true, false, false, minimoChefiasNoDia,
+        // Tentativa 1: orçamento base, sem relaxação
+        ResultadoTentativa t1 = executarTentativa(data, slots, estadoPorColaborador,
+                horariosJaGerados, pedido, false, false, minimoChefiasNoDia,
                 LIMITE_CANDIDATOS_POR_SLOT_BASE, LIMITE_NOS_PESQUISA_BASE);
         if (t1.encontrou()) return t1.atribuicoes();
         registarTentativaLimitada(t1, data, "base");
 
-        // Tentativa 2: alargada
-        ResultadoTentativa t2 = executarTentativa(data, slots, estadoPorColaborador, reservaFDS,
-                contextoFDS, horariosJaGerados, pedido,
-                true, false, false, minimoChefiasNoDia,
+        // Tentativa 2: orçamento alargado, sem relaxação
+        ResultadoTentativa t2 = executarTentativa(data, slots, estadoPorColaborador,
+                horariosJaGerados, pedido, false, false, minimoChefiasNoDia,
                 LIMITE_CANDIDATOS_POR_SLOT_ALARGADO, LIMITE_NOS_PESQUISA_ALARGADO);
         if (t2.encontrou()) return t2.atribuicoes();
         registarTentativaLimitada(t2, data, "alargada");
 
         ResultadoTentativa ultima = t2;
 
-        // Tentativa 3: sem preservação FDS (se aplicável)
-        boolean semCandidatosNalgumSlot = t1.candidatosPorSlot().values().stream().anyMatch(List::isEmpty);
-        if (contextoFDS != null && (validator.ehFimDeSemana(data) || semCandidatosNalgumSlot)) {
-            ResultadoTentativa t3 = executarTentativa(data, slots, estadoPorColaborador, reservaFDS,
-                    null, horariosJaGerados, pedido,
-                    false, false, false, minimoChefiasNoDia,
-                    LIMITE_CANDIDATOS_POR_SLOT_ALARGADO, LIMITE_NOS_PESQUISA_ALARGADO);
+        // Tentativa 3: rotação de fim de semana relaxada (só ao fim de semana)
+        if (fimDeSemana && pedido.janelaRotacaoFimDeSemana() >= 2) {
+            ResultadoTentativa t3 = executarTentativa(data, slots, estadoPorColaborador,
+                    horariosJaGerados, pedido, true, false, minimoChefiasNoDia,
+                    LIMITE_CANDIDATOS_POR_SLOT_EXCECAO, LIMITE_NOS_PESQUISA_EXCECAO);
             ultima = t3;
             if (t3.encontrou()) return t3.atribuicoes();
-            registarTentativaLimitada(t3, data, "sem-preservacao");
+            registarTentativaLimitada(t3, data, "rotacao-relaxada");
         }
 
-        // Tentativa 4: rotação FDS relaxada
-        if (validator.ehFimDeSemana(data) && pedido.janelaRotacaoFimDeSemana() >= 2) {
-            ResultadoTentativa t4 = executarTentativa(data, slots, estadoPorColaborador, reservaFDS,
-                    null, horariosJaGerados, pedido,
-                    false, true, false, minimoChefiasNoDia,
+        // Tentativa 4: descanso semanal relaxado (só ao fim de semana)
+        if (fimDeSemana) {
+            ResultadoTentativa t4 = executarTentativa(data, slots, estadoPorColaborador,
+                    horariosJaGerados, pedido, true, true, minimoChefiasNoDia,
                     LIMITE_CANDIDATOS_POR_SLOT_EXCECAO, LIMITE_NOS_PESQUISA_EXCECAO);
             ultima = t4;
             if (t4.encontrou()) return t4.atribuicoes();
-            registarTentativaLimitada(t4, data, "rotacao-relaxada");
+            registarTentativaLimitada(t4, data, "excecao-operacional");
         }
 
-        // Tentativa 5: descanso semanal relaxado (FDS)
-        if (validator.ehFimDeSemana(data)) {
-            ResultadoTentativa t5 = executarTentativa(data, slots, estadoPorColaborador, reservaFDS,
-                    null, horariosJaGerados, pedido,
-                    false, true, true, minimoChefiasNoDia,
-                    LIMITE_CANDIDATOS_POR_SLOT_EXCECAO, LIMITE_NOS_PESQUISA_EXCECAO);
-            ultima = t5;
-            if (t5.encontrou()) return t5.atribuicoes();
-            registarTentativaLimitada(t5, data, "excecao-operacional");
-        }
-
-        // Todas as tentativas falharam
-        lancarFalhaCobertura(data, ultima, estadoPorColaborador.values(), pedido, reservaFDS);
+        lancarFalhaCobertura(data, ultima, estadoPorColaborador.values(), pedido);
         return List.of(); // nunca atingido
     }
 
@@ -264,11 +248,8 @@ public class HorarioGeneratorEngine {
     private ResultadoTentativa executarTentativa(LocalDate data,
                                                  List<SlotDia> slots,
                                                  Map<Integer, EstadoColaborador> estadoPorColaborador,
-                                                 ReservaFimDeSemana reservaFDS,
-                                                 ContextoPreservacaoFDS contextoFDS,
                                                  List<Horario> horariosJaGerados,
                                                  PedidoGeracao pedido,
-                                                 boolean aplicarPreservacaoFDS,
                                                  boolean ignorarRotacaoFDS,
                                                  boolean ignorarDescansoSemanal,
                                                  int minimoChefiasNoDia,
@@ -279,9 +260,7 @@ public class HorarioGeneratorEngine {
         for (SlotDia slot : slots) {
             List<AtribuicaoDia> candidatos = limitarCandidatos(
                     resolverCandidatosOrdenados(data, slot.turnosCompativeis(),
-                            estadoPorColaborador.values(), reservaFDS,
-                            aplicarPreservacaoFDS ? contextoFDS : null,
-                            horariosJaGerados, pedido,
+                            estadoPorColaborador.values(), horariosJaGerados, pedido,
                             ignorarRotacaoFDS, ignorarDescansoSemanal),
                     limiteCandidatos);
             candidatosPorSlot.put(slot, candidatos);
@@ -302,8 +281,7 @@ public class HorarioGeneratorEngine {
         }
 
         // Tentativa gulosa (O(n) — rápida)
-        List<AtribuicaoDia> gulosa = tentativaGulosa(slotsOrdenados, minimoChefiasNoDia,
-                candidatosPorSlot);
+        List<AtribuicaoDia> gulosa = tentativaGulosa(slotsOrdenados, minimoChefiasNoDia, candidatosPorSlot);
         if (gulosa != null) {
             return new ResultadoTentativa(true, List.copyOf(gulosa), candidatosPorSlot, slotsOrdenados, ctx);
         }
@@ -313,8 +291,7 @@ public class HorarioGeneratorEngine {
         boolean encontrou = backtrack(slotsOrdenados, 0, minimoChefiasNoDia, 0,
                 candidatosPorSlot, new LinkedHashSet<>(), atribuicoes, ctx);
 
-        return new ResultadoTentativa(encontrou, List.copyOf(atribuicoes),
-                candidatosPorSlot, slotsOrdenados, ctx);
+        return new ResultadoTentativa(encontrou, List.copyOf(atribuicoes), candidatosPorSlot, slotsOrdenados, ctx);
     }
 
     // =========================================================================
@@ -363,10 +340,8 @@ public class HorarioGeneratorEngine {
     }
 
     /**
-     * Backtracking recursivo com poda por:
-     *   - orçamento de nós explorados
-     *   - prazo de tempo
-     *   - viabilidade de chefias restantes
+     * Backtracking recursivo com poda por orçamento de nós, prazo e viabilidade
+     * de chefias restantes.
      */
     private boolean backtrack(List<SlotDia> slots,
                               int indice,
@@ -416,7 +391,7 @@ public class HorarioGeneratorEngine {
                                          Map<Integer, Integer> minimosPorTurno) {
         Map<String, List<Turno>> porTipo = new LinkedHashMap<>();
         for (Turno t : turnos) {
-            porTipo.computeIfAbsent(normalizarTurno(t), ignored -> new ArrayList<>()).add(t);
+            porTipo.computeIfAbsent(TurnoClassifier.tipoNormalizado(t), ignored -> new ArrayList<>()).add(t);
         }
 
         List<SlotDia> slots = new ArrayList<>();
@@ -460,126 +435,38 @@ public class HorarioGeneratorEngine {
     }
 
     // =========================================================================
-    // Resolução e ordenação de candidatos
+    // Resolução e ordenação de candidatos (pontuação delegada ao avaliador)
     // =========================================================================
 
-        private List<AtribuicaoDia> resolverCandidatosOrdenados(LocalDate data,
+    private List<AtribuicaoDia> resolverCandidatosOrdenados(LocalDate data,
                                                             List<Turno> turnosCompativeis,
                                                             Collection<EstadoColaborador> estados,
-                                                            ReservaFimDeSemana reservaFDS,
-                                                            ContextoPreservacaoFDS contextoFDS,
                                                             List<Horario> horariosJaGerados,
                                                             PedidoGeracao pedido,
                                                             boolean ignorarRotacaoFDS,
                                                             boolean ignorarDescansoSemanal) {
-        Map<Integer, AtribuicaoDia> melhorPorColaborador = new LinkedHashMap<>();
+        AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horariosJaGerados);
+
+        // Melhor turno (menor pontuação) por colaborador — score calculado uma única vez.
+        Map<Integer, CandidatoPontuado> melhorPorColaborador = new LinkedHashMap<>();
         for (Turno turno : turnosCompativeis) {
             long minutos = validator.calcularDuracaoEmMinutos(turno);
             for (EstadoColaborador estado : estados) {
                 if (!estado.podeReceber(data, turno, minutos, pedido,
                         ignorarRotacaoFDS, ignorarDescansoSemanal)) continue;
 
-                AtribuicaoDia proposta = new AtribuicaoDia(estado, turno, minutos);
-                melhorPorColaborador.merge(estado.idUtilizador(), proposta,
-                        (atual, novo) -> pontuarAtribuicao(novo, data, pedido, reservaFDS,
-                                horariosJaGerados)
-                                < pontuarAtribuicao(atual, data, pedido, reservaFDS,
-                                horariosJaGerados) ? novo : atual);
-            }
-        }
-        List<AtribuicaoDia> lista = new ArrayList<>(melhorPorColaborador.values());
-        // Ordenação com jitter determinístico baseado na semente:
-        // garante horários diferentes entre gerações sem violar restrições hard.
-        // O jitter (max ±12.0) é inferior ao menor peso soft (20 para rotação FDS),
-        // pelo que nunca anula preferências fortes — apenas desempata candidatos equivalentes.
-        long semente = pedido.semente();
-        lista.sort((a, b) -> {
-            double scoreA = pontuarAtribuicao(a, data, pedido, reservaFDS, horariosJaGerados)
-                + ((semente ^ (long) a.estado().idUtilizador() * 0x9e3779b97f4a7c15L) >>> 50) / 16383.0 * 12.0;
-            double scoreB = pontuarAtribuicao(b, data, pedido, reservaFDS, horariosJaGerados)
-                + ((semente ^ (long) b.estado().idUtilizador() * 0x9e3779b97f4a7c15L) >>> 50) / 16383.0 * 12.0;
-            return Double.compare(scoreA, scoreB);
-        });
-        return lista;
-    }
-
-    /**
-     * Pontuação heurística de uma atribuição (menor = melhor candidato).
-     * Critérios (por ordem de prioridade):
-     *   1. Chefia obrigatória ao sábado (promovida)
-     *   2. Utilização contratual projectada (equilíbrio de carga)
-     *   3. Fins de semana trabalhados (rotação)
-     *   4. Preferências de turno satisfeitas (qualidade)
-     */
-    private double pontuarAtribuicao(AtribuicaoDia a,
-                                     LocalDate data,
-                                     PedidoGeracao pedido,
-                                     ReservaFimDeSemana reservaFDS,
-                                     List<Horario> horariosJaGerados) {
-        double pontuacao = 0;
-
-        // Chefia: promover quem cumpre requisito de sábado
-        if (pedido.exigirChefiaAoSabado()
-                && data.getDayOfWeek() == DayOfWeek.SATURDAY
-                && a.estado().ehChefiaAoSabado()) {
-            pontuacao -= 1000;
-        }
-
-        // Utilização contratual: preferir quem tem menos carga proporcional
-        pontuacao += a.estado().utilizacaoProjetada(a.minutosTurno()) * 100;
-
-        // Rotação fins de semana: preferir quem trabalhou menos FDS
-        pontuacao += a.estado().totalFimDeSemanaTrabalhados() * 20;
-        if (validator.ehFimDeSemana(data)) {
-            if (a.estado().trabalhouFimDeSemanaAnterior(data)) {
-                pontuacao += a.estado().ehApenasFimDeSemana() ? 220 : 140;
-            } else if (a.estado().ehApenasFimDeSemana()) {
-                // Usar reforco ao fim de semana preserva carga dos restantes perfis para dias uteis.
-                pontuacao -= 25;
+                double score = avaliador.pontuar(estado, turno, minutos, data, pedido, contexto);
+                CandidatoPontuado candidato = new CandidatoPontuado(
+                        new AtribuicaoDia(estado, turno, minutos), score);
+                melhorPorColaborador.merge(estado.idUtilizador(), candidato,
+                        (atual, novo) -> novo.score() < atual.score() ? novo : atual);
             }
         }
 
-        // Preferências de turno: recompensar correspondência forte (duplicado vs carga contratual)
-        if (temPreferenciaTurnoFavoravel(a.estado().idUtilizador(),
-                a.turno(), data, pedido.preferenciasTurnos())) {
-            pontuacao -= 55;
-        }
-
-        // A2: Penalizar se este dia é preferido de folga (peso relevante mas ainda soft)
-        Set<LocalDate> folgasPref = pedido.diasFolgaPreferidos() != null
-                ? pedido.diasFolgaPreferidos().getOrDefault(a.estado().idUtilizador(), Set.of())
-                : Set.of();
-        if (folgasPref.contains(data)) {
-            pontuacao += 85;
-        }
-
-        // A3: Bónus se colega preferido está escalado no mesmo dia ou no mesmo mês
-        if (pedido.paresPreferisPorColaborador() != null) {
-            Set<Integer> colegasPref = pedido.paresPreferisPorColaborador()
-                    .getOrDefault(a.estado().idUtilizador(), Set.of());
-            if (!colegasPref.isEmpty()) {
-                // Mesmo dia = bónus forte (favorece co-escalamento direto)
-                boolean colegaMesmoDia = horariosJaGerados.stream()
-                        .anyMatch(h -> h.getIdLojautilizador() != null
-                                && h.getIdLojautilizador().getIdUtilizador() != null
-                                && colegasPref.contains(h.getIdLojautilizador().getIdUtilizador().getId())
-                                && data.equals(h.getDataTurno()));
-                if (colegaMesmoDia) {
-                    pontuacao -= 45;
-                } else {
-                    // Mesmo mês = bónus fraco (favorece equipas estáveis)
-                    boolean colegaAtivo = horariosJaGerados.stream()
-                            .anyMatch(h -> h.getIdLojautilizador() != null
-                                    && h.getIdLojautilizador().getIdUtilizador() != null
-                                    && colegasPref.contains(h.getIdLojautilizador().getIdUtilizador().getId()));
-                    if (colegaAtivo) {
-                        pontuacao -= 25;
-                    }
-                }
-            }
-        }
-
-        return pontuacao;
+        return melhorPorColaborador.values().stream()
+                .sorted(Comparator.comparingDouble(CandidatoPontuado::score))
+                .map(CandidatoPontuado::atribuicao)
+                .toList();
     }
 
     // =========================================================================
@@ -589,8 +476,7 @@ public class HorarioGeneratorEngine {
     private boolean existeChefiaPossivel(LocalDate data,
                                          List<SlotDia> slots,
                                          Collection<EstadoColaborador> estados,
-                                         PedidoGeracao pedido,
-                                         ReservaFimDeSemana reservaFDS) {
+                                         PedidoGeracao pedido) {
         for (EstadoColaborador estado : estados) {
             if (!estado.ehChefiaAoSabado()) continue;
             for (SlotDia slot : slots) {
@@ -606,71 +492,11 @@ public class HorarioGeneratorEngine {
     }
 
     // =========================================================================
-    // Reserva operacional de fim de semana
-    // =========================================================================
-
-    private ReservaFimDeSemana identificarReservaFimDeSemana(Collection<EstadoColaborador> estados,
-                                                              PedidoGeracao pedido,
-                                                              LocalDate inicioSemana) {
-        LocalDate sabado = inicioSemana.with(DayOfWeek.SATURDAY);
-        LocalDate domingo = inicioSemana.with(DayOfWeek.SUNDAY);
-        if (sabado.isAfter(pedido.dataFim())) return ReservaFimDeSemana.vazia();
-
-        Set<Integer> nucleares = new LinkedHashSet<>();
-        Set<Integer> apoio = new LinkedHashSet<>();
-
-        for (EstadoColaborador estado : estados) {
-            Set<LocalDate> bloqueios = pedido.bloqueiosPorColaborador()
-                    .getOrDefault(estado.idUtilizador(), Set.of());
-
-            if (bloqueios.contains(sabado)) continue;
-            if (!estado.podeCobrir(sabado, domingo, pedido, bloqueios)) continue;
-
-            if (estado.ehChefiaAoSabado()) {
-                nucleares.add(estado.idUtilizador());
-            } else {
-                apoio.add(estado.idUtilizador());
-            }
-        }
-        return new ReservaFimDeSemana(nucleares, apoio);
-    }
-
-    // =========================================================================
-    // Contexto de preservação de fim de semana
-    // =========================================================================
-
-    private ContextoPreservacaoFDS construirContextoPreservacaoFDS(LocalDate data,
-                                                                    LocalDate dataFim,
-                                                                    List<Turno> turnosBase,
-                                                                    PedidoGeracao pedido,
-                                                                    ConfiguracaoDia configDia) {
-        LocalDate sabado = data.with(DayOfWeek.SATURDAY);
-        if (sabado.isAfter(dataFim) || data.getDayOfWeek() == DayOfWeek.SUNDAY) return null;
-
-        LocalDate domingo = sabado.plusDays(1);
-        List<Turno> turnosSabado = (configDia != null && data.getDayOfWeek() == DayOfWeek.SATURDAY)
-                ? (configDia.turnosCompativeis().isEmpty() ? turnosBase : configDia.turnosCompativeis())
-                : turnosBase;
-        List<Turno> turnosDomingo = domingo.isAfter(dataFim) ? List.of() : turnosBase;
-
-        int minimoSabado = turnosSabado.stream()
-                .mapToInt(t -> pedido.minimosPorTurno().getOrDefault(t.getId(), 1))
-                .max().orElse(1);
-        int minimoDomingo = turnosDomingo.stream()
-                .mapToInt(t -> pedido.minimosPorTurno().getOrDefault(t.getId(), 1))
-                .max().orElse(0);
-
-        return new ContextoPreservacaoFDS(sabado, turnosSabado, minimoSabado,
-                domingo, turnosDomingo, minimoDomingo,
-                minimoSabado + minimoDomingo);
-    }
-
-    // =========================================================================
     // Ordenação de slots por escassez
     // =========================================================================
 
     private List<SlotDia> ordenarPorEscassez(List<SlotDia> slots,
-                                              Map<SlotDia, List<AtribuicaoDia>> candidatosPorSlot) {
+                                             Map<SlotDia, List<AtribuicaoDia>> candidatosPorSlot) {
         List<SlotDia> ordenados = new ArrayList<>(slots);
         ordenados.sort(Comparator
                 .comparingInt((SlotDia s) -> candidatosPorSlot.getOrDefault(s, List.of()).size())
@@ -701,81 +527,6 @@ public class HorarioGeneratorEngine {
     }
 
     // =========================================================================
-    // Preferências
-    // =========================================================================
-
-    private boolean temPreferenciaTurnoFavoravel(Integer idColaborador,
-                                                  Turno turno,
-                                                  LocalDate data,
-                                                  Map<Integer, List<Preferencia>> preferenciasTurnos) {
-        List<Preferencia> prefs = preferenciasTurnos.getOrDefault(idColaborador, List.of());
-        if (prefs.isEmpty()) return false;
-        long duracaoMinutos = validator.calcularDuracaoEmMinutos(turno);
-        for (Preferencia p : prefs) {
-            if (p.getDataInicio() != null && !data.isBefore(p.getDataInicio())
-                    && (p.getDataFim() == null || !data.isAfter(p.getDataFim()))) {
-                String desc = p.getDescricao() != null ? p.getDescricao().toLowerCase() : "";
-                boolean exigeCurto = desc.contains("curto");
-                boolean exigeLongo = desc.contains("longo");
-                boolean exigeManha = desc.contains("manha");
-                boolean exigeTarde = desc.contains("tarde");
-                boolean exigeIntermedio = desc.contains("intermedio");
-                boolean exigeNoite = desc.contains("noite");
-
-                boolean temFiltroDuracao = exigeCurto || exigeLongo;
-                boolean temFiltroPeriodo = exigeManha || exigeTarde || exigeIntermedio || exigeNoite;
-
-                boolean correspondeDuracao = !temFiltroDuracao
-                        || (exigeCurto && duracaoMinutos < 300)
-                        || (exigeLongo && duracaoMinutos >= 300);
-
-                boolean correspondePeriodo = !temFiltroPeriodo
-                        || correspondePeriodo(turno, exigeManha, exigeTarde, exigeIntermedio, exigeNoite);
-
-                if (correspondeDuracao && correspondePeriodo) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean correspondePeriodo(Turno turno,
-                                       boolean exigeManha,
-                                       boolean exigeTarde,
-                                       boolean exigeIntermedio,
-                                       boolean exigeNoite) {
-        String tipoNormalizado = normalizarTurno(turno);
-        LocalTime horaInicio = turno.getHoraInicio();
-
-        if (exigeManha && ("manha".equals(tipoNormalizado)
-                || (horaInicio != null && horaInicio.isBefore(LocalTime.of(10, 0))))) {
-            return true;
-        }
-
-        if (exigeIntermedio && ("intermedio".equals(tipoNormalizado)
-                || (horaInicio != null
-                && !horaInicio.isBefore(LocalTime.of(10, 0))
-                && horaInicio.isBefore(LocalTime.NOON)))) {
-            return true;
-        }
-
-        if (exigeTarde && ("tarde".equals(tipoNormalizado)
-                || (horaInicio != null
-                && !horaInicio.isBefore(LocalTime.NOON)
-                && horaInicio.isBefore(LocalTime.of(17, 0))))) {
-            return true;
-        }
-
-        if (exigeNoite && ("noite".equals(tipoNormalizado)
-                || (horaInicio != null && !horaInicio.isBefore(LocalTime.of(17, 0))))) {
-            return true;
-        }
-
-        return false;
-    }
-
-    // =========================================================================
     // Validação de prazo
     // =========================================================================
 
@@ -789,30 +540,13 @@ public class HorarioGeneratorEngine {
     }
 
     // =========================================================================
-    // Normalização de turno
-    // =========================================================================
-
-    private String normalizarTurno(Turno turno) {
-        if (turno == null) return "desconhecido";
-        String tipo = turno.getTipo() != null ? turno.getTipo().toString().toLowerCase() : "";
-        LocalTime inicio = turno.getHoraInicio();
-        if (!tipo.isBlank()) return tipo;
-        if (inicio == null) return "desconhecido";
-        if (inicio.isBefore(LocalTime.of(10, 0))) return "manha";
-        if (inicio.isBefore(LocalTime.NOON)) return "intermedio";
-        if (inicio.isBefore(LocalTime.of(17, 0))) return "tarde";
-        return "noite";
-    }
-
-    // =========================================================================
-    // Mensagem de falha de cobertura
+    // Mensagem e diagnóstico de falha de cobertura
     // =========================================================================
 
     private void lancarFalhaCobertura(LocalDate data,
                                       ResultadoTentativa ultima,
                                       Collection<EstadoColaborador> estados,
-                                      PedidoGeracao pedido,
-                                      ReservaFimDeSemana reservaFDS) {
+                                      PedidoGeracao pedido) {
         List<SlotDia> slotsOrdenados = ultima.slotsOrdenados();
         SlotDia slotCritico = slotsOrdenados.isEmpty() ? null : slotsOrdenados.getFirst();
         String turnoDesc = slotCritico != null ? formatarTurno(slotCritico.turno()) : "desconhecido";
@@ -820,22 +554,26 @@ public class HorarioGeneratorEngine {
         LOGGER.warn("Falha ao cobrir turno {} em {}. Candidatos por slot: {}",
                 turnoDesc, data,
                 ultima.candidatosPorSlot().entrySet().stream()
-                        .map(e -> formatarTurno(e.getKey().turno())
-                                + "=" + e.getValue().size())
+                        .map(e -> formatarTurno(e.getKey().turno()) + "=" + e.getValue().size())
                         .toList());
 
-        throw new GeracaoHorariosService.FalhaGeracaoHorarioException(
+        // Diagnóstico explicativo: porque é que cada colaborador ficou de fora do slot crítico.
+        List<Turno> turnosCriticos = slotCritico != null ? slotCritico.turnosCompativeis() : List.of();
+        DiagnosticoCobertura diagnostico = DiagnosticoCobertura.analisar(
+                data, turnosCriticos, estados, pedido, validator);
+
+        throw new FalhaGeracaoHorarioException(
                 "Não foi possível gerar o horário: o turno " + turnoDesc
                         + " de " + DATA_FORMATTER.format(data)
                         + " ficou sem colaboradores disponíveis. "
                         + "Foram considerados " + estados.size()
-                        + " colaboradores. Revê folgas, limites de horas e mínimos por turno.",
+                        + " colaboradores. " + diagnostico.motivoPrincipal(),
                 turnoDesc,
                 DATA_FORMATTER.format(data),
                 estados.size(),
-                "Sem candidatos suficientes para o slot mais crítico.",
-                List.of(),
-                List.of()
+                diagnostico.motivoPrincipal(),
+                diagnostico.motivos(),
+                diagnostico.sugestoes()
         );
     }
 
@@ -857,47 +595,8 @@ public class HorarioGeneratorEngine {
     }
 
     // =========================================================================
-    // Value objects internos
+    // Value objects internos (implementação da pesquisa)
     // =========================================================================
-
-    /**
-     * Input imutável para o motor: tudo o que o algoritmo precisa, sem
-     * dependências de repositórios.
-     */
-    public record PedidoGeracao(
-            List<Lojautilizador>                    colaboradores,
-            List<Turno>                             turnos,
-            LocalDate                               dataInicio,
-            LocalDate                               dataFim,
-            Map<Integer, Integer>                   minimosPorTurno,
-            int                                     maxDiasConsecutivos,
-            int                                     descansoMinimoHoras,
-            int                                     descansoSemanalMinimoDias,
-            int                                     janelaRotacaoFimDeSemana,
-            boolean                                 exigirChefiaAoSabado,
-            Set<Integer>                            chefiasSabadoIds,
-            Map<Integer, Long>                      cargaMaximaPorColaborador,
-            Map<Integer, Set<LocalDate>>            bloqueiosPorColaborador,
-            Map<Integer, List<Preferencia>>         preferenciasTurnos,
-            Map<LocalDate, ConfiguracaoDia>         configuracoesPorData,
-            List<Horario>                           historicoHorarios,
-            Instant                                 prazoLimite,
-            String                                  politica,
-            // A2: dias de folga preferidos (soft — penalização, não hard block)
-            Map<Integer, Set<LocalDate>>            diasFolgaPreferidos,
-            // A3: pares de colegas preferidos (soft — bónus de pontuação)
-            Map<Integer, Set<Integer>>              paresPreferisPorColaborador,
-            // D: semente de diversificação — garante horários diferentes em gerações diferentes
-            long                                    semente
-    ) {}
-
-    /** Configuração especial para um dia (feriado, horário especial de loja). */
-    public record ConfiguracaoDia(
-            boolean     lojaEncerrada,
-            List<Turno> turnosCompativeis,
-            Integer     minimoColaboradoresTurno,
-            String      descricao
-    ) {}
 
     private record SlotDia(Turno turno, List<Turno> turnosCompativeis, int ordem) {}
 
@@ -911,27 +610,9 @@ public class HorarioGeneratorEngine {
             PesquisaContexto contextoPesquisa
     ) {}
 
-    /** Reserva de colaboradores para cobertura de fim de semana. */
-    private record ReservaFimDeSemana(Set<Integer> nucleares, Set<Integer> apoio) {
-        static ReservaFimDeSemana vazia() {
-            return new ReservaFimDeSemana(Set.of(), Set.of());
-        }
-        boolean ehNuclear(Integer id) {
-            return id != null && nucleares.contains(id);
-        }
-    }
+    private record CandidatoPontuado(AtribuicaoDia atribuicao, double score) {}
 
-    /** Contexto para preservação de capacidade no fim de semana. */
-    private record ContextoPreservacaoFDS(
-            LocalDate sabado, List<Turno> turnosSabado, int minimoSabado,
-            LocalDate domingo, List<Turno> turnosDomingo, int minimoDomingo,
-            int minimoFimDeSemanacompleto
-    ) {}
-
-    // =========================================================================
     // Contexto de pesquisa (orçamento de nós e prazo)
-    // =========================================================================
-
     private static final class PesquisaContexto {
         private final Instant prazo;
         private final int limiteNos;
@@ -957,176 +638,8 @@ public class HorarioGeneratorEngine {
             return true;
         }
 
-        int nosExplorados()   { return nosExplorados; }
+        int nosExplorados()     { return nosExplorados; }
         boolean prazoEsgotado() { return prazoEsgotado; }
         boolean atingiuLimite() { return limiteAtingido; }
-    }
-
-    // =========================================================================
-    // Estado de um colaborador durante a geração
-    // =========================================================================
-
-    /**
-     * Estado mutável de um colaborador ao longo da geração.
-     * Encapsula a lógica de elegibilidade delegando as regras ao
-     * {@link HorarioValidatorService}.
-     */
-    final class EstadoColaborador {
-        private final Lojautilizador ligacao;
-        private final long cargaMaximaMinutos;
-        private final boolean chefiaAoSabado;
-        private final boolean apenasFimDeSemana;
-        private final boolean exigeTurnoMinimoOitoHoras;
-
-        private LocalDate ultimaDataAtribuida;
-        private int diasConsecutivos;
-        private long minutosAtribuidos;
-        private final Map<LocalDate, Turno> atribuicoesConhecidas = new HashMap<>();
-        private final Map<LocalDate, Integer> diasTrabalhadosPorSemana = new HashMap<>();
-        private final Map<LocalDate, LocalDate> ultimoFimDeSemana = new HashMap<>();
-        private int totalFimDeSemanaTrabalhados;
-
-        EstadoColaborador(Lojautilizador ligacao,
-                          long cargaMaximaMinutos,
-                          Set<Integer> chefiasSabadoIds) {
-            this.ligacao = ligacao;
-            this.cargaMaximaMinutos = cargaMaximaMinutos;
-            this.chefiaAoSabado = ligacao.getIdUtilizador() != null
-                    && chefiasSabadoIds.contains(ligacao.getIdUtilizador().getId());
-            String tipoCargo = ligacao.getIdCargo() != null ? normalizarCargo(ligacao.getIdCargo().getTipo()) : "";
-            this.apenasFimDeSemana = "reforco_parttime".equals(tipoCargo);
-            this.exigeTurnoMinimoOitoHoras = "fulltime".equals(tipoCargo)
-                    || "gerente".equals(tipoCargo)
-                    || "subgerente".equals(tipoCargo)
-                    || "supervisor".equals(tipoCargo);
-        }
-
-        Integer idUtilizador() {
-            return ligacao.getIdUtilizador() != null ? ligacao.getIdUtilizador().getId() : null;
-        }
-
-        Lojautilizador ligacao() { return ligacao; }
-
-        boolean ehChefiaAoSabado() { return chefiaAoSabado; }
-
-        boolean ehApenasFimDeSemana() { return apenasFimDeSemana; }
-
-        double utilizacaoProjetada(long minutosTurno) {
-            if (cargaMaximaMinutos <= 0) return Double.MAX_VALUE;
-            return (minutosAtribuidos + minutosTurno) / (double) cargaMaximaMinutos;
-        }
-
-        int totalFimDeSemanaTrabalhados() { return totalFimDeSemanaTrabalhados; }
-
-        boolean podeReceber(LocalDate data,
-                            Turno turno,
-                            long minutosTurno,
-                            PedidoGeracao pedido,
-                            boolean ignorarRotacaoFDS,
-                            boolean ignorarDescansoSemanal) {
-
-            Set<LocalDate> bloqueios = pedido.bloqueiosPorColaborador()
-                    .getOrDefault(idUtilizador(), Set.of());
-
-            if ((apenasFimDeSemana && !validator.ehFimDeSemana(data))
-                    || (exigeTurnoMinimoOitoHoras && minutosTurno < 8 * 60L)
-                    || bloqueios.contains(data)
-                    || atribuicoesConhecidas.containsKey(data)
-                    || (minutosAtribuidos + minutosTurno) > cargaMaximaMinutos) {
-                return false;
-            }
-
-            if (!ignorarDescansoSemanal) {
-                int diasNaSemana = diasTrabalhadosPorSemana
-                        .getOrDefault(validator.inicioSemana(data), 0);
-                if (validator.excedeDiasTrabalhadosNaSemana(
-                        data, diasNaSemana, pedido.descansoSemanalMinimoDias())) {
-                    return false;
-                }
-            }
-
-            if (!ignorarRotacaoFDS && validator.ehFimDeSemana(data)) {
-                LocalDate ultimoFDS = ultimoFimDeSemanaInicio();
-                if (validator.violaRotacaoDeFimDeSemana(data,
-                        totalFimDeSemanaTrabalhados, ultimoFDS,
-                        pedido.janelaRotacaoFimDeSemana())) {
-                    return false;
-                }
-            }
-
-            if (validator.violaMaximoDiasConsecutivos(ultimaDataAtribuida,
-                    diasConsecutivos, data, pedido.maxDiasConsecutivos())) {
-                return false;
-            }
-
-            if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
-                Turno turnoAnterior = atribuicoesConhecidas.get(ultimaDataAtribuida);
-                if (!validator.respeitaDescansoMinimo(ultimaDataAtribuida, turnoAnterior,
-                        data, turno, pedido.descansoMinimoHoras())) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        boolean podeCobrir(LocalDate sabado,
-                           LocalDate domingo,
-                           PedidoGeracao pedido,
-                           Set<LocalDate> bloqueios) {
-            if (bloqueios.contains(sabado) || atribuicoesConhecidas.containsKey(sabado)) {
-                return false;
-            }
-            if (domingo == null) return true;
-            return !bloqueios.contains(domingo) && !atribuicoesConhecidas.containsKey(domingo);
-        }
-
-        void registarAtribuicao(LocalDate data, Turno turno, long minutosTurno) {
-            if (data == null || turno == null || atribuicoesConhecidas.containsKey(data)) return;
-
-            if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
-                diasConsecutivos++;
-            } else {
-                diasConsecutivos = 1;
-            }
-            ultimaDataAtribuida = data;
-            atribuicoesConhecidas.put(data, turno);
-            diasTrabalhadosPorSemana.merge(validator.inicioSemana(data), 1, Integer::sum);
-
-            if (validator.ehFimDeSemana(data)) {
-                totalFimDeSemanaTrabalhados++;
-                ultimoFimDeSemana.put(validator.inicioFimDeSemana(data),
-                        validator.inicioFimDeSemana(data));
-            }
-            minutosAtribuidos += minutosTurno;
-        }
-
-        void inicializarComHistorico(List<Horario> historico) {
-            for (Horario h : historico) {
-                if (h.getDataTurno() == null || h.getIdTurno() == null) continue;
-                registarAtribuicao(h.getDataTurno(), h.getIdTurno(), 0);
-            }
-        }
-
-        private LocalDate ultimoFimDeSemanaInicio() {
-            return ultimoFimDeSemana.values().stream()
-                    .max(Comparator.naturalOrder())
-                    .orElse(null);
-        }
-
-        private boolean trabalhouFimDeSemanaAnterior(LocalDate data) {
-            if (data == null || !validator.ehFimDeSemana(data)) {
-                return false;
-            }
-            LocalDate fimDeSemanaAtual = validator.inicioFimDeSemana(data);
-            return ultimoFimDeSemana.containsKey(fimDeSemanaAtual.minusWeeks(1));
-        }
-
-        private String normalizarCargo(String tipoCargo) {
-            if (tipoCargo == null) {
-                return "";
-            }
-            return tipoCargo.trim().toLowerCase(java.util.Locale.ROOT);
-        }
     }
 }

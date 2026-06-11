@@ -1,6 +1,6 @@
 package com.example.projeto2;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Enums.EstadoHorario;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Lojautilizador;
@@ -66,7 +66,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
                 "Compatibilidade com descanso semanal."
         );
 
-        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -107,7 +107,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
     void geracaoMensalGaranteRotacaoDeFimDeSemanaEmJanelaDeDuasSemanas() {
         GeracaoFixture fixture = criarContextoGeracao("rotacao-fds");
 
-        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 fixture.lojaFixture().gerente().getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()
@@ -178,7 +178,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
         criarHorarioAprovado(ligacaoAtiva, fixture.turnos().get(1), fimDeSemanaAnterior.plusDays(1));
         flushAndClear();
 
-        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 fixture.referencia().getYear(),
                 fixture.referencia().getMonthValue()

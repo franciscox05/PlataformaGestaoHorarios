@@ -1,6 +1,6 @@
 package com.example.projeto2;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Enums.EstadoHorario;
 import com.example.projeto2.API.Enums.EstadoUtilizador;
 import com.example.projeto2.API.Modules.DayOff;
@@ -143,7 +143,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 "Folga aprovada para o segundo dia do periodo."
         );
 
-        GeracaoHorariosService.PropostaResultado proposta;
+        PropostaResultado proposta;
         try {
             proposta = geracaoHorariosBLL.gerarProposta(
                     gerente.getId(),
@@ -170,7 +170,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 .anyMatch(linha -> referencia.plusDays(1).equals(linha.data()) && bloqueadoPorPreferencia.getNome().equals(linha.colaborador())));
 
         geracaoHorariosBLL.enviarPropostasParaValidacao(gerente.getId(), List.of(proposta.idProposta()));
-        GeracaoHorariosService.PropostaResultado aprovada = geracaoHorariosBLL.aprovarProposta(
+        PropostaResultado aprovada = geracaoHorariosBLL.aprovarProposta(
                 supervisor.getId(),
                 proposta.idProposta(),
                 "Validado em teste automatizado."
@@ -204,7 +204,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         criarHorarioPublicadoSemProposta(lojaFixture.colaboradores().get(1), referencia.plusDays(1), fixture.turnos().get(1));
         flushAndClear();
 
-        GeracaoHorariosService.PropostaResultado resultado = geracaoHorariosBLL.obterPlaneamento(
+        PropostaResultado resultado = geracaoHorariosBLL.obterPlaneamento(
                 gerente.getId(),
                 referencia.getYear(),
                 referencia.getMonthValue()
@@ -258,7 +258,8 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 IllegalArgumentException.class,
                 () -> dayOffBLL.registarPedidoFolga(pedidoTardio)
         );
-        assertTrue(erro.getMessage().contains("24 horas"));
+        // Folga no mês atual é bloqueada pela regra do mês corrente (mais restritiva que 24h)
+        assertTrue(erro.getMessage().contains("mes atual") || erro.getMessage().contains("24 horas"));
     }
 
     @Test

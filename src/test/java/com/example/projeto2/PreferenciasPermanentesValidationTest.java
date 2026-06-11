@@ -1,7 +1,8 @@
 package com.example.projeto2;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
-import com.example.projeto2.API.Services.HorarioGeneratorEngine;
+import com.example.projeto2.API.Services.geracao.dto.*;
+import com.example.projeto2.API.Services.HorarioValidatorService;
+import com.example.projeto2.API.Services.geracao.AvaliadorAtribuicao;
 import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Modules.Utilizador;
@@ -10,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
 
     @Autowired
-    private HorarioGeneratorEngine horarioGeneratorEngine;
+    private HorarioValidatorService horarioValidatorService;
 
     @Test
     void preferenciasSemDataFimAssumemDataInicialImplicitaParaTodosOsTipos() {
@@ -85,7 +85,7 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
                 "Preferencia temporaria para o inicio do periodo."
         );
 
-        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 referencia.getYear(),
                 referencia.getMonthValue()
@@ -110,6 +110,39 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
     }
 
     @Test
+    void folgaPreferidaSoftNaoBloqueiaOColaboradorAoContrarioDaFolgaAprovada() {
+        GeracaoFixture fixture = criarContextoGeracao("folga-preferida-soft");
+        Utilizador gerente = fixture.lojaFixture().gerente();
+        Utilizador comFolgaSoft = fixture.lojaFixture().colaboradores().get(0);
+        LocalDate referencia = fixture.referencia();
+
+        // Folga preferida recorrente (soft): o algoritmo deve dar-lhe muita atencao,
+        // mas pode escalar o colaborador se for preciso para a cobertura.
+        criarPreferenciaAprovada(
+                comFolgaSoft,
+                gerente,
+                "folga_preferida",
+                referencia,
+                null,
+                5,
+                "Prefere folgar a este dia da semana."
+        );
+
+        PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+                gerente.getId(),
+                referencia.getYear(),
+                referencia.getMonthValue()
+        );
+
+        assertNotNull(proposta);
+        // Propriedade-chave do "soft": ao contrario de uma folga aprovada (hard block),
+        // o colaborador NAO fica excluido do mes — continua a ser escalado.
+        assertTrue(proposta.linhas().stream()
+                        .anyMatch(linha -> comFolgaSoft.getNome().equals(linha.colaborador())),
+                "Uma folga preferida (soft) nao deve bloquear o colaborador do mes inteiro.");
+    }
+
+    @Test
     void preferenciaEstruturadaDeTurnosReconheceBlocoEDuracaoNoMotor() {
         Preferencia preferencia = new Preferencia();
         preferencia.setTipo("turnos");
@@ -130,14 +163,12 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
         Utilizador utilizador = new Utilizador();
         utilizador.setId(1);
         preferencia.setIdUtilizador(utilizador);
-        return Boolean.TRUE.equals(ReflectionTestUtils.invokeMethod(
-                horarioGeneratorEngine,
-                "temPreferenciaTurnoFavoravel",
+        AvaliadorAtribuicao avaliador = new AvaliadorAtribuicao(horarioValidatorService);
+        return avaliador.temPreferenciaTurnoFavoravel(
                 utilizador.getId(),
                 turno,
                 LocalDate.now(),
-                java.util.Map.of(utilizador.getId(), List.of(preferencia))
-        ));
+                java.util.Map.of(utilizador.getId(), List.of(preferencia)));
     }
 
     private Turno criarTurno(String tipo, int horaInicio, int minutoInicio, int horaFim, int minutoFim) {

@@ -1,9 +1,9 @@
 package com.example.projeto2.API.Services.geracao;
 
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Modules.HorarioEspecialLoja;
 import com.example.projeto2.API.Modules.Loja;
 import com.example.projeto2.API.Modules.Turno;
-import com.example.projeto2.API.Services.GeracaoHorariosService;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -25,15 +25,15 @@ public final class LojaConfiguracaoBuilder {
 
     /**
      * Para cada data no intervalo coberto pelos {@code horariosEspeciais}, constrói uma
-     * {@link GeracaoHorariosService.ConfiguracaoDiaEspecial} com os turnos compatíveis e
+     * {@link ConfiguracaoDiaEspecial} com os turnos compatíveis e
      * os mínimos de colaboradores.
      */
-    public static Map<LocalDate, GeracaoHorariosService.ConfiguracaoDiaEspecial> construirConfiguracoesEspeciaisPorData(
+    public static Map<LocalDate, ConfiguracaoDiaEspecial> construirConfiguracoesEspeciaisPorData(
             Loja loja,
             List<Turno> turnosBase,
             List<HorarioEspecialLoja> horariosEspeciais) {
 
-        Map<LocalDate, GeracaoHorariosService.ConfiguracaoDiaEspecial> configuracoes = new LinkedHashMap<>();
+        Map<LocalDate, ConfiguracaoDiaEspecial> configuracoes = new LinkedHashMap<>();
         if (loja == null || horariosEspeciais == null || horariosEspeciais.isEmpty()) {
             return configuracoes;
         }
@@ -53,13 +53,13 @@ public final class LojaConfiguracaoBuilder {
         return configuracoes;
     }
 
-    private static GeracaoHorariosService.ConfiguracaoDiaEspecial criarConfiguracaoDiaEspecial(
+    private static ConfiguracaoDiaEspecial criarConfiguracaoDiaEspecial(
             List<Turno> turnosBase,
             HorarioEspecialLoja horarioEspecial) {
 
         boolean lojaEncerrada = Boolean.TRUE.equals(horarioEspecial.getLojaEncerrada());
         if (lojaEncerrada) {
-            return new GeracaoHorariosService.ConfiguracaoDiaEspecial(
+            return new ConfiguracaoDiaEspecial(
                     true, List.of(), null, horarioEspecial.getDescricao());
         }
 
@@ -69,7 +69,7 @@ public final class LojaConfiguracaoBuilder {
                 ? filtrarTurnosCompativeis(turnosBase, horaAbertura, horaFecho)
                 : turnosBase;
 
-        return new GeracaoHorariosService.ConfiguracaoDiaEspecial(
+        return new ConfiguracaoDiaEspecial(
                 false,
                 turnosCompativeis,
                 horarioEspecial.getMinimoColaboradoresTurno(),

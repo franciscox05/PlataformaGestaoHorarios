@@ -1,5 +1,6 @@
 package com.example.projeto2.API.Services;
 
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Enums.EstadoHorario;
 import com.example.projeto2.API.Modules.HistoricoHorarioEstado;
 import com.example.projeto2.API.Modules.Horario;
@@ -80,7 +81,7 @@ public class PropostaPersistenciaHelper {
         return proposta;
     }
 
-    public GeracaoHorariosService.PropostaResultado decidirProposta(Lojautilizador ligacaoAtiva,
+    public PropostaResultado decidirProposta(Lojautilizador ligacaoAtiva,
                                                                     Integer idProposta,
                                                                     String novoEstado,
                                                                     String observacoesSupervisor) {

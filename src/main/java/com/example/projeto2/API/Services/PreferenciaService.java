@@ -19,7 +19,10 @@ import java.util.Set;
 @Service
 public class PreferenciaService {
 
-    private static final Set<String> TIPOS_VALIDOS = Set.of("folgas", "ferias", "colegas", "turnos");
+    // "folga_preferida": folga recorrente semanal (soft) — o algoritmo dá-lhe muita atenção
+    // mas pode escalar o colaborador se for necessário para a cobertura (ao contrário de
+    // "folgas"/"ferias", que são ausências concedidas = bloqueio absoluto).
+    private static final Set<String> TIPOS_VALIDOS = Set.of("folgas", "ferias", "colegas", "turnos", "folga_preferida");
     private static final Set<String> ESTADOS_VALIDOS = Set.of("pendente", "aprovado", "rejeitado");
 
     private final PreferenciaRepository preferenciaRepository;
@@ -304,7 +307,7 @@ public class PreferenciaService {
 
     private Integer prioridadePorOmissao(String tipo) {
         return switch (tipo) {
-            case "folgas", "ferias" -> 4;
+            case "folgas", "ferias", "folga_preferida" -> 4;
             case "colegas", "turnos" -> 3;
             default -> 3;
         };
@@ -331,7 +334,7 @@ public class PreferenciaService {
             throw new IllegalArgumentException("A data final nao pode ser anterior a data inicial.");
         }
 
-        if (("folgas".equals(tipo) || "ferias".equals(tipo)) && dataInicio == null) {
+        if (("folgas".equals(tipo) || "ferias".equals(tipo) || "folga_preferida".equals(tipo)) && dataInicio == null) {
             throw new IllegalArgumentException("As preferencias de folgas e ferias precisam de pelo menos uma data inicial.");
         }
     }

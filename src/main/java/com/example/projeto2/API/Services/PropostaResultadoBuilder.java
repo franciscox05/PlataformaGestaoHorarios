@@ -1,5 +1,6 @@
 package com.example.projeto2.API.Services;
 
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Loja;
 import com.example.projeto2.API.Modules.PropostaHorarioMensal;
@@ -50,7 +51,7 @@ public class PropostaResultadoBuilder {
         int colaboradoresComTurnos = (int) planeamento.estados().stream()
                 .filter(estado -> estado.turnosAtribuidos() > 0)
                 .count();
-        return "Modelo IO: satisfacao de restricoes com funcao objetivo ponderada ("
+        StringBuilder resumo = new StringBuilder("Modelo IO: satisfacao de restricoes com funcao objetivo ponderada ("
                 + politica.nome()
                 + "). Proposta gerada automaticamente com "
                 + planeamento.horarios().size()
@@ -64,10 +65,15 @@ public class PropostaResultadoBuilder {
                 + metricas.amplitudeHoras()
                 + ". Politica: "
                 + politica.descricao()
-                + ".";
+                + ".");
+
+        if (planeamento.avisos() != null && !planeamento.avisos().isEmpty()) {
+            resumo.append(" Avisos: ").append(String.join(" ", planeamento.avisos()));
+        }
+        return resumo.toString();
     }
 
-    public GeracaoHorariosService.PropostaResultado construirResultado(
+    public PropostaResultado construirResultado(
             PropostaHorarioMensal proposta, List<Horario> horarios) {
         return construirResultado(
                 proposta.getId(),
@@ -91,7 +97,7 @@ public class PropostaResultadoBuilder {
         );
     }
 
-    public GeracaoHorariosService.PropostaResultado construirResultadoHorariosPublicados(
+    public PropostaResultado construirResultadoHorariosPublicados(
             Loja loja, int ano, int mes, List<Horario> horarios) {
         String resumo = "Foram encontrados "
                 + horarios.size()
@@ -109,14 +115,14 @@ public class PropostaResultadoBuilder {
         );
     }
 
-    public GeracaoHorariosService.PropostaResultado construirResultado(
+    public PropostaResultado construirResultado(
             Integer idProposta, String nomeLoja, Integer ano, Integer mes,
             String nomeMes, String estado, String origemPlaneamento,
             String resumoGeracao, String geradoPor, String dataGeracao,
             String decididoPor, String dataDecisao, String observacoesSupervisor,
             boolean podeSerDecidida, List<Horario> horarios) {
 
-        List<GeracaoHorariosService.HorarioLinha> linhas = horarios.stream()
+        List<HorarioLinha> linhas = horarios.stream()
                 .sorted(Comparator
                         .comparing(Horario::getDataTurno, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(h -> h.getIdTurno() != null ? h.getIdTurno().getHoraInicio() : LocalTime.MIN)
@@ -145,11 +151,11 @@ public class PropostaResultadoBuilder {
             acumulado.put(idCol, r.comTurno(calcularDuracaoEmMinutos(horario.getIdTurno())));
         }
 
-        List<GeracaoHorariosService.ResumoColaborador> resumoColaboradores =
+        List<ResumoColaborador> resumoColaboradores =
                 acumulado.values().stream()
                         .sorted(Comparator.comparing(ResumoAcumulado::nomeColaborador,
                                 String.CASE_INSENSITIVE_ORDER))
-                        .map(r -> new GeracaoHorariosService.ResumoColaborador(
+                        .map(r -> new ResumoColaborador(
                                 r.idColaborador(), r.nomeColaborador(), r.cargo(),
                                 r.turnos(), r.minutos(), formatarDuracao(r.minutos())))
                         .toList();
@@ -161,22 +167,22 @@ public class PropostaResultadoBuilder {
             }
         }
 
-        return new GeracaoHorariosService.PropostaResultado(
+        return new PropostaResultado(
                 idProposta, nomeLoja, ano, mes, nomeMes, estado,
                 origemPlaneamento, resumoGeracao, geradoPor, dataGeracao,
                 decididoPor, dataDecisao, observacoesSupervisor, podeSerDecidida,
                 linhas, resumoColaboradores,
                 metricasCalculator.calcular(horarios,
                         metricasCalculator.extrairPolitica(resumoGeracao)),
-                new GeracaoHorariosService.ResumoGeral(
+                new ResumoGeral(
                         resumoColaboradores.size(), horarios.size(), diasCobertos.size())
         );
     }
 
-    public GeracaoHorariosService.PropostaResumo construirResumoProposta(
+    public PropostaResumo construirResumoProposta(
             PropostaHorarioMensal proposta,
-            GeracaoHorariosService.PropostaResultado resultado) {
-        return new GeracaoHorariosService.PropostaResumo(
+            PropostaResultado resultado) {
+        return new PropostaResumo(
                 proposta.getId(),
                 rotuloCurtoProposta(resultado),
                 resultado.estado(),
@@ -189,11 +195,12 @@ public class PropostaResultadoBuilder {
                 resultado.metricas().amplitudeHoras(),
                 resultado.resumo().colaboradores(),
                 resultado.resumo().turnos(),
-                resultado.resumo().diasCobertos()
+                resultado.resumo().diasCobertos(),
+                false
         );
     }
 
-    public String rotuloCurtoProposta(GeracaoHorariosService.PropostaResultado proposta) {
+    public String rotuloCurtoProposta(PropostaResultado proposta) {
         if (proposta == null || proposta.idProposta() == null) {
             return "Horarios publicados";
         }
@@ -203,7 +210,7 @@ public class PropostaResultadoBuilder {
                 + " · " + proposta.estado();
     }
 
-    private GeracaoHorariosService.HorarioLinha mapearLinhaHorario(Horario horario) {
+    private HorarioLinha mapearLinhaHorario(Horario horario) {
         Integer idColaborador = horario.getIdLojautilizador() != null
                 && horario.getIdLojautilizador().getIdUtilizador() != null
                 ? horario.getIdLojautilizador().getIdUtilizador().getId() : null;
@@ -213,7 +220,7 @@ public class PropostaResultadoBuilder {
         String cargo = horario.getIdLojautilizador() != null
                 && horario.getIdLojautilizador().getIdCargo() != null
                 ? valorOuTraco(horario.getIdLojautilizador().getIdCargo().getNome()) : "-";
-        return new GeracaoHorariosService.HorarioLinha(
+        return new HorarioLinha(
                 horario.getId(), idColaborador, horario.getDataTurno(),
                 horario.getDataTurno() != null ? nomeDiaSemana(horario.getDataTurno()) : "-",
                 formatarTurno(horario.getIdTurno()),

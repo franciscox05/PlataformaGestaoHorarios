@@ -74,7 +74,7 @@ public final class HorarioFormatters {
         return switch (Month.of(mes)) {
             case JANUARY -> "Janeiro";
             case FEBRUARY -> "Fevereiro";
-            case MARCH -> "Marco";
+            case MARCH -> "Março";
             case APRIL -> "Abril";
             case MAY -> "Maio";
             case JUNE -> "Junho";

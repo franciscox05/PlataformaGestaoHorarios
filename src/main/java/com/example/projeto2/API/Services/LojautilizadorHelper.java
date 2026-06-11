@@ -1,9 +1,11 @@
 package com.example.projeto2.API.Services;
 
+import com.example.projeto2.API.Enums.EstadoUtilizador;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
 
@@ -88,5 +90,59 @@ public class LojautilizadorHelper {
     public boolean temCargo(Lojautilizador ligacao, Set<String> cargosPermitidos) {
         String tipo = ligacao.getIdCargo() != null ? ligacao.getIdCargo().getTipo() : null;
         return tipo != null && cargosPermitidos.contains(tipo.toLowerCase());
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers de filtro de colaboradores (usados na geração de horários)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Verifica se uma ligação loja-utilizador tem relevância no período indicado.
+     * Filtra ligações sem dados obrigatórios, que só começam depois do período,
+     * ou que já terminaram antes de ele começar.
+     */
+    public boolean ligacaoTemRelevanciaNoPeriodo(Lojautilizador ligacao,
+                                                  LocalDate dataInicio,
+                                                  LocalDate dataFim) {
+        if (ligacao == null
+                || ligacao.getIdUtilizador() == null
+                || ligacao.getIdUtilizador().getId() == null
+                || ligacao.getIdCargo() == null
+                || ligacao.getIdLoja() == null
+                || ligacao.getIdLoja().getId() == null
+                || ligacao.getDataInicio() == null) {
+            return false;
+        }
+        if (ligacao.getDataInicio().isAfter(dataFim)) {
+            return false;
+        }
+        return ligacao.getDataFim() == null || !ligacao.getDataFim().isBefore(dataInicio);
+    }
+
+    /** true se o utilizador associado à ligação estiver no estado {@code ativo}. */
+    public boolean utilizadorEstaAtivo(Lojautilizador ligacao) {
+        return ligacao.getIdUtilizador() != null
+                && EstadoUtilizador.ativo == ligacao.getIdUtilizador().getEstado();
+    }
+
+    /**
+     * Merge-function para {@code Map.merge}: devolve a ligação com {@code dataInicio} mais
+     * recente; em caso de empate prefere a ligação sem {@code dataFim} (ativa).
+     */
+    public Lojautilizador preferirLigacaoMaisRecente(Lojautilizador ligacaoAtual,
+                                                      Lojautilizador novaLigacao) {
+        if (ligacaoAtual == null) return novaLigacao;
+        if (novaLigacao == null) return ligacaoAtual;
+
+        LocalDate inicioAtual = ligacaoAtual.getDataInicio();
+        LocalDate inicioNovo  = novaLigacao.getDataInicio();
+        if (inicioAtual == null) return novaLigacao;
+        if (inicioNovo  == null) return ligacaoAtual;
+        if (inicioNovo.isAfter(inicioAtual))  return novaLigacao;
+        if (inicioAtual.isAfter(inicioNovo))  return ligacaoAtual;
+
+        if (ligacaoAtual.getDataFim() == null && novaLigacao.getDataFim() != null) return ligacaoAtual;
+        if (ligacaoAtual.getDataFim() != null && novaLigacao.getDataFim() == null) return novaLigacao;
+        return ligacaoAtual;
     }
 }

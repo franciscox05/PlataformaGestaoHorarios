@@ -22,18 +22,14 @@ ALTER TABLE public.preferencias
     ALTER COLUMN prioridade SET NOT NULL,
     ALTER COLUMN estado SET NOT NULL;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_constraint
-        WHERE conname = 'chk_preferencias_tipo'
-    ) THEN
-        ALTER TABLE public.preferencias
-            ADD CONSTRAINT chk_preferencias_tipo
-            CHECK (LOWER(tipo) IN ('folgas', 'ferias', 'colegas', 'turnos'));
-    END IF;
-END $$;
+-- Recriar sempre a constraint de tipo para acompanhar novos tipos suportados.
+-- "folga_preferida" e uma folga recorrente semanal soft (penalizada, nao bloqueante),
+-- distinta de "folgas" (ausencia concedida = bloqueio).
+ALTER TABLE public.preferencias
+    DROP CONSTRAINT IF EXISTS chk_preferencias_tipo;
+ALTER TABLE public.preferencias
+    ADD CONSTRAINT chk_preferencias_tipo
+    CHECK (LOWER(tipo) IN ('folgas', 'ferias', 'colegas', 'turnos', 'folga_preferida'));
 
 DO $$
 BEGIN

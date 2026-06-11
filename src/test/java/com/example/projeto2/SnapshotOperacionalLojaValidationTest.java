@@ -1,6 +1,6 @@
 package com.example.projeto2;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Services.SnapshotOperacionalLojaService;
 import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Modules.Horario;
@@ -96,7 +96,7 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
         LocalDate referencia = fixture.referencia();
         LocalDate diaAnalise = referencia.plusDays(4);
 
-        GeracaoHorariosService.PropostaResultado proposta = gerarEAprovarHorarios(gerente, supervisor, referencia);
+        PropostaResultado proposta = gerarEAprovarHorarios(gerente, supervisor, referencia);
         List<Horario> horariosDia = horarioRepository.findHorariosDaLojaNoDia(fixture.lojaFixture().loja().getId(), diaAnalise);
         assertTrue(horariosDia.size() >= 2);
 
@@ -178,10 +178,10 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
         assertNotNull(preferenciaPendente.getId());
     }
 
-    private GeracaoHorariosService.PropostaResultado gerarEAprovarHorarios(Utilizador gerente,
+    private PropostaResultado gerarEAprovarHorarios(Utilizador gerente,
                                                                        Utilizador supervisor,
                                                                        LocalDate referencia) {
-        GeracaoHorariosService.PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
+        PropostaResultado proposta = geracaoHorariosBLL.gerarProposta(
                 gerente.getId(),
                 referencia.getYear(),
                 referencia.getMonthValue()
