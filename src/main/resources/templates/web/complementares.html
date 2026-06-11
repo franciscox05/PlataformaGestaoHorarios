@@ -88,7 +88,8 @@
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</label>
                     <select name="tipo" required
                             class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
-                        <option th:each="tipo : ${tiposPreferencia}" th:value="${tipo}" th:text="${tipo}"></option>
+                        <option th:each="tipo : ${tiposPreferencia}" th:value="${tipo}"
+                                th:text="${#strings.capitalize(#strings.replace(tipo,'_',' '))}"></option>
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -207,6 +208,96 @@
         </section>
     </div>
 
+    <!-- ── Permuta de Folga ── -->
+    <div class="grid lg:grid-cols-2 gap-5">
+        <!-- Formulário dinâmico -->
+        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-primary-container/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary-container text-[18px]">event_available</span>
+                </span>
+                <h2 class="font-display font-bold text-[15px] text-on-surface">Permuta de folga</h2>
+                <span id="pf-badge-loading"
+                      class="ml-auto hidden inline-flex items-center gap-1 font-body text-[10px] text-on-surface-variant">
+                    <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>A carregar…
+                </span>
+            </div>
+            <div class="p-5 flex flex-col gap-4 flex-1">
+                <!-- Passo 1 -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-primary-container text-white text-[9px] flex items-center justify-center font-bold">1</span>
+                            O meu turno a ceder (dia D)
+                        </span>
+                    </label>
+                    <select id="pf-horario-d"
+                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface"
+                            style="outline:none">
+                        <option value="">A carregar turnos…</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 h-px bg-outline-variant/30"></div>
+                    <span class="material-symbols-outlined text-[16px] text-on-surface-variant/40">compare_arrows</span>
+                    <div class="flex-1 h-px bg-outline-variant/30"></div>
+                </div>
+
+                <!-- Passo 2 -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-primary-container text-white text-[9px] flex items-center justify-center font-bold">2</span>
+                            Turno de compensação do colega (dia Y)
+                        </span>
+                    </label>
+                    <select id="pf-horario-y" disabled
+                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface disabled:opacity-50"
+                            style="outline:none">
+                        <option value="">Seleciona primeiro o teu turno…</option>
+                    </select>
+                    <p class="font-body text-[11px] text-on-surface-variant">
+                        Turnos de colegas que têm folga no dia D e que trabalham num dia em que tens folga.
+                    </p>
+                </div>
+
+                <div id="pf-feedback" class="hidden rounded-xl px-4 py-3 font-body text-[13px] flex items-center gap-2"></div>
+
+                <button id="pf-btn" disabled onclick="submeterPermutaFolga()"
+                        class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-primary">
+                    <span class="material-symbols-outlined text-[17px]">event_available</span>
+                    Submeter permuta de folga
+                </button>
+            </div>
+        </section>
+
+        <!-- Explicação / regras -->
+        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+                 style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+            <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-primary-container/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary-container text-[18px]">info</span>
+                </span>
+                <h2 class="font-display font-bold text-[15px] text-on-surface">Como funciona</h2>
+            </div>
+            <div class="p-5 flex flex-col gap-4 text-[13px] font-body text-on-surface-variant">
+                <p>Usada quando <strong class="text-on-surface">precisas mesmo faltar</strong> num dia em que tens turno e o horário já está gerado.</p>
+                <ol class="flex flex-col gap-3 list-decimal list-inside">
+                    <li>Escolhes o teu turno que queres ceder <strong>(dia D)</strong>.</li>
+                    <li>Um colega que tem <strong>folga no dia D</strong> recebe esse turno.</li>
+                    <li>Em troca, esse colega cede-te o turno dele noutro dia <strong>(dia Y)</strong> — um dia em que tu tinhas folga.</li>
+                    <li>Ambos mantêm o mesmo nº de dias de trabalho e de folga.</li>
+                </ol>
+                <div class="mt-2 rounded-xl bg-surface-container-low px-4 py-3 flex items-start gap-2">
+                    <span class="material-symbols-outlined text-[16px] text-primary-container mt-0.5">rule</span>
+                    <span>A permuta é validada para garantir o descanso mínimo de 11 h entre turnos consecutivos e requer aprovação do gestor.</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
     <!-- ── Histórico pessoal (tabs) ── -->
     <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
              style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
@@ -228,6 +319,10 @@
             <button onclick="showTab('tab-permutas')" id="btn-permutas"
                     class="tab-btn font-body font-bold text-[13px] px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all rounded-t-lg hover:bg-surface-container-low/50">
                 Permutas
+            </button>
+            <button onclick="showTab('tab-pf')" id="btn-pf"
+                    class="tab-btn font-body font-bold text-[13px] px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all rounded-t-lg hover:bg-surface-container-low/50">
+                Perm. Folga
             </button>
         </div>
 
@@ -350,6 +445,48 @@
                 </tbody>
             </table>
         </div>
+        <!-- Tab: Permutas de Folga -->
+        <div id="tab-pf" class="hidden overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-surface-container-low">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Pedido em</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Cedo (dia D)</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Recebo (dia Y)</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/25">
+                    <tr th:if="${#lists.isEmpty(minhasPermutasFolga)}">
+                        <td colspan="4" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[32px] block mb-2 opacity-30">event_available</span>
+                            Sem permutas de folga registadas.
+                        </td>
+                    </tr>
+                    <tr th:each="item : ${minhasPermutasFolga}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant"
+                            th:text="${item.dataPedido != null ? #temporals.format(item.dataPedido, 'dd/MM/yyyy HH:mm') : '–'}"></td>
+                        <td class="px-6 py-3.5">
+                            <p class="font-body font-bold text-[13px] text-on-surface"
+                               th:text="${item.idHorarioD.dataTurno}"></p>
+                            <p class="font-body text-[11px] text-on-surface-variant"
+                               th:text="${item.idHorarioD.idTurno.horaInicio} + ' – ' + ${item.idHorarioD.idTurno.horaFim}"></p>
+                        </td>
+                        <td class="px-6 py-3.5">
+                            <p class="font-body font-bold text-[13px] text-on-surface"
+                               th:text="${item.idHorarioY.idLojautilizador.idUtilizador.nome}"></p>
+                            <p class="font-body text-[11px] text-on-surface-variant"
+                               th:text="${item.idHorarioY.dataTurno} + ' | ' + ${item.idHorarioY.idTurno.horaInicio} + ' – ' + ${item.idHorarioY.idTurno.horaFim}"></p>
+                        </td>
+                        <td class="px-6 py-3.5">
+                            <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                  th:classappend="${item.estado == 'aprovado'} ? 'badge-ok' : (${item.estado == 'rejeitado' or item.estado == 'cancelado'} ? 'badge-err' : 'badge-warn')"
+                                  th:text="${item.estado}"></span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <!-- ── Pendentes para aprovação (gerente) ── -->
@@ -449,6 +586,49 @@
             </table>
         </div>
 
+        <!-- Permutas de Folga pendentes -->
+        <div th:if="${webPermissoes.podeAprovarPermutas() and !#lists.isEmpty(permutasFolgaPendentes)}"
+             class="border-b border-outline-variant/25">
+            <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
+                <span class="material-symbols-outlined text-[14px] text-on-surface-variant">event_available</span>
+                <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Permutas de Folga</p>
+            </div>
+            <table class="w-full">
+                <thead class="bg-surface-container-low/50">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Solicitante</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Cede (dia D)</th>
+                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Compensação (dia Y)</th>
+                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/25">
+                    <tr th:each="item : ${permutasFolgaPendentes}" class="hover:bg-surface-container-low/50 transition-colors">
+                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface"
+                            th:text="${item.idHorarioD.idLojautilizador.idUtilizador.nome}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
+                            th:text="${item.idHorarioD.dataTurno} + ' | ' + ${item.idHorarioD.idTurno.horaInicio} + ' – ' + ${item.idHorarioD.idTurno.horaFim}"></td>
+                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
+                            th:text="${item.idHorarioY.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioY.dataTurno} + ' ' + ${item.idHorarioY.idTurno.horaInicio} + ' – ' + ${item.idHorarioY.idTurno.horaFim}"></td>
+                        <td class="px-6 py-3.5">
+                            <div class="flex items-center justify-end gap-2">
+                                <form method="post" th:action="@{'/web/complementares/permutas-folga/' + ${item.id} + '/aprovar'}">
+                                    <button type="submit" class="flex items-center gap-1.5 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
+                                        <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
+                                    </button>
+                                </form>
+                                <form method="post" th:action="@{'/web/complementares/permutas-folga/' + ${item.id} + '/rejeitar'}">
+                                    <button type="submit" class="flex items-center gap-1.5 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
+                                        <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         <!-- Permutas pendentes -->
         <div th:if="${webPermissoes.podeAprovarPermutas()}">
             <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
@@ -497,10 +677,10 @@
 
 <script>
 function showTab(id) {
-    ['tab-folgas','tab-pref','tab-permutas'].forEach(t => {
+    ['tab-folgas','tab-pref','tab-permutas','tab-pf'].forEach(t => {
         document.getElementById(t).classList.add('hidden');
     });
-    ['btn-folgas','btn-pref','btn-permutas'].forEach(b => {
+    ['btn-folgas','btn-pref','btn-permutas','btn-pf'].forEach(b => {
         const btn = document.getElementById(b);
         btn.classList.remove('border-primary-container','text-primary-container');
         btn.classList.add('border-transparent','text-on-surface-variant');
@@ -660,6 +840,102 @@ function showTab(id) {
 
     // Inicializar
     carregarMeusTurnos();
+})();
+
+// ── Permuta de Folga – lógica dinâmica via API REST ───────────────────────
+(function () {
+    const selD    = document.getElementById('pf-horario-d');
+    const selY    = document.getElementById('pf-horario-y');
+    const btn     = document.getElementById('pf-btn');
+    const badge   = document.getElementById('pf-badge-loading');
+    const fb      = document.getElementById('pf-feedback');
+
+    if (!selD) return; // elemento não existe na página
+
+    let meusTurnosD = [];
+
+    function loading(sim) { badge.classList.toggle('hidden', !sim); }
+
+    function feedback(msg, tipo) {
+        fb.classList.remove('hidden');
+        const cores = { ok: 'bg-[#d1fae5] text-[#065f46]', err: 'bg-error-container text-on-error-container', info: 'bg-surface-container-low text-on-surface-variant' };
+        fb.className = 'rounded-xl px-4 py-3 font-body text-[13px] flex items-center gap-2 ' + (cores[tipo] || cores.info);
+        const icon = tipo === 'ok' ? 'check_circle' : (tipo === 'err' ? 'error_outline' : 'info');
+        fb.innerHTML = `<span class="material-symbols-outlined text-[17px]">${icon}</span><span>${msg}</span>`;
+    }
+
+    async function carregarTurnosD() {
+        loading(true);
+        try {
+            const res = await fetch('/api/permuta-folga/meus-turnos');
+            if (!res.ok) throw new Error();
+            meusTurnosD = await res.json();
+            selD.innerHTML = meusTurnosD.length === 0
+                ? '<option value="">Sem turnos disponíveis</option>'
+                : '<option value="">Seleciona o turno a ceder…</option>' +
+                  meusTurnosD.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+        } catch {
+            selD.innerHTML = '<option value="">Erro ao carregar turnos</option>';
+        } finally { loading(false); }
+    }
+
+    selD.addEventListener('change', async function () {
+        const id = this.value;
+        fb.classList.add('hidden');
+        selY.innerHTML = '<option value="">A carregar compensações…</option>';
+        selY.disabled = true;
+        btn.disabled  = true;
+        if (!id) { selY.innerHTML = '<option value="">Seleciona primeiro o teu turno…</option>'; return; }
+        loading(true);
+        try {
+            const res = await fetch('/api/permuta-folga/compensacoes?idHorarioD=' + id);
+            if (!res.ok) throw new Error();
+            const turnos = await res.json();
+            if (turnos.length === 0) {
+                selY.innerHTML = '<option value="">Sem colegas elegíveis para este dia</option>';
+                feedback('Não há colegas com folga nesse dia que possam receber o teu turno e oferecer um dia de compensação.', 'info');
+            } else {
+                selY.innerHTML = '<option value="">Seleciona o turno de compensação…</option>' +
+                    turnos.map(t => `<option value="${t.id}">${t.colega} — ${t.label}</option>`).join('');
+                selY.disabled = false;
+            }
+        } catch {
+            selY.innerHTML = '<option value="">Erro ao carregar compensações</option>';
+            feedback('Não foi possível carregar os turnos de compensação.', 'err');
+        } finally { loading(false); }
+    });
+
+    selY.addEventListener('change', function () {
+        fb.classList.add('hidden');
+        btn.disabled = !this.value;
+    });
+
+    window.submeterPermutaFolga = async function () {
+        const idD = selD.value, idY = selY.value;
+        if (!idD || !idY) { feedback('Seleciona ambos os turnos antes de submeter.', 'err'); return; }
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[17px] animate-spin">sync</span> A submeter…';
+        fb.classList.add('hidden');
+        try {
+            const params = new URLSearchParams({ idHorarioD: idD, idHorarioY: idY });
+            const res  = await fetch('/api/permuta-folga/submeter', { method: 'POST', body: params });
+            const data = await res.json();
+            if (res.ok) {
+                feedback(data.mensagem || 'Pedido submetido com sucesso!', 'ok');
+                setTimeout(() => location.reload(), 1800);
+            } else {
+                feedback(data.erro || 'Não foi possível submeter o pedido.', 'err');
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[17px]">event_available</span> Submeter permuta de folga';
+            }
+        } catch {
+            feedback('Erro de rede. Verifica a ligação e tenta novamente.', 'err');
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[17px]">event_available</span> Submeter permuta de folga';
+        }
+    };
+
+    carregarTurnosD();
 })();
 </script>
 </body>

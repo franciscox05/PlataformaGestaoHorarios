@@ -1977,3 +1977,202 @@ alterados. XML bem-formado validado nos 8 FXML via `[xml]` parse.
 ### Estado dos Testes
 
 **51/51 testes — 0 falhas — 0 erros** ✅ + BUILD SUCCESS
+
+---
+
+## Sessão 23 — Refactor profundo do algoritmo de geração (2026-06-10)
+
+### Pedido
+Focar no **código todo do algoritmo**: ver o que está bem/mal/otimizável, **separar
+algoritmo de carregamento de dados**, tornar o algoritmo **o mais inteligente possível**
+(gerar várias opções e identificar ele próprio a mais ótima; preferências só contam
+quando aprovadas pelo gerente) e **reduzir o número de linhas** subdividindo em mais ficheiros.
+
+### Diagnóstico (verificado com greps, não especulação)
+
+🔴 **Algoritmo:**
+1. **As 5 políticas de otimização eram uma fachada** — `pesoPreferencias`, `pesoEquilibrioCarga`,
+   etc. **nunca eram lidos**. O `pontuarAtribuicao` usava pesos hardcoded. Alternativas só
+   diferiam no nome + semente aleatória.
+2. **Scoring recalculado dentro do comparador do `sort`** (2×/comparação) e cada chamada fazia
+   `horariosJaGerados.stream().anyMatch` O(H) → ~O(n·log n·H) por slot/dia.
+3. **Diagnóstico de falha sempre vazio** (`lancarFalhaCobertura` passava `List.of()`); o painel
+   `DiagnosticoGeracaoPanel` existia mas recebia listas vazias.
+4. **`ReservaFimDeSemana` e `ContextoPreservacaoFDS`**: construídos e threaded por todo o motor
+   mas **conteúdo nunca lido** — só a nulidade de um servia de gate. A flag `aplicarPreservacaoFDS`
+   não tinha efeito → "tentativa 3" era repetição idêntica da 2.
+5. `diasFolgaPreferidos` sempre vazio; folga preferida = hard block (igual a ausência).
+
+🔴 **Carregamento / código morto:**
+6. `HorarioValidatorService`: 8 métodos `ehRegra*` (~58 L) duplicados/mortos (o `RegraGeracaoResolver`
+   tem cópias próprias).
+7. `GeracaoHorariosService`: `preferenciaAtivaNaData`, `calcularHorasDescanso`, `inicioFimDeSemana`,
+   `ehFimDeSemana`, `normalizarTurno`, record `GargaloCobertura` — mortos. `calcularDuracaoEmMinutos`
+   triplicado.
+
+### Alterações implementadas (52→53 testes, todos ✅ BUILD SUCCESS em cada fronteira)
+
+**Fase 1 — Limpeza de código morto**
+- Removidos os 8 `ehRegra*` + `normalizarTextoComposto` do validator (320→252 L).
+- Removidos os 6 métodos/record mortos do service; `calcularDuracaoEmMinutos` unificado em `HorarioFormatters`.
+
+**Fase 2 — Subdivisão (motor 1132→636 L)**
+- Novos ficheiros em `geracao/`: `PedidoGeracao`, `ConfiguracaoDia` (value objects do motor, top-level),
+  `EstadoColaborador` (estado de domínio, 232 L, extraído de classe interna), `TurnoClassifier`
+  (classificação por período, partilhada), `AvaliadorAtribuicao` (função de pontuação, 206 L),
+  `FalhaGeracaoHorarioException` + `MotivoFalhaGeracao` + `SugestaoFalhaGeracao` (extraídos da service),
+  `diagnostico/DiagnosticoCobertura` (148 L).
+- Motor reescrito: removidas as **duas máquinas mortas** (ReservaFimDeSemana + ContextoPreservacaoFDS)
+  e a tentativa redundante → planeamento com 4 tentativas reais (base → alargada → rotação FDS relaxada
+  → descanso semanal relaxado).
+- Comparação de propostas extraída para `ComparacaoPropostasService` (143 L); service 1232→1042 L.
+
+**Fase 3 — Inteligência**
+- **Políticas reais**: `PedidoGeracao` carrega a `PoliticaOtimizacao` (com pesos). `AvaliadorAtribuicao`
+  multiplica cada componente (carga, FDS, reserva, preferências, consistência, diversificação) pelo peso
+  da política → "Preferências" maximiza prefs, "Carga contratual" equilibra horas, "Fins de semana"
+  reforça rotação, etc. Alternativas genuinamente diferentes em estratégia.
+- **Performance**: score calculado **uma vez** por candidato (decorate-sort) + contexto pré-computado
+  (`colaboradoresNoMes`) → fim do O(n·log n·H).
+- **Best-pick global**: `listarPropostas` marca automaticamente a alternativa de menor pontuação
+  (entre rascunho/pendente) como `recomendada` — o algoritmo identifica ele próprio a mais ótima.
+  Surfaçado na tabela de propostas do desktop com "★".
+- **Diagnóstico de falha real**: `DiagnosticoCobertura` analisa, por colaborador, o motivo de exclusão
+  (carga esgotada, descanso, bloqueio, part-time em dia útil, turno curto, rotação FDS, …) e gera
+  sugestões acionáveis. O painel desktop passa a ter conteúdo.
+
+### Ficheiros do subsistema (depois)
+Motor 636 · Service 1042 · Validator 252 · Comparação 143 · `geracao/` 19 ficheiros coesos
+(AvaliadorAtribuicao 206, EstadoColaborador 232, RegraGeracaoResolver 261, DiagnosticoCobertura 148, …).
+
+### Pendente / decisão do utilizador
+- **Preferência de folga soft (1/semana + explicação)**: descoberto que o código trata
+  **"folgas" aprovada como ausência concedida (hard block) — por design e testado em 3 testes**
+  (`FluxosCriticosIntegrationTest`, `DescansoSemanalValidationTest`, `PreferenciasPermanentesValidationTest`;
+  a variável chama-se `bloqueadoPorPreferencia`). A infraestrutura soft está pronta
+  (`folgasPreferidasPorColaborador` + penalização +60 no avaliador + códigos de diagnóstico), mas
+  ligar `construirDiasFolgaPreferidos` exige decidir: (a) novo subtipo de preferência "folga recorrente"
+  soft, mantendo a folga-aprovada hard; ou (b) virar folga-aprovada para soft e reescrever os 3 testes.
+- **Extração dos DTOs** de `GeracaoHorariosService` (~220 L de records) para `geracao/dto/`: adiável —
+  churn em 22 ficheiros (8 testes) para relocar data records.
+
+### Estado dos Testes
+**53/53 testes — 0 falhas — 0 erros** ✅ + BUILD SUCCESS
+
+---
+
+## Sessão 23 (cont.) — Folga preferida SOFT implementada (novo subtipo)
+
+Decisão do utilizador: **novo subtipo soft**, mantendo a folga-aprovada-com-datas como
+ausência concedida (hard, não parte os 3 testes existentes).
+
+**Implementado end-to-end:**
+- Novo tipo de preferência **`folga_preferida`** = folga recorrente semanal **soft** (1/semana):
+  o algoritmo dá-lhe muita atenção (penalização base +60 + reforço por `pesoPreferencias` no
+  `AvaliadorAtribuicao`), mas **não bloqueia** — pode escalar se a cobertura exigir.
+- **Explicação ("indicando o porquê")**: quando uma folga preferida é quebrada, é gerada uma nota
+  anexada ao `resumoGeracao` da proposta ("Folga preferida de X em DD/MM nao foi honrada...").
+  Novo campo `avisos` em `PlaneamentoGerado`.
+- `PreferenciasGeracaoBuilder.construirDiasFolgaPreferidos` deixa de devolver vazio: extrai o dia da
+  semana da `dataInicio` e marca-o em cada semana (uma folga preferida/semana).
+- `PreferenciaService.TIPOS_VALIDOS` + prioridade/validação aceitam o novo tipo.
+- **SQL**: `sql/issue-16-preferencias.sql` — constraint `chk_preferencias_tipo` agora drop+recreate
+  incluindo `folga_preferida` (aplicada também ao DB de teste).
+- **UI desktop** (`PreferenciasController`): dropdown + mapeamentos + "sem data fim" + prompt explicativo.
+- Novo teste `folgaPreferidaSoftNaoBloqueiaOColaboradorAoContrarioDaFolgaAprovada`.
+
+**Falta (opcional):** oferecer `folga_preferida` também no formulário **web** de complementares.
+
+### Estado dos Testes
+**54/54 testes — 0 falhas — 0 erros** ✅ + BUILD SUCCESS
+
+---
+
+## Sessão 23 (cont. 2) — Web folga soft + Extração dos DTOs
+
+**Folga preferida no Web:** `WebComplementaresController` oferece agora `folga_preferida` no
+dropdown de tipos; o template `complementares.html` prettifica os labels
+(`#strings.capitalize(#strings.replace(tipo,'_',' '))`). Feature soft completa em desktop **e** web.
+
+**Extração dos DTOs (subdivisão estrutural pedida):** os 10 records públicos de
+`GeracaoHorariosService` movidos para o novo pacote **`geracao/dto/`**
+(`PropostaResultado`, `HorarioLinha`, `ColaboradorElegivel`, `ResumoColaborador`, `ResumoGeral`,
+`PropostaResumo`, `ComparacaoPropostas`, `DiferencaColaborador`, `GeracaoContexto`,
+`ConfiguracaoDiaEspecial`). Atualizados 22 ficheiros (13 main + 8 testes + a service) — referências
+`GeracaoHorariosService.X` → `X` + import do pacote dto; imports órfãos removidos.
+
+`GeracaoHorariosService`: **1232 → 945 linhas** ao longo da sessão (lógica extraída + DTOs movidos +
+código morto removido). O `DadosGeracao` (record interno privado) permanece nested.
+
+### Estado dos Testes
+**54/54 testes — 0 falhas — 0 erros** ✅ + BUILD SUCCESS
+
+---
+
+## Sessão 24 — UX da app desktop ao detalhe + motor de geração mais inteligente
+
+### A. Grelha "colaboradores × dias" com coluna congelada (Home + Geração)
+
+**Problema:** na vista mensal da grelha, ao arrastar para o lado os nomes dos
+colaboradores desapareciam — perdia-se o contexto de quem era cada linha.
+
+**Solução:** novo componente único **`GrelhaHorarioRenderer`** (DESKTOP/support):
+- Coluna de colaboradores **fixa à esquerda**; só os dias deslizam num `ScrollPane`
+  horizontal próprio (`grelha-dias-scroll`), com alturas de linha fixadas (56/72px)
+  para alinhamento perfeito entre as duas metades.
+- Hover sincronizado (classe `grelha-row-hover` aplicada às duas metades da linha).
+- Células e cabeçalhos de dia **clicáveis** (callback `aoAbrirDia`) → abre "Detalhe do dia".
+- Cor de avatar estável por colaborador (derivada do id).
+
+`GrelhaHorarioHelper` (Home, entidades `Horario`) e `VistaGrelhaHorarioRender`
+(Geração, DTOs `HorarioLinha`) passaram a **adaptadores finos** do renderer único —
+eliminada a duplicação ~90% entre os dois. FXML: `scrollGrelhaEquipaMensal` e
+`grelhaScrollPane` passam a `hbarPolicy=NEVER` + `fitToWidth` (o scroll horizontal
+vive dentro da grelha; a página gere o vertical).
+
+### B. Calendário mensal da Home: dias clicáveis com detalhe
+
+**Problema:** na página principal o calendário mensal não deixava clicar nos dias
+(na página de Horários dava).
+
+**Solução:** `HomeController.renderizarCalendarioMensalLoja` passa agora o callback
+`aoSelecionarDia` ao `CalendarioMensalHelper` e guarda os horários do mês carregado;
+novo **`DetalheDiaDialog.abrirHorariosPublicados(data, List<Horario>, owner)`** mostra
+os turnos publicados do dia (período, colaborador, cargo · estado). O mesmo detalhe
+abre a partir das células da grelha (Home e Geração). Formato dos eventos da Home
+normalizado para `periodo | nome (cargo)` (igual à Geração).
+
+### C. Menos "caixas brancas" — calendários mais limpos
+
+- Dias **sem eventos** no calendário mensal recuam: classe
+  `calendario-mes-dia-card-sem-eventos` (fundo soft, sem sombra, número esbatido) e
+  removido o texto itálico repetido por dia ("Sem horário…"); min-height 118→104.
+- Calendário semanal: dias vazios recuam (`calendario-dia-card-vazio`) e o dia de
+  hoje ganha contorno (`calendario-dia-card-hoje`).
+- `CalendarioMensalHelper`: removido código morto (criarCardEvento, abreviarCargo,
+  classificarBlocoHorario, normalizarTextoPesquisa).
+- Novo bloco CSS-20 em `dashboard.css` (grelha congelada + calendários limpos).
+
+### D. Motor de geração: fase de refinamento por pesquisa local
+
+**Problema:** a construção dia-a-dia (greedy+backtracking) é míope — folgas
+preferidas não honradas e carga desequilibrada que uma troca simples resolveria.
+
+**Solução:** novo **`geracao/RefinadorPlaneamento`**, chamado no fim de
+`HorarioGeneratorEngine.gerar`:
+1. **Honrar folgas preferidas:** reatribui turnos caídos em dia de folga preferida
+   a outro colaborador disponível (que não prefira folgar nesse dia).
+2. **Equilíbrio de carga:** enquanto o gap de utilização entre extremos > 10%,
+   move turnos do mais carregado para os menos carregados (máx. 60 movimentos).
+
+Cada movimento é 1-para-1 (mesmo dia + mesmo turno ⇒ cobertura por slot intacta),
+validado por **replay estrito** da agenda completa do recetor via
+`EstadoColaborador.podeReceber` (todas as regras hard), preservando a chefia mínima
+de fim de semana; respeita o `prazoLimite` e nunca quebra a geração (fallback ao
+plano original). Os avisos "folga preferida não honrada" no `resumoGeracao`
+melhoram automaticamente (são calculados sobre o plano final).
+
+Novo teste unitário puro `RefinadorPlaneamentoTest` (3 testes, sem Spring).
+
+### Estado dos Testes
+**57/57 testes — 0 falhas — 0 erros** ✅ + BUILD SUCCESS

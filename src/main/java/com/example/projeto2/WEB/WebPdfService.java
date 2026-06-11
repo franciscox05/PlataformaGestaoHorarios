@@ -1,6 +1,5 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
 import com.example.projeto2.API.Services.RelatorioHorasService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;

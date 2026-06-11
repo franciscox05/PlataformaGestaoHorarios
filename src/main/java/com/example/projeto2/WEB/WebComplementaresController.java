@@ -3,11 +3,13 @@ package com.example.projeto2.WEB;
 import com.example.projeto2.API.Services.DayOffService;
 import com.example.projeto2.API.Services.HorarioService;
 import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.PermutaFolgaService;
 import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Modules.Utilizador;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Permuta;
+import com.example.projeto2.API.Modules.PermutaFolga;
 import com.example.projeto2.API.Modules.Preferencia;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -35,17 +37,20 @@ public class WebComplementaresController {
     private final DayOffService dayOffBLL;
     private final PreferenciaService preferenciaBLL;
     private final PermutaService permutaBLL;
+    private final PermutaFolgaService permutaFolgaBLL;
     private final HorarioService horarioBLL;
 
     public WebComplementaresController(WebAppService webAppService,
                                        DayOffService dayOffBLL,
                                        PreferenciaService preferenciaBLL,
                                        PermutaService permutaBLL,
+                                       PermutaFolgaService permutaFolgaBLL,
                                        HorarioService horarioBLL) {
         this.webAppService = webAppService;
         this.dayOffBLL = dayOffBLL;
         this.preferenciaBLL = preferenciaBLL;
         this.permutaBLL = permutaBLL;
+        this.permutaFolgaBLL = permutaFolgaBLL;
         this.horarioBLL = horarioBLL;
     }
 
@@ -69,6 +74,9 @@ public class WebComplementaresController {
                 : List.of();
         List<Permuta> permutasPendentes = permissoes.podeAprovarPermutas()
                 ? permutaBLL.listarPedidosPendentesParaAprovacao(utilizadorId)
+                : List.of();
+        List<PermutaFolga> permutasFolgaPendentes = permissoes.podeAprovarPermutas()
+                ? permutaFolgaBLL.listarPendentesParaAprovacao(utilizadorId)
                 : List.of();
 
         Map<Integer, String> nomesFolgasPendentes = dayOffBLL.listarNomesUtilizadores(
@@ -103,11 +111,17 @@ public class WebComplementaresController {
         model.addAttribute("totalPreferenciasPendentes", preferenciasPendentes.size());
         model.addAttribute("totalPermutasPendentes", permutasPendentes.size());
         model.addAttribute("totalPendenciasComplementares",
-                folgasPendentes.size() + preferenciasPendentes.size() + permutasPendentes.size());
+                folgasPendentes.size() + preferenciasPendentes.size()
+                + permutasPendentes.size() + permutasFolgaPendentes.size());
         model.addAttribute("nomesFolgasPendentes", nomesFolgasPendentes);
         model.addAttribute("nomesPreferencias", nomesPreferencias);
 
-        model.addAttribute("tiposPreferencia", List.of("folgas", "ferias", "colegas", "turnos"));
+        List<PermutaFolga> minhasPermutasFolga = permutaFolgaBLL.listarPedidosPorUtilizador(utilizadorId);
+        model.addAttribute("minhasPermutasFolga", minhasPermutasFolga);
+        model.addAttribute("permutasFolgaPendentes", permutasFolgaPendentes);
+        model.addAttribute("totalPermutasFolgaPendentes", permutasFolgaPendentes.size());
+
+        model.addAttribute("tiposPreferencia", List.of("folgas", "ferias", "folga_preferida", "colegas", "turnos"));
         model.addAttribute("meusTurnosPermutaveis", meusTurnosPermutaveis);
         model.addAttribute("turnosElegiveis", turnosElegiveis);
         model.addAttribute("origemPermutaSelecionada", idHorarioOrigem);
@@ -273,6 +287,34 @@ public class WebComplementaresController {
         try {
             permutaBLL.rejeitarPedidoPermuta(idPermuta, utilizadorId);
             redirectAttributes.addFlashAttribute("sucesso", "Permuta rejeitada com sucesso.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+        return "redirect:/web/complementares";
+    }
+
+    @PostMapping("/permutas-folga/{idPermutaFolga}/aprovar")
+    public String aprovarPermutaFolga(@PathVariable("idPermutaFolga") Integer idPermutaFolga,
+                                      HttpSession session,
+                                      RedirectAttributes redirectAttributes) {
+        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+        try {
+            permutaFolgaBLL.aprovar(idPermutaFolga, utilizadorId);
+            redirectAttributes.addFlashAttribute("sucesso", "Permuta de folga aprovada com sucesso.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+        return "redirect:/web/complementares";
+    }
+
+    @PostMapping("/permutas-folga/{idPermutaFolga}/rejeitar")
+    public String rejeitarPermutaFolga(@PathVariable("idPermutaFolga") Integer idPermutaFolga,
+                                       HttpSession session,
+                                       RedirectAttributes redirectAttributes) {
+        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+        try {
+            permutaFolgaBLL.rejeitar(idPermutaFolga, utilizadorId);
+            redirectAttributes.addFlashAttribute("sucesso", "Permuta de folga rejeitada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }

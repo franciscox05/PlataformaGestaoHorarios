@@ -1,6 +1,8 @@
 package com.example.projeto2.WEB;
 
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.FalhaGeracaoHorarioException;
 import com.example.projeto2.API.Modules.Horario;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
@@ -63,7 +65,7 @@ public class WebHorariosController {
         // Carrega propostas mensais para gerentes/subgerentes
         if (geracaoHorariosBLL.utilizadorPodeGerarHorarios(utilizadorId)) {
             try {
-                List<GeracaoHorariosService.PropostaResumo> propostas =
+                List<PropostaResumo> propostas =
                         geracaoHorariosBLL.listarPropostas(utilizadorId, anoConsulta, mesConsulta);
                 model.addAttribute("propostas", propostas);
             } catch (IllegalArgumentException ex) {
@@ -82,12 +84,12 @@ public class WebHorariosController {
                                RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
         try {
-            GeracaoHorariosService.PropostaResultado resultado =
+            PropostaResultado resultado =
                     geracaoHorariosBLL.gerarProposta(utilizadorId, ano, mes);
             redirectAttributes.addFlashAttribute("sucesso",
                     "Proposta gerada com sucesso (" + resultado.metricas().qualidade()
                     + ", score " + resultado.metricas().pontuacao() + ").");
-        } catch (GeracaoHorariosService.FalhaGeracaoHorarioException ex) {
+        } catch (FalhaGeracaoHorarioException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage()
                     + (ex.motivoPrincipal() != null ? " — " + ex.motivoPrincipal() : ""));
         } catch (IllegalArgumentException ex) {
