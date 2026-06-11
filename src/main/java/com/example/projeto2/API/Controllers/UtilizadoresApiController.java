@@ -4,6 +4,8 @@ import com.example.projeto2.API.Modules.UtilizadorApiModels.ApiErrorResponse;
 import com.example.projeto2.API.Modules.UtilizadorApiModels.CriarUtilizadorRequest;
 import com.example.projeto2.API.Modules.UtilizadorApiModels.UtilizadorResponse;
 import com.example.projeto2.API.Services.UtilizadoresApiService;
+import com.example.projeto2.WEB.WebAppService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,9 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class UtilizadoresApiController {
 
     private final UtilizadoresApiService utilizadoresApiService;
+    private final WebAppService webAppService;
 
-    public UtilizadoresApiController(UtilizadoresApiService utilizadoresApiService) {
+    public UtilizadoresApiController(UtilizadoresApiService utilizadoresApiService,
+                                     WebAppService webAppService) {
         this.utilizadoresApiService = utilizadoresApiService;
+        this.webAppService = webAppService;
     }
 
     @GetMapping("/{idUtilizador}")
@@ -32,8 +37,14 @@ public class UtilizadoresApiController {
 
     @PostMapping
     public ResponseEntity<UtilizadorResponse> criarUtilizador(
-            @RequestHeader("X-Manager-Id") Integer idGestor,
+            @RequestHeader(value = "X-Manager-Id", required = false) Integer idGestorHeader,
+            HttpSession session,
             @RequestBody CriarUtilizadorRequest request) {
+        Integer idGestor = idGestorHeader != null ? idGestorHeader
+                                                   : webAppService.obterUtilizadorId(session);
+        if (idGestor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         UtilizadorResponse response = utilizadoresApiService.criarUtilizador(idGestor, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
