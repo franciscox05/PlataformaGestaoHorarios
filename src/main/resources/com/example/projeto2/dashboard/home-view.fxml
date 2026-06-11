@@ -96,7 +96,7 @@
                       styleClass="home-week-strip" />
             </VBox>
 
-            <!-- ░░ HORÁRIO MENSAL DA EQUIPA — grelha de cards (gestão) ░░ -->
+            <!-- ░░ HORÁRIO MENSAL DA EQUIPA — calendário + grelha (gestão) ░░ -->
             <VBox fx:id="secaoGrelhaEquipaMensal"
                   managed="false"
                   spacing="16.0"
@@ -109,9 +109,20 @@
                     <VBox spacing="2.0" HBox.hgrow="ALWAYS">
                         <Label styleClass="home-card-title" text="Hor&#225;rio Mensal da Equipa" />
                         <Label styleClass="home-card-subtitle"
-                               text="Escala publicada de toda a loja, em grelha por colaborador."
+                               text="Escala publicada de toda a loja."
                                wrapText="true" />
                     </VBox>
+                    <!-- Toggle Vista -->
+                    <HBox alignment="CENTER" spacing="4.0" styleClass="home-vista-toggle">
+                        <Button fx:id="btnVistaCalendarioHome"
+                                onAction="#onVistaCalendarioHomeClick"
+                                styleClass="home-vista-btn-active"
+                                text="Calend&#225;rio" />
+                        <Button fx:id="btnVistaGrelhaHome"
+                                onAction="#onVistaGrelhaHomeClick"
+                                styleClass="home-vista-btn"
+                                text="Grelha" />
+                    </HBox>
                 </HBox>
 
                 <HBox alignment="BOTTOM_LEFT" spacing="12.0">
@@ -134,12 +145,24 @@
                        text="A carregar hor&#225;rio mensal da loja..."
                        wrapText="true" />
 
+                <!-- Vista Calendário (GridPane mensal) -->
+                <VBox fx:id="painelVistaCalendarioHome" spacing="8.0">
+                    <GridPane fx:id="calendarioMensalHome"
+                              hgap="8.0"
+                              vgap="8.0"
+                              styleClass="calendario-mensal-grid" />
+                </VBox>
+
+                <!-- Vista Grelha (linhas colaborador × dias) -->
                 <ScrollPane fx:id="scrollGrelhaEquipaMensal"
+                            fitToWidth="true"
                             fitToHeight="true"
-                            hbarPolicy="AS_NEEDED"
-                            vbarPolicy="AS_NEEDED"
+                            hbarPolicy="NEVER"
+                            vbarPolicy="NEVER"
+                            managed="false"
                             minHeight="260.0"
-                            styleClass="grelha-scroll">
+                            styleClass="grelha-scroll"
+                            visible="false">
                     <content>
                         <VBox fx:id="boxGrelhaEquipaMensal" styleClass="grelha-container" />
                     </content>

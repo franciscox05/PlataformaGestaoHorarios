@@ -1,6 +1,6 @@
 package com.example.projeto2.API.Services;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService.HorarioLinha;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Services.RelatorioHorasService.RelatorioLinha;
 import com.example.projeto2.API.Services.RelatorioHorasService.RelatorioResumo;
 import org.apache.pdfbox.pdmodel.PDDocument;

@@ -6,6 +6,7 @@ import com.example.projeto2.API.Services.GestaoLojaService;
 import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.API.Services.SessaoService;
+import com.example.projeto2.DESKTOP.support.DashboardPesquisaHelper;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.TabelaHelper;
 import com.example.projeto2.API.Modules.Utilizador;
@@ -21,12 +22,9 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.CustomMenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -35,7 +33,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.geometry.Side;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
@@ -46,11 +43,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 
 @Component
 @Scope("prototype")
@@ -162,7 +156,7 @@ public class DashboardController implements DashboardNavigator {
     private final EventHandler<MouseEvent> handlerMouse = event -> registarAtividadeSessao();
     private final EventHandler<KeyEvent> handlerTeclado = event -> registarAtividadeSessao();
     private final EventHandler<ScrollEvent> handlerScroll = event -> registarAtividadeSessao();
-    private ContextMenu menuSugestoesPesquisa;
+    private DashboardPesquisaHelper pesquisaHelper;
 
     private Utilizador utilizadorLogado;
     private PauseTransition temporizadorSessao;
@@ -188,7 +182,8 @@ public class DashboardController implements DashboardNavigator {
     @FXML
     public void initialize() {
         aplicarTemaDashboard();
-        configurarPesquisaGlobal();
+        pesquisaHelper = new DashboardPesquisaHelper(txtPesquisa, boxPesquisa, this::construirEntradasPesquisa);
+        pesquisaHelper.configurar();
         configurarTooltipsSidebar();
     }
 
@@ -765,150 +760,6 @@ public class DashboardController implements DashboardNavigator {
         }
     }
 
-    private void configurarPesquisaGlobal() {
-        if (txtPesquisa == null) {
-            return;
-        }
-        ContextMenu menuPesquisa = obterMenuSugestoesPesquisa();
-
-        txtPesquisa.setOnAction(event -> abrirPrimeiraSugestaoPesquisa());
-        txtPesquisa.focusedProperty().addListener((observavel, estavaFocado, estaFocado) -> {
-            if (boxPesquisa != null) {
-                boxPesquisa.getStyleClass().remove("pesquisa-shell-ativo");
-                if (estaFocado) {
-                    boxPesquisa.getStyleClass().add("pesquisa-shell-ativo");
-                }
-            }
-            if (estaFocado) {
-                atualizarSugestoesPesquisa(txtPesquisa.getText());
-            }
-        });
-        txtPesquisa.textProperty().addListener((observavel, valorAntigo, valorNovo) -> atualizarSugestoesPesquisa(valorNovo));
-        txtPesquisa.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.ESCAPE) {
-                obterMenuSugestoesPesquisa().hide();
-            }
-        });
-        txtPesquisa.setOnMouseClicked(event -> {
-            if (txtPesquisa.getText() != null && !txtPesquisa.getText().isBlank()) {
-                atualizarSugestoesPesquisa(txtPesquisa.getText());
-            }
-        });
-
-        if (!menuPesquisa.getStyleClass().contains("pesquisa-sugestoes")) {
-            menuPesquisa.getStyleClass().add("pesquisa-sugestoes");
-        }
-        menuPesquisa.setAutoHide(true);
-        menuPesquisa.setHideOnEscape(true);
-    }
-
-    private void atualizarSugestoesPesquisa(String pesquisa) {
-        if (txtPesquisa == null) {
-            return;
-        }
-
-        String termoNormalizado = normalizarTexto(pesquisa);
-        if (termoNormalizado.isBlank()) {
-            obterMenuSugestoesPesquisa().hide();
-            return;
-        }
-
-        List<DestinoPesquisa> sugestoes = obterSugestoesPesquisa(termoNormalizado);
-        List<CustomMenuItem> itens = new ArrayList<>();
-
-        if (sugestoes.isEmpty()) {
-            itens.add(criarItemSemResultados(pesquisa));
-        } else {
-            for (DestinoPesquisa sugestao : sugestoes) {
-                itens.add(criarItemSugestao(sugestao));
-            }
-        }
-
-        ContextMenu menuPesquisa = obterMenuSugestoesPesquisa();
-        menuPesquisa.getItems().setAll(itens);
-        if (!menuPesquisa.isShowing()) {
-            menuPesquisa.show(txtPesquisa, Side.BOTTOM, 0, 8);
-        }
-    }
-
-    private List<DestinoPesquisa> obterSugestoesPesquisa(String termoNormalizado) {
-        return construirDestinosPesquisa().stream()
-                .filter(destino -> destino.calcularRelevancia(termoNormalizado) > 0)
-                .sorted(Comparator
-                        .comparingInt((DestinoPesquisa destino) -> destino.calcularRelevancia(termoNormalizado))
-                        .reversed()
-                        .thenComparing(DestinoPesquisa::etiqueta))
-                .limit(6)
-                .toList();
-    }
-
-    private CustomMenuItem criarItemSugestao(DestinoPesquisa destino) {
-        Label titulo = new Label(destino.etiqueta());
-        titulo.getStyleClass().add("pesquisa-sugestao-titulo");
-
-        Label descricao = new Label(destino.descricao());
-        descricao.getStyleClass().add("pesquisa-sugestao-descricao");
-        descricao.setWrapText(true);
-
-        VBox conteudo = new VBox(4.0, titulo, descricao);
-        conteudo.getStyleClass().add("pesquisa-sugestao");
-
-        CustomMenuItem item = new CustomMenuItem(conteudo, true);
-        item.setOnAction(event -> abrirDestinoPesquisa(destino));
-        return item;
-    }
-
-    private CustomMenuItem criarItemSemResultados(String pesquisa) {
-        Label titulo = new Label("Sem resultados para \"" + pesquisa.trim() + "\"");
-        titulo.getStyleClass().add("pesquisa-sugestao-titulo");
-
-        Label descricao = new Label("Tenta por exemplo: horários, pedidos, perfil, folga ou relatórios.");
-        descricao.getStyleClass().add("pesquisa-sugestao-descricao");
-        descricao.setWrapText(true);
-
-        VBox conteudo = new VBox(4.0, titulo, descricao);
-        conteudo.getStyleClass().addAll("pesquisa-sugestao", "pesquisa-sugestao-vazia");
-
-        CustomMenuItem item = new CustomMenuItem(conteudo, false);
-        item.setHideOnClick(false);
-        item.setDisable(true);
-        return item;
-    }
-
-    private void abrirPrimeiraSugestaoPesquisa() {
-        if (txtPesquisa == null) {
-            return;
-        }
-
-        String termoNormalizado = normalizarTexto(txtPesquisa.getText());
-        if (termoNormalizado.isBlank()) {
-            obterMenuSugestoesPesquisa().hide();
-            return;
-        }
-
-        obterSugestoesPesquisa(termoNormalizado).stream()
-                .findFirst()
-                .ifPresentOrElse(
-                        this::abrirDestinoPesquisa,
-                        () -> atualizarSugestoesPesquisa(txtPesquisa.getText())
-                );
-    }
-
-    private void abrirDestinoPesquisa(DestinoPesquisa destino) {
-        obterMenuSugestoesPesquisa().hide();
-        if (txtPesquisa != null) {
-            txtPesquisa.clear();
-        }
-        destino.abrir();
-    }
-
-    private ContextMenu obterMenuSugestoesPesquisa() {
-        if (menuSugestoesPesquisa == null) {
-            menuSugestoesPesquisa = new ContextMenu();
-        }
-        return menuSugestoesPesquisa;
-    }
-
     private Window obterJanelaAtual() {
         return mainContainer != null && mainContainer.getScene() != null ? mainContainer.getScene().getWindow() : null;
     }
@@ -918,41 +769,40 @@ public class DashboardController implements DashboardNavigator {
         return janela instanceof Stage stage ? stage : null;
     }
 
-    private List<DestinoPesquisa> construirDestinosPesquisa() {
-        List<DestinoPesquisa> destinos = new ArrayList<>();
-        destinos.add(new DestinoPesquisa(
+    private List<DashboardPesquisaHelper.EntradaPesquisa> construirEntradasPesquisa() {
+        List<DashboardPesquisaHelper.EntradaPesquisa> entradas = new ArrayList<>();
+        entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                 "Painel",
                 "Consultar os próximos turnos, a semana publicada e os atalhos principais.",
                 this::abrirDashboardHome,
                 "painel", "dashboard", "visao geral", "visão geral", "inicio", "início", "home", "turnos semana"
         ));
-        destinos.add(new DestinoPesquisa(
+        entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                 "Pedir folga",
                 "Submeter férias, folgas e ausências e acompanhar o histórico dos pedidos.",
                 this::onPedirFolgaClick,
                 "folga", "folgas", "ferias", "férias", "ausencia", "ausência", "pedido", "pedir férias", "marcar folga"
         ));
-        destinos.add(new DestinoPesquisa(
+        entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                 "Trocar turno",
                 "Criar e acompanhar pedidos de troca de turno com outros colegas.",
                 this::onTrocarTurnoClick,
                 "permuta", "permutas", "troca", "trocar turno", "turno", "troca de horario", "troca de horário"
         ));
-        destinos.add(new DestinoPesquisa(
+        entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                 "Perfil",
                 "Editar nome, email, telemóvel e palavra-passe da conta.",
                 this::onPerfilClick,
                 "perfil", "conta", "dados pessoais", "editar email", "alterar password", "mudar telemovel", "seguranca", "segurança"
         ));
-        destinos.add(new DestinoPesquisa(
+        entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                 "Preferências",
                 "Gerir disponibilidade, preferências permanentes e pedidos para aprovação.",
                 this::onPreferenciasClick,
                 "preferencias", "preferências", "disponibilidade", "preferencia permanente", "dias preferidos"
         ));
-
         if (btnGestaoLoja != null && btnGestaoLoja.isVisible()) {
-            destinos.add(new DestinoPesquisa(
+            entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                     "Loja e regras",
                     "Atualizar horário de funcionamento, regras base e horários especiais da loja.",
                     this::onGestaoLojaClick,
@@ -960,7 +810,7 @@ public class DashboardController implements DashboardNavigator {
             ));
         }
         if (btnGestaoFuncionarios != null && btnGestaoFuncionarios.isVisible()) {
-            destinos.add(new DestinoPesquisa(
+            entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                     "Funcionários",
                     "Criar, editar, associar e desativar colaboradores da loja.",
                     this::onGestaoFuncionariosClick,
@@ -968,7 +818,7 @@ public class DashboardController implements DashboardNavigator {
             ));
         }
         if (stackHorarios != null && stackHorarios.isVisible()) {
-            destinos.add(new DestinoPesquisa(
+            entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                     "Horários",
                     "Gerar propostas, validar e publicar horários mensais da loja.",
                     this::onHorariosClick,
@@ -976,7 +826,7 @@ public class DashboardController implements DashboardNavigator {
             ));
         }
         if (stackPainelGerente != null && stackPainelGerente.isVisible()) {
-            destinos.add(new DestinoPesquisa(
+            entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                     "Painel do gerente",
                     "Aprovar folgas, permutas e preferências pendentes da equipa.",
                     this::onPainelGerentePedidosClick,
@@ -984,19 +834,14 @@ public class DashboardController implements DashboardNavigator {
             ));
         }
         if (btnRelatorios != null && btnRelatorios.isVisible()) {
-            destinos.add(new DestinoPesquisa(
+            entradas.add(new DashboardPesquisaHelper.EntradaPesquisa(
                     "Relatórios",
                     "Gerar relatórios mensais de horas e exportar resultados.",
                     this::onRelatoriosHorasClick,
                     "relatorios", "relatórios", "horas", "relatorio", "relatório", "exportar csv", "mapa de horas"
             ));
         }
-        return destinos;
-    }
-
-    private String normalizarTexto(String valor) {
-        String texto = valor == null ? "" : valor.trim().toLowerCase(Locale.ROOT);
-        return Normalizer.normalize(texto, Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
+        return entradas;
     }
 
     @Override
@@ -1044,74 +889,4 @@ public class DashboardController implements DashboardNavigator {
         atualizarBadgesSidebar();
     }
 
-    private record DestinoPesquisa(String etiqueta, String descricao, Runnable acao, List<String> chavesNormalizadas) {
-
-        private DestinoPesquisa(String etiqueta, String descricao, Runnable acao, String... chaves) {
-            this(etiqueta, descricao, acao, normalizarChaves(etiqueta, descricao, chaves));
-        }
-
-        private int calcularRelevancia(String termoNormalizado) {
-            if (termoNormalizado == null || termoNormalizado.isBlank()) {
-                return 0;
-            }
-
-            int melhorPontuacao = 0;
-            for (String chave : chavesNormalizadas) {
-                melhorPontuacao = Math.max(melhorPontuacao, calcularPontuacaoChave(chave, termoNormalizado));
-            }
-            return melhorPontuacao;
-        }
-
-        private void abrir() {
-            acao.run();
-        }
-
-        private static int calcularPontuacaoChave(String chave, String termoNormalizado) {
-            if (chave.equals(termoNormalizado)) {
-                return 120;
-            }
-            if (chave.startsWith(termoNormalizado)) {
-                return 100;
-            }
-            if (chave.contains(termoNormalizado)) {
-                return 84;
-            }
-            if (termoNormalizado.contains(chave) && chave.length() >= 4) {
-                return 72;
-            }
-
-            String[] tokens = termoNormalizado.split("\\s+");
-            int correspondencias = 0;
-            for (String token : tokens) {
-                if (!token.isBlank() && chave.contains(token)) {
-                    correspondencias++;
-                }
-            }
-
-            return correspondencias == tokens.length && correspondencias > 0
-                    ? 60 + correspondencias
-                    : 0;
-        }
-
-        private static List<String> normalizarChaves(String etiqueta, String descricao, String[] chaves) {
-            List<String> normalizadas = new ArrayList<>();
-            adicionarChaveNormalizada(normalizadas, etiqueta);
-            adicionarChaveNormalizada(normalizadas, descricao);
-            for (String chave : chaves) {
-                adicionarChaveNormalizada(normalizadas, chave);
-            }
-            return normalizadas;
-        }
-
-        private static void adicionarChaveNormalizada(List<String> normalizadas, String valorOriginal) {
-            String valor = Normalizer.normalize(
-                    valorOriginal == null ? "" : valorOriginal.trim().toLowerCase(Locale.ROOT),
-                    Normalizer.Form.NFD
-            ).replaceAll("\\p{M}+", "");
-
-            if (!valor.isBlank() && !normalizadas.contains(valor)) {
-                normalizadas.add(valor);
-            }
-        }
-    }
 }

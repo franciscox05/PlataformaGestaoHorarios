@@ -6,45 +6,39 @@ import com.example.projeto2.API.Services.HorarioService;
 import com.example.projeto2.API.Services.PainelGerenteService;
 import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.SnapshotOperacionalLojaService;
+import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
+import com.example.projeto2.DESKTOP.support.DetalheDiaDialog;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.GrelhaHorarioHelper;
+import com.example.projeto2.DESKTOP.support.HomePedidosHelper;
 import com.example.projeto2.DESKTOP.support.MesOption;
 import com.example.projeto2.API.Enums.EstadoHorario;
-import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Modules.Horario;
-import com.example.projeto2.API.Modules.Permuta;
-import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -203,6 +197,23 @@ public class HomeController {
     private VBox boxGrelhaEquipaMensal;
 
     @FXML
+    private Button btnVistaCalendarioHome;
+
+    @FXML
+    private Button btnVistaGrelhaHome;
+
+    @FXML
+    private VBox painelVistaCalendarioHome;
+
+    @FXML
+    private ScrollPane scrollGrelhaEquipaMensal;
+
+    @FXML
+    private GridPane calendarioMensalHome;
+
+    private boolean vistaGrelhaAtiva = false;
+
+    @FXML
     private VBox painelPedidosPendentes;
 
     @FXML
@@ -234,9 +245,11 @@ public class HomeController {
     private final PainelGerenteService painelGerenteBLL;
     private Utilizador utilizadorLogado;
     private DashboardNavigator dashboardNavigation;
+    private HomePedidosHelper pedidosHelper;
     private LocalDate semanaHorarioPublicadoInicio;
     private boolean aAtualizarSeletorSemana;
     private List<Horario> todosEquipaHoje = List.of();
+    private List<Horario> horariosMensaisAtuais = List.of();
     private String filtroTipoAtivo = null;
 
     public HomeController(HorarioService horarioBll,
@@ -271,10 +284,17 @@ public class HomeController {
         lblBemVindo.setText(construirSaudacao(utilizador.getNome()));
         atualizarDataHoje();
 
+        pedidosHelper = new HomePedidosHelper(
+                bannerPendentes, lblBannerPendentes,
+                painelMeusPedidos, listaMeusPedidos,
+                painelPedidosPendentes, listaPedidosPendentes, lblPedidosPendentesSub,
+                dayOffBLL, permutaBLL, painelGerenteBLL, gestaoLojaBLL,
+                this::obterJanela);
+
         carregarHorarioPublicado();
         carregarEquipaHoje();
         configurarVisibilidadePainelOperacao();
-        carregarMeusPedidos();
+        pedidosHelper.carregarMeusPedidos(utilizadorLogado);
     }
 
     public void setDashboardNavigation(DashboardNavigator dashboardNavigation) {
@@ -382,6 +402,41 @@ public class HomeController {
     public void onBannerVerPedidosClick() {
         if (dashboardNavigation != null) {
             dashboardNavigation.abrirPainelGerente();
+        }
+    }
+
+    @FXML
+    public void onVistaCalendarioHomeClick() {
+        if (!vistaGrelhaAtiva) return;
+        vistaGrelhaAtiva = false;
+        atualizarToggleVistaHome();
+        carregarHorarioMensalLoja();
+    }
+
+    @FXML
+    public void onVistaGrelhaHomeClick() {
+        if (vistaGrelhaAtiva) return;
+        vistaGrelhaAtiva = true;
+        atualizarToggleVistaHome();
+        carregarHorarioMensalLoja();
+    }
+
+    private void atualizarToggleVistaHome() {
+        if (btnVistaCalendarioHome != null) {
+            btnVistaCalendarioHome.getStyleClass().removeAll("home-vista-btn", "home-vista-btn-active");
+            btnVistaCalendarioHome.getStyleClass().add(vistaGrelhaAtiva ? "home-vista-btn" : "home-vista-btn-active");
+        }
+        if (btnVistaGrelhaHome != null) {
+            btnVistaGrelhaHome.getStyleClass().removeAll("home-vista-btn", "home-vista-btn-active");
+            btnVistaGrelhaHome.getStyleClass().add(vistaGrelhaAtiva ? "home-vista-btn-active" : "home-vista-btn");
+        }
+        if (painelVistaCalendarioHome != null) {
+            painelVistaCalendarioHome.setVisible(!vistaGrelhaAtiva);
+            painelVistaCalendarioHome.setManaged(!vistaGrelhaAtiva);
+        }
+        if (scrollGrelhaEquipaMensal != null) {
+            scrollGrelhaEquipaMensal.setVisible(vistaGrelhaAtiva);
+            scrollGrelhaEquipaMensal.setManaged(vistaGrelhaAtiva);
         }
     }
 
@@ -587,6 +642,7 @@ public class HomeController {
         ));
         spAnoHorarioMensal.setEditable(true);
 
+        atualizarToggleVistaHome();
         renderizarCalendarioMensalLoja(YearMonth.now(), List.of());
 
         cbMesHorarioMensal.valueProperty().addListener((obs, antigo, novo) -> {
@@ -754,12 +810,12 @@ public class HomeController {
         }
 
         if (podeGerirLoja) {
-            carregarColaboradoresOperacao();
-            carregarColaboradoresHorarioMensal();
+            carregarColaboradoresParaComboBox(cbColaboradorOperacao);
+            carregarColaboradoresParaComboBox(cbColaboradorHorarioMensal);
             carregarOperacaoLoja();
             carregarHorarioMensalLoja();
-            carregarPedidosPendentes();
-            atualizarBannerPendentes();
+            pedidosHelper.carregarPedidosPendentes(utilizadorLogado);
+            pedidosHelper.atualizarBannerPendentes(utilizadorLogado);
         } else {
             tabelaOperacaoLoja.setItems(FXCollections.observableArrayList());
             renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
@@ -770,30 +826,11 @@ public class HomeController {
     }
 
     private void atualizarBannerPendentes() {
-        if (bannerPendentes == null || utilizadorLogado == null) return;
-        try {
-            int folgas = dayOffBLL.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId()).size();
-            int permutas = permutaBLL.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId()).size();
-            int total = folgas + permutas;
-            if (total > 0) {
-                String msg = total == 1
-                        ? "Tens 1 pedido pendente a aguardar a tua aprovação."
-                        : "Tens " + total + " pedidos pendentes a aguardar a tua aprovação.";
-                if (lblBannerPendentes != null) lblBannerPendentes.setText(msg);
-                bannerPendentes.setVisible(true);
-                bannerPendentes.setManaged(true);
-            } else {
-                esconderBannerPendentes();
-            }
-        } catch (Exception e) {
-            esconderBannerPendentes();
-        }
+        if (pedidosHelper != null) pedidosHelper.atualizarBannerPendentes(utilizadorLogado);
     }
 
     private void esconderBannerPendentes() {
-        if (bannerPendentes == null) return;
-        bannerPendentes.setVisible(false);
-        bannerPendentes.setManaged(false);
+        if (pedidosHelper != null) pedidosHelper.esconderBannerPendentes();
     }
 
     private void carregarOperacaoLoja() {
@@ -833,72 +870,33 @@ public class HomeController {
         }
     }
 
-    private void carregarColaboradoresOperacao() {
-        if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-            return;
-        }
-
+    private void carregarColaboradoresParaComboBox(ComboBox<ColaboradorFiltroOption> comboBox) {
+        if (utilizadorLogado == null || utilizadorLogado.getId() == null || comboBox == null) return;
         try {
-            ColaboradorFiltroOption anterior = cbColaboradorOperacao.getValue();
-            List<ColaboradorFiltroOption> opcoes = horarioBll.listarColaboradoresAtivosDaLojaDoUtilizador(utilizadorLogado.getId()).stream()
-                    .sorted(Comparator.comparing(HorarioService.ColaboradorLoja::nome, String.CASE_INSENSITIVE_ORDER))
-                    .map(colaborador -> new ColaboradorFiltroOption(
-                            colaborador.idUtilizador(),
-                            colaborador.etiqueta()
-                    ))
+            ColaboradorFiltroOption anterior = comboBox.getValue();
+            List<ColaboradorFiltroOption> opcoes = horarioBll
+                    .listarColaboradoresAtivosDaLojaDoUtilizador(utilizadorLogado.getId()).stream()
+                    .sorted(Comparator.comparing(HorarioService.ColaboradorLoja::nome,
+                            String.CASE_INSENSITIVE_ORDER))
+                    .map(c -> new ColaboradorFiltroOption(c.idUtilizador(), c.etiqueta()))
                     .toList();
 
-            cbColaboradorOperacao.setItems(FXCollections.observableArrayList());
-            cbColaboradorOperacao.getItems().add(ColaboradorFiltroOption.todos());
-            cbColaboradorOperacao.getItems().addAll(opcoes);
+            comboBox.setItems(FXCollections.observableArrayList());
+            comboBox.getItems().add(ColaboradorFiltroOption.todos());
+            comboBox.getItems().addAll(opcoes);
 
             if (anterior != null) {
-                cbColaboradorOperacao.getItems().stream()
+                comboBox.getItems().stream()
                         .filter(item -> Objects.equals(item.idUtilizador(), anterior.idUtilizador()))
                         .findFirst()
-                        .ifPresentOrElse(cbColaboradorOperacao::setValue, () -> cbColaboradorOperacao.setValue(ColaboradorFiltroOption.todos()));
+                        .ifPresentOrElse(comboBox::setValue,
+                                () -> comboBox.setValue(ColaboradorFiltroOption.todos()));
             } else {
-                cbColaboradorOperacao.setValue(ColaboradorFiltroOption.todos());
+                comboBox.setValue(ColaboradorFiltroOption.todos());
             }
         } catch (Exception e) {
-            cbColaboradorOperacao.setItems(FXCollections.observableArrayList(ColaboradorFiltroOption.todos()));
-            cbColaboradorOperacao.setValue(ColaboradorFiltroOption.todos());
-        }
-    }
-
-    private void carregarColaboradoresHorarioMensal() {
-        if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
-            return;
-        }
-
-        try {
-            ColaboradorFiltroOption anterior = cbColaboradorHorarioMensal.getValue();
-            List<ColaboradorFiltroOption> opcoes = horarioBll.listarColaboradoresAtivosDaLojaDoUtilizador(utilizadorLogado.getId()).stream()
-                    .sorted(Comparator.comparing(HorarioService.ColaboradorLoja::nome, String.CASE_INSENSITIVE_ORDER))
-                    .map(colaborador -> new ColaboradorFiltroOption(
-                            colaborador.idUtilizador(),
-                            colaborador.etiqueta()
-                    ))
-                    .toList();
-
-            cbColaboradorHorarioMensal.setItems(FXCollections.observableArrayList());
-            cbColaboradorHorarioMensal.getItems().add(ColaboradorFiltroOption.todos());
-            cbColaboradorHorarioMensal.getItems().addAll(opcoes);
-
-            if (anterior != null) {
-                cbColaboradorHorarioMensal.getItems().stream()
-                        .filter(item -> Objects.equals(item.idUtilizador(), anterior.idUtilizador()))
-                        .findFirst()
-                        .ifPresentOrElse(
-                                cbColaboradorHorarioMensal::setValue,
-                                () -> cbColaboradorHorarioMensal.setValue(ColaboradorFiltroOption.todos())
-                        );
-            } else {
-                cbColaboradorHorarioMensal.setValue(ColaboradorFiltroOption.todos());
-            }
-        } catch (Exception e) {
-            cbColaboradorHorarioMensal.setItems(FXCollections.observableArrayList(ColaboradorFiltroOption.todos()));
-            cbColaboradorHorarioMensal.setValue(ColaboradorFiltroOption.todos());
+            comboBox.setItems(FXCollections.observableArrayList(ColaboradorFiltroOption.todos()));
+            comboBox.setValue(ColaboradorFiltroOption.todos());
         }
     }
 
@@ -1132,322 +1130,6 @@ public class HomeController {
 
     // ────────────────────────────────────────────────────────────────────────
 
-    // ── Os Meus Pedidos ─────────────────────────────────────────────────────
-
-    private void carregarMeusPedidos() {
-        if (painelMeusPedidos == null || listaMeusPedidos == null) {
-            return;
-        }
-
-        if (utilizadorLogado == null) {
-            painelMeusPedidos.setVisible(false);
-            painelMeusPedidos.setManaged(false);
-            return;
-        }
-
-        // Painel escondido para gestores (têm o painel de operação)
-        boolean eGestor = gestaoLojaBLL.utilizadorPodeGerirLoja(utilizadorLogado.getId());
-        if (eGestor) {
-            painelMeusPedidos.setVisible(false);
-            painelMeusPedidos.setManaged(false);
-            return;
-        }
-
-        try {
-            // Combinar folgas e permutas numa lista unificada de eventos recentes
-            List<PedidoResumo> pedidos = new ArrayList<>();
-
-            dayOffBLL.listarPedidosPorUtilizador(utilizadorLogado.getId()).stream()
-                    .limit(10)
-                    .forEach(dayOff -> pedidos.add(new PedidoResumo(
-                            "Folga / " + formatarTipoDayOff(dayOff.getTipo()),
-                            dayOff.getDataAusencia() != null ? DATA_FORMATTER.format(dayOff.getDataAusencia()) : "-",
-                            dayOff.getEstado() != null ? dayOff.getEstado() : "pendente",
-                            dayOff.getDataAusencia() != null ? dayOff.getDataAusencia().atStartOfDay().toInstant(java.time.ZoneOffset.UTC) : Instant.MIN
-                    )));
-
-            permutaBLL.listarPedidosEnviados(utilizadorLogado.getId()).stream()
-                    .limit(10)
-                    .forEach(permuta -> {
-                        String dataFormatada = permuta.getIdHorarioOrigem() != null
-                                && permuta.getIdHorarioOrigem().getDataTurno() != null
-                                ? DATA_FORMATTER.format(permuta.getIdHorarioOrigem().getDataTurno())
-                                : "-";
-                        String estado = permuta.getEstado() != null ? permuta.getEstado().name() : "pendente";
-                        Instant dataOrdem = permuta.getDataPedido() != null ? permuta.getDataPedido() : Instant.MIN;
-                        pedidos.add(new PedidoResumo("Troca de turno", dataFormatada, estado, dataOrdem));
-                    });
-
-            // Ordenar por data descendente (mais recentes primeiro), limitar a 5
-            List<PedidoResumo> recentes = pedidos.stream()
-                    .sorted(Comparator.comparing(PedidoResumo::dataOrdem, Comparator.reverseOrder()))
-                    .limit(5)
-                    .toList();
-
-            listaMeusPedidos.getChildren().clear();
-
-            if (recentes.isEmpty()) {
-                Label lblVazio = new Label("Ainda não tens pedidos registados. Usa os atalhos acima para pedir folga ou trocar turno.");
-                lblVazio.getStyleClass().add("home-card-subtitle");
-                lblVazio.setWrapText(true);
-                listaMeusPedidos.getChildren().add(lblVazio);
-            } else {
-                for (PedidoResumo pedido : recentes) {
-                    listaMeusPedidos.getChildren().add(criarLinhaPedido(pedido));
-                }
-            }
-
-            painelMeusPedidos.setVisible(true);
-            painelMeusPedidos.setManaged(true);
-
-        } catch (Exception e) {
-            painelMeusPedidos.setVisible(false);
-            painelMeusPedidos.setManaged(false);
-        }
-    }
-
-    private HBox criarLinhaPedido(PedidoResumo pedido) {
-        HBox linha = new HBox(12);
-        linha.setAlignment(Pos.CENTER_LEFT);
-        linha.getStyleClass().add("pedido-resumo-linha");
-        linha.setPadding(new Insets(8, 12, 8, 12));
-
-        Label lblTipo = new Label(pedido.tipo());
-        lblTipo.getStyleClass().add("pedido-resumo-tipo");
-        HBox.setHgrow(lblTipo, Priority.ALWAYS);
-        lblTipo.setMaxWidth(Double.MAX_VALUE);
-
-        Label lblData = new Label(pedido.data());
-        lblData.getStyleClass().add("pedido-resumo-data");
-
-        Label lblEstado = new Label(formatarEstadoPedido(pedido.estado()));
-        lblEstado.getStyleClass().addAll("pedido-resumo-badge", resolverCssBadge(pedido.estado()));
-
-        linha.getChildren().addAll(lblTipo, lblData, lblEstado);
-        return linha;
-    }
-
-    private String formatarTipoDayOff(String tipo) {
-        if (tipo == null) return "Ausência";
-        return switch (tipo.toLowerCase(Locale.ROOT)) {
-            case "ferias" -> "Férias";
-            case "folgas" -> "Folgas";
-            case "baixa" -> "Baixa";
-            case "urgente" -> "Urgente";
-            default -> capitalizar(tipo);
-        };
-    }
-
-    private String formatarEstadoPedido(String estado) {
-        if (estado == null) return "Pendente";
-        return switch (estado.toLowerCase(Locale.ROOT)) {
-            case "pendente" -> "Pendente";
-            case "aprovado" -> "Aprovado";
-            case "rejeitado" -> "Rejeitado";
-            case "recusado" -> "Recusado";
-            default -> capitalizar(estado);
-        };
-    }
-
-    private String resolverCssBadge(String estado) {
-        if (estado == null) return "badge-pendente";
-        return switch (estado.toLowerCase(Locale.ROOT)) {
-            case "aprovado" -> "badge-aprovado";
-            case "rejeitado", "recusado" -> "badge-rejeitado";
-            default -> "badge-pendente";
-        };
-    }
-
-    private record PedidoResumo(String tipo, String data, String estado, Instant dataOrdem) {}
-
-    // ── Pedidos pendentes (gestão) — aprovar/rejeitar inline no painel ────────
-
-    private void carregarPedidosPendentes() {
-        if (painelPedidosPendentes == null || listaPedidosPendentes == null
-                || utilizadorLogado == null || utilizadorLogado.getId() == null) {
-            return;
-        }
-
-        try {
-            PainelGerenteService.PainelGerenteSnapshot snapshot =
-                    painelGerenteBLL.carregarPainel(utilizadorLogado.getId());
-
-            listaPedidosPendentes.getChildren().clear();
-
-            int total = snapshot.resumo().totalPendentes();
-            if (lblPedidosPendentesSub != null) {
-                lblPedidosPendentesSub.setText(total == 1 ? "1 por decidir" : total + " por decidir");
-            }
-
-            if (total == 0) {
-                Label vazio = new Label("Sem pedidos pendentes. Está tudo em dia.");
-                vazio.getStyleClass().add("home-card-subtitle");
-                vazio.setWrapText(true);
-                listaPedidosPendentes.getChildren().add(vazio);
-            } else {
-                for (DayOff folga : snapshot.folgasPendentes()) {
-                    Integer idUtil = folga.getIdUtilizador() != null ? folga.getIdUtilizador().getId() : null;
-                    String nome = snapshot.nomesFolgasPendentes().getOrDefault(idUtil,
-                            folga.getIdUtilizador() != null ? folga.getIdUtilizador().getNome() : "?");
-                    String detalhe = formatarTipoDayOff(folga.getTipo())
-                            + (folga.getDataAusencia() != null ? " · " + formatarData(folga.getDataAusencia()) : "");
-                    listaPedidosPendentes.getChildren().add(construirLinhaPedidoPendente(
-                            "Folga", "folga", nome, "pediu folga", detalhe, folga.getMotivo(),
-                            () -> painelGerenteBLL.aprovarFolga(folga.getIdDayoff(), utilizadorLogado.getId()),
-                            () -> painelGerenteBLL.rejeitarFolga(folga.getIdDayoff(), utilizadorLogado.getId())));
-                }
-                for (Permuta permuta : snapshot.permutasPendentes()) {
-                    String origemNome = nomeColaboradorDe(permuta.getIdHorarioOrigem());
-                    String detalhe = descricaoPermuta(permuta);
-                    listaPedidosPendentes.getChildren().add(construirLinhaPedidoPendente(
-                            "Permuta", "permuta", origemNome, "quer trocar turno", detalhe, null,
-                            () -> painelGerenteBLL.aprovarPermuta(permuta.getId(), utilizadorLogado.getId()),
-                            () -> painelGerenteBLL.rejeitarPermuta(permuta.getId(), utilizadorLogado.getId())));
-                }
-                for (Preferencia pref : snapshot.preferenciasPendentes()) {
-                    String nome = pref.getIdUtilizador() != null ? pref.getIdUtilizador().getNome() : "?";
-                    String detalhe = pref.getDescricao() != null && !pref.getDescricao().isBlank()
-                            ? pref.getDescricao() : capitalizar(pref.getTipo());
-                    listaPedidosPendentes.getChildren().add(construirLinhaPedidoPendente(
-                            "Preferência", "pref", nome, "atualizou preferências", detalhe, null,
-                            () -> painelGerenteBLL.aprovarPreferencia(pref.getId(), utilizadorLogado.getId(), ""),
-                            () -> painelGerenteBLL.rejeitarPreferencia(pref.getId(), utilizadorLogado.getId(), "")));
-                }
-            }
-
-            painelPedidosPendentes.setVisible(true);
-            painelPedidosPendentes.setManaged(true);
-        } catch (Exception e) {
-            painelPedidosPendentes.setVisible(false);
-            painelPedidosPendentes.setManaged(false);
-        }
-    }
-
-    private HBox construirLinhaPedidoPendente(String tag, String chaveTag, String nome, String acao,
-                                              String detalhe, String motivo,
-                                              Runnable aprovar, Runnable rejeitar) {
-        HBox linha = new HBox(10);
-        linha.setAlignment(Pos.CENTER_LEFT);
-        linha.getStyleClass().add("pedido-resumo-linha");
-        linha.setPadding(new Insets(10, 12, 10, 12));
-
-        StackPane avatar = new StackPane();
-        avatar.getStyleClass().add("grelha-avatar");
-        avatar.setStyle("-fx-background-color: " + corPorTag(chaveTag) + ";");
-        Label lblIniciais = new Label(iniciaisDe(nome));
-        lblIniciais.getStyleClass().add("grelha-avatar-iniciais");
-        avatar.getChildren().add(lblIniciais);
-
-        VBox corpo = new VBox(2);
-        HBox.setHgrow(corpo, Priority.ALWAYS);
-        corpo.setMaxWidth(Double.MAX_VALUE);
-
-        Label lblTag = new Label(tag.toUpperCase(Locale.ROOT));
-        lblTag.getStyleClass().add("pedido-resumo-tipo");
-
-        Label lblTexto = new Label(nome + " " + acao);
-        lblTexto.getStyleClass().add("pedido-resumo-tipo");
-        lblTexto.setWrapText(true);
-
-        corpo.getChildren().addAll(lblTag, lblTexto);
-
-        if (detalhe != null && !detalhe.isBlank()) {
-            Label lblDetalhe = new Label(detalhe);
-            lblDetalhe.getStyleClass().add("pedido-resumo-data");
-            lblDetalhe.setWrapText(true);
-            corpo.getChildren().add(lblDetalhe);
-        }
-        if (motivo != null && !motivo.isBlank()) {
-            Label lblMotivo = new Label(motivo);
-            lblMotivo.getStyleClass().add("home-card-subtitle");
-            lblMotivo.setWrapText(true);
-            corpo.getChildren().add(lblMotivo);
-        }
-
-        Button btnOk = new Button("✓");
-        btnOk.getStyleClass().add("home-pedido-aprovar");
-        btnOk.setStyle("-fx-background-color:#dcfce7; -fx-text-fill:#166534; -fx-font-weight:800; "
-                + "-fx-background-radius:8; -fx-min-width:34; -fx-min-height:34; -fx-cursor:hand;");
-        btnOk.setOnAction(e -> decidirPedido(tag, nome, true, aprovar));
-
-        Button btnNo = new Button("✕");
-        btnNo.getStyleClass().add("home-pedido-rejeitar");
-        btnNo.setStyle("-fx-background-color:#fee2e2; -fx-text-fill:#991b1b; -fx-font-weight:800; "
-                + "-fx-background-radius:8; -fx-min-width:34; -fx-min-height:34; -fx-cursor:hand;");
-        btnNo.setOnAction(e -> decidirPedido(tag, nome, false, rejeitar));
-
-        HBox acoes = new HBox(6, btnOk, btnNo);
-        acoes.setAlignment(Pos.CENTER_RIGHT);
-
-        linha.getChildren().addAll(avatar, corpo, acoes);
-        return linha;
-    }
-
-    private void decidirPedido(String tipoLabel, String nome, boolean aprovar, Runnable accao) {
-        boolean confirmado = DialogosHelper.confirmarAcao(
-                obterJanela(),
-                (aprovar ? "Aprovar " : "Rejeitar ") + tipoLabel.toLowerCase(Locale.ROOT),
-                (aprovar ? "Confirmas a aprovação" : "Confirmas a rejeição") + " do pedido de " + nome + "?",
-                "O estado do pedido será atualizado e guardado na base de dados.");
-        if (!confirmado) {
-            return;
-        }
-
-        try {
-            accao.run();
-            carregarPedidosPendentes();
-            atualizarBannerPendentes();
-        } catch (Exception e) {
-            DialogosHelper.mostrarErro(
-                    obterJanela(),
-                    "Não foi possível concluir",
-                    "Ocorreu um erro ao processar o pedido.",
-                    e.getMessage() != null ? e.getMessage() : "Tenta novamente dentro de momentos.");
-        }
-    }
-
-    private String nomeColaboradorDe(Horario horario) {
-        if (horario == null || horario.getIdLojautilizador() == null
-                || horario.getIdLojautilizador().getIdUtilizador() == null) {
-            return "?";
-        }
-        return textoOuTraco(horario.getIdLojautilizador().getIdUtilizador().getNome());
-    }
-
-    private String descricaoPermuta(Permuta permuta) {
-        if (permuta == null || permuta.getIdHorarioOrigem() == null) {
-            return "Troca de turno";
-        }
-        String periodo = formatarPeriodo(permuta.getIdHorarioOrigem());
-        String data = permuta.getIdHorarioOrigem().getDataTurno() != null
-                ? formatarData(permuta.getIdHorarioOrigem().getDataTurno())
-                : "";
-        String destino = nomeColaboradorDe(permuta.getIdHorarioDestino());
-        String origem = (periodo != null && !"-".equals(periodo) ? periodo + " " : "") + data;
-        return (origem.isBlank() ? "Turno" : origem.trim()) + " ⇄ " + destino;
-    }
-
-    private String corPorTag(String chave) {
-        return switch (chave) {
-            case "folga"   -> "#d97706";
-            case "permuta" -> "#7c3aed";
-            case "pref"    -> "#0891b2";
-            default         -> "#6b7280";
-        };
-    }
-
-    private String iniciaisDe(String nome) {
-        if (nome == null || nome.isBlank()) {
-            return "?";
-        }
-        String[] partes = nome.trim().split("\\s+");
-        if (partes.length == 1) {
-            return partes[0].substring(0, Math.min(2, partes[0].length())).toUpperCase(Locale.ROOT);
-        }
-        return (String.valueOf(partes[0].charAt(0))
-                + partes[partes.length - 1].charAt(0)).toUpperCase(Locale.ROOT);
-    }
-
     // ────────────────────────────────────────────────────────────────────────
 
     private String formatarData(LocalDate data) {
@@ -1516,19 +1198,6 @@ public class HomeController {
                 .toUpperCase(LOCALE_PT);
     }
 
-    private String capitalizar(String texto) {
-        if (texto == null || texto.isBlank()) {
-            return "-";
-        }
-
-        String valor = texto.trim().toLowerCase(Locale.ROOT);
-        return Character.toUpperCase(valor.charAt(0)) + valor.substring(1);
-    }
-
-    private String textoOuTraco(Object valor) {
-        return valor == null ? "-" : valor.toString();
-    }
-
     private void renderizarCalendarioHorarioPublicado(LocalDate inicioSemana, List<Horario> horarios) {
         Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
 
@@ -1573,7 +1242,33 @@ public class HomeController {
     }
 
     private void renderizarCalendarioMensalLoja(YearMonth periodo, List<Horario> horarios) {
-        GrelhaHorarioHelper.preencher(boxGrelhaEquipaMensal, periodo, horarios, LocalDate.now());
+        horariosMensaisAtuais = horarios != null ? horarios : List.of();
+        if (vistaGrelhaAtiva) {
+            GrelhaHorarioHelper.preencher(boxGrelhaEquipaMensal, periodo, horarios, LocalDate.now(),
+                    this::abrirDetalheDiaMensal);
+        } else {
+            Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
+            if (horarios != null) {
+                for (Horario h : horarios) {
+                    if (h == null || h.getDataTurno() == null) continue;
+                    String nome = h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdUtilizador() != null
+                            ? h.getIdLojautilizador().getIdUtilizador().getNome() : "?";
+                    String cargo = h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdCargo() != null
+                            && h.getIdLojautilizador().getIdCargo().getNome() != null
+                            ? h.getIdLojautilizador().getIdCargo().getNome() : "-";
+                    eventosPorDia.computeIfAbsent(h.getDataTurno(), k -> new java.util.ArrayList<>())
+                            .add(formatarPeriodo(h) + " | " + nome + " (" + cargo + ")");
+                }
+            }
+            CalendarioMensalHelper.preencherCalendario(calendarioMensalHome, periodo, eventosPorDia,
+                    "Sem horários publicados para o período selecionado.",
+                    this::abrirDetalheDiaMensal);
+        }
+    }
+
+    /** Abre o diálogo "Detalhe do dia" com os turnos publicados da loja nesse dia. */
+    private void abrirDetalheDiaMensal(LocalDate data) {
+        DetalheDiaDialog.abrirHorariosPublicados(data, horariosMensaisAtuais, obterJanela());
     }
 
     private record ColaboradorFiltroOption(Integer idUtilizador, String label) {

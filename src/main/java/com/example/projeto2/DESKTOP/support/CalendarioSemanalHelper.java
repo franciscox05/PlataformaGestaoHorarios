@@ -89,6 +89,12 @@ public final class CalendarioSemanalHelper {
 
         VBox card = new VBox(10.0, cabecalho, corpo);
         card.getStyleClass().add("calendario-dia-card");
+        if (eventosValidos.isEmpty()) {
+            card.getStyleClass().add("calendario-dia-card-vazio");
+        }
+        if (LocalDate.now().equals(dia)) {
+            card.getStyleClass().add("calendario-dia-card-hoje");
+        }
         card.setPadding(new Insets(14));
         card.setMinWidth(0);
         card.setPrefWidth(0);

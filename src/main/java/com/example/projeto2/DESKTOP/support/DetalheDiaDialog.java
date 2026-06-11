@@ -1,6 +1,7 @@
 package com.example.projeto2.DESKTOP.support;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -16,12 +17,14 @@ import java.util.function.BiConsumer;
 /**
  * Diálogo "Detalhe do dia": lista os turnos planeados para um dia da proposta atual,
  * com botão de edição por turno se o utilizador tiver permissões e o horário já estiver
- * publicado (idHorario != null).
+ * publicado (idHorario != null). Tem também uma variante para o horário publicado da
+ * loja ({@link #abrirHorariosPublicados}), usada na página principal.
  */
 public final class DetalheDiaDialog {
 
     private static final DateTimeFormatter FORMATO_DIA = DateTimeFormatter.ofPattern(
             "EEEE, d 'de' MMMM yyyy", Locale.forLanguageTag("pt-PT"));
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm");
 
     private DetalheDiaDialog() {
         // utilitário
@@ -33,18 +36,18 @@ public final class DetalheDiaDialog {
      *                      ChoiceDialog que se abre por cima).
      */
     public static void abrir(LocalDate data,
-                             List<GeracaoHorariosService.HorarioLinha> linhasProposta,
+                             List<HorarioLinha> linhasProposta,
                              Window owner,
                              boolean podeEditar,
-                             BiConsumer<GeracaoHorariosService.HorarioLinha, Window> onEditarTurno) {
+                             BiConsumer<HorarioLinha, Window> onEditarTurno) {
         if (data == null || linhasProposta == null) return;
 
-        List<GeracaoHorariosService.HorarioLinha> turnosDia = linhasProposta.stream()
+        List<HorarioLinha> turnosDia = linhasProposta.stream()
                 .filter(linha -> linha != null && data.equals(linha.data()))
                 .sorted(Comparator
-                        .comparing(GeracaoHorariosService.HorarioLinha::periodo,
+                        .comparing(HorarioLinha::periodo,
                                 Comparator.nullsLast(String::compareToIgnoreCase))
-                        .thenComparing(GeracaoHorariosService.HorarioLinha::colaborador,
+                        .thenComparing(HorarioLinha::colaborador,
                                 Comparator.nullsLast(String::compareToIgnoreCase)))
                 .toList();
 
@@ -52,7 +55,7 @@ public final class DetalheDiaDialog {
 
         VBox listaTurnos = new VBox(10.0);
         listaTurnos.getStyleClass().add("detalhe-dia-lista");
-        for (GeracaoHorariosService.HorarioLinha turno : turnosDia) {
+        for (HorarioLinha turno : turnosDia) {
             listaTurnos.getChildren().add(criarCard(turno, podeEditar, onEditarTurno));
         }
 
@@ -65,9 +68,86 @@ public final class DetalheDiaDialog {
         );
     }
 
-    private static VBox criarCard(GeracaoHorariosService.HorarioLinha turno,
+    /**
+     * Variante para o horário publicado da loja: lista os turnos de {@code data}
+     * presentes em {@code horarios} (entidades {@link Horario}), sem botão de edição.
+     * Usada no calendário/grelha mensal da página principal.
+     */
+    public static void abrirHorariosPublicados(LocalDate data,
+                                               List<Horario> horarios,
+                                               Window owner) {
+        if (data == null || horarios == null) return;
+
+        List<Horario> turnosDia = horarios.stream()
+                .filter(h -> h != null && data.equals(h.getDataTurno()))
+                .sorted(Comparator
+                        .comparing((Horario h) -> h.getIdTurno() != null ? h.getIdTurno().getHoraInicio() : null,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(DetalheDiaDialog::nomeColaborador,
+                                Comparator.nullsLast(String::compareToIgnoreCase)))
+                .toList();
+
+        if (turnosDia.isEmpty()) return;
+
+        VBox listaTurnos = new VBox(10.0);
+        listaTurnos.getStyleClass().add("detalhe-dia-lista");
+        for (Horario turno : turnosDia) {
+            listaTurnos.getChildren().add(criarCardPublicado(turno));
+        }
+
+        DialogosHelper.mostrarConteudo(
+                owner,
+                "DETALHE DO DIA",
+                capitalizar(data.format(FORMATO_DIA)),
+                turnosDia.size() + " turno(s) publicado(s) para a equipa neste dia.",
+                listaTurnos
+        );
+    }
+
+    private static VBox criarCardPublicado(Horario turno) {
+        VBox card = new VBox(5.0);
+        card.getStyleClass().add("detalhe-dia-turno-card");
+
+        Label periodo = new Label(formatarPeriodo(turno));
+        periodo.getStyleClass().add("detalhe-dia-periodo");
+
+        Label colaborador = new Label(valorOuTraco(nomeColaborador(turno)));
+        colaborador.getStyleClass().add("detalhe-dia-colaborador");
+
+        String cargoNome = turno.getIdLojautilizador() != null && turno.getIdLojautilizador().getIdCargo() != null
+                ? turno.getIdLojautilizador().getIdCargo().getNome()
+                : null;
+        String estadoNome = turno.getEstado() != null ? capitalizar(turno.getEstado().name()) : null;
+        Label cargo = new Label(valorOuTraco(cargoNome) + " · " + valorOuTraco(estadoNome));
+        cargo.getStyleClass().add("detalhe-dia-cargo");
+        cargo.setWrapText(true);
+
+        card.getChildren().addAll(periodo, colaborador, cargo);
+        return card;
+    }
+
+    private static String nomeColaborador(Horario h) {
+        if (h == null || h.getIdLojautilizador() == null
+                || h.getIdLojautilizador().getIdUtilizador() == null) {
+            return null;
+        }
+        return h.getIdLojautilizador().getIdUtilizador().getNome();
+    }
+
+    private static String formatarPeriodo(Horario h) {
+        if (h == null || h.getIdTurno() == null) {
+            return "-";
+        }
+        String inicio = h.getIdTurno().getHoraInicio() != null
+                ? h.getIdTurno().getHoraInicio().format(FORMATO_HORA) : "--:--";
+        String fim = h.getIdTurno().getHoraFim() != null
+                ? h.getIdTurno().getHoraFim().format(FORMATO_HORA) : "--:--";
+        return inicio + " - " + fim;
+    }
+
+    private static VBox criarCard(HorarioLinha turno,
                                   boolean podeEditar,
-                                  BiConsumer<GeracaoHorariosService.HorarioLinha, Window> onEditarTurno) {
+                                  BiConsumer<HorarioLinha, Window> onEditarTurno) {
         VBox card = new VBox(5.0);
         card.getStyleClass().add("detalhe-dia-turno-card");
 

@@ -1,7 +1,7 @@
 package com.example.projeto2.DESKTOP.support;
 
+import com.example.projeto2.API.Services.geracao.dto.*;
 import com.example.projeto2.API.Modules.Turno;
-import com.example.projeto2.API.Services.GeracaoHorariosService;
 import com.example.projeto2.API.Services.HorarioService;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
@@ -25,7 +25,7 @@ public final class EdicaoTurnoDialog {
         // utilitário
     }
 
-    public static void abrir(GeracaoHorariosService.HorarioLinha linha,
+    public static void abrir(HorarioLinha linha,
                              Window owner,
                              HorarioService horarioBLL,
                              Integer idUtilizador,

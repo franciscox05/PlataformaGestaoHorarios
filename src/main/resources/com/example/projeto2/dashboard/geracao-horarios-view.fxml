@@ -687,9 +687,10 @@
                                             </VBox>
 
                                             <ScrollPane fx:id="grelhaScrollPane"
+                                                        fitToWidth="true"
                                                         fitToHeight="true"
-                                                        hbarPolicy="AS_NEEDED"
-                                                        vbarPolicy="AS_NEEDED"
+                                                        hbarPolicy="NEVER"
+                                                        vbarPolicy="NEVER"
                                                         styleClass="grelha-scroll"
                                                         minHeight="300.0"
                                                         managed="false" visible="false">

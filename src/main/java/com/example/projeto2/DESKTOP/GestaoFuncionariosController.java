@@ -8,6 +8,7 @@ import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
+import com.example.projeto2.DESKTOP.support.PreferenciaFormatters;
 import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Permuta;
@@ -36,7 +37,6 @@ import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -44,6 +44,8 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 @Component
 @Scope("prototype")
@@ -352,7 +354,7 @@ public class GestaoFuncionariosController {
         colFolgaTipo.setCellFactory(coluna -> criarCelulaBadgeTipoFolga());
         colFolgaEstado.setCellFactory(coluna -> criarCelulaBadgeEstado());
         colFolgaAcao.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue()));
-        colFolgaAcao.setCellFactory(coluna -> criarCelulaAcaoFolga());
+        colFolgaAcao.setCellFactory(coluna -> criarCelulaAcaoBotoes(FolgaLinha::pendenteAprovacao, this::decidirFolga));
         tabelaFolgasColaborador.setItems(folgasColaborador);
         tabelaFolgasColaborador.setPlaceholder(new Label("Sem folgas registadas para este colaborador."));
 
@@ -361,7 +363,7 @@ public class GestaoFuncionariosController {
         colPreferenciaEstado.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().estado()));
         colPreferenciaEstado.setCellFactory(coluna -> criarCelulaBadgeEstado());
         colPreferenciaAcao.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue()));
-        colPreferenciaAcao.setCellFactory(coluna -> criarCelulaAcaoPreferencia());
+        colPreferenciaAcao.setCellFactory(coluna -> criarCelulaAcaoBotoes(PreferenciaLinha::pendenteAprovacao, this::decidirPreferencia));
         tabelaPreferenciasColaborador.setItems(preferenciasColaborador);
         tabelaPreferenciasColaborador.setPlaceholder(new Label("Sem preferências registadas para este colaborador."));
 
@@ -370,58 +372,24 @@ public class GestaoFuncionariosController {
         colPermutaTurnos.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().turnos()));
         colPermutaEstado.setCellFactory(coluna -> criarCelulaBadgeEstado());
         colPermutaAcao.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue()));
-        colPermutaAcao.setCellFactory(coluna -> criarCelulaAcaoPermuta());
+        colPermutaAcao.setCellFactory(coluna -> criarCelulaAcaoBotoes(PermutaLinha::pendenteAprovacao, this::decidirPermuta));
         tabelaPermutasColaborador.setItems(permutasColaborador);
         tabelaPermutasColaborador.setPlaceholder(new Label("Sem permutas registadas para este colaborador."));
     }
 
-    private TableCell<FolgaLinha, FolgaLinha> criarCelulaAcaoFolga() {
+    private <T> TableCell<T, T> criarCelulaAcaoBotoes(Predicate<T> mostrarBotoes, BiConsumer<T, Boolean> onDecisao) {
         return new TableCell<>() {
             private final Button btnAprovar = criarBotaoAcao("Aprovar", true);
             private final Button btnRejeitar = criarBotaoAcao("Rejeitar", false);
             private final HBox contentor = new HBox(8.0, btnAprovar, btnRejeitar);
             {
-                btnAprovar.setOnAction(event -> { FolgaLinha linha = getItem(); if (linha != null) decidirFolga(linha, true); });
-                btnRejeitar.setOnAction(event -> { FolgaLinha linha = getItem(); if (linha != null) decidirFolga(linha, false); });
+                btnAprovar.setOnAction(event -> { T item = getItem(); if (item != null) onDecisao.accept(item, true); });
+                btnRejeitar.setOnAction(event -> { T item = getItem(); if (item != null) onDecisao.accept(item, false); });
             }
             @Override
-            protected void updateItem(FolgaLinha item, boolean empty) {
+            protected void updateItem(T item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty || item == null || !item.pendenteAprovacao() ? null : contentor);
-            }
-        };
-    }
-
-    private TableCell<PreferenciaLinha, PreferenciaLinha> criarCelulaAcaoPreferencia() {
-        return new TableCell<>() {
-            private final Button btnAprovar = criarBotaoAcao("Aprovar", true);
-            private final Button btnRejeitar = criarBotaoAcao("Rejeitar", false);
-            private final HBox contentor = new HBox(8.0, btnAprovar, btnRejeitar);
-            {
-                btnAprovar.setOnAction(event -> { PreferenciaLinha linha = getItem(); if (linha != null) decidirPreferencia(linha, true); });
-                btnRejeitar.setOnAction(event -> { PreferenciaLinha linha = getItem(); if (linha != null) decidirPreferencia(linha, false); });
-            }
-            @Override
-            protected void updateItem(PreferenciaLinha item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty || item == null || !item.pendenteAprovacao() ? null : contentor);
-            }
-        };
-    }
-
-    private TableCell<PermutaLinha, PermutaLinha> criarCelulaAcaoPermuta() {
-        return new TableCell<>() {
-            private final Button btnAprovar = criarBotaoAcao("Aprovar", true);
-            private final Button btnRejeitar = criarBotaoAcao("Rejeitar", false);
-            private final HBox contentor = new HBox(8.0, btnAprovar, btnRejeitar);
-            {
-                btnAprovar.setOnAction(event -> { PermutaLinha linha = getItem(); if (linha != null) decidirPermuta(linha, true); });
-                btnRejeitar.setOnAction(event -> { PermutaLinha linha = getItem(); if (linha != null) decidirPermuta(linha, false); });
-            }
-            @Override
-            protected void updateItem(PermutaLinha item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty || item == null || !item.pendenteAprovacao() ? null : contentor);
+                setGraphic(empty || item == null || !mostrarBotoes.test(item) ? null : contentor);
             }
         };
     }
@@ -557,7 +525,7 @@ public class GestaoFuncionariosController {
                 if (empty || estado == null || estado.isBlank()) { setGraphic(null); setText(null); return; }
                 Label badge = new Label(estado.toUpperCase(Locale.ROOT));
                 badge.getStyleClass().add("badge-estado");
-                String normalizado = normalizarTexto(estado);
+                String normalizado = PreferenciaFormatters.normalizarTexto(estado);
                 if (normalizado.contains("aprova") || normalizado.contains("ativo") || normalizado.contains("publicad"))
                     badge.getStyleClass().add("badge-aprovado");
                 else if (normalizado.contains("rejeita") || normalizado.contains("inativo") || normalizado.contains("cancelad"))
@@ -595,13 +563,6 @@ public class GestaoFuncionariosController {
         if (selecionado != null && colaboradoresFiltrados.contains(selecionado)) return;
         if (!colaboradoresFiltrados.isEmpty()) selecionarPrimeiroColaboradorFiltrado();
         else tabelaColaboradores.getSelectionModel().clearSelection();
-    }
-
-    private String normalizarTexto(String texto) {
-        if (texto == null) return "";
-        return Normalizer.normalize(texto, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "")
-                .toLowerCase(Locale.ROOT).trim();
     }
 
     private ColaboradorLinha mapearLinhaTabela(GestaoFuncionariosService.ColaboradorResumo colaborador) {

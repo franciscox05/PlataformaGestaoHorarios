@@ -137,6 +137,14 @@
                     </columns>
                 </TableView>
 
+                <!-- Contexto do colaborador selecionado -->
+                <VBox fx:id="painelContextoColaborador" managed="false" visible="false"
+                      spacing="10.0" styleClass="pref-contexto-panel">
+                    <Label fx:id="lblContextoNomeColaborador" styleClass="pref-contexto-nome" />
+                    <Label styleClass="campo-titulo" text="Outras prefer&#234;ncias deste colaborador" />
+                    <VBox fx:id="boxPreferenciasAtivas" spacing="6.0" />
+                </VBox>
+
                 <VBox spacing="5.0">
                     <Label styleClass="campo-titulo" text="Observa&#231;&#227;o da decis&#227;o" />
                     <TextArea fx:id="txtDecisaoGestor" prefRowCount="3"

@@ -1,6 +1,6 @@
 package com.example.projeto2.DESKTOP.support;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -27,15 +27,15 @@ public final class HorarioIndividualDialog {
         // utilitário
     }
 
-    public static void abrir(GeracaoHorariosService.ResumoColaborador colaborador,
-                             List<GeracaoHorariosService.HorarioLinha> linhasProposta,
+    public static void abrir(ResumoColaborador colaborador,
+                             List<HorarioLinha> linhasProposta,
                              Window owner) {
         if (colaborador == null || linhasProposta == null) return;
 
-        List<GeracaoHorariosService.HorarioLinha> turnos = linhasProposta.stream()
+        List<HorarioLinha> turnos = linhasProposta.stream()
                 .filter(l -> colaborador.idColaborador() != null
                         && colaborador.idColaborador().equals(l.idColaborador()))
-                .sorted(Comparator.comparing(GeracaoHorariosService.HorarioLinha::data,
+                .sorted(Comparator.comparing(HorarioLinha::data,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
 
@@ -57,12 +57,12 @@ public final class HorarioIndividualDialog {
             vazio.setWrapText(true);
             conteudo.getChildren().add(vazio);
         } else {
-            Map<LocalDate, List<GeracaoHorariosService.HorarioLinha>> porSemana = new LinkedHashMap<>();
-            for (GeracaoHorariosService.HorarioLinha linha : turnos) {
+            Map<LocalDate, List<HorarioLinha>> porSemana = new LinkedHashMap<>();
+            for (HorarioLinha linha : turnos) {
                 LocalDate inicioSem = CalendarioSemanalHelper.inicioSemana(linha.data());
                 porSemana.computeIfAbsent(inicioSem, k -> new java.util.ArrayList<>()).add(linha);
             }
-            for (Map.Entry<LocalDate, List<GeracaoHorariosService.HorarioLinha>> entrada : porSemana.entrySet()) {
+            for (Map.Entry<LocalDate, List<HorarioLinha>> entrada : porSemana.entrySet()) {
                 conteudo.getChildren().add(criarBlocoSemana(entrada.getKey(), entrada.getValue()));
             }
         }
@@ -96,7 +96,7 @@ public final class HorarioIndividualDialog {
     }
 
     private static VBox criarBlocoSemana(LocalDate inicioSemana,
-                                          List<GeracaoHorariosService.HorarioLinha> linhas) {
+                                          List<HorarioLinha> linhas) {
         VBox bloco = new VBox(6.0);
         bloco.getStyleClass().add("horario-individual-semana");
 
@@ -104,13 +104,13 @@ public final class HorarioIndividualDialog {
         lblSemana.getStyleClass().add("horario-individual-semana-titulo");
         bloco.getChildren().add(lblSemana);
 
-        for (GeracaoHorariosService.HorarioLinha linha : linhas) {
+        for (HorarioLinha linha : linhas) {
             bloco.getChildren().add(criarLinhaTurno(linha));
         }
         return bloco;
     }
 
-    private static HBox criarLinhaTurno(GeracaoHorariosService.HorarioLinha linha) {
+    private static HBox criarLinhaTurno(HorarioLinha linha) {
         HBox hbox = new HBox(12.0);
         hbox.getStyleClass().add("horario-individual-turno");
         hbox.setAlignment(Pos.CENTER_LEFT);

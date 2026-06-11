@@ -1,6 +1,8 @@
 package com.example.projeto2.DESKTOP.support;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.FalhaGeracaoHorarioException;
+import com.example.projeto2.API.Services.geracao.MotivoFalhaGeracao;
+import com.example.projeto2.API.Services.geracao.SugestaoFalhaGeracao;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
@@ -42,10 +44,10 @@ public final class DiagnosticoGeracaoPanel {
         this.ownerSupplier = ownerSupplier;
     }
 
-    /** Preenche e mostra o painel se a causa-raiz for uma {@link GeracaoHorariosService.FalhaGeracaoHorarioException}. */
+    /** Preenche e mostra o painel se a causa-raiz for uma {@link FalhaGeracaoHorarioException}. */
     public void mostrar(Throwable erro) {
         Throwable causaRaiz = causaRaiz(erro);
-        if (!(causaRaiz instanceof GeracaoHorariosService.FalhaGeracaoHorarioException falha)) {
+        if (!(causaRaiz instanceof FalhaGeracaoHorarioException falha)) {
             esconder();
             return;
         }
@@ -68,12 +70,12 @@ public final class DiagnosticoGeracaoPanel {
         boxMotivos.getChildren().clear();
         boxSugestoes.getChildren().clear();
 
-        for (GeracaoHorariosService.MotivoFalhaGeracao motivo : falha.motivos()) {
+        for (MotivoFalhaGeracao motivo : falha.motivos()) {
             boxMotivos.getChildren().add(construirBlocoMotivo(motivo));
         }
 
         int indice = 0;
-        for (GeracaoHorariosService.SugestaoFalhaGeracao sugestao : falha.sugestoes()) {
+        for (SugestaoFalhaGeracao sugestao : falha.sugestoes()) {
             boxSugestoes.getChildren().add(construirLinhaSugestao(sugestao, indice++));
         }
 
@@ -94,7 +96,7 @@ public final class DiagnosticoGeracaoPanel {
         if (boxSugestoes != null) boxSugestoes.getChildren().clear();
     }
 
-    private VBox construirBlocoMotivo(GeracaoHorariosService.MotivoFalhaGeracao motivo) {
+    private VBox construirBlocoMotivo(MotivoFalhaGeracao motivo) {
         VBox blocoMotivo = new VBox(6);
         blocoMotivo.getStyleClass().add("diagnostico-bloco-motivo");
 
@@ -131,7 +133,7 @@ public final class DiagnosticoGeracaoPanel {
         return blocoMotivo;
     }
 
-    private HBox construirLinhaSugestao(GeracaoHorariosService.SugestaoFalhaGeracao sugestao, int indice) {
+    private HBox construirLinhaSugestao(SugestaoFalhaGeracao sugestao, int indice) {
         HBox linha = new HBox(10);
         linha.getStyleClass().add("diagnostico-linha");
 
@@ -149,7 +151,7 @@ public final class DiagnosticoGeracaoPanel {
         return linha;
     }
 
-    private void mostrarDetalheMotivo(GeracaoHorariosService.MotivoFalhaGeracao motivo) {
+    private void mostrarDetalheMotivo(MotivoFalhaGeracao motivo) {
         FlowPane nomes = new FlowPane(8, 8);
         nomes.getStyleClass().add("diagnostico-modal-nomes");
         for (String nome : motivo.nomes()) {
@@ -167,9 +169,9 @@ public final class DiagnosticoGeracaoPanel {
         );
     }
 
-    private static String perfilRecomendado(GeracaoHorariosService.FalhaGeracaoHorarioException falha) {
+    private static String perfilRecomendado(FalhaGeracaoHorarioException falha) {
         return falha.sugestoes().stream()
-                .map(GeracaoHorariosService.SugestaoFalhaGeracao::perfilRecomendado)
+                .map(SugestaoFalhaGeracao::perfilRecomendado)
                 .filter(perfil -> perfil != null && !perfil.isBlank())
                 .findFirst()
                 .orElse("");

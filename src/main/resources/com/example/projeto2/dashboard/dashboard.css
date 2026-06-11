@@ -1810,6 +1810,42 @@
     -fx-padding: 7px 14px;
 }
 
+/* ── TOGGLE VISTA MENSAL (Calendário / Grelha) ──────────────── */
+.home-vista-toggle {
+    -fx-background-color: #f0ebe9;
+    -fx-background-radius: 10px;
+    -fx-padding: 3px;
+}
+
+.home-vista-btn,
+.home-vista-btn-active {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 6px 14px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-cursor: hand;
+}
+
+.home-vista-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #6b6b6b;
+}
+
+.home-vista-btn:hover {
+    -fx-background-color: rgba(201,20,40,0.08);
+    -fx-text-fill: #9f001a;
+}
+
+.home-vista-btn-active {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e5d8d6;
+    -fx-border-width: 1px;
+    -fx-text-fill: #1f1d1d;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 4, 0, 0, 1);
+}
+
 /* ── SCHEDULE HERO — card destaque do horário semanal ───────── */
 .home-schedule-hero {
     -fx-background-color: #ffffff;
@@ -3782,4 +3818,290 @@
 }
 .conteudo-scroll .scroll-bar .thumb:hover {
     -fx-background-color: rgba(28,27,27,0.30);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   BLOCO CSS-20 — GRELHA COM COLUNA CONGELADA + CALENDÁRIOS MAIS LIMPOS
+   (GrelhaHorarioRenderer · CalendarioMensalHelper · CalendarioSemanalHelper)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Grelha: estrutura congelada ── */
+.grelha-raiz {
+    -fx-background-color: -surface-card;
+    -fx-background-radius: 14px;
+    -fx-border-color: -border-variant;
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+}
+.grelha-col-fixa {
+    -fx-background-color: -surface-card;
+}
+.grelha-dias-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+.grelha-dias-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+.grelha-dias-conteudo {
+    -fx-background-color: transparent;
+}
+
+/* Realce sincronizado da linha inteira (coluna fixa + dias) */
+.grelha-row-hover {
+    -fx-background-color: #fef2f2;
+}
+
+/* Célula/cabeçalho de dia clicável — abre o detalhe do dia */
+.grelha-dia-clicavel {
+    -fx-cursor: hand;
+}
+.grelha-dia-cell.grelha-dia-clicavel:hover {
+    -fx-background-color: rgba(201,20,40,0.07);
+}
+.grelha-header-dia.grelha-dia-clicavel:hover {
+    -fx-background-color: rgba(201,20,40,0.07);
+    -fx-background-radius: 8px;
+}
+
+/* Dia de hoje na grelha */
+.grelha-dia-cell-hoje {
+    -fx-background-color: #fff5f5;
+}
+.grelha-header-hoje-circulo {
+    -fx-background-color: #dc2626;
+    -fx-background-radius: 999px;
+}
+.grelha-header-hoje-num {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: white;
+}
+
+/* ── Calendário mensal: dias sem eventos recuam (menos "caixas brancas") ── */
+.calendario-mes-dia-card-sem-eventos {
+    -fx-background-color: -surface-soft;
+    -fx-border-color: rgba(28,27,27,0.05);
+    -fx-effect: null;
+}
+.calendario-mes-dia-card-sem-eventos .calendario-mes-dia-numero {
+    -fx-text-fill: -ink-300;
+}
+.calendario-mes-dia-card-sem-eventos .calendario-mes-dia-meta {
+    -fx-text-fill: -ink-300;
+}
+/* O "hoje" mantém o destaque mesmo sem eventos */
+.calendario-mes-dia-card-hoje.calendario-mes-dia-card-sem-eventos {
+    -fx-background-color: -surface-card;
+    -fx-border-color: -levis-red;
+}
+.calendario-mes-dia-card-hoje.calendario-mes-dia-card-sem-eventos .calendario-mes-dia-numero {
+    -fx-text-fill: -levis-red-dark;
+}
+
+/* ── Calendário semanal: dias vazios recuam, hoje destaca-se ── */
+.calendario-dia-card-vazio {
+    -fx-background-color: -surface-soft;
+    -fx-border-color: rgba(28,27,27,0.05);
+    -fx-effect: null;
+}
+.calendario-dia-card-vazio .calendario-dia-data {
+    -fx-text-fill: -ink-400;
+}
+.calendario-dia-card-hoje {
+    -fx-border-color: -levis-red;
+    -fx-border-width: 1.5px;
+    -fx-effect: dropshadow(three-pass-box, rgba(201,20,40,0.14), 12, 0, 0, 4);
+}
+.calendario-dia-card-hoje .calendario-dia-semana {
+    -fx-text-fill: -levis-red-dark;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   BLOCO CSS-21 — PERMUTAS (cartões de turno + opções visuais)
+                  PREFERÊNCIAS (painel de contexto do colaborador)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Scroll strip dos meus turnos ── */
+.permutas-scroll-cartoes {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+.permutas-scroll-cartoes > .viewport {
+    -fx-background-color: transparent;
+}
+.permutas-container-cartoes {
+    -fx-background-color: transparent;
+    -fx-alignment: CENTER_LEFT;
+}
+
+/* ── Cartão de turno (selecionável) ── */
+.permutas-turno-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 12px;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 12px;
+    -fx-cursor: hand;
+    -fx-min-width: 110px;
+    -fx-pref-width: 110px;
+    -fx-max-width: 110px;
+    -fx-min-height: 130px;
+    -fx-alignment: CENTER;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 4, 0, 0, 2);
+}
+.permutas-turno-card:hover {
+    -fx-border-color: #dc2626;
+    -fx-background-color: #fff9f9;
+    -fx-effect: dropshadow(three-pass-box, rgba(201,20,40,0.14), 8, 0, 0, 3);
+}
+.permutas-turno-card-selecionado {
+    -fx-border-color: #dc2626;
+    -fx-border-width: 2px;
+    -fx-background-color: #fff1f1;
+    -fx-effect: dropshadow(three-pass-box, rgba(201,20,40,0.20), 10, 0, 0, 4);
+}
+
+/* Texto dentro dos cartões de turno */
+.permutas-turno-diasemana {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #9ca3af;
+    -fx-letter-spacing: 0.5px;
+}
+.permutas-turno-dia {
+    -fx-font-size: 28px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #111827;
+}
+.permutas-turno-mes {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #6b7280;
+}
+.permutas-turno-sep {
+    -fx-background-color: #e5e7eb;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}
+.permutas-turno-horas {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #374151;
+}
+.permutas-turno-tipo {
+    -fx-font-size: 10px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #9ca3af;
+}
+.permutas-turno-card-selecionado .permutas-turno-dia {
+    -fx-text-fill: #dc2626;
+}
+.permutas-turno-card-selecionado .permutas-turno-diasemana {
+    -fx-text-fill: #b91c1c;
+}
+
+/* ── Cartões de opção de troca (colegas elegíveis) ── */
+.permutas-opcao-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10px;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 10px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.04), 4, 0, 0, 1);
+}
+.permutas-opcao-card:hover {
+    -fx-border-color: #dc2626;
+    -fx-background-color: #fff9f9;
+    -fx-effect: dropshadow(three-pass-box, rgba(201,20,40,0.12), 8, 0, 0, 3);
+}
+.permutas-opcao-selecionada {
+    -fx-border-color: #dc2626;
+    -fx-border-width: 2px;
+    -fx-background-color: #fff1f1;
+    -fx-effect: dropshadow(three-pass-box, rgba(201,20,40,0.18), 10, 0, 0, 3);
+}
+.permutas-opcao-avatar {
+    -fx-background-color: #9b1c1c;
+    -fx-background-radius: 50%;
+    -fx-min-width: 38px; -fx-pref-width: 38px; -fx-max-width: 38px;
+    -fx-min-height: 38px; -fx-pref-height: 38px; -fx-max-height: 38px;
+    -fx-alignment: CENTER;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: white;
+}
+.permutas-opcao-nome {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #111827;
+}
+.permutas-opcao-detalhe {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #6b7280;
+}
+.permutas-opcao-seta {
+    -fx-font-size: 16px;
+    -fx-text-fill: #d1d5db;
+    -fx-font-weight: 300;
+}
+.permutas-opcao-selecionada .permutas-opcao-seta {
+    -fx-text-fill: #dc2626;
+}
+
+/* Mensagem de estado vazio dentro do container de opções */
+.permutas-opcoes-vazio {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9ca3af;
+    -fx-font-style: italic;
+}
+
+/* ── Painel de contexto do colaborador (aprovação de preferências) ── */
+.pref-contexto-panel {
+    -fx-background-color: #f8f9ff;
+    -fx-background-radius: 10px;
+    -fx-border-color: #c7d2fe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-padding: 14px 16px;
+}
+.pref-contexto-nome {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1e40af;
+}
+.pref-contexto-linha {
+    -fx-background-color: #eef2ff;
+    -fx-background-radius: 7px;
+    -fx-padding: 7px 10px;
+    -fx-spacing: 10px;
+    -fx-alignment: CENTER_LEFT;
+}
+.pref-contexto-badge {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #3730a3;
+    -fx-background-color: #c7d2fe;
+    -fx-background-radius: 5px;
+    -fx-padding: 2px 7px;
+}
+.pref-contexto-badge-aprovado {
+    -fx-text-fill: #065f46;
+    -fx-background-color: #a7f3d0;
+}
+.pref-contexto-badge-pendente {
+    -fx-text-fill: #92400e;
+    -fx-background-color: #fde68a;
+}
+.pref-contexto-texto {
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #374151;
+    -fx-wrap-text: true;
 }

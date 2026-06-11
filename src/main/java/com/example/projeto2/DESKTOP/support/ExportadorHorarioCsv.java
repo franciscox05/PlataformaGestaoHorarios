@@ -1,6 +1,6 @@
 package com.example.projeto2.DESKTOP.support;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 
@@ -36,7 +36,7 @@ public final class ExportadorHorarioCsv {
      * @param onSucesso callback ao escrever com sucesso (mensagem pronta para mostrar)
      * @param onErro callback se ocorrer {@link IOException} ao escrever
      */
-    public static void exportar(GeracaoHorariosService.PropostaResultado proposta,
+    public static void exportar(PropostaResultado proposta,
                                 int mes,
                                 int ano,
                                 Window janela,
@@ -63,14 +63,14 @@ public final class ExportadorHorarioCsv {
             writer.write("Colaborador;Cargo;Data;Dia Semana;Período;Turno;Estado");
             writer.newLine();
 
-            List<GeracaoHorariosService.HorarioLinha> linhasOrdenadas = proposta.linhas().stream()
-                    .sorted(Comparator.comparing(GeracaoHorariosService.HorarioLinha::data,
+            List<HorarioLinha> linhasOrdenadas = proposta.linhas().stream()
+                    .sorted(Comparator.comparing(HorarioLinha::data,
                                     Comparator.nullsLast(Comparator.naturalOrder()))
-                            .thenComparing(GeracaoHorariosService.HorarioLinha::colaborador,
+                            .thenComparing(HorarioLinha::colaborador,
                                     Comparator.nullsLast(String::compareToIgnoreCase)))
                     .toList();
 
-            for (GeracaoHorariosService.HorarioLinha linha : linhasOrdenadas) {
+            for (HorarioLinha linha : linhasOrdenadas) {
                 writer.write(sanitizar(linha.colaborador()) + ";"
                         + sanitizar(linha.cargo()) + ";"
                         + (linha.data() != null ? linha.data().toString() : "") + ";"

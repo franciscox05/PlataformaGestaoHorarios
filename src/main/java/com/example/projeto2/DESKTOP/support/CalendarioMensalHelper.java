@@ -11,10 +11,8 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.VBox;
 
-import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.List;
@@ -130,7 +128,7 @@ public final class CalendarioMensalHelper {
         card.getStyleClass().add("calendario-mes-dia-card");
         card.setPadding(new Insets(12.0));
         card.setFillWidth(true);
-        card.setMinHeight(118.0);
+        card.setMinHeight(104.0);
 
         if (data == null) {
             card.getStyleClass().add("calendario-mes-dia-card-vazio");
@@ -165,10 +163,9 @@ public final class CalendarioMensalHelper {
         VBox corpo = new VBox(6.0);
 
         if (eventosValidos.isEmpty()) {
-            Label vazio = new Label(mensagemVazia != null ? mensagemVazia : "Sem horário");
-            vazio.getStyleClass().add("calendario-mes-evento-vazio");
-            vazio.setWrapText(true);
-            corpo.getChildren().add(vazio);
+            // Dia sem eventos: o card recua visualmente (sem texto repetitivo por dia —
+            // o "Sem turnos" do topo já comunica o estado).
+            card.getStyleClass().add("calendario-mes-dia-card-sem-eventos");
         } else {
             for (String evento : eventosValidos.stream().limit(2).toList()) {
                 corpo.getChildren().add(criarLinhaResumoEvento(evento));
@@ -209,45 +206,6 @@ public final class CalendarioMensalHelper {
         return linha;
     }
 
-    private static VBox criarCardEvento(String evento) {
-        EventoMensalDetalhado detalhe = decomporEvento(evento);
-        VBox cardEvento = new VBox(6.0);
-        cardEvento.getStyleClass().add("calendario-mes-evento-card");
-
-        if (detalhe == null) {
-            Label fallback = new Label(evento);
-            fallback.getStyleClass().add("calendario-mes-evento-texto");
-            fallback.setWrapText(true);
-            cardEvento.getChildren().add(fallback);
-            return cardEvento;
-        }
-
-        cardEvento.getStyleClass().add("calendario-mes-evento-" + classificarBlocoHorario(detalhe.periodo()));
-
-        HBox topo = new HBox(6.0);
-        topo.getStyleClass().add("calendario-mes-evento-topo");
-
-        Region ponto = new Region();
-        ponto.getStyleClass().add("calendario-mes-evento-ponto");
-
-        Label periodo = new Label(detalhe.periodo());
-        periodo.getStyleClass().add("calendario-mes-evento-periodo");
-        periodo.setWrapText(true);
-
-        topo.getChildren().addAll(ponto, periodo);
-
-        Label colaborador = new Label(detalhe.colaborador());
-        colaborador.getStyleClass().add("calendario-mes-evento-colaborador");
-        colaborador.setWrapText(true);
-
-        Label cargo = new Label(abreviarCargo(detalhe.cargo()).toUpperCase(LOCALE_PT));
-        cargo.getStyleClass().add("calendario-mes-evento-cargo");
-        cargo.setWrapText(true);
-
-        cardEvento.getChildren().addAll(topo, colaborador, cargo);
-        return cardEvento;
-    }
-
     private static EventoMensalDetalhado decomporEvento(String evento) {
         if (evento == null || evento.isBlank()) {
             return null;
@@ -280,73 +238,6 @@ public final class CalendarioMensalHelper {
         }
 
         return new EventoMensalDetalhado(periodo, colaborador, cargo);
-    }
-
-    private static String classificarBlocoHorario(String periodo) {
-        if (periodo == null || periodo.isBlank()) {
-            return "generico";
-        }
-
-        try {
-            String[] partes = periodo.split("-");
-            if (partes.length == 0) {
-                return "generico";
-            }
-
-            LocalTime inicio = LocalTime.parse(partes[0].trim());
-            if (inicio.isBefore(LocalTime.NOON)) {
-                return "manha";
-            }
-            if (inicio.isBefore(LocalTime.of(17, 0))) {
-                return "intermedio";
-            }
-            return "noite";
-        } catch (Exception e) {
-            return "generico";
-        }
-    }
-
-    private static String abreviarCargo(String cargo) {
-        if (cargo == null || cargo.isBlank()) {
-            return "-";
-        }
-
-        String cargoNormalizado = cargo.trim();
-        String cargoMinusculo = normalizarTextoPesquisa(cargoNormalizado);
-
-        if (cargoMinusculo.contains("sub-gerente") || cargoMinusculo.contains("subgerente")) {
-            return "Sub-gerente";
-        }
-        if (cargoMinusculo.contains("gerente")) {
-            return "Gerente";
-        }
-        if (cargoMinusculo.contains("supervisor")) {
-            return "Supervisor";
-        }
-        if (cargoMinusculo.contains("reforco")) {
-            return "Reforco FDS";
-        }
-        if (cargoMinusculo.contains("assistente de vendas ft")) {
-            return "Vendas FT";
-        }
-        if (cargoMinusculo.contains("assistente de vendas pt")) {
-            return "Vendas PT";
-        }
-        if (cargoMinusculo.contains("gestor operacional")) {
-            return "Gestor Oper.";
-        }
-
-        return cargoNormalizado;
-    }
-
-    private static String normalizarTextoPesquisa(String texto) {
-        if (texto == null || texto.isBlank()) {
-            return "";
-        }
-
-        return Normalizer.normalize(texto, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "")
-                .toLowerCase(LOCALE_PT);
     }
 
     private static String capitalizar(String texto) {

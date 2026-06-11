@@ -1,6 +1,6 @@
 package com.example.projeto2.DESKTOP.support;
 
-import com.example.projeto2.API.Services.GeracaoHorariosService;
+import com.example.projeto2.API.Services.geracao.dto.*;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -36,7 +36,7 @@ public final class SelecaoColaboradoresPainel {
     }
 
     /** Redenseña o painel com a equipa elegível, preservando seleção anterior se possível. */
-    public void mostrar(List<GeracaoHorariosService.ColaboradorElegivel> colaboradores) {
+    public void mostrar(List<ColaboradorElegivel> colaboradores) {
         Set<Integer> selecionadosAnteriores = idsSelecionadosComoSet();
         boolean preservar = !checks.isEmpty();
 
@@ -51,7 +51,7 @@ public final class SelecaoColaboradoresPainel {
             return;
         }
 
-        for (Map.Entry<String, List<GeracaoHorariosService.ColaboradorElegivel>> grupo
+        for (Map.Entry<String, List<ColaboradorElegivel>> grupo
                 : agruparPorCargo(colaboradores).entrySet()) {
             box.getChildren().add(construirBlocoGrupo(grupo.getKey(), grupo.getValue(),
                     preservar, selecionadosAnteriores));
@@ -94,7 +94,7 @@ public final class SelecaoColaboradoresPainel {
     }
 
     private VBox construirBlocoGrupo(String cargo,
-                                      List<GeracaoHorariosService.ColaboradorElegivel> colaboradores,
+                                      List<ColaboradorElegivel> colaboradores,
                                       boolean preservar,
                                       Set<Integer> selecionadosAnteriores) {
         VBox boxGrupo = new VBox(6);
@@ -107,7 +107,7 @@ public final class SelecaoColaboradoresPainel {
         VBox boxItens = new VBox(5);
         boxItens.getStyleClass().add("grupo-colaboradores-itens");
         List<CheckBox> checksGrupo = new ArrayList<>();
-        for (GeracaoHorariosService.ColaboradorElegivel c : colaboradores) {
+        for (ColaboradorElegivel c : colaboradores) {
             CheckBox cb = criarCheckBox(c, preservar, selecionadosAnteriores);
             checksGrupo.add(cb);
             boxItens.getChildren().add(cb);
@@ -123,7 +123,7 @@ public final class SelecaoColaboradoresPainel {
         return boxGrupo;
     }
 
-    private CheckBox criarCheckBox(GeracaoHorariosService.ColaboradorElegivel c,
+    private CheckBox criarCheckBox(ColaboradorElegivel c,
                                     boolean preservar,
                                     Set<Integer> selecionadosAnteriores) {
         CheckBox cb = new CheckBox(c.nome() + " | " + c.perfilContratual());
@@ -153,14 +153,14 @@ public final class SelecaoColaboradoresPainel {
         if (onSelecaoMudou != null) onSelecaoMudou.run();
     }
 
-    private static Map<String, List<GeracaoHorariosService.ColaboradorElegivel>> agruparPorCargo(
-            List<GeracaoHorariosService.ColaboradorElegivel> colaboradores) {
-        Map<String, List<GeracaoHorariosService.ColaboradorElegivel>> grupos = new LinkedHashMap<>();
+    private static Map<String, List<ColaboradorElegivel>> agruparPorCargo(
+            List<ColaboradorElegivel> colaboradores) {
+        Map<String, List<ColaboradorElegivel>> grupos = new LinkedHashMap<>();
         colaboradores.stream()
                 .sorted(Comparator
-                        .comparing(GeracaoHorariosService.ColaboradorElegivel::cargo,
+                        .comparing(ColaboradorElegivel::cargo,
                                 String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(GeracaoHorariosService.ColaboradorElegivel::nome,
+                        .thenComparing(ColaboradorElegivel::nome,
                                 String.CASE_INSENSITIVE_ORDER))
                 .forEach(c -> grupos.computeIfAbsent(c.cargo(), k -> new ArrayList<>()).add(c));
         return grupos;

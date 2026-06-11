@@ -69,6 +69,18 @@ public class DayOffService {
             throw new IllegalArgumentException("O tipo de ausencia e obrigatorio.");
         }
 
+        // Folgas no mês atual não são permitidas — o horário já está gerado.
+        // Tipo "baixa" (baixa médica) é sempre permitido; os restantes tipos de folga
+        // só podem ser pedidos para meses futuros (usa Permuta para ausências no mês corrente).
+        if (!"baixa".equalsIgnoreCase(pedido.getTipo())) {
+            java.time.YearMonth mesAtual = java.time.YearMonth.now();
+            if (java.time.YearMonth.from(pedido.getDataAusencia()).equals(mesAtual)) {
+                throw new IllegalArgumentException(
+                        "Pedidos de folga no mes atual nao sao permitidos — o horario ja esta gerado. "
+                        + "Se precisas faltar a um turno deste mes, pede uma Permuta.");
+            }
+        }
+
         if (pedido.getMotivo() != null && pedido.getMotivo().isBlank()) {
             pedido.setMotivo(null);
         }
