@@ -19,6 +19,9 @@ import com.example.projeto2.DESKTOP.support.HorarioIndividualDialog;
 import com.example.projeto2.DESKTOP.support.MensagemErroFormatter;
 import com.example.projeto2.DESKTOP.support.MesOption;
 import com.example.projeto2.DESKTOP.support.SelecaoColaboradoresPainel;
+import com.example.projeto2.DESKTOP.support.ValidacaoHorarioDialog;
+import com.example.projeto2.DESKTOP.support.ValidadorHorarioProposta;
+import com.example.projeto2.DESKTOP.support.ValidacaoHorarioResultado;
 import com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.collections.FXCollections;
@@ -149,6 +152,7 @@ public class GeracaoHorariosController {
     @FXML private ComboBox<PropostaResumo> cbSelecaoProposta;
     @FXML private Button btnVistaCalendario;
     @FXML private Button btnVistaGrelha;
+    @FXML private Button btnVerificarHorario;
     @FXML private VBox painelVistaCalendario;
     @FXML private VBox painelVistaGrelha;
     @FXML private Button btnGrelhaSemana;
@@ -232,6 +236,9 @@ public class GeracaoHorariosController {
         if (btnVerCriterios != null) {
             btnVerCriterios.setTooltip(new Tooltip("Mostra as regras, cargas e preferências que o motor considera neste período"));
         }
+        if (btnVerificarHorario != null) {
+            btnVerificarHorario.setTooltip(new Tooltip("Verifica se o horário respeita as regras configuradas: descanso, rotação, chefia ao sábado, etc."));
+        }
         btnEnviarSupervisor.setTooltip(new Tooltip("Envia as alternativas selecionadas para validação do supervisor"));
         btnAprovarProposta.setTooltip(new Tooltip("Aprova e publica esta proposta — as restantes pendentes são rejeitadas automaticamente"));
         btnRejeitarProposta.setTooltip(new Tooltip("Rejeita esta proposta de horário"));
@@ -281,6 +288,30 @@ public class GeracaoHorariosController {
             mostrarErro(e.getMessage());
         } catch (Exception e) {
             mostrarErro("Não foi possível carregar os critérios da geração.");
+        }
+    }
+
+    @FXML
+    public void onVerificarHorarioClick() {
+        if (propostaAtual == null || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty()) {
+            mostrarErro("Carrega primeiro uma proposta de horário para verificar.");
+            return;
+        }
+        try {
+            validarUtilizadorAutenticado();
+            MesOption mes = obterMesSelecionado();
+            var criterios = geracaoHorariosBLL.obterCriteriosGeracao(
+                    utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+            ValidacaoHorarioResultado resultado =
+                    ValidadorHorarioProposta.validar(propostaAtual.linhas(), criterios);
+            String contexto = (propostaAtual.idProposta() != null
+                    ? "Proposta #" + propostaAtual.idProposta() + " · " : "")
+                    + mes + " " + spAno.getValue();
+            ValidacaoHorarioDialog.abrir(resultado, contexto, obterJanela());
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Não foi possível verificar o horário.");
         }
     }
 
@@ -1202,6 +1233,7 @@ public class GeracaoHorariosController {
                 || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty();
         if (btnExportarCsvHorario != null) btnExportarCsvHorario.setDisable(semDados);
         if (btnExportarPdfHorario != null) btnExportarPdfHorario.setDisable(semDados);
+        if (btnVerificarHorario != null) btnVerificarHorario.setDisable(semDados);
 
         boolean temPropostasLista = tabelaPropostas.getItems() != null && !tabelaPropostas.getItems().isEmpty();
         boolean temPropostaSelecionada = propostaAtual != null;

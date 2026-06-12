@@ -5,12 +5,14 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 
+import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -120,7 +122,19 @@ public final class VistaGrelhaHorarioRender {
                     entry.getValue()));
         }
 
-        GrelhaHorarioRenderer.renderizar(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
+        // Ordenar colaboradores alfabeticamente (sem acentos)
+        linhasGrelha.sort(Comparator.comparing(l ->
+                Normalizer.normalize(l.nome() != null ? l.nome().toLowerCase(Locale.ROOT) : "",
+                        Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
+
+        if (!vistaSemanais) {
+            // Vista mensal compacta: todos os dias visíveis sem scroll horizontal
+            ajustarScrollParaCompacto();
+            GrelhaHorarioRenderer.renderizarCompacto(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
+        } else {
+            restaurarScrollPadrão();
+            GrelhaHorarioRenderer.renderizar(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
+        }
     }
 
     private void atualizarLabelPeriodo(boolean vistaSemanais, LocalDate inicio, LocalDate fim,
@@ -135,6 +149,22 @@ public final class VistaGrelhaHorarioRender {
                 .map(HorarioLinha::idColaborador)
                 .distinct().count();
         lblGrelhaPeriodo.setText(periodoTexto + (nPessoas > 0 ? "   · " + nPessoas + " pessoas" : ""));
+    }
+
+    private void ajustarScrollParaCompacto() {
+        if (grelhaScrollPane == null) return;
+        grelhaScrollPane.setFitToWidth(true);
+        grelhaScrollPane.setFitToHeight(false);
+        grelhaScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        grelhaScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+    }
+
+    private void restaurarScrollPadrão() {
+        if (grelhaScrollPane == null) return;
+        grelhaScrollPane.setFitToWidth(true);
+        grelhaScrollPane.setFitToHeight(true);
+        grelhaScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        grelhaScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
     }
 
     private void alternarEmptyState(boolean temDados) {

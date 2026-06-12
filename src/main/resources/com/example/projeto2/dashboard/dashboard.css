@@ -3880,6 +3880,112 @@
     -fx-text-fill: white;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Grelha Compacta — vista mensal sem scroll horizontal
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.grelha-compacta-header {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 0 0 1px 0;
+    -fx-min-height: 42px;
+    -fx-pref-height: 42px;
+    -fx-alignment: CENTER_LEFT;
+}
+.grelha-compacta-header-nome {
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #9ca3af;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0 0 0 10px;
+    -fx-letter-spacing: 0.3px;
+}
+.grelha-compacta-header-dia {
+    -fx-alignment: CENTER;
+    -fx-padding: 3px 0;
+    -fx-min-width: 28px;
+}
+.grelha-compacta-header-dia-fds .grelha-compacta-dia-num { -fx-text-fill: #9b1c1c; }
+.grelha-compacta-header-dia-fds .grelha-compacta-dia-sem { -fx-text-fill: #ef4444; }
+.grelha-compacta-header-dia-clicavel:hover {
+    -fx-background-color: rgba(201,20,40,0.07);
+    -fx-cursor: hand;
+}
+.grelha-compacta-dia-num {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #374151;
+}
+.grelha-compacta-dia-sem {
+    -fx-font-size: 8px;
+    -fx-text-fill: #9ca3af;
+}
+.grelha-compacta-row {
+    -fx-min-height: 46px;
+    -fx-pref-height: 46px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: #f3f4f6;
+    -fx-border-width: 0 0 1px 0;
+}
+.grelha-compacta-row-alt {
+    -fx-background-color: #fafafa;
+}
+.grelha-compacta-nome-cell {
+    -fx-padding: 4px 6px 4px 8px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 0 1px 0 0;
+}
+.grelha-compacta-avatar {
+    -fx-min-width: 26px;  -fx-pref-width: 26px;  -fx-max-width: 26px;
+    -fx-min-height: 26px; -fx-pref-height: 26px; -fx-max-height: 26px;
+    -fx-background-radius: 999px;
+}
+.grelha-compacta-avatar-iniciais {
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
+    -fx-text-fill: white;
+}
+.grelha-compacta-nome {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #111827;
+}
+.grelha-compacta-tile {
+    -fx-alignment: CENTER;
+    -fx-min-height: 46px;
+    -fx-border-color: #f3f4f6;
+    -fx-border-width: 0 0 0 1px;
+    -fx-min-width: 28px;
+}
+.grelha-compacta-tile-fds      { -fx-background-color: #fafafa; }
+.grelha-compacta-tile-hoje     { -fx-background-color: #fef9c3; }
+.grelha-compacta-tile-clicavel { -fx-cursor: hand; }
+.grelha-compacta-tile-clicavel:hover { -fx-background-color: rgba(201,20,40,0.06); }
+
+/* Pílula colorida dentro de cada tile */
+.grelha-compacta-pilula {
+    -fx-background-radius: 4px;
+    -fx-alignment: CENTER;
+    -fx-min-width: 24px;  -fx-pref-width: 26px;  -fx-max-width: 30px;
+    -fx-min-height: 24px; -fx-pref-height: 26px; -fx-max-height: 30px;
+}
+.grelha-compacta-pilula-manha      { -fx-background-color: #dbeafe; }
+.grelha-compacta-pilula-tarde      { -fx-background-color: #fef3c7; }
+.grelha-compacta-pilula-noite      { -fx-background-color: #ede9fe; }
+.grelha-compacta-pilula-folga      { -fx-background-color: transparent; }
+.grelha-compacta-pilula-intermedio { -fx-background-color: #fef9c3; }
+.grelha-compacta-pilula-outro      { -fx-background-color: #f3f4f6; }
+
+/* Letra dentro da pílula */
+.grelha-compacta-tile-letra { -fx-font-size: 11px; -fx-font-weight: 800; }
+.grelha-compacta-tile-letra-manha      { -fx-text-fill: #1d4ed8; }
+.grelha-compacta-tile-letra-tarde      { -fx-text-fill: #b45309; }
+.grelha-compacta-tile-letra-noite      { -fx-text-fill: #6d28d9; }
+.grelha-compacta-tile-letra-folga      { -fx-text-fill: #d1d5db; }
+.grelha-compacta-tile-letra-intermedio { -fx-text-fill: #854d0e; }
+.grelha-compacta-tile-letra-outro      { -fx-text-fill: #374151; }
+
 /* ── Calendário mensal: dias sem eventos recuam (menos "caixas brancas") ── */
 .calendario-mes-dia-card-sem-eventos {
     -fx-background-color: -surface-soft;

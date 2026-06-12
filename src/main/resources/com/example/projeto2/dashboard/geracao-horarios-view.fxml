@@ -519,6 +519,11 @@
                                         </HBox>
                                         <Label styleClass="bento-card-subtitulo"
                                                text="Alterna entre calend&#225;rio e grelha por colaborador"/>
+                                        <Region HBox.hgrow="ALWAYS"/>
+                                        <Button fx:id="btnVerificarHorario"
+                                                onAction="#onVerificarHorarioClick"
+                                                styleClass="botao-secundario"
+                                                text="&#10003;  Verificar hor&#225;rio"/>
                                     </HBox>
 
                                     <!-- ── PAINEL VISTA CALENDÁRIO ── -->
