@@ -35,7 +35,7 @@ import java.util.Set;
  *   <li>Equilíbrio de carga contratual — {@code pesoEquilibrioCarga}</li>
  *   <li>Rotação de fins de semana — {@code pesoFinsDeSemana}</li>
  *   <li>Reserva operacional de part-time de fim de semana — {@code pesoReservaOperacional}</li>
- *   <li>Preferências de turno e de colegas aprovadas — {@code pesoPreferencias}</li>
+ *   <li>Preferências de turno e de colegas aprovadas — {@code pesoPreferencias} + base fixa de desempate ({@link #BASE_PREFERENCIA_TURNO})</li>
  *   <li>Folga preferida no dia — base forte (soft) + reforço por {@code pesoPreferencias}</li>
  *   <li>Consistência de turno (mesmo período que na véspera) — {@code pesoTurnoRepetido}</li>
  *   <li>Idle streak (dias sem trabalhar ≥ 2) — bónus proporcional, cap 5 dias, via {@code pesoEquilibrioCarga}</li>
@@ -66,6 +66,12 @@ public final class AvaliadorAtribuicao {
     // ativo): mantém-na preferível a um regular (a cobertura de chefia é garantida pela
     // restrição hard), mas sem a queimar — preserva-a para o fim de semana que lhe cabe.
     private static final double NUDGE_CHEFIA_SABADO_SECUNDARIA = 150.0;
+
+    // Desempate independente da política para preferência de turno aprovada: garante atenção
+    // mínima mesmo nas políticas com pesoPreferencias=1 (EQUILIBRIO, FINS_DE_SEMANA).
+    // 40 pt cobre deltas de ritmo de até ~8% com peso máximo, mas não sobrepõe diferenças
+    // reais de pace ou idle streak — comporta-se como um tie-breaker, não como restrição.
+    private static final double BASE_PREFERENCIA_TURNO = 40.0;
 
     private final HorarioValidatorService validator;
 
@@ -155,7 +161,9 @@ public final class AvaliadorAtribuicao {
 
         // (5) Preferências aprovadas (turno + colegas)
         double componentePref = 0;
-        if (temPreferenciaTurnoFavoravel(estado.idUtilizador(), turno, data, pedido.preferenciasTurnos())) {
+        boolean temPrefTurno = temPreferenciaTurnoFavoravel(
+                estado.idUtilizador(), turno, data, pedido.preferenciasTurnos());
+        if (temPrefTurno) {
             componentePref -= 1.0;
         }
         Set<Integer> colegasPref = pedido.paresPreferisPorColaborador()
@@ -164,6 +172,12 @@ public final class AvaliadorAtribuicao {
             componentePref -= 0.45;
         }
         pontuacao += politica.pesoPreferencias() * componentePref * ESCALA_PREFERENCIAS;
+        // Tie-break: base mínima garantida independentemente da política ativa. O valor é
+        // pequeno o suficiente para nunca sobrepor diferenças reais de ritmo ou idle streak,
+        // mas suficiente para desempatar quando os outros factores são tecnicamente iguais.
+        if (temPrefTurno) {
+            pontuacao -= BASE_PREFERENCIA_TURNO;
+        }
 
         // (6) Folga preferida neste dia — soft, com muita atenção (base + reforço por política)
         Set<LocalDate> folgasPreferidas = pedido.folgasPreferidasPorColaborador()
