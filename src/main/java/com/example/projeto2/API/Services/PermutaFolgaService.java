@@ -102,6 +102,12 @@ public class PermutaFolgaService {
         Horario horarioD = pf.getIdHorarioD();
         Horario horarioY = pf.getIdHorarioY();
 
+        // Revalidar com o estado atual do horário — entre o pedido e a aprovação
+        // pode ter mudado (outra permuta aprovada, edição manual): cada lado tem
+        // de continuar de folga no dia que vai receber, e o descanso de 11h tem
+        // de continuar a cumprir-se.
+        revalidarEstadoAtual(horarioD, horarioY);
+
         // Guardar lojautilizadors antes da troca
         Lojautilizador luFunc1 = horarioD.getIdLojautilizador();
         Lojautilizador luFunc2 = horarioY.getIdLojautilizador();
@@ -187,17 +193,13 @@ public class PermutaFolgaService {
         }
 
         // Func2 não pode ter turno aprovado no dia D (deve ter folga)
-        boolean func2TemTurnoNoDiaD = !horarioRepository
-                .findHorariosPublicadosPorUtilizadorEntreDatas(idDonoY, diaD, diaD).isEmpty();
-        if (func2TemTurnoNoDiaD) {
+        if (temTurnoNoDia(idDonoY, diaD, Set.of())) {
             throw new IllegalArgumentException(
                     "O colega selecionado nao tem folga no dia " + diaD + " — nao e possivel fazer esta permuta.");
         }
 
         // Func1 não pode ter turno aprovado no dia Y (deve ter folga)
-        boolean func1TemTurnoNoDiaY = !horarioRepository
-                .findHorariosPublicadosPorUtilizadorEntreDatas(idFunc1, diaY, diaY).isEmpty();
-        if (func1TemTurnoNoDiaY) {
+        if (temTurnoNoDia(idFunc1, diaY, Set.of())) {
             throw new IllegalArgumentException(
                     "Nao tens folga no dia " + diaY + " — nao e possivel usar esse dia como compensacao.");
         }
@@ -213,9 +215,11 @@ public class PermutaFolgaService {
                     "O turno de compensacao precisa de ter pelo menos 24 horas de antecedencia.");
         }
 
-        // Regra dos 11 h de descanso após a troca
-        validarDescanso(idDonoY, horarioD.getIdTurno(), diaD); // Func2 passa a trabalhar no dia D
-        validarDescanso(idFunc1, horarioY.getIdTurno(), diaY); // Func1 passa a trabalhar no dia Y
+        // Regra dos 11 h de descanso após a troca. Os dois horários permutados são
+        // ignorados nos vizinhos: depois da troca deixam de pertencer ao colaborador.
+        Set<Integer> idsPermutados = Set.of(horarioD.getId(), horarioY.getId());
+        validarDescanso(idDonoY, horarioD.getIdTurno(), diaD, idsPermutados); // Func2 passa a trabalhar no dia D
+        validarDescanso(idFunc1, horarioY.getIdTurno(), diaY, idsPermutados); // Func1 passa a trabalhar no dia Y
 
         // Sem permutas pendentes nos mesmos horários
         if (permutaRepository.existsPedidoPendentePorHorario(horarioD.getId())
@@ -230,13 +234,49 @@ public class PermutaFolgaService {
         }
     }
 
+    /**
+     * Revalidação na aprovação: o estado do horário pode ter mudado desde o pedido
+     * (outra permuta aprovada entretanto, edição manual da escala). Confirma que
+     * cada colaborador continua de folga no dia que vai receber — sem isto, a
+     * aprovação podia deixá-lo com dois turnos no mesmo dia — e que o descanso
+     * mínimo de 11h continua a cumprir-se com os vizinhos atuais.
+     */
+    private void revalidarEstadoAtual(Horario horarioD, Horario horarioY) {
+        Integer idFunc1 = horarioD.getIdLojautilizador().getIdUtilizador().getId();
+        Integer idFunc2 = horarioY.getIdLojautilizador().getIdUtilizador().getId();
+        LocalDate diaD = horarioD.getDataTurno();
+        LocalDate diaY = horarioY.getDataTurno();
+        Set<Integer> idsPermutados = Set.of(horarioD.getId(), horarioY.getId());
+
+        if (temTurnoNoDia(idFunc2, diaD, idsPermutados)) {
+            throw new IllegalArgumentException(
+                    "O colega ja nao tem folga no dia " + diaD
+                            + " — o horario mudou desde que o pedido foi feito.");
+        }
+        if (temTurnoNoDia(idFunc1, diaY, idsPermutados)) {
+            throw new IllegalArgumentException(
+                    "O solicitante ja nao tem folga no dia " + diaY
+                            + " — o horario mudou desde que o pedido foi feito.");
+        }
+
+        validarDescanso(idFunc2, horarioD.getIdTurno(), diaD, idsPermutados);
+        validarDescanso(idFunc1, horarioY.getIdTurno(), diaY, idsPermutados);
+    }
+
+    private boolean temTurnoNoDia(Integer idColaborador, LocalDate dia, Set<Integer> idsHorariosAIgnorar) {
+        return horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(idColaborador, dia, dia).stream()
+                .anyMatch(h -> !idsHorariosAIgnorar.contains(h.getId()));
+    }
+
     private void validarDescanso(Integer idColaborador,
                                  com.example.projeto2.API.Modules.Turno turnoNovo,
-                                 LocalDate data) {
+                                 LocalDate data,
+                                 Set<Integer> idsHorariosAIgnorar) {
         if (turnoNovo == null || turnoNovo.getHoraInicio() == null || turnoNovo.getHoraFim() == null) return;
 
         for (Horario h : horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
                 idColaborador, data.minusDays(1), data.minusDays(1))) {
+            if (idsHorariosAIgnorar.contains(h.getId())) continue;
             if (h.getIdTurno() == null || h.getIdTurno().getHoraFim() == null) continue;
             long gap = Duration.between(
                     LocalDateTime.of(data.minusDays(1), h.getIdTurno().getHoraFim()),
@@ -251,6 +291,7 @@ public class PermutaFolgaService {
 
         for (Horario h : horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
                 idColaborador, data.plusDays(1), data.plusDays(1))) {
+            if (idsHorariosAIgnorar.contains(h.getId())) continue;
             if (h.getIdTurno() == null || h.getIdTurno().getHoraInicio() == null) continue;
             long gap = Duration.between(
                     LocalDateTime.of(data, turnoNovo.getHoraFim()),

@@ -76,6 +76,7 @@ abstract class FluxosCriticosTestSupport {
             new SequenciaTabela("public.historico_horario_estados", "id_registo"),
             new SequenciaTabela("public.horarios_especiais_loja", "id_horario_especial"),
             new SequenciaTabela("public.permutas", "id_permuta"),
+            new SequenciaTabela("public.permutas_folga", "id_permuta_folga"),
             new SequenciaTabela("public.eventos_auditoria", "id_evento")
     );
 
@@ -759,6 +760,20 @@ abstract class FluxosCriticosTestSupport {
 
         garantirValorEnumEstadoRejeitado();
         garantirValoresEnumEstadoPermuta();
+
+        jdbcTemplate.execute(
+                """
+                CREATE TABLE IF NOT EXISTS public.permutas_folga (
+                    id_permuta_folga  SERIAL PRIMARY KEY,
+                    id_horario_d      INTEGER NOT NULL REFERENCES public.horarios(id_horario),
+                    id_horario_y      INTEGER NOT NULL REFERENCES public.horarios(id_horario),
+                    estado            VARCHAR(20) NOT NULL DEFAULT 'pendente',
+                    data_pedido       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT chk_pf_estado CHECK (estado IN ('pendente','aprovado','rejeitado','cancelado')),
+                    CONSTRAINT chk_pf_diferente CHECK (id_horario_d <> id_horario_y)
+                )
+                """
+        );
 
         jdbcTemplate.execute(
                 """
