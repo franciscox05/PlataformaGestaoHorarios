@@ -106,6 +106,7 @@ public class HorarioGeneratorEngine {
      * @throws IllegalArgumentException se não for possível satisfazer todas as restrições.
      */
     public List<Horario> gerar(PedidoGeracao pedido) {
+        validarEntradasBasicas(pedido);
         validarCapacidadeGlobal(pedido);
 
         Map<Integer, EstadoColaborador> estadoPorColaborador = inicializarEstados(pedido);
@@ -193,6 +194,43 @@ public class HorarioGeneratorEngine {
             if (data.getDayOfWeek() == DayOfWeek.SATURDAY && a.estado().ehChefiaAoSabado()) {
                 sabadosComChefia.add(data);
             }
+        }
+    }
+
+    // =========================================================================
+    // Pré-flight de entradas degeneradas
+    // =========================================================================
+
+    /**
+     * Casos degenerados falham imediatamente com a causa real: sem este guard,
+     * uma equipa vazia caía na mensagem de capacidade ("a equipa só tem 0h") e
+     * uma loja sem turnos base caía em "turnos compatíveis com a exceção" num
+     * dia sem exceção nenhuma.
+     */
+    private void validarEntradasBasicas(PedidoGeracao pedido) {
+        if (pedido.colaboradores().isEmpty()) {
+            throw new FalhaGeracaoHorarioException(
+                    "Não foi possível gerar o horário: não foi selecionado nenhum colaborador para a geração.",
+                    "-",
+                    DATA_FORMATTER.format(pedido.dataInicio()),
+                    0,
+                    "A geração arrancou sem colaboradores elegíveis.",
+                    List.of(),
+                    List.of(new SugestaoFalhaGeracao("equipa_vazia",
+                            "Seleciona pelo menos um colaborador ativo com vínculo válido na loja.",
+                            null)));
+        }
+        if (pedido.turnos().isEmpty()) {
+            throw new FalhaGeracaoHorarioException(
+                    "Não foi possível gerar o horário: a loja não tem turnos base configurados.",
+                    "-",
+                    DATA_FORMATTER.format(pedido.dataInicio()),
+                    pedido.colaboradores().size(),
+                    "Sem turnos base não há slots de trabalho para atribuir.",
+                    List.of(),
+                    List.of(new SugestaoFalhaGeracao("sem_turnos",
+                            "Configura pelo menos um turno (hora de início e fim) nas definições da loja.",
+                            null)));
         }
     }
 
