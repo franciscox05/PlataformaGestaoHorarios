@@ -36,6 +36,21 @@ public final class TurnoClassifier {
     }
 
     /**
+     * Posição do período do turno no dia: manhã=0, intermédio=1, tarde=2, noite=3,
+     * desconhecido=-1. Usado pelo avaliador para detetar rotações invertidas
+     * (ex.: noite num dia → manhã no seguinte), que comprimem o descanso real.
+     */
+    public static int ordemPeriodo(Turno turno) {
+        return switch (tipoNormalizado(turno)) {
+            case "manha"      -> 0;
+            case "intermedio" -> 1;
+            case "tarde"      -> 2;
+            case "noite"      -> 3;
+            default            -> -1;
+        };
+    }
+
+    /**
      * Indica se o turno corresponde a algum dos períodos exigidos por uma preferência.
      * A correspondência usa o tipo normalizado e, como reforço, a hora de início.
      */

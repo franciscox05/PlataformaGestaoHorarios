@@ -19,6 +19,9 @@ import com.example.projeto2.DESKTOP.support.HorarioIndividualDialog;
 import com.example.projeto2.DESKTOP.support.MensagemErroFormatter;
 import com.example.projeto2.DESKTOP.support.MesOption;
 import com.example.projeto2.DESKTOP.support.SelecaoColaboradoresPainel;
+import com.example.projeto2.DESKTOP.support.ValidacaoHorarioDialog;
+import com.example.projeto2.DESKTOP.support.ValidadorHorarioProposta;
+import com.example.projeto2.DESKTOP.support.ValidacaoHorarioResultado;
 import com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.collections.FXCollections;
@@ -67,6 +70,7 @@ public class GeracaoHorariosController {
     @FXML private ComboBox<MesOption> cbMes;
     @FXML private Spinner<Integer> spAno;
     @FXML private Button btnVerProposta;
+    @FXML private Button btnVerCriterios;
     @FXML private Button btnGerarProposta;
     @FXML private Button btnGerarAlternativas;
     @FXML private Spinner<Integer> spQuantidadeAlternativas;
@@ -148,6 +152,7 @@ public class GeracaoHorariosController {
     @FXML private ComboBox<PropostaResumo> cbSelecaoProposta;
     @FXML private Button btnVistaCalendario;
     @FXML private Button btnVistaGrelha;
+    @FXML private Button btnVerificarHorario;
     @FXML private VBox painelVistaCalendario;
     @FXML private VBox painelVistaGrelha;
     @FXML private Button btnGrelhaSemana;
@@ -228,6 +233,12 @@ public class GeracaoHorariosController {
         btnGerarProposta.setTooltip(new Tooltip("Gera uma alternativa com as definições atuais"));
         btnGerarAlternativas.setTooltip(new Tooltip("Gera várias alternativas em lote para comparação"));
         btnVerProposta.setTooltip(new Tooltip("Carrega o planeamento do período selecionado"));
+        if (btnVerCriterios != null) {
+            btnVerCriterios.setTooltip(new Tooltip("Mostra as regras, cargas e preferências que o motor considera neste período"));
+        }
+        if (btnVerificarHorario != null) {
+            btnVerificarHorario.setTooltip(new Tooltip("Verifica se o horário respeita as regras configuradas: descanso, rotação, chefia ao sábado, etc."));
+        }
         btnEnviarSupervisor.setTooltip(new Tooltip("Envia as alternativas selecionadas para validação do supervisor"));
         btnAprovarProposta.setTooltip(new Tooltip("Aprova e publica esta proposta — as restantes pendentes são rejeitadas automaticamente"));
         btnRejeitarProposta.setTooltip(new Tooltip("Rejeita esta proposta de horário"));
@@ -262,6 +273,46 @@ public class GeracaoHorariosController {
             return;
         }
         carregarPlaneamentoDoPeriodo();
+    }
+
+    @FXML
+    public void onVerCriteriosClick() {
+        try {
+            validarUtilizadorAutenticado();
+            MesOption mes = obterMesSelecionado();
+            var criterios = geracaoHorariosBLL.obterCriteriosGeracao(
+                    utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+            com.example.projeto2.DESKTOP.support.CriteriosGeracaoDialog.abrir(
+                    criterios, mes + " " + spAno.getValue(), obterJanela());
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Não foi possível carregar os critérios da geração.");
+        }
+    }
+
+    @FXML
+    public void onVerificarHorarioClick() {
+        if (propostaAtual == null || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty()) {
+            mostrarErro("Carrega primeiro uma proposta de horário para verificar.");
+            return;
+        }
+        try {
+            validarUtilizadorAutenticado();
+            MesOption mes = obterMesSelecionado();
+            var criterios = geracaoHorariosBLL.obterCriteriosGeracao(
+                    utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+            ValidacaoHorarioResultado resultado =
+                    ValidadorHorarioProposta.validar(propostaAtual.linhas(), criterios);
+            String contexto = (propostaAtual.idProposta() != null
+                    ? "Proposta #" + propostaAtual.idProposta() + " · " : "")
+                    + mes + " " + spAno.getValue();
+            ValidacaoHorarioDialog.abrir(resultado, contexto, obterJanela());
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Não foi possível verificar o horário.");
+        }
     }
 
     @FXML public void onGerarPropostaClick()     { gerarAlternativasEmSegundoPlano(1); }
@@ -1057,7 +1108,7 @@ public class GeracaoHorariosController {
                             + " colaboradores selecionados. Depois podes enviar ao supervisor apenas as alternativas escolhidas."
             )) return;
 
-            final Stage overlayCarregamento = DialogosHelper.mostrarCarregamento(
+            final DialogosHelper.CarregamentoHandle overlayCarregamento = DialogosHelper.mostrarCarregamento(
                     obterJanela(),
                     quantidade == 1 ? "A gerar o horário para o período selecionado..." : "A gerar " + quantidade + " alternativas de horário...");
 
@@ -1067,7 +1118,8 @@ public class GeracaoHorariosController {
                         MesOption mes = obterMesSelecionado();
                         List<PropostaResultado> resultados = geracaoHorariosBLL.gerarPropostas(
                                 utilizadorLogado.getId(), spAno.getValue(), mes.numero(),
-                                quantidade, idsColaboradoresSelecionados);
+                                quantidade, idsColaboradoresSelecionados,
+                                overlayCarregamento::atualizarMensagem);
                         PropostaResultado melhorResultado = resultados.stream()
                                 .min(Comparator.comparingInt(r -> r.metricas().pontuacao()))
                                 .orElse(resultados.getFirst());
@@ -1076,7 +1128,7 @@ public class GeracaoHorariosController {
                         return new GeracaoAlternativasDados(propostas, melhorResultado, resultados.size());
                     },
                     dados -> {
-                        overlayCarregamento.close();
+                        overlayCarregamento.fechar();
                         aplicarListaPropostas(dados.propostas(), dados.melhorResultado().idProposta());
                         preencherResultado(dados.melhorResultado());
                         selecionarPropostaNaTabela(dados.melhorResultado().idProposta());
@@ -1093,9 +1145,13 @@ public class GeracaoHorariosController {
                                 : dados.totalGeradas() + " alternativas geradas. A melhor pontuação ficou selecionada para análise.");
                     },
                     erro -> {
-                        overlayCarregamento.close();
+                        overlayCarregamento.fechar();
                         String mensagem = resolverMensagemErro(erro, "Não foi possível gerar alternativas para o período selecionado.");
                         String mensagemCurta = mensagem.length() > 220 ? mensagem.substring(0, 217) + "..." : mensagem;
+                        String acaoSugerida = extrairSugestaoPrincipal(erro);
+                        if (!acaoSugerida.isBlank()) {
+                            mensagemCurta += "\n\nO que podes fazer: " + acaoSugerida;
+                        }
                         DialogosHelper.mostrarNotificacaoGeracao(obterJanela(), false, "Não foi possível gerar o horário", mensagemCurta);
                         stepperPanel.irParaPasso(0);
                         if (tentarCarregarPlaneamentoExistente()) {
@@ -1152,6 +1208,7 @@ public class GeracaoHorariosController {
         cbMes.setDisable(!contextoCarregado || emProcessamento);
         spAno.setDisable(!contextoCarregado || emProcessamento);
         btnVerProposta.setDisable(!contextoCarregado || emProcessamento);
+        if (btnVerCriterios != null) btnVerCriterios.setDisable(!contextoCarregado || emProcessamento);
         btnGerarProposta.setDisable(!podeGerar || emProcessamento);
         btnGerarAlternativas.setDisable(!podeGerar || emProcessamento);
         spQuantidadeAlternativas.setDisable(!podeGerar || emProcessamento);
@@ -1176,6 +1233,7 @@ public class GeracaoHorariosController {
                 || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty();
         if (btnExportarCsvHorario != null) btnExportarCsvHorario.setDisable(semDados);
         if (btnExportarPdfHorario != null) btnExportarPdfHorario.setDisable(semDados);
+        if (btnVerificarHorario != null) btnVerificarHorario.setDisable(semDados);
 
         boolean temPropostasLista = tabelaPropostas.getItems() != null && !tabelaPropostas.getItems().isEmpty();
         boolean temPropostaSelecionada = propostaAtual != null;
@@ -1235,6 +1293,23 @@ public class GeracaoHorariosController {
 
     private String resolverMensagemErro(Throwable erro, String fallback) {
         return MensagemErroFormatter.resolver(erro, fallback);
+    }
+
+    /**
+     * Primeira sugestão acionável de uma falha de geração, para incluir na notificação
+     * de erro — o gestor fica logo a saber o passo seguinte sem procurar o painel
+     * de diagnóstico.
+     */
+    private String extrairSugestaoPrincipal(Throwable erro) {
+        Throwable atual = erro;
+        while (atual != null && atual.getCause() != null && atual.getCause() != atual) {
+            atual = atual.getCause();
+        }
+        if (atual instanceof com.example.projeto2.API.Services.geracao.FalhaGeracaoHorarioException falha
+                && falha.sugestoes() != null && !falha.sugestoes().isEmpty()) {
+            return falha.sugestoes().getFirst().texto();
+        }
+        return "";
     }
 
     private Window obterJanela() {

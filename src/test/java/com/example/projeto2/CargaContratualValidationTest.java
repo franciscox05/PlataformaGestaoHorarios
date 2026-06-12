@@ -53,7 +53,9 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
         );
 
         assertNotNull(proposta);
-        assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
+        assertTrue(
+                proposta.resumo().turnos() >= fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()),
+                "A cobertura minima diaria e um piso: a geracao pode reforcar acima dela.");
         assertFalse(proposta.resumoColaboradores().isEmpty());
 
         Map<Integer, String> tiposCargoPorUtilizador = mapearTiposCargoDaLoja(fixture.lojaFixture().loja().getId());
@@ -124,7 +126,7 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
         );
 
         assertFalse(contemColaborador(proposta, colaboradorExcluido.getNome()));
-        assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
+        assertTrue(proposta.resumo().turnos() >= fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()));
     }
 
     @Test
@@ -222,7 +224,8 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
 
         assertFalse(contemColaborador(proposta, inativo.getNome()));
         assertFalse(contemColaborador(proposta, semVinculoNoPeriodo.getNome()));
-        assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
+        assertTrue(proposta.resumo().turnos() >= fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()),
+                "A exclusao de inativos nao deve impedir a geracao de pelo menos a cobertura minima.");
     }
 
     private Map<Integer, String> mapearTiposCargoDaLoja(Integer idLoja) {

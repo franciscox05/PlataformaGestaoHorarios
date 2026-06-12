@@ -8,6 +8,7 @@ import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
+import com.example.projeto2.DESKTOP.support.DetalheDiaDialog;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.PreferenciaFormatters;
 import com.example.projeto2.API.Modules.DayOff;
@@ -33,8 +34,14 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
+import javafx.geometry.Pos;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -43,13 +50,18 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @Component
 @Scope("prototype")
@@ -95,11 +107,7 @@ public class GestaoFuncionariosController {
     @FXML private TableColumn<FolgaLinha, String> colFolgaTipo;
     @FXML private TableColumn<FolgaLinha, String> colFolgaEstado;
     @FXML private TableColumn<FolgaLinha, FolgaLinha> colFolgaAcao;
-    @FXML private TableView<PreferenciaLinha> tabelaPreferenciasColaborador;
-    @FXML private TableColumn<PreferenciaLinha, String> colPreferenciaTipo;
-    @FXML private TableColumn<PreferenciaLinha, String> colPreferenciaPeriodo;
-    @FXML private TableColumn<PreferenciaLinha, String> colPreferenciaEstado;
-    @FXML private TableColumn<PreferenciaLinha, PreferenciaLinha> colPreferenciaAcao;
+    @FXML private VBox boxPreferenciasAgrupadas;
     @FXML private TableView<PermutaLinha> tabelaPermutasColaborador;
     @FXML private TableColumn<PermutaLinha, String> colPermutaData;
     @FXML private TableColumn<PermutaLinha, String> colPermutaEstado;
@@ -115,7 +123,8 @@ public class GestaoFuncionariosController {
     private final ObservableList<ColaboradorLinha> colaboradores = FXCollections.observableArrayList();
     private final FilteredList<ColaboradorLinha> colaboradoresFiltrados = new FilteredList<>(colaboradores, colaborador -> true);
     private final ObservableList<FolgaLinha> folgasColaborador = FXCollections.observableArrayList();
-    private final ObservableList<PreferenciaLinha> preferenciasColaborador = FXCollections.observableArrayList();
+    private List<Preferencia> preferenciasColaboradorLista = List.of();
+    private Map<Integer, Preferencia> preferencias_pendentes = Map.of();
     private final ObservableList<PermutaLinha> permutasColaborador = FXCollections.observableArrayList();
     private Utilizador utilizadorLogado;
     private Integer idColaboradorEmEdicao;
@@ -411,14 +420,11 @@ public class GestaoFuncionariosController {
         tabelaFolgasColaborador.setItems(folgasColaborador);
         tabelaFolgasColaborador.setPlaceholder(new Label("Sem folgas registadas para este colaborador."));
 
-        colPreferenciaTipo.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().tipo()));
-        colPreferenciaPeriodo.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().periodo()));
-        colPreferenciaEstado.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().estado()));
-        colPreferenciaEstado.setCellFactory(coluna -> criarCelulaBadgeEstado());
-        colPreferenciaAcao.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue()));
-        colPreferenciaAcao.setCellFactory(coluna -> criarCelulaAcaoBotoes(PreferenciaLinha::pendenteAprovacao, this::decidirPreferencia));
-        tabelaPreferenciasColaborador.setItems(preferenciasColaborador);
-        tabelaPreferenciasColaborador.setPlaceholder(new Label("Sem preferências registadas para este colaborador."));
+        if (boxPreferenciasAgrupadas != null) {
+            boxPreferenciasAgrupadas.getChildren().setAll(
+                    criarPlaceholderPreferencias("Seleciona um colaborador para ver as preferências.")
+            );
+        }
 
         colPermutaData.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().dataTurno()));
         colPermutaEstado.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().estado()));
@@ -734,7 +740,11 @@ public class GestaoFuncionariosController {
                         + h.getIdLojautilizador().getIdLoja().getNome();
                 eventos.computeIfAbsent(h.getDataTurno(), k -> new java.util.ArrayList<>()).add(evento);
             }
-            CalendarioMensalHelper.preencherCalendario(grelhaHorarioMensalColaborador, mesColaboradorAtual, eventos, "Sem turno");
+            List<Horario> horariosFinal = horarios;
+            CalendarioMensalHelper.preencherCalendario(
+                    grelhaHorarioMensalColaborador, mesColaboradorAtual, eventos, "Sem turno",
+                    data -> DetalheDiaDialog.abrirHorariosPublicados(data, horariosFinal, obterJanela())
+            );
             lblResumoHorarioColaborador.setText(horarios.isEmpty()
                     ? nomeColaborador + " não tem horário publicado neste mês."
                     : nomeColaborador + " tem " + horarios.size() + " turno(s) publicados neste mês."
@@ -786,19 +796,10 @@ public class GestaoFuncionariosController {
             List<Preferencia> historicoPreferencias = preferenciaBLL.listarPreferenciasPorUtilizador(idColaborador);
             Map<Integer, Preferencia> pendentesPreferencia = preferenciaBLL.listarPreferenciasPendentesParaAprovacao(idGestor).stream()
                     .filter(item -> item.getIdUtilizador() != null && idColaborador.equals(item.getIdUtilizador().getId()))
-                    .collect(java.util.stream.Collectors.toMap(Preferencia::getId, item -> item, (a, b) -> a));
-            preferenciasColaborador.setAll(historicoPreferencias.stream()
-                    .sorted(java.util.Comparator
-                            .comparing(Preferencia::getDataInicio, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
-                            .thenComparing(Preferencia::getId, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
-                    .limit(12)
-                    .map(item -> new PreferenciaLinha(
-                            item.getId(),
-                            valorOuTraco(item.getTipo()),
-                            formatarPeriodo(item.getDataInicio(), item.getDataFim()),
-                            valorOuTraco(item.getEstado()),
-                            pendentesPreferencia.containsKey(item.getId())
-                    )).toList());
+                    .collect(Collectors.toMap(Preferencia::getId, item -> item, (a, b) -> a));
+            preferenciasColaboradorLista = historicoPreferencias;
+            preferencias_pendentes = pendentesPreferencia;
+            actualizarPreferenciasAgrupadas(historicoPreferencias, pendentesPreferencia);
 
             List<Permuta> historicoPermutas = permutaBLL.listarPedidosEnviados(idColaborador);
             Map<Integer, Permuta> pendentesPermuta = permutaBLL.listarPedidosPendentesParaAprovacao(idGestor).stream()
@@ -818,11 +819,11 @@ public class GestaoFuncionariosController {
                     )).toList());
 
             long pendentes = folgasColaborador.stream().filter(FolgaLinha::pendenteAprovacao).count()
-                    + preferenciasColaborador.stream().filter(PreferenciaLinha::pendenteAprovacao).count()
+                    + preferencias_pendentes.size()
                     + permutasColaborador.stream().filter(PermutaLinha::pendenteAprovacao).count();
             lblPerfilOperacionalResumo.setText("Perfil operacional de " + colaborador.nome()
                     + " | " + folgasColaborador.size() + " folga(s), "
-                    + preferenciasColaborador.size() + " preferência(s), "
+                    + preferenciasColaboradorLista.size() + " preferência(s), "
                     + permutasColaborador.size() + " permuta(s) | "
                     + pendentes + " pendente(s).");
         } catch (Exception ex) {
@@ -833,7 +834,10 @@ public class GestaoFuncionariosController {
 
     private void limparPerfilOperacionalColaborador() {
         folgasColaborador.clear();
-        preferenciasColaborador.clear();
+        preferenciasColaboradorLista = List.of();
+        preferencias_pendentes = Map.of();
+        if (boxPreferenciasAgrupadas != null)
+            boxPreferenciasAgrupadas.getChildren().setAll(criarPlaceholderPreferencias("Seleciona um colaborador para ver as preferências."));
         permutasColaborador.clear();
         if (lblPerfilOperacionalResumo != null)
             lblPerfilOperacionalResumo.setText("Seleciona um colaborador para veres folgas, preferências, permutas e decisões pendentes.");
@@ -854,8 +858,8 @@ public class GestaoFuncionariosController {
         } catch (IllegalArgumentException ex) { mostrarMensagem(ex.getMessage(), false); }
     }
 
-    private void decidirPreferencia(PreferenciaLinha linha, boolean aprovar) {
-        if (linha == null || linha.idPreferencia() == null || utilizadorLogado == null || utilizadorLogado.getId() == null) return;
+    private void decidirPreferencia(Preferencia pref, boolean aprovar) {
+        if (pref == null || pref.getId() == null || utilizadorLogado == null || utilizadorLogado.getId() == null) return;
         ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
         if (selecionado == null) return;
         if (!DialogosHelper.confirmarAcao(obterJanela(),
@@ -863,10 +867,121 @@ public class GestaoFuncionariosController {
                 aprovar ? "Deseja aprovar esta preferência?" : "Deseja rejeitar esta preferência?",
                 "A decisão será registada de imediato.")) return;
         try {
-            if (aprovar) { preferenciaBLL.aprovarPreferencia(linha.idPreferencia(), utilizadorLogado.getId(), null); mostrarMensagem("Preferência aprovada com sucesso.", true); }
-            else { preferenciaBLL.rejeitarPreferencia(linha.idPreferencia(), utilizadorLogado.getId(), null); mostrarMensagem("Preferência rejeitada com sucesso.", true); }
+            if (aprovar) { preferenciaBLL.aprovarPreferencia(pref.getId(), utilizadorLogado.getId(), null); mostrarMensagem("Preferência aprovada com sucesso.", true); }
+            else { preferenciaBLL.rejeitarPreferencia(pref.getId(), utilizadorLogado.getId(), null); mostrarMensagem("Preferência rejeitada com sucesso.", true); }
             carregarPerfilOperacionalColaborador(selecionado);
         } catch (IllegalArgumentException ex) { mostrarMensagem(ex.getMessage(), false); }
+    }
+
+    private void actualizarPreferenciasAgrupadas(List<Preferencia> prefs, Map<Integer, Preferencia> pendentes) {
+        if (boxPreferenciasAgrupadas == null) return;
+        boxPreferenciasAgrupadas.getChildren().clear();
+        if (prefs.isEmpty()) {
+            boxPreferenciasAgrupadas.getChildren().add(criarPlaceholderPreferencias("Sem preferências registadas para este colaborador."));
+            return;
+        }
+
+        String[] ordem = {"folga_preferida", "turnos", "colegas", "ferias", "folgas"};
+        Map<String, List<Preferencia>> porTipo = prefs.stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getTipo() != null ? p.getTipo().toLowerCase(Locale.ROOT) : "outro",
+                        LinkedHashMap::new, Collectors.toList()));
+
+        List<String> tiposOrdenados = new ArrayList<>();
+        for (String t : ordem) { if (porTipo.containsKey(t)) tiposOrdenados.add(t); }
+        porTipo.keySet().stream().filter(t -> !tiposOrdenados.contains(t)).forEach(tiposOrdenados::add);
+
+        for (String tipo : tiposOrdenados) {
+            List<Preferencia> grupo = porTipo.get(tipo);
+            if (grupo == null || grupo.isEmpty()) continue;
+            boxPreferenciasAgrupadas.getChildren().add(criarSecaoPreferencias(tipo, grupo, pendentes));
+        }
+    }
+
+    private VBox criarSecaoPreferencias(String tipo, List<Preferencia> prefs, Map<Integer, Preferencia> pendentes) {
+        VBox secao = new VBox(6);
+
+        Label titulo = new Label(PreferenciaFormatters.formatarTipo(tipo).toUpperCase(Locale.ROOT));
+        titulo.getStyleClass().addAll("meta-etiqueta");
+        titulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #9b1c1c;");
+        secao.getChildren().add(titulo);
+
+        Separator sep = new Separator();
+        sep.setStyle("-fx-opacity: 0.3;");
+        secao.getChildren().add(sep);
+
+        List<Preferencia> ordenadas = prefs.stream()
+                .sorted(Comparator.comparingInt((Preferencia p) -> {
+                    if (p.getEstado() == null) return 1;
+                    return switch (p.getEstado().toLowerCase(Locale.ROOT)) {
+                        case "pendente" -> 0;
+                        case "aprovado" -> 1;
+                        default -> 2;
+                    };
+                }).thenComparing(p -> p.getDataInicio() != null ? p.getDataInicio() : LocalDate.MIN,
+                        Comparator.reverseOrder()))
+                .toList();
+
+        for (Preferencia pref : ordenadas) {
+            secao.getChildren().add(criarLinhaPreferencia(pref, pendentes));
+        }
+        return secao;
+    }
+
+    private HBox criarLinhaPreferencia(Preferencia pref, Map<Integer, Preferencia> pendentes) {
+        HBox linha = new HBox(8);
+        linha.setAlignment(Pos.CENTER_LEFT);
+        linha.setStyle("-fx-padding: 4 0 4 4;");
+
+        String estado = pref.getEstado() != null ? pref.getEstado() : "pendente";
+        Label badge = new Label(PreferenciaFormatters.formatarEstado(estado));
+        badge.getStyleClass().add("badge-estado");
+        badge.getStyleClass().add(switch (estado.toLowerCase(Locale.ROOT)) {
+            case "aprovado" -> "badge-aprovado";
+            case "rejeitado" -> "badge-rejeitado";
+            default -> "badge-pendente";
+        });
+        badge.setMinWidth(76);
+
+        String descricao = pref.getDescricao() != null ? pref.getDescricao() : "-";
+        if (descricao.startsWith("[TESTE")) {
+            int idx = descricao.indexOf(']');
+            if (idx >= 0 && idx < descricao.length() - 1) descricao = descricao.substring(idx + 1).trim();
+        }
+        if (descricao.length() > 90) descricao = descricao.substring(0, 87) + "…";
+        Label lblDesc = new Label(descricao);
+        lblDesc.getStyleClass().add("texto-ajuda");
+        lblDesc.setWrapText(false);
+        HBox.setHgrow(lblDesc, Priority.ALWAYS);
+
+        String periodo = formatarPeriodo(pref.getDataInicio(), pref.getDataFim());
+        Label lblPer = new Label(periodo);
+        lblPer.getStyleClass().add("meta-etiqueta");
+        lblPer.setMinWidth(120);
+        lblPer.setMaxWidth(160);
+
+        linha.getChildren().addAll(badge, lblDesc, lblPer);
+
+        boolean pendente = "pendente".equalsIgnoreCase(estado) || pendentes.containsKey(pref.getId());
+        if (pendente) {
+            Button btnAprovar = criarBotaoAcao("Aprovar", true);
+            Button btnRejeitar = criarBotaoAcao("Rejeitar", false);
+            btnAprovar.setOnAction(e -> decidirPreferencia(pref, true));
+            btnRejeitar.setOnAction(e -> decidirPreferencia(pref, false));
+            linha.getChildren().addAll(btnAprovar, btnRejeitar);
+        }
+
+        if ("rejeitado".equalsIgnoreCase(estado)) {
+            linha.setOpacity(0.55);
+        }
+        return linha;
+    }
+
+    private Label criarPlaceholderPreferencias(String texto) {
+        Label lbl = new Label(texto);
+        lbl.getStyleClass().add("texto-ajuda");
+        lbl.setWrapText(true);
+        return lbl;
     }
 
     private void decidirPermuta(PermutaLinha linha, boolean aprovar) {
@@ -941,6 +1056,5 @@ public class GestaoFuncionariosController {
     }
 
     private record FolgaLinha(Integer idDayOff, String data, String tipo, String estado, boolean pendenteAprovacao) {}
-    private record PreferenciaLinha(Integer idPreferencia, String tipo, String periodo, String estado, boolean pendenteAprovacao) {}
     private record PermutaLinha(Integer idPermuta, String dataTurno, String estado, String turnos, boolean pendenteAprovacao) {}
 }

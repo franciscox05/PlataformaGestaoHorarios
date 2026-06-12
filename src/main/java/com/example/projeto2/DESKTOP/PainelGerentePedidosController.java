@@ -235,6 +235,7 @@ public class PainelGerentePedidosController {
             public void aposAcaoBemSucedida() {
                 limparContextoOperacional();
                 carregarPainel();
+                if (dashboardNavigation != null) dashboardNavigation.atualizarBadges();
             }
         };
 
