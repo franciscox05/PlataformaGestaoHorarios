@@ -179,6 +179,18 @@ public class HomeController {
     private HBox boxEscalaDetalhadaLoja;
 
     @FXML
+    private Button btnVistaStripEscala;
+
+    @FXML
+    private Button btnVistaGrelhaEscala;
+
+    @FXML
+    private ScrollPane scrollGrelhaEscalaLoja;
+
+    @FXML
+    private VBox boxGrelhaEscalaLoja;
+
+    @FXML
     private ComboBox<MesOption> cbMesHorarioMensal;
 
     @FXML
@@ -212,6 +224,7 @@ public class HomeController {
     private GridPane calendarioMensalHome;
 
     private boolean vistaGrelhaAtiva = false;
+    private boolean vistaGrelhaEscalaAtiva = false;
 
     @FXML
     private VBox painelPedidosPendentes;
@@ -419,6 +432,41 @@ public class HomeController {
         vistaGrelhaAtiva = true;
         atualizarToggleVistaHome();
         carregarHorarioMensalLoja();
+    }
+
+    @FXML
+    public void onVistaStripEscalaClick() {
+        if (!vistaGrelhaEscalaAtiva) return;
+        vistaGrelhaEscalaAtiva = false;
+        atualizarToggleVistaEscala();
+        carregarEscalaDetalhadaLoja();
+    }
+
+    @FXML
+    public void onVistaGrelhaEscalaClick() {
+        if (vistaGrelhaEscalaAtiva) return;
+        vistaGrelhaEscalaAtiva = true;
+        atualizarToggleVistaEscala();
+        carregarEscalaDetalhadaLoja();
+    }
+
+    private void atualizarToggleVistaEscala() {
+        if (btnVistaStripEscala != null) {
+            btnVistaStripEscala.getStyleClass().removeAll("home-vista-btn", "home-vista-btn-active");
+            btnVistaStripEscala.getStyleClass().add(vistaGrelhaEscalaAtiva ? "home-vista-btn" : "home-vista-btn-active");
+        }
+        if (btnVistaGrelhaEscala != null) {
+            btnVistaGrelhaEscala.getStyleClass().removeAll("home-vista-btn", "home-vista-btn-active");
+            btnVistaGrelhaEscala.getStyleClass().add(vistaGrelhaEscalaAtiva ? "home-vista-btn-active" : "home-vista-btn");
+        }
+        if (boxEscalaDetalhadaLoja != null) {
+            boxEscalaDetalhadaLoja.setVisible(!vistaGrelhaEscalaAtiva);
+            boxEscalaDetalhadaLoja.setManaged(!vistaGrelhaEscalaAtiva);
+        }
+        if (scrollGrelhaEscalaLoja != null) {
+            scrollGrelhaEscalaLoja.setVisible(vistaGrelhaEscalaAtiva);
+            scrollGrelhaEscalaLoja.setManaged(vistaGrelhaEscalaAtiva);
+        }
     }
 
     private void atualizarToggleVistaHome() {
@@ -917,7 +965,11 @@ public class HomeController {
                     idColaborador
             );
 
-            renderizarCalendarioEscalaLoja(dataInicio, horarios);
+            if (vistaGrelhaEscalaAtiva) {
+                renderizarGrelhaEscalaLoja(dataInicio, dataFim, horarios);
+            } else {
+                renderizarCalendarioEscalaLoja(dataInicio, horarios);
+            }
 
             String etiquetaColaborador = cbColaboradorOperacao.getValue() != null
                     ? cbColaboradorOperacao.getValue().label()
@@ -943,9 +995,21 @@ public class HomeController {
                             + "."
             );
         } catch (Exception e) {
-            renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
+            if (vistaGrelhaEscalaAtiva) {
+                renderizarGrelhaEscalaLoja(LocalDate.now(), LocalDate.now().plusDays(6), List.of());
+            } else {
+                renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
+            }
             lblResumoEscalaPublicada.setText("Não foi possível carregar a escala publicada da loja neste momento.");
         }
+    }
+
+    private void renderizarGrelhaEscalaLoja(LocalDate dataInicio, LocalDate dataFim, List<Horario> horarios) {
+        if (boxGrelhaEscalaLoja == null) return;
+        GrelhaHorarioHelper.preencherSemanal(
+                boxGrelhaEscalaLoja, dataInicio, dataFim,
+                horarios, LocalDate.now(),
+                data -> DetalheDiaDialog.abrirHorariosPublicados(data, horarios, obterJanela()));
     }
 
     private void carregarHorarioMensalLoja() {
