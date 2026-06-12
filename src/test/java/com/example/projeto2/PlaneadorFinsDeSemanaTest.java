@@ -1,9 +1,11 @@
 package com.example.projeto2;
 
 import com.example.projeto2.API.Modules.Cargo;
+import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Modules.Utilizador;
+import com.example.projeto2.API.Services.HorarioGeneratorEngine;
 import com.example.projeto2.API.Services.HorarioValidatorService;
 import com.example.projeto2.API.Services.geracao.AvaliadorAtribuicao;
 import com.example.projeto2.API.Services.geracao.EstadoColaborador;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -159,6 +162,46 @@ class PlaneadorFinsDeSemanaTest {
 
         assertTrue(scoreA < scoreB,
                 "O colaborador designado para o fim de semana deve ser preferido ao não-designado.");
+    }
+
+    @Test
+    void motorReforcaCoberturaAoFimDeSemanaParaColaboradoresDesignados() {
+        // Com o plano de FDS ativo, o top-up ao fim de semana fica desbloqueado (restrito
+        // aos designados): algum dia de FDS deve passar a ter mais do que o mínimo (1).
+        // O motor exige sempre 1 chefia por fim de semana, por isso a equipa inclui duas
+        // chefias (alternam por rotação) além dos regulares.
+        HorarioGeneratorEngine engine = new HorarioGeneratorEngine(validator);
+        List<Lojautilizador> equipa = new ArrayList<>();
+        equipa.add(colaborador(1, "Chefe A", "gerente"));
+        equipa.add(colaborador(2, "Chefe B", "subgerente"));
+        for (int id = 3; id <= 6; id++) {
+            equipa.add(colaborador(id, "Regular " + id, "fulltime"));
+        }
+        PedidoGeracao pedido = pedido(equipa, Set.of(1, 2), 2, true);
+
+        List<Horario> plano = engine.gerar(pedido);
+
+        Map<LocalDate, Long> porDiaFimDeSemana = plano.stream()
+                .filter(h -> h.getDataTurno() != null && validator.ehFimDeSemana(h.getDataTurno()))
+                .collect(Collectors.groupingBy(Horario::getDataTurno, Collectors.counting()));
+
+        long maxNoFimDeSemana = porDiaFimDeSemana.values().stream()
+                .mapToLong(Long::longValue).max().orElse(0);
+        assertTrue(maxNoFimDeSemana > 1,
+                "Com plano de FDS ativo, o top-up deve reforçar algum dia de fim de semana acima do mínimo.");
+
+        // A rotação tem de continuar intacta: nenhum regular trabalha dois fins de semana
+        // a menos de 2 semanas (top-up no mesmo FDS — sábado+domingo — não conta).
+        Map<Integer, Set<LocalDate>> fdsPorColaborador = plano.stream()
+                .filter(h -> h.getDataTurno() != null && validator.ehFimDeSemana(h.getDataTurno()))
+                .collect(Collectors.groupingBy(
+                        h -> h.getIdLojautilizador().getIdUtilizador().getId(),
+                        Collectors.mapping(h -> h.getDataTurno().with(DayOfWeek.SATURDAY),
+                                Collectors.toSet())));
+        for (Map.Entry<Integer, Set<LocalDate>> entry : fdsPorColaborador.entrySet()) {
+            assertTrue(rotacaoRespeitada(entry.getValue(), 2),
+                    "O top-up ao FDS não pode violar a rotação do colaborador " + entry.getKey() + ".");
+        }
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

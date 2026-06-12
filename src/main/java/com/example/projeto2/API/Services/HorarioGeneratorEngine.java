@@ -215,16 +215,22 @@ public class HorarioGeneratorEngine {
         if (pedido.prazoLimite() != null && Instant.now().isAfter(pedido.prazoLimite())) {
             return List.of();
         }
-        // Sem top-up ao fim de semana: limitar o número de trabalhadores por dia de FDS
-        // ao mínimo é essencial para não esgotar o grupo elegível para o FDS seguinte.
-        // Se todos os 11 colaboradores trabalharem no FDS da semana 1 (via top-up),
-        // ficam todos bloqueados pela rotação na semana 2 e o planeamento falha.
-        if (validator.ehFimDeSemana(data)) {
+        // Top-up ao fim de semana: outrora bloqueado por completo — sem visão dos fins de
+        // semana seguintes, encher um FDS via top-up esgotava o grupo elegível e a rotação
+        // bloqueava o FDS seguinte. Com o lookahead de FDS ativo passa a ser permitido, mas
+        // restrito aos colaboradores DESIGNADOS para este FDS (filtro no ciclo abaixo): esses
+        // já estão comprometidos com este fim de semana pelo plano, pelo que reforçá-los não
+        // rouba candidatos aos fins de semana seguintes. Sem plano ativo, mantém-se o
+        // bloqueio total (comportamento seguro anterior).
+        boolean fimDeSemana = validator.ehFimDeSemana(data);
+        boolean planoFinsDeSemanaAtivo = estados.stream()
+                .anyMatch(EstadoColaborador::temPlanoFinsDeSemana);
+        if (fimDeSemana && !planoFinsDeSemanaAtivo) {
             return List.of();
         }
         long diasTotais = ChronoUnit.DAYS.between(pedido.dataInicio(), pedido.dataFim()) + 1;
         long diasDecorridos = ChronoUnit.DAYS.between(pedido.dataInicio(), data) + 1;
-        boolean diaUtil = !validator.ehFimDeSemana(data);
+        boolean diaUtil = !fimDeSemana;
         int maxDiasTrabalhadosNaSemana = 7 - pedido.descansoSemanalMinimoDias();
 
         AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horariosJaGerados);
@@ -236,6 +242,9 @@ public class HorarioGeneratorEngine {
             if (!estado.abaixoDoRitmoContratual(diasDecorridos - 1, diasTotais)) continue;
             if (pedido.folgasPreferidasPorColaborador()
                     .getOrDefault(estado.idUtilizador(), Set.of()).contains(data)) continue;
+            // Ao fim de semana, só reforça quem o plano designou para este FDS — preserva
+            // os candidatos dos fins de semana seguintes (a rotação não os bloqueia cedo).
+            if (fimDeSemana && !estado.designadoParaFimDeSemana(data)) continue;
             if (diaUtil
                     && estado.podeVirASerPrecisoNoFimDeSemana(data, pedido)
                     && estado.diasTrabalhadosNaSemana(data) >= maxDiasTrabalhadosNaSemana - 1) {
