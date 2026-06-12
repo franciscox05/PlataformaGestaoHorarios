@@ -263,19 +263,20 @@
 
                                             <Tab text="Prefer&#234;ncias">
                                                 <content>
-                                                    <TableView fx:id="tabelaPreferenciasColaborador"
-                                                               styleClass="tabela-premium"
-                                                               prefHeight="200.0">
-                                                        <columnResizePolicy>
-                                                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                                                        </columnResizePolicy>
-                                                        <columns>
-                                                            <TableColumn fx:id="colPreferenciaTipo"    text="Tipo" />
-                                                            <TableColumn fx:id="colPreferenciaPeriodo" text="Per&#237;odo" />
-                                                            <TableColumn fx:id="colPreferenciaEstado"  text="Estado" />
-                                                            <TableColumn fx:id="colPreferenciaAcao"    text="A&#231;&#227;o" />
-                                                        </columns>
-                                                    </TableView>
+                                                    <ScrollPane fitToWidth="true"
+                                                                hbarPolicy="NEVER"
+                                                                vbarPolicy="AS_NEEDED"
+                                                                prefHeight="200.0"
+                                                                styleClass="conteudo-scroll">
+                                                        <content>
+                                                            <VBox fx:id="boxPreferenciasAgrupadas"
+                                                                  spacing="10.0">
+                                                                <padding>
+                                                                    <Insets top="8.0" right="8.0" bottom="8.0" left="8.0" />
+                                                                </padding>
+                                                            </VBox>
+                                                        </content>
+                                                    </ScrollPane>
                                                 </content>
                                             </Tab>
 
