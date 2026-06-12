@@ -37,7 +37,7 @@ import java.util.Set;
  *   <li>Reserva operacional de part-time de fim de semana — {@code pesoReservaOperacional}</li>
  *   <li>Preferências de turno e de colegas aprovadas — {@code pesoPreferencias} + base fixa de desempate ({@link #BASE_PREFERENCIA_TURNO})</li>
  *   <li>Folga preferida no dia — base forte (soft) + reforço por {@code pesoPreferencias}</li>
- *   <li>Consistência de turno (mesmo período que na véspera) — {@code pesoTurnoRepetido}</li>
+ *   <li>Consistência de turno (mesmo período que na véspera; rotação invertida penalizada) — {@code pesoTurnoRepetido}</li>
  *   <li>Idle streak (dias sem trabalhar ≥ 2) — bónus proporcional, cap 5 dias, via {@code pesoEquilibrioCarga}</li>
  *   <li>Diversificação (desempate determinístico) — {@code pesoDiversificacao} + base</li>
  * </ol>
@@ -72,6 +72,12 @@ public final class AvaliadorAtribuicao {
     // 40 pt cobre deltas de ritmo de até ~8% com peso máximo, mas não sobrepõe diferenças
     // reais de pace ou idle streak — comporta-se como um tie-breaker, não como restrição.
     private static final double BASE_PREFERENCIA_TURNO = 40.0;
+
+    // Penalização de rotação invertida (ex.: noite→manhã, tarde→manhã em dias seguidos):
+    // mesmo quando o descanso legal de 11h é cumprido, recuar no período do dia comprime
+    // o descanso real e desorganiza o ritmo circadiano. Independente da política — é uma
+    // questão de ergonomia básica, não de otimização. Soft: nunca impede cobertura.
+    private static final double PENALIZACAO_ROTACAO_INVERTIDA = 45.0;
 
     private final HorarioValidatorService validator;
 
@@ -187,12 +193,20 @@ public final class AvaliadorAtribuicao {
                     + politica.pesoPreferencias() * 1.2 * ESCALA_PREFERENCIAS;
         }
 
-        // (7) Consistência de turno — recompensar repetir o período da véspera
+        // (7) Consistência de turno — recompensar repetir o período da véspera e
+        // penalizar rotações invertidas (recuar de noite/tarde para manhã comprime o
+        // descanso real mesmo quando as 11h legais são cumpridas).
         Turno turnoVespera = estado.turnoNaVespera(data);
-        if (turnoVespera != null
-                && TurnoClassifier.tipoNormalizado(turnoVespera)
-                        .equals(TurnoClassifier.tipoNormalizado(turno))) {
-            pontuacao -= politica.pesoTurnoRepetido() * ESCALA_CONSISTENCIA;
+        if (turnoVespera != null) {
+            if (TurnoClassifier.tipoNormalizado(turnoVespera)
+                    .equals(TurnoClassifier.tipoNormalizado(turno))) {
+                pontuacao -= politica.pesoTurnoRepetido() * ESCALA_CONSISTENCIA;
+            }
+            int ordemVespera = TurnoClassifier.ordemPeriodo(turnoVespera);
+            int ordemHoje = TurnoClassifier.ordemPeriodo(turno);
+            if (ordemVespera >= 0 && ordemHoje >= 0 && ordemHoje < ordemVespera) {
+                pontuacao += PENALIZACAO_ROTACAO_INVERTIDA * (ordemVespera - ordemHoje);
+            }
         }
 
         // (8) Idle streak — bónus para colaboradores que não trabalham há 2+ dias.

@@ -26,6 +26,14 @@ public class RegraGeracaoResolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegraGeracaoResolver.class);
 
+    /**
+     * Descanso mínimo legal entre jornadas de trabalho (Código do Trabalho, art. 214.º):
+     * 11 horas seguidas entre o fim de um turno e o início do seguinte. Valores
+     * configurados abaixo deste mínimo são corrigidos para 11 com aviso — sem isto,
+     * um turno de noite (ex.: 16:00–00:00) seguido de manhã (08:00) passava com 8h de gap.
+     */
+    private static final int DESCANSO_MINIMO_LEGAL_HORAS = 11;
+
     private final RegrasLojaRepository regrasLojaRepository;
     private final RegraRepository regraRepository;
     private final HorarioValidatorService validator;
@@ -97,13 +105,20 @@ public class RegraGeracaoResolver {
                 .findFirst()
                 .orElse(5);
 
-        int descansoMinimoHoras = regras.stream()
+        int descansoConfigurado = regras.stream()
                 .filter(this::ehRegraDescanso)
                 .map(RegraAplicada::valor)
                 .filter(Objects::nonNull)
                 .filter(valor -> valor > 0)
                 .findFirst()
-                .orElse(8);
+                .orElse(DESCANSO_MINIMO_LEGAL_HORAS);
+        if (descansoConfigurado < DESCANSO_MINIMO_LEGAL_HORAS) {
+            LOGGER.warn(
+                    "A regra de descanso minimo entre turnos ({}h) esta abaixo do minimo legal de {}h "
+                    + "(CT art. 214.º). A geracao vai aplicar {}h; atualiza a regra RFS06 da loja.",
+                    descansoConfigurado, DESCANSO_MINIMO_LEGAL_HORAS, DESCANSO_MINIMO_LEGAL_HORAS);
+        }
+        int descansoMinimoHoras = Math.max(descansoConfigurado, DESCANSO_MINIMO_LEGAL_HORAS);
 
         int descansoSemanalMinimoDias = regras.stream()
                 .filter(this::ehRegraDescansoSemanal)

@@ -169,6 +169,8 @@
                                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                                             <Button fx:id="btnVerProposta" onAction="#onVerPropostaClick"
                                                     styleClass="botao-secundario" text="Ver planeamento publicado"/>
+                                            <Button fx:id="btnVerCriterios" onAction="#onVerCriteriosClick"
+                                                    styleClass="botao-secundario" text="&#128269;  O que &#233; considerado?"/>
                                             <Label styleClass="texto-atalho"
                                                    text="Atalhos: Ctrl+G gerar 1 &#183; Ctrl+L gerar v&#225;rias &#183; Ctrl+Enter consultar"
                                                    wrapText="true"/>

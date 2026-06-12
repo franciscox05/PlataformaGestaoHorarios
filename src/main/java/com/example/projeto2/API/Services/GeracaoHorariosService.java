@@ -456,6 +456,71 @@ public class GeracaoHorariosService {
         return !ESTADO_RASCUNHO.equals(normalizarTexto(proposta.getEstado()));
     }
 
+    /**
+     * Resumo legível dos critérios que o motor vai considerar na geração do período:
+     * regras hard ativas, mínimos por turno, cargas por perfil e o volume de
+     * preferências/ausências aprovadas. Não valida a janela de lançamento nem o estado
+     * da loja — destina-se a transparência, não a gerar.
+     */
+    @Transactional(readOnly = true)
+    public com.example.projeto2.API.Services.geracao.dto.CriteriosGeracao obterCriteriosGeracao(
+            Integer idUtilizador, Integer ano, Integer mes) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Loja loja = ligacaoAtiva.getIdLoja();
+        int anoNormalizado = normalizarAno(ano);
+        int mesNormalizado = normalizarMes(mes);
+        LocalDate dataInicio = LocalDate.of(anoNormalizado, mesNormalizado, 1);
+        LocalDate dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
+        Integer idLoja = loja.getId();
+
+        List<Turno> turnos = turnoRepository.findAllByOrderByHoraInicioAsc();
+        List<RegraAplicada> regras = regraGeracaoResolver.obterRegrasAplicadas(idLoja);
+        ParametrosGeracao parametros = regraGeracaoResolver.resolverParametrosGeracao(regras, turnos);
+
+        List<DayOff> dayOffsAprovados = dayOffRepository.findPedidosAprovadosDaLojaEntreDatas(idLoja, dataInicio, dataFim);
+        List<Preferencia> preferenciasAprovadas = preferenciaRepository.findPreferenciasAprovadasDaLojaEntreDatas(idLoja, dataInicio, dataFim);
+        List<HorarioEspecialLoja> horariosEspeciais = horarioEspecialLojaRepository.findAtivosNoPeriodo(idLoja, dataInicio, dataFim);
+
+        Map<Integer, Set<LocalDate>> diasFolgaPreferidos = PreferenciasGeracaoBuilder.construirDiasFolgaPreferidos(
+                dataInicio, dataFim, preferenciasAprovadas);
+        Map<Integer, List<Preferencia>> preferenciasTurnos = PreferenciasGeracaoBuilder.agruparPorTipo(preferenciasAprovadas, "turnos");
+        Map<Integer, List<Preferencia>> preferenciasColegas = PreferenciasGeracaoBuilder.agruparPorTipo(preferenciasAprovadas, "colegas");
+        Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData =
+                LojaConfiguracaoBuilder.construirConfiguracoesEspeciaisPorData(loja, turnos, horariosEspeciais);
+
+        List<String> minimosLegiveis = new ArrayList<>();
+        for (Turno turno : turnos) {
+            Integer minimo = parametros.minimosPorTurno().get(turno.getId());
+            minimosLegiveis.add(HorarioFormatters.formatarTurno(turno)
+                    + " — mínimo " + (minimo != null ? minimo : "?") + " colaborador"
+                    + (minimo != null && minimo == 1 ? "" : "es"));
+        }
+
+        List<String> cargasLegiveis = new ArrayList<>();
+        parametros.cargaMaximaMinutosPorPerfil().forEach((perfil, minutos) ->
+                cargasLegiveis.add(perfil.descricaoCurta() + " — " + (minutos / 60) + "h/mês"));
+
+        int totalFolgasPreferidas = diasFolgaPreferidos.values().stream().mapToInt(Set::size).sum();
+        int totalPrefTurno = preferenciasTurnos.values().stream().mapToInt(List::size).sum();
+        int totalPrefColegas = preferenciasColegas.values().stream().mapToInt(List::size).sum();
+
+        return new com.example.projeto2.API.Services.geracao.dto.CriteriosGeracao(
+                parametros.descansoMinimoHoras(),
+                parametros.maxDiasConsecutivos(),
+                parametros.descansoSemanalMinimoDias(),
+                parametros.janelaRotacaoFinsDeSemanaSemanas(),
+                parametros.exigirChefiaAoSabado(),
+                minimosLegiveis,
+                cargasLegiveis,
+                obterColaboradoresElegiveis(idLoja, dataInicio, dataFim).size(),
+                dayOffsAprovados.size(),
+                totalFolgasPreferidas,
+                totalPrefTurno,
+                totalPrefColegas,
+                configuracoesPorData.size()
+        );
+    }
+
     private DadosGeracao prepararDadosGeracao(Integer idUtilizador,
                                               Integer ano,
                                               Integer mes,
