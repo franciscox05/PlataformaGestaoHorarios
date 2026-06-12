@@ -78,6 +78,11 @@ public final class EstadoColaborador {
         return (minutosAtribuidos + minutosTurno) / (double) cargaMaximaMinutos;
     }
 
+    /** Minutos contratuais ainda por consumir neste mês. */
+    public long capacidadeRestanteMinutos() {
+        return Math.max(0, cargaMaximaMinutos - minutosAtribuidos);
+    }
+
     /**
      * Fixa os dias de folga preferida pré-reservados pelo {@link PlaneadorFolgasPreferidas}:
      * passam a ser tratados como restrição dura (o colaborador nunca é escalado nesses dias),

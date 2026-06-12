@@ -4,8 +4,8 @@ import java.util.List;
 
 /**
  * Resumo legível de tudo o que o motor de geração tem em conta para um período:
- * regras hard ativas, cargas contratuais, mínimos por turno e o volume de
- * preferências/ausências aprovadas que vão influenciar o resultado.
+ * regras hard ativas, cargas contratuais, mínimos por turno, balanço de capacidade
+ * e o detalhe das preferências/ausências aprovadas que vão influenciar o resultado.
  *
  * <p>Mostrado ao gestor antes de gerar, para que perceba e confie no processo —
  * e saiba onde mexer quando a geração falha ou o resultado não é o esperado.
@@ -15,14 +15,16 @@ import java.util.List;
  * @param descansoSemanalMinimoDias  RFS04 — dias de folga por semana
  * @param janelaRotacaoFimDeSemana   RFS08 — semanas mínimas entre fins de semana trabalhados
  * @param exigirChefiaAoSabado       RFS03 — gerente/subgerente obrigatório ao sábado
- * @param minimosPorTurno            descrição legível por turno (ex.: "Manhã 08:00–16:00 — mínimo 2")
- * @param cargasPorPerfil            descrição legível por perfil (ex.: "Full-time — 160h/mês")
- * @param totalColaboradoresElegiveis colaboradores com vínculo válido no período
- * @param totalAusenciasAprovadas    folgas/férias aprovadas que bloqueiam dias (hard)
- * @param totalFolgasPreferidas      pedidos de folga preferida aprovados (soft — o motor tenta honrar)
- * @param totalPreferenciasTurno     preferências de turno aprovadas (soft — favorece no scoring)
- * @param totalPreferenciasColegas   preferências de colegas aprovadas (soft)
- * @param totalDiasEspeciais         dias com configuração especial (encerramento/horário reduzido)
+ * @param minimosPorTurno            por tipo de turno (ex.: "Manhã (08:00–16:00) — mínimo 2")
+ * @param cargasPorPerfil            por perfil (ex.: "Full-time — 176h/mês")
+ * @param capacidadeEquipaHoras      soma das cargas contratuais da equipa elegível
+ * @param necessidadeMinimaHoras     horas exigidas pela cobertura mínima de todos os dias
+ * @param detalheColaboradores       um por colaborador: nome — cargo, carga mensal
+ * @param detalheAusencias           uma por ausência aprovada: nome — data (tipo)
+ * @param detalheFolgasPreferidas    uma por folga preferida: nome — data
+ * @param detalhePreferenciasTurno   uma por preferência: nome — descrição (período)
+ * @param detalhePreferenciasColegas uma por preferência: nome — descrição
+ * @param detalheDiasEspeciais       um por dia: data — encerrado/horário especial
  */
 public record CriteriosGeracao(
         int descansoMinimoHoras,
@@ -32,11 +34,18 @@ public record CriteriosGeracao(
         boolean exigirChefiaAoSabado,
         List<String> minimosPorTurno,
         List<String> cargasPorPerfil,
-        int totalColaboradoresElegiveis,
-        int totalAusenciasAprovadas,
-        int totalFolgasPreferidas,
-        int totalPreferenciasTurno,
-        int totalPreferenciasColegas,
-        int totalDiasEspeciais
+        long capacidadeEquipaHoras,
+        long necessidadeMinimaHoras,
+        List<String> detalheColaboradores,
+        List<String> detalheAusencias,
+        List<String> detalheFolgasPreferidas,
+        List<String> detalhePreferenciasTurno,
+        List<String> detalhePreferenciasColegas,
+        List<String> detalheDiasEspeciais
 ) {
+
+    /** A capacidade contratual da equipa chega para a cobertura mínima do período. */
+    public boolean capacidadeSuficiente() {
+        return capacidadeEquipaHoras >= necessidadeMinimaHoras;
+    }
 }

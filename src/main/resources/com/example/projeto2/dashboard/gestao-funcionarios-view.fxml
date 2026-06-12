@@ -40,6 +40,8 @@
             <!-- ═════ ABA 1 — EQUIPA ═════ -->
             <Tab text="Equipa">
                 <content>
+                    <ScrollPane fitToWidth="true" fitToHeight="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                                styleClass="conteudo-scroll">
                     <VBox spacing="20.0" styleClass="aba-conteudo">
                         <padding><Insets top="24.0" right="40.0" bottom="32.0" left="40.0" /></padding>
 
@@ -85,7 +87,7 @@
                                        text="Enter seleciona o primeiro resultado  &#183;  Esc limpa  &#183;  Ctrl+S guardar  &#183;  Ctrl+N novo colaborador"
                                        wrapText="true" />
 
-                                <TableView fx:id="tabelaColaboradores" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
+                                <TableView fx:id="tabelaColaboradores" VBox.vgrow="ALWAYS" minHeight="320.0" styleClass="tabela-premium">
                                     <columnResizePolicy>
                                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                                     </columnResizePolicy>
@@ -177,6 +179,7 @@
 
                         </HBox>
                     </VBox>
+                    </ScrollPane>
                 </content>
             </Tab>
 

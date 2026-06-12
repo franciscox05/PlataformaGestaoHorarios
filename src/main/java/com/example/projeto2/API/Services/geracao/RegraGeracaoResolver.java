@@ -227,7 +227,22 @@ public class RegraGeracaoResolver {
     private boolean ehRegraRotacaoFinsDeSemana(RegraAplicada regra) {
         String texto = regra.textoNormalizado();
         return (texto.contains("rotacao") || texto.contains("janela"))
-                && (texto.contains("fim de semana") || texto.contains("weekend"));
+                && mencionaFimDeSemana(texto);
+    }
+
+    /**
+     * Reconhece todas as grafias comuns de "fim de semana": singular/plural, com e sem
+     * hífenes, abreviatura e inglês. A versão anterior só aceitava "fim de semana", pelo
+     * que regras como "Rotação de fins-de-semana" não eram reconhecidas e o motor caía
+     * silenciosamente no valor por omissão.
+     */
+    private boolean mencionaFimDeSemana(String textoNormalizado) {
+        // Reduz hífenes a espaços para que "fins-de-semana" e "fins de semana" coincidam
+        String texto = textoNormalizado.replace('-', ' ');
+        return texto.contains("fim de semana")
+                || texto.contains("fins de semana")
+                || texto.contains("fds")
+                || texto.contains("weekend");
     }
 
     private boolean ehRegraDiaLimiteLancamento(RegraAplicada regra) {

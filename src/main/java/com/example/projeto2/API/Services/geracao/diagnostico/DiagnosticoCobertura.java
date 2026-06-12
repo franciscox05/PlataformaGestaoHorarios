@@ -125,7 +125,9 @@ public final class DiagnosticoCobertura {
     private static SugestaoFalhaGeracao sugestao(String codigo) {
         return switch (codigo) {
             case "carga_esgotada" -> new SugestaoFalhaGeracao(codigo,
-                    "Reforça a equipa com um colaborador adicional ou aumenta a carga contratual deste perfil.",
+                    "A carga contratual da equipa esgotou-se antes do fim do mês. Abre 'O que é considerado?' "
+                            + "no passo 1 para comparar a capacidade da equipa com a necessidade mínima; "
+                            + "depois reduz os mínimos por turno ou reforça a equipa.",
                     "full-time");
             case "turno_curto" -> new SugestaoFalhaGeracao(codigo,
                     "Disponibiliza um turno mais curto para este dia ou reforça com part-time.",

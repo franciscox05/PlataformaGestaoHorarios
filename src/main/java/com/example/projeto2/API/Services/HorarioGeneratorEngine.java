@@ -12,6 +12,7 @@ import com.example.projeto2.API.Services.geracao.PlaneadorFinsDeSemana;
 import com.example.projeto2.API.Services.geracao.PlaneadorFolgasPreferidas;
 import com.example.projeto2.API.Services.geracao.PlanoFinsDeSemana;
 import com.example.projeto2.API.Services.geracao.RefinadorPlaneamento;
+import com.example.projeto2.API.Services.geracao.SugestaoFalhaGeracao;
 import com.example.projeto2.API.Services.geracao.TurnoClassifier;
 import com.example.projeto2.API.Services.geracao.diagnostico.DiagnosticoCobertura;
 import org.slf4j.Logger;
@@ -105,6 +106,8 @@ public class HorarioGeneratorEngine {
      * @throws IllegalArgumentException se não for possível satisfazer todas as restrições.
      */
     public List<Horario> gerar(PedidoGeracao pedido) {
+        validarCapacidadeGlobal(pedido);
+
         Map<Integer, EstadoColaborador> estadoPorColaborador = inicializarEstados(pedido);
         inicializarHistorico(estadoPorColaborador, pedido.historicoHorarios());
 
@@ -177,6 +180,79 @@ public class HorarioGeneratorEngine {
                 sabadosComChefia.add(data);
             }
         }
+    }
+
+    // =========================================================================
+    // Pré-flight de capacidade global
+    // =========================================================================
+
+    /**
+     * Verificação aritmética antes de começar: a soma das cargas contratuais da equipa
+     * selecionada tem de chegar para a cobertura mínima de todos os dias do período.
+     * Sem isto, a geração arrancava, consumia a carga ao longo do mês e falhava só nos
+     * últimos dias com "carga contratual esgotada" — uma mensagem que não explica que o
+     * problema é estrutural (equipa pequena ou mínimos altos), não pontual.
+     */
+    private void validarCapacidadeGlobal(PedidoGeracao pedido) {
+        long minutosNecessarios = minutosMinimosNecessarios(pedido.dataInicio(), pedido);
+        long capacidadeTotal = 0;
+        for (Lojautilizador ligacao : pedido.colaboradores()) {
+            Integer id = ligacao.getIdUtilizador() != null ? ligacao.getIdUtilizador().getId() : null;
+            capacidadeTotal += Math.max(0, pedido.cargaMaximaPorColaborador().getOrDefault(id, 0L));
+        }
+        if (capacidadeTotal >= minutosNecessarios) {
+            return;
+        }
+
+        long horasNecessarias = (minutosNecessarios + 59) / 60;
+        long horasDisponiveis = capacidadeTotal / 60;
+        long deficeHoras = horasNecessarias - horasDisponiveis;
+        throw new FalhaGeracaoHorarioException(
+                "Não foi possível gerar o horário: a cobertura mínima do período exige cerca de "
+                        + horasNecessarias + "h de trabalho, mas a equipa selecionada só tem "
+                        + horasDisponiveis + "h de carga contratual (faltam ~" + deficeHoras + "h). "
+                        + "Este é um problema de capacidade, não de um dia específico.",
+                "-",
+                DATA_FORMATTER.format(pedido.dataInicio()),
+                pedido.colaboradores().size(),
+                "A capacidade contratual da equipa não chega para os mínimos do mês (faltam ~"
+                        + deficeHoras + "h).",
+                List.of(),
+                List.of(
+                        new SugestaoFalhaGeracao("capacidade_minimos",
+                                "Reduz o mínimo de colaboradores por turno nas regras da loja — é o que mais alivia a necessidade total.",
+                                null),
+                        new SugestaoFalhaGeracao("capacidade_equipa",
+                                "Inclui mais colaboradores na geração ou contrata reforço (faltam ~" + deficeHoras + "h de capacidade).",
+                                "part-time"),
+                        new SugestaoFalhaGeracao("capacidade_cargas",
+                                "Aumenta a carga contratual dos perfis existentes nas regras da loja.",
+                                null)
+                )
+        );
+    }
+
+    /**
+     * Minutos de trabalho exigidos pela cobertura mínima de todos os dias a partir de
+     * {@code desde} (inclusive): por dia, soma de mínimo × duração do turno representativo
+     * de cada tipo. Dias encerrados contam zero; dias especiais usam os seus mínimos.
+     */
+    private long minutosMinimosNecessarios(LocalDate desde, PedidoGeracao pedido) {
+        long total = 0;
+        for (LocalDate data = desde; !data.isAfter(pedido.dataFim()); data = data.plusDays(1)) {
+            ConfiguracaoDia configDia = pedido.configuracoesPorData().get(data);
+            if (configDia != null && configDia.lojaEncerrada()) {
+                continue;
+            }
+            List<Turno> turnosDoDia = configDia != null ? configDia.turnosCompativeis() : pedido.turnos();
+            if (turnosDoDia.isEmpty()) {
+                continue;
+            }
+            for (SlotDia slot : construirSlots(turnosDoDia, configDia, pedido.minimosPorTurno())) {
+                total += validator.calcularDuracaoEmMinutos(slot.turno());
+            }
+        }
+        return total;
     }
 
     // =========================================================================
@@ -280,11 +356,34 @@ public class HorarioGeneratorEngine {
                 .count();
         long limiteTopUp = Math.max(1L, numTiposDistintos / Math.max(1, minimoMaxGlobal));
 
-        return candidatos.stream()
+        // Orçamento de capacidade: o top-up de hoje só pode gastar a folga que sobra
+        // depois de reservar carga para a cobertura mínima de TODOS os dias restantes.
+        // Sem esta reserva, os turnos extra do início do mês esgotavam a carga da equipa
+        // e os últimos dias ficavam sem candidatos ("carga contratual esgotada").
+        long minutosMinimosRestantes = minutosMinimosNecessarios(data.plusDays(1), pedido);
+        long capacidadeRestante = estados.stream()
+                .mapToLong(EstadoColaborador::capacidadeRestanteMinutos)
+                .sum();
+        long orcamentoDisponivel = capacidadeRestante - minutosMinimosRestantes;
+        if (orcamentoDisponivel <= 0) {
+            return List.of();
+        }
+
+        List<AtribuicaoDia> selecionados = new ArrayList<>();
+        for (CandidatoPontuado candidato : candidatos.stream()
                 .sorted(Comparator.comparingDouble(CandidatoPontuado::score))
-                .limit(limiteTopUp)
-                .map(CandidatoPontuado::atribuicao)
-                .toList();
+                .toList()) {
+            if (selecionados.size() >= limiteTopUp) {
+                break;
+            }
+            long minutos = candidato.atribuicao().minutosTurno();
+            if (minutos > orcamentoDisponivel) {
+                continue;
+            }
+            orcamentoDisponivel -= minutos;
+            selecionados.add(candidato.atribuicao());
+        }
+        return selecionados;
     }
 
     // =========================================================================

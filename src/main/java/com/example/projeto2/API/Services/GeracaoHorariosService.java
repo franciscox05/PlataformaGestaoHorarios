@@ -458,9 +458,10 @@ public class GeracaoHorariosService {
 
     /**
      * Resumo legível dos critérios que o motor vai considerar na geração do período:
-     * regras hard ativas, mínimos por turno, cargas por perfil e o volume de
-     * preferências/ausências aprovadas. Não valida a janela de lançamento nem o estado
-     * da loja — destina-se a transparência, não a gerar.
+     * regras hard ativas, mínimos por turno (agrupados por tipo, como o motor os trata),
+     * cargas por perfil, balanço capacidade/necessidade e o detalhe das preferências e
+     * ausências aprovadas. Não valida a janela de lançamento nem o estado da loja —
+     * destina-se a transparência, não a gerar.
      */
     @Transactional(readOnly = true)
     public com.example.projeto2.API.Services.geracao.dto.CriteriosGeracao obterCriteriosGeracao(
@@ -472,11 +473,13 @@ public class GeracaoHorariosService {
         LocalDate dataInicio = LocalDate.of(anoNormalizado, mesNormalizado, 1);
         LocalDate dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
         Integer idLoja = loja.getId();
+        DateTimeFormatter formatoDia = DateTimeFormatter.ofPattern("dd/MM");
 
         List<Turno> turnos = turnoRepository.findAllByOrderByHoraInicioAsc();
         List<RegraAplicada> regras = regraGeracaoResolver.obterRegrasAplicadas(idLoja);
         ParametrosGeracao parametros = regraGeracaoResolver.resolverParametrosGeracao(regras, turnos);
 
+        List<Lojautilizador> elegiveis = obterColaboradoresElegiveis(idLoja, dataInicio, dataFim);
         List<DayOff> dayOffsAprovados = dayOffRepository.findPedidosAprovadosDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<Preferencia> preferenciasAprovadas = preferenciaRepository.findPreferenciasAprovadasDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<HorarioEspecialLoja> horariosEspeciais = horarioEspecialLojaRepository.findAtivosNoPeriodo(idLoja, dataInicio, dataFim);
@@ -488,21 +491,89 @@ public class GeracaoHorariosService {
         Map<LocalDate, ConfiguracaoDiaEspecial> configuracoesPorData =
                 LojaConfiguracaoBuilder.construirConfiguracoesEspeciaisPorData(loja, turnos, horariosEspeciais);
 
-        List<String> minimosLegiveis = new ArrayList<>();
+        // Mínimos agrupados por tipo de turno — espelha o agrupamento do motor, que
+        // trata turnos do mesmo período como um único grupo com o mínimo mais exigente.
+        Map<String, List<Turno>> turnosPorTipo = new LinkedHashMap<>();
         for (Turno turno : turnos) {
-            Integer minimo = parametros.minimosPorTurno().get(turno.getId());
-            minimosLegiveis.add(HorarioFormatters.formatarTurno(turno)
-                    + " — mínimo " + (minimo != null ? minimo : "?") + " colaborador"
-                    + (minimo != null && minimo == 1 ? "" : "es"));
+            turnosPorTipo.computeIfAbsent(
+                    com.example.projeto2.API.Services.geracao.TurnoClassifier.tipoNormalizado(turno),
+                    ignored -> new ArrayList<>()).add(turno);
+        }
+        List<String> minimosLegiveis = new ArrayList<>();
+        long minutosNecessariosPorDia = 0;
+        for (Map.Entry<String, List<Turno>> grupo : turnosPorTipo.entrySet()) {
+            int minimo = grupo.getValue().stream()
+                    .map(t -> parametros.minimosPorTurno().getOrDefault(t.getId(), 0))
+                    .max(Integer::compareTo)
+                    .orElse(0);
+            String horarios = grupo.getValue().stream()
+                    .map(HorarioFormatters::formatarTurno)
+                    .distinct()
+                    .collect(java.util.stream.Collectors.joining(", "));
+            minimosLegiveis.add(capitalizar(grupo.getKey()) + " (" + horarios + ") — mínimo "
+                    + minimo + " colaborador" + (minimo == 1 ? "" : "es"));
+            long duracaoRepresentativa = grupo.getValue().stream()
+                    .mapToLong(HorarioFormatters::calcularDuracaoEmMinutos)
+                    .max()
+                    .orElse(0);
+            minutosNecessariosPorDia += minimo * duracaoRepresentativa;
+        }
+
+        // Necessidade do período: dias abertos × necessidade diária (dias especiais com
+        // mínimo próprio são aproximados pelo mínimo configurado nesse dia).
+        long minutosNecessarios = 0;
+        for (LocalDate data = dataInicio; !data.isAfter(dataFim); data = data.plusDays(1)) {
+            ConfiguracaoDiaEspecial config = configuracoesPorData.get(data);
+            if (config != null && config.lojaEncerrada()) continue;
+            minutosNecessarios += minutosNecessariosPorDia;
+        }
+
+        // Capacidade da equipa elegível: carga contratual do perfil de cada colaborador.
+        long capacidadeMinutos = 0;
+        List<String> detalheColaboradores = new ArrayList<>();
+        for (Lojautilizador lig : elegiveis) {
+            String cargo = lig.getIdCargo() != null ? valorOuTraco(lig.getIdCargo().getNome()) : "-";
+            String tipoCargo = lig.getIdCargo() != null ? lig.getIdCargo().getTipo() : null;
+            long minutos = PerfilContratual.fromCargoTipo(tipoCargo)
+                    .map(perfil -> parametros.cargaMaximaMinutosPorPerfil().getOrDefault(perfil, 0L))
+                    .orElse(0L);
+            capacidadeMinutos += minutos;
+            detalheColaboradores.add(nomeDe(lig) + " — " + cargo + ", " + (minutos / 60) + "h/mês");
         }
 
         List<String> cargasLegiveis = new ArrayList<>();
         parametros.cargaMaximaMinutosPorPerfil().forEach((perfil, minutos) ->
                 cargasLegiveis.add(perfil.descricaoCurta() + " — " + (minutos / 60) + "h/mês"));
 
-        int totalFolgasPreferidas = diasFolgaPreferidos.values().stream().mapToInt(Set::size).sum();
-        int totalPrefTurno = preferenciasTurnos.values().stream().mapToInt(List::size).sum();
-        int totalPrefColegas = preferenciasColegas.values().stream().mapToInt(List::size).sum();
+        Map<Integer, String> nomesPorId = new LinkedHashMap<>();
+        for (Lojautilizador lig : elegiveis) {
+            if (lig.getIdUtilizador() != null && lig.getIdUtilizador().getId() != null) {
+                nomesPorId.put(lig.getIdUtilizador().getId(), nomeDe(lig));
+            }
+        }
+
+        List<String> detalheAusencias = dayOffsAprovados.stream()
+                .map(d -> nomeDe(d.getIdUtilizador(), nomesPorId) + " — "
+                        + (d.getDataAusencia() != null ? d.getDataAusencia().format(formatoDia) : "?")
+                        + (d.getTipo() != null && !d.getTipo().isBlank() ? " (" + d.getTipo() + ")" : ""))
+                .sorted()
+                .toList();
+
+        List<String> detalheFolgasPreferidas = new ArrayList<>();
+        diasFolgaPreferidos.forEach((id, dias) -> dias.stream().sorted().forEach(dia ->
+                detalheFolgasPreferidas.add(nomesPorId.getOrDefault(id, "Colaborador #" + id)
+                        + " — " + dia.format(formatoDia))));
+        detalheFolgasPreferidas.sort(String::compareTo);
+
+        List<String> detalhePrefTurno = descreverPreferencias(preferenciasTurnos, nomesPorId, formatoDia);
+        List<String> detalhePrefColegas = descreverPreferencias(preferenciasColegas, nomesPorId, formatoDia);
+
+        List<String> detalheDiasEspeciais = configuracoesPorData.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> e.getKey().format(formatoDia) + " — "
+                        + (e.getValue().lojaEncerrada() ? "loja encerrada"
+                                : valorOuTraco(e.getValue().descricao())))
+                .toList();
 
         return new com.example.projeto2.API.Services.geracao.dto.CriteriosGeracao(
                 parametros.descansoMinimoHoras(),
@@ -512,13 +583,56 @@ public class GeracaoHorariosService {
                 parametros.exigirChefiaAoSabado(),
                 minimosLegiveis,
                 cargasLegiveis,
-                obterColaboradoresElegiveis(idLoja, dataInicio, dataFim).size(),
-                dayOffsAprovados.size(),
-                totalFolgasPreferidas,
-                totalPrefTurno,
-                totalPrefColegas,
-                configuracoesPorData.size()
+                capacidadeMinutos / 60,
+                (minutosNecessarios + 59) / 60,
+                detalheColaboradores,
+                detalheAusencias,
+                detalheFolgasPreferidas,
+                detalhePrefTurno,
+                detalhePrefColegas,
+                detalheDiasEspeciais
         );
+    }
+
+    private List<String> descreverPreferencias(Map<Integer, List<Preferencia>> porColaborador,
+                                               Map<Integer, String> nomesPorId,
+                                               DateTimeFormatter formatoDia) {
+        List<String> linhas = new ArrayList<>();
+        porColaborador.forEach((id, prefs) -> {
+            for (Preferencia p : prefs) {
+                String periodo = p.getDataInicio() != null
+                        ? p.getDataInicio().format(formatoDia)
+                                + (p.getDataFim() != null ? "–" + p.getDataFim().format(formatoDia) : " em diante")
+                        : "";
+                linhas.add(nomesPorId.getOrDefault(id, "Colaborador #" + id)
+                        + " — " + valorOuTraco(p.getDescricao())
+                        + (periodo.isBlank() ? "" : " (" + periodo + ")"));
+            }
+        });
+        linhas.sort(String::compareTo);
+        return linhas;
+    }
+
+    private String nomeDe(Lojautilizador lig) {
+        if (lig != null && lig.getIdUtilizador() != null
+                && lig.getIdUtilizador().getNome() != null
+                && !lig.getIdUtilizador().getNome().isBlank()) {
+            return lig.getIdUtilizador().getNome();
+        }
+        return "Colaborador";
+    }
+
+    private String nomeDe(com.example.projeto2.API.Modules.Utilizador utilizador, Map<Integer, String> nomesPorId) {
+        if (utilizador == null) return "Colaborador";
+        if (utilizador.getNome() != null && !utilizador.getNome().isBlank()) {
+            return utilizador.getNome();
+        }
+        return nomesPorId.getOrDefault(utilizador.getId(), "Colaborador #" + utilizador.getId());
+    }
+
+    private String capitalizar(String texto) {
+        if (texto == null || texto.isBlank()) return "-";
+        return Character.toUpperCase(texto.charAt(0)) + texto.substring(1);
     }
 
     private DadosGeracao prepararDadosGeracao(Integer idUtilizador,
