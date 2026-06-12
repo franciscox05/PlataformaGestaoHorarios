@@ -162,7 +162,8 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
 
         assertNotNull(proposta);
         assertTrue("rascunho".equalsIgnoreCase(proposta.estado()));
-        assertEquals(referencia.lengthOfMonth() * contarBlocosCobertura(fixture.turnos()), proposta.resumo().turnos());
+        assertTrue(proposta.resumo().turnos() >= referencia.lengthOfMonth() * contarBlocosCobertura(fixture.turnos()),
+                "A cobertura minima diaria e um piso: a geracao pode reforcar acima dela.");
         assertFalse(proposta.linhas().isEmpty());
         assertFalse(proposta.linhas().stream()
                 .anyMatch(linha -> referencia.equals(linha.data()) && bloqueadoPorDayOff.getNome().equals(linha.colaborador())));

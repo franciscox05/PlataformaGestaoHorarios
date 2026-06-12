@@ -46,7 +46,8 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
         assertTrue(alternativas.stream().allMatch(proposta -> proposta.metricas().pontuacao() >= 0));
         long blocosCobertura = contarBlocosCobertura(fixture.turnos());
         assertTrue(alternativas.stream().allMatch(proposta ->
-                proposta.resumo().turnos() == fixture.referencia().lengthOfMonth() * blocosCobertura));
+                proposta.resumo().turnos() >= fixture.referencia().lengthOfMonth() * blocosCobertura),
+                "Cada alternativa deve cobrir pelo menos o minimo diario (pode gerar mais).");
 
         List<PropostaResumo> resumos = geracaoHorariosBLL.listarPropostas(
                 fixture.lojaFixture().gerente().getId(),
@@ -205,7 +206,8 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
 
         assertEquals(1, propostas.size());
         PropostaResultado proposta = propostas.getFirst();
-        assertEquals(fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()) * 2, proposta.resumo().turnos());
+        assertTrue(proposta.resumo().turnos() >= fixture.referencia().lengthOfMonth() * contarBlocosCobertura(fixture.turnos()) * 2,
+                "Com minimo=2, a cobertura minima duplica; a geracao pode reforcar acima desse piso.");
 
         List<Horario> horarios = horarioRepository.findByIdPropostaHorarioId(proposta.idProposta());
         assertFalse(horarios.isEmpty());

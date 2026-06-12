@@ -8,6 +8,9 @@ import com.example.projeto2.API.Services.geracao.ConfiguracaoDia;
 import com.example.projeto2.API.Services.geracao.EstadoColaborador;
 import com.example.projeto2.API.Services.geracao.FalhaGeracaoHorarioException;
 import com.example.projeto2.API.Services.geracao.PedidoGeracao;
+import com.example.projeto2.API.Services.geracao.PlaneadorFinsDeSemana;
+import com.example.projeto2.API.Services.geracao.PlaneadorFolgasPreferidas;
+import com.example.projeto2.API.Services.geracao.PlanoFinsDeSemana;
 import com.example.projeto2.API.Services.geracao.RefinadorPlaneamento;
 import com.example.projeto2.API.Services.geracao.TurnoClassifier;
 import com.example.projeto2.API.Services.geracao.diagnostico.DiagnosticoCobertura;
@@ -19,6 +22,7 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -47,6 +51,11 @@ import java.util.Set;
  *   <li>Descanso semanal relaxado (só fim de semana)</li>
  * </ol>
  *
+ * <p>Cumprido o mínimo de cada dia, corre a fase de <b>preenchimento de capacidade</b>
+ * ({@link #reforcarCoberturaDoDia}): atribui turnos extra aos colaboradores atrasados
+ * face ao ritmo contratual, para que a cobertura diária use a capacidade real da equipa
+ * em vez de ficar pelo mínimo — sem relaxações e sem ultrapassar a carga contratual.
+ *
  * <p>No final da construção corre uma fase de <b>refinamento por pesquisa local</b>
  * ({@link RefinadorPlaneamento}): movimentos 1-para-1 que recuperam folgas preferidas
  * não honradas e equilibram a carga contratual entre colaboradores, sempre validados
@@ -73,11 +82,15 @@ public class HorarioGeneratorEngine {
     private final HorarioValidatorService validator;
     private final AvaliadorAtribuicao avaliador;
     private final RefinadorPlaneamento refinador;
+    private final PlaneadorFolgasPreferidas planeadorFolgas;
+    private final PlaneadorFinsDeSemana planeadorFins;
 
     public HorarioGeneratorEngine(HorarioValidatorService validator) {
         this.validator = validator;
         this.avaliador = new AvaliadorAtribuicao(validator);
         this.refinador = new RefinadorPlaneamento(validator);
+        this.planeadorFolgas = new PlaneadorFolgasPreferidas(validator);
+        this.planeadorFins = new PlaneadorFinsDeSemana(validator);
     }
 
     // =========================================================================
@@ -94,6 +107,24 @@ public class HorarioGeneratorEngine {
     public List<Horario> gerar(PedidoGeracao pedido) {
         Map<Integer, EstadoColaborador> estadoPorColaborador = inicializarEstados(pedido);
         inicializarHistorico(estadoPorColaborador, pedido.historicoHorarios());
+
+        // Pré-planeamento: reserva proativamente as folgas preferidas que cabem sem
+        // comprometer a cobertura (dias úteis), garantindo-as antes do greedy começar.
+        Map<Integer, Set<LocalDate>> folgasReservadas = planeadorFolgas.reservar(pedido);
+        folgasReservadas.forEach((id, dias) -> {
+            EstadoColaborador estado = estadoPorColaborador.get(id);
+            if (estado != null) {
+                estado.reservarFolgasPreferidas(dias);
+            }
+        });
+
+        // Lookahead de fins de semana: designação global (consultiva) de quem trabalha
+        // cada FDS, para o avaliador planear a rotação em vez de a resolver reativamente.
+        PlanoFinsDeSemana planoFins = planeadorFins.planear(pedido);
+        if (planoFins.ativo()) {
+            estadoPorColaborador.forEach((id, estado) ->
+                    estado.designarFinsDeSemana(planoFins.designados(id), planoFins.chefiaEm(id)));
+        }
 
         List<Horario> horarios = new ArrayList<>();
         Set<LocalDate> sabadosComChefia = new LinkedHashSet<>();
@@ -115,22 +146,136 @@ public class HorarioGeneratorEngine {
             List<AtribuicaoDia> atribuicoes = planearDia(
                     data, turnosDoDia, configDia, estadoPorColaborador,
                     horarios, sabadosComChefia.contains(data), pedido);
+            registarAtribuicoes(data, atribuicoes, horarios, sabadosComChefia);
 
-            for (AtribuicaoDia a : atribuicoes) {
-                Horario h = new Horario();
-                h.setIdLojautilizador(a.estado().ligacao());
-                h.setIdTurno(a.turno());
-                h.setDataTurno(data);
-                horarios.add(h);
-
-                a.estado().registarAtribuicao(data, a.turno(), a.minutosTurno());
-                if (data.getDayOfWeek() == DayOfWeek.SATURDAY && a.estado().ehChefiaAoSabado()) {
-                    sabadosComChefia.add(data);
-                }
+            // Fase de preenchimento de capacidade: com o mínimo do dia garantido,
+            // reforça a cobertura com colaboradores atrasados face ao ritmo contratual.
+            // Dias com configuração especial cumprem exatamente o mínimo definido pelo gerente.
+            if (configDia == null) {
+                List<AtribuicaoDia> extras = reforcarCoberturaDoDia(
+                        data, turnosDoDia, estadoPorColaborador.values(), horarios, pedido);
+                registarAtribuicoes(data, extras, horarios, sabadosComChefia);
             }
         }
         // Fase final: refinamento por pesquisa local (folgas preferidas + equilíbrio de carga)
         return refinador.refinar(pedido, horarios);
+    }
+
+    private void registarAtribuicoes(LocalDate data,
+                                     List<AtribuicaoDia> atribuicoes,
+                                     List<Horario> horarios,
+                                     Set<LocalDate> sabadosComChefia) {
+        for (AtribuicaoDia a : atribuicoes) {
+            Horario h = new Horario();
+            h.setIdLojautilizador(a.estado().ligacao());
+            h.setIdTurno(a.turno());
+            h.setDataTurno(data);
+            horarios.add(h);
+
+            a.estado().registarAtribuicao(data, a.turno(), a.minutosTurno());
+            if (data.getDayOfWeek() == DayOfWeek.SATURDAY && a.estado().ehChefiaAoSabado()) {
+                sabadosComChefia.add(data);
+            }
+        }
+    }
+
+    // =========================================================================
+    // Fase de preenchimento de capacidade (anti-desfalque)
+    // =========================================================================
+
+    /**
+     * Reforça a cobertura de um dia para além do mínimo, usando a capacidade
+     * contratual ainda por consumir. Sem isto, o motor tratava o mínimo por turno
+     * como alvo exato e os colaboradores ficavam muito aquém da carga contratual —
+     * horários "desfalcados" com a equipa em casa.
+     *
+     * <p>Critérios, por colaborador:
+     * <ul>
+     *   <li><b>Ritmo contratual:</b> só recebe turno extra quem está atrasado face ao
+     *       ritmo {@code carga × diasDecorridos / diasTotais} — distribui a carga
+     *       uniformemente pelo mês e nunca ultrapassa o teto contratual.</li>
+     *   <li><b>Regras hard intactas:</b> cada turno extra passa por
+     *       {@link EstadoColaborador#podeReceber} sem qualquer relaxação.</li>
+     *   <li><b>Folgas preferidas respeitadas:</b> um turno extra nunca cai num dia de
+     *       folga preferida — a cobertura mínima já está garantida sem ele.</li>
+     *   <li><b>Margem para o fim de semana:</b> em dias úteis, quem ainda pode vir a
+     *       ser necessário ao fim de semana guarda um dia de folga semanal de reserva,
+     *       para que o preenchimento não esgote os candidatos de sábado/domingo.</li>
+     * </ul>
+     *
+     * <p>O turno escolhido para cada colaborador é o de melhor pontuação no
+     * {@link AvaliadorAtribuicao} (respeita preferências de turno aprovadas, política
+     * de otimização ativa, etc.). Devolve no máximo um turno extra por colaborador.
+     */
+    private List<AtribuicaoDia> reforcarCoberturaDoDia(LocalDate data,
+                                                       List<Turno> turnosDoDia,
+                                                       Collection<EstadoColaborador> estados,
+                                                       List<Horario> horariosJaGerados,
+                                                       PedidoGeracao pedido) {
+        if (pedido.prazoLimite() != null && Instant.now().isAfter(pedido.prazoLimite())) {
+            return List.of();
+        }
+        // Sem top-up ao fim de semana: limitar o número de trabalhadores por dia de FDS
+        // ao mínimo é essencial para não esgotar o grupo elegível para o FDS seguinte.
+        // Se todos os 11 colaboradores trabalharem no FDS da semana 1 (via top-up),
+        // ficam todos bloqueados pela rotação na semana 2 e o planeamento falha.
+        if (validator.ehFimDeSemana(data)) {
+            return List.of();
+        }
+        long diasTotais = ChronoUnit.DAYS.between(pedido.dataInicio(), pedido.dataFim()) + 1;
+        long diasDecorridos = ChronoUnit.DAYS.between(pedido.dataInicio(), data) + 1;
+        boolean diaUtil = !validator.ehFimDeSemana(data);
+        int maxDiasTrabalhadosNaSemana = 7 - pedido.descansoSemanalMinimoDias();
+
+        AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horariosJaGerados);
+        List<CandidatoPontuado> candidatos = new ArrayList<>();
+        for (EstadoColaborador estado : estados) {
+            // Exige pelo menos um dia completo de atraso antes de reforçar:
+            // evita que workers marginalmente abaixo do ritmo esgotem a carga
+            // antes do fim do mês, deixando os últimos dias sem cobertura.
+            if (!estado.abaixoDoRitmoContratual(diasDecorridos - 1, diasTotais)) continue;
+            if (pedido.folgasPreferidasPorColaborador()
+                    .getOrDefault(estado.idUtilizador(), Set.of()).contains(data)) continue;
+            if (diaUtil
+                    && estado.podeVirASerPrecisoNoFimDeSemana(data, pedido)
+                    && estado.diasTrabalhadosNaSemana(data) >= maxDiasTrabalhadosNaSemana - 1) {
+                continue; // reserva de margem semanal para a cobertura do fim de semana
+            }
+
+            CandidatoPontuado melhor = null;
+            for (Turno turno : turnosDoDia) {
+                long minutos = validator.calcularDuracaoEmMinutos(turno);
+                if (!estado.podeReceber(data, turno, minutos, pedido, false, false)) continue;
+                double score = avaliador.pontuar(estado, turno, minutos, data, pedido, contexto);
+                if (melhor == null || score < melhor.score()) {
+                    melhor = new CandidatoPontuado(new AtribuicaoDia(estado, turno, minutos), score);
+                }
+            }
+            if (melhor != null) {
+                candidatos.add(melhor);
+            }
+        }
+
+        // Limita o top-up inversamente ao mínimo por tipo: com mínimo=1, acrescenta
+        // até 1 por tipo (3 total); com mínimo=2, o mínimo já absorve metade da carga
+        // contratual, por isso o top-up é reduzido para evitar exaustão antes do final
+        // do mês. Garante sempre pelo menos 1 (fix: a divisão inteira podia produzir 0
+        // quando minimoMaxGlobal > numTipos, bloqueando por completo o top-up).
+        int minimoMaxGlobal = pedido.minimosPorTurno().values().stream()
+                .mapToInt(Integer::intValue)
+                .max()
+                .orElse(1);
+        long numTiposDistintos = turnosDoDia.stream()
+                .map(TurnoClassifier::tipoNormalizado)
+                .distinct()
+                .count();
+        long limiteTopUp = Math.max(1L, numTiposDistintos / Math.max(1, minimoMaxGlobal));
+
+        return candidatos.stream()
+                .sorted(Comparator.comparingDouble(CandidatoPontuado::score))
+                .limit(limiteTopUp)
+                .map(CandidatoPontuado::atribuicao)
+                .toList();
     }
 
     // =========================================================================

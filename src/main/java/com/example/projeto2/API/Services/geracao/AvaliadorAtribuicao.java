@@ -7,6 +7,7 @@ import com.example.projeto2.API.Services.HorarioValidatorService;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -37,6 +38,7 @@ import java.util.Set;
  *   <li>Preferências de turno e de colegas aprovadas — {@code pesoPreferencias}</li>
  *   <li>Folga preferida no dia — base forte (soft) + reforço por {@code pesoPreferencias}</li>
  *   <li>Consistência de turno (mesmo período que na véspera) — {@code pesoTurnoRepetido}</li>
+ *   <li>Idle streak (dias sem trabalhar ≥ 2) — bónus proporcional, cap 5 dias, via {@code pesoEquilibrioCarga}</li>
  *   <li>Diversificação (desempate determinístico) — {@code pesoDiversificacao} + base</li>
  * </ol>
  */
@@ -50,12 +52,20 @@ public final class AvaliadorAtribuicao {
     private static final double ESCALA_RESERVA      = 50.0;
     private static final double ESCALA_PREFERENCIAS = 55.0;
     private static final double ESCALA_CONSISTENCIA = 22.0;
+    private static final double ESCALA_IDLE         = 18.0;
     private static final double ESCALA_JITTER       = 8.0;
 
     // Penalização-base de folga preferida — independente da política (atenção garantida)
     private static final double BASE_FOLGA_PREFERIDA = 60.0;
 
-    private static final double NUDGE_CHEFIA_SABADO = 1000.0;
+    // Reduzido de 1000 → 500 para que o pace guard (componente 2b) e o equilíbrio
+    // de carga consigam sobrepor-se quando a chefia já está acima do ritmo esperado.
+    private static final double NUDGE_CHEFIA_SABADO = 500.0;
+
+    // Nudge moderado para a chefia que NÃO é a designada deste fim de semana (lookahead
+    // ativo): mantém-na preferível a um regular (a cobertura de chefia é garantida pela
+    // restrição hard), mas sem a queimar — preserva-a para o fim de semana que lhe cabe.
+    private static final double NUDGE_CHEFIA_SABADO_SECUNDARIA = 150.0;
 
     private final HorarioValidatorService validator;
 
@@ -92,22 +102,51 @@ public final class AvaliadorAtribuicao {
         double pontuacao = 0;
         boolean fimDeSemana = validator.ehFimDeSemana(data);
 
-        // (1) Chefia obrigatória ao sábado — nudge constante
+        // Ritmo contratual esperado — calculado uma vez e reutilizado nos componentes (2b) e (8)
+        long diasTotais = ChronoUnit.DAYS.between(pedido.dataInicio(), pedido.dataFim()) + 1;
+        long diasDecorridos = ChronoUnit.DAYS.between(pedido.dataInicio(), data) + 1;
+        double excessoRitmo = estado.excessoRitmoNormalizado(diasDecorridos, diasTotais);
+
+        // (1) Chefia obrigatória ao sábado — nudge plano-aware. Sem lookahead ativo, puxa
+        // todas as chefias (comportamento anterior). Com lookahead, puxa forte a chefia
+        // designada deste FDS e moderadamente as outras, sustentando a rotação de chefias.
         if (pedido.exigirChefiaAoSabado()
                 && data.getDayOfWeek() == DayOfWeek.SATURDAY
                 && estado.ehChefiaAoSabado()) {
-            pontuacao -= NUDGE_CHEFIA_SABADO;
+            boolean designadaOuSemPlano = !estado.temPlanoFinsDeSemana()
+                    || estado.ehChefiaDesignadaNoFimDeSemana(data);
+            pontuacao -= designadaOuSemPlano ? NUDGE_CHEFIA_SABADO : NUDGE_CHEFIA_SABADO_SECUNDARIA;
         }
 
         // (2) Equilíbrio de carga contratual — preferir quem tem menos utilização projetada
         pontuacao += politica.pesoEquilibrioCarga() * estado.utilizacaoProjetada(minutos) * ESCALA_CARGA;
 
-        // (3) Rotação de fins de semana — penalizar quem já trabalhou mais / consecutivos
-        double componenteFds = Math.min(estado.totalFimDeSemanaTrabalhados(), 5) / 5.0;
-        if (fimDeSemana && estado.trabalhouFimDeSemanaAnterior(data)) {
-            componenteFds += estado.ehApenasFimDeSemana() ? 1.6 : 1.0;
+        // (2b) Pace guard — penalização extra para colaboradores acima do ritmo esperado.
+        // Evita que preferências de turno ou o bónus de inatividade (componente 8) sejam
+        // suficientes para escalar repetidamente colaboradores que já estão adiantados no
+        // seu contrato, deixando-os sem capacidade antes do fim do mês.
+        if (excessoRitmo > 0.05) {
+            pontuacao += politica.pesoEquilibrioCarga() * excessoRitmo * ESCALA_CARGA * 5.0;
         }
-        pontuacao += politica.pesoFinsDeSemana() * componenteFds * ESCALA_FDS;
+
+        // (3) Rotação de fins de semana — penalizar quem já trabalhou mais / consecutivos.
+        // O reforço de fim de semana está isento: trabalhar FDS seguidos é o propósito
+        // do perfil, pelo que penalizá-lo só empurrava os FDS para a equipa regular.
+        if (!estado.ehApenasFimDeSemana()) {
+            double componenteFds = Math.min(estado.totalFimDeSemanaTrabalhados(), 5) / 5.0;
+            if (fimDeSemana && estado.trabalhouFimDeSemanaAnterior(data)) {
+                componenteFds += 1.0;
+            }
+            pontuacao += politica.pesoFinsDeSemana() * componenteFds * ESCALA_FDS;
+
+            // Lookahead de FDS: puxar o colaborador para o fim de semana que lhe foi
+            // designado no plano global (rotação planeada, não reativa). Apenas bónus —
+            // nunca penaliza os não-designados, para não retirar candidatos a um fim de
+            // semana que ainda possa precisar deles.
+            if (fimDeSemana && estado.designadoParaFimDeSemana(data)) {
+                pontuacao -= politica.pesoFinsDeSemana() * ESCALA_FDS;
+            }
+        }
 
         // (4) Reserva operacional — poupar part-time de fim de semana para o fim de semana
         if (fimDeSemana && estado.ehApenasFimDeSemana()) {
@@ -142,7 +181,18 @@ public final class AvaliadorAtribuicao {
             pontuacao -= politica.pesoTurnoRepetido() * ESCALA_CONSISTENCIA;
         }
 
-        // (8) Diversificação — jitter determinístico de desempate (base garantida + reforço)
+        // (8) Idle streak — bónus para colaboradores que não trabalham há 2+ dias.
+        // Só se aplica quando o colaborador NÃO está acima do ritmo esperado: se já está
+        // adiantado no contrato, não precisa de incentivo extra — o pace guard (2b) trata
+        // do reequilíbrio. Isto evita que o bónus de inatividade anule o pace guard e
+        // volte a tornar colaboradores sobrecarregados preferidos após um dia de descanso.
+        int diasIdle = estado.diasDesdeUltimoTurno(data);
+        if (diasIdle >= 2 && excessoRitmo <= 0.05) {
+            int diasIdleCapped = Math.min(diasIdle, 5);
+            pontuacao -= politica.pesoEquilibrioCarga() * (diasIdleCapped - 1) * ESCALA_IDLE;
+        }
+
+        // (9) Diversificação — jitter determinístico de desempate (base garantida + reforço)
         double jitter = jitter(pedido.semente(), estado.idUtilizador());
         pontuacao += jitter * (1 + politica.pesoDiversificacao());
 
