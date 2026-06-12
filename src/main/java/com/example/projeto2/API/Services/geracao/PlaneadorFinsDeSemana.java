@@ -84,17 +84,28 @@ public final class PlaneadorFinsDeSemana {
         }
 
         // (2) Chefia — uma por fim de semana, respeitando rotação e bloqueio ao sábado.
+        // Fallback: quando a janela de rotação não deixa nenhuma chefia elegível (ex.:
+        // 2 chefias com rotação de 7 semanas num mês de 5 fins de semana), designa a
+        // menos sobrecarregada MESMO violando o espaçamento. O motor vai precisar de
+        // uma chefia nesse sábado de qualquer forma (via relaxação da rotação) — e só
+        // com a designação feita é que o avaliador a protege durante a semana (margem
+        // de dias e carga) para ela chegar ao sábado disponível.
+        Map<Integer, LocalDate> ultimaChefia = new HashMap<>();
         for (LocalDate fds : fins) {
-            Lojautilizador escolhido = escolher(chefias, fds, janela, ultimoDesignado,
+            Lojautilizador escolhido = escolher(chefias, fds, janela, ultimaChefia,
                     pedido, designados, true);
+            if (escolhido == null) {
+                escolhido = escolher(chefias, fds, 1, ultimaChefia, pedido, designados, true);
+            }
             if (escolhido != null) {
                 Integer id = idDe(escolhido);
                 designados.computeIfAbsent(id, ignored -> new LinkedHashSet<>()).add(fds);
                 comoChefia.computeIfAbsent(id, ignored -> new LinkedHashSet<>()).add(fds);
+                ultimaChefia.put(id, fds);
                 ultimoDesignado.put(id, fds);
             }
-            // Sem chefia elegível: o fim de semana fica sem chefia designada — o nudge de
-            // fallback do avaliador e a relaxação do motor tratam a cobertura.
+            // Sem chefia mesmo com fallback (ex.: folga aprovada no sábado): fica sem
+            // designação — o nudge de fallback do avaliador e a relaxação tratam disso.
         }
 
         // (3) Regulares — preencher até cobertura + margem, com espaçamento de rotação.

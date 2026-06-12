@@ -40,6 +40,7 @@ import java.util.Set;
  *   <li>Consistência de turno (mesmo período que na véspera; rotação invertida penalizada) — {@code pesoTurnoRepetido}</li>
  *   <li>Idle streak (dias sem trabalhar ≥ 2) — bónus proporcional, cap 5 dias, via {@code pesoEquilibrioCarga}</li>
  *   <li>Diversificação (desempate determinístico) — {@code pesoDiversificacao} + base</li>
+ *   <li>Proteção da chefia para o sábado — margem semanal e reserva de carga (soft, não ponderado)</li>
  * </ol>
  */
 public final class AvaliadorAtribuicao {
@@ -78,6 +79,12 @@ public final class AvaliadorAtribuicao {
     // o descanso real e desorganiza o ritmo circadiano. Independente da política — é uma
     // questão de ergonomia básica, não de otimização. Soft: nunca impede cobertura.
     private static final double PENALIZACAO_ROTACAO_INVERTIDA = 45.0;
+
+    // Proteção da chefia para o sábado: penalização forte (mas soft) para escalar uma
+    // chefia em dia útil quando isso a deixaria sem margem semanal ou sem carga para os
+    // sábados que o plano lhe designou. Sem isto, o greedy gastava os 5 dias úteis e a
+    // carga das chefias, e o sábado ficava sem gerente/subgerente possível.
+    private static final double PROTECAO_CHEFIA_SABADO = 1500.0;
 
     private final HorarioValidatorService validator;
 
@@ -223,6 +230,27 @@ public final class AvaliadorAtribuicao {
         // (9) Diversificação — jitter determinístico de desempate (base garantida + reforço)
         double jitter = jitter(pedido.semente(), estado.idUtilizador());
         pontuacao += jitter * (1 + politica.pesoDiversificacao());
+
+        // (10) Proteção da chefia para o sábado — em dia útil, uma chefia com sábado(s)
+        // designado(s) pelo plano não deve ser escalada quando isso a deixaria sem margem
+        // semanal (precisa de guardar um dia para o sábado) ou sem carga contratual para
+        // os sábados que ainda lhe cabem. Soft mas forte: com alternativas disponíveis,
+        // a chefia nunca é a escolhida; sem alternativas, a cobertura mínima prevalece.
+        if (!fimDeSemana && pedido.exigirChefiaAoSabado() && estado.ehChefiaAoSabado()
+                && estado.temPlanoFinsDeSemana()) {
+            LocalDate sabadoDaSemana = validator.inicioFimDeSemana(data);
+            boolean chefiaDesteSabado = estado.ehChefiaDesignadaNoFimDeSemana(sabadoDaSemana)
+                    && !sabadoDaSemana.isAfter(pedido.dataFim());
+            int maxDiasSemana = 7 - pedido.descansoSemanalMinimoDias();
+            if (chefiaDesteSabado && estado.diasTrabalhadosNaSemana(data) >= maxDiasSemana - 1) {
+                pontuacao += PROTECAO_CHEFIA_SABADO;
+            }
+            int sabadosReservados = estado.sabadosComoChefiaDesde(data);
+            if (sabadosReservados > 0
+                    && estado.capacidadeRestanteMinutos() - minutos < (long) sabadosReservados * minutos) {
+                pontuacao += PROTECAO_CHEFIA_SABADO;
+            }
+        }
 
         return pontuacao;
     }

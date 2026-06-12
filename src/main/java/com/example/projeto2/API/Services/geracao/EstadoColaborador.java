@@ -126,6 +126,21 @@ public final class EstadoColaborador {
         return finsDeSemanaComoChefia.contains(validator.inicioFimDeSemana(data));
     }
 
+    /**
+     * Número de fins de semana a partir de {@code data} (inclusive a semana corrente)
+     * em que este colaborador é a chefia designada. Usado pelo avaliador para reservar
+     * carga contratual suficiente para os sábados que ainda lhe cabem.
+     */
+    public int sabadosComoChefiaDesde(LocalDate data) {
+        if (data == null || finsDeSemanaComoChefia.isEmpty()) return 0;
+        LocalDate sabadoCorrente = validator.inicioFimDeSemana(data);
+        int total = 0;
+        for (LocalDate sabado : finsDeSemanaComoChefia) {
+            if (!sabado.isBefore(sabadoCorrente)) total++;
+        }
+        return total;
+    }
+
     public int totalFimDeSemanaTrabalhados() { return totalFimDeSemanaTrabalhados; }
 
     /**

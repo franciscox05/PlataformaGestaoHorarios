@@ -446,9 +446,7 @@ public class HorarioGeneratorEngine {
                 && !sabadoJaTemChefia;
 
         if (precisaChefia && !existeChefiaPossivel(data, slots, estadoPorColaborador.values(), pedido)) {
-            throw new IllegalArgumentException(
-                    "Nao foi possivel garantir presenca de gerente/subgerente no sabado "
-                            + DATA_FORMATTER.format(data) + ".");
+            lancarFalhaChefia(data, slots, estadoPorColaborador.values(), pedido);
         }
 
         int minimoChefiasNoDia = (validator.ehFimDeSemana(data) || precisaChefia) ? 1 : 0;
@@ -730,12 +728,16 @@ public class HorarioGeneratorEngine {
                                          List<SlotDia> slots,
                                          Collection<EstadoColaborador> estados,
                                          PedidoGeracao pedido) {
+        // Relaxa rotação E descanso semanal — exatamente o que a tentativa 4 do motor
+        // está disposta a relaxar ao fim de semana. Antes, o pré-check só relaxava a
+        // rotação, pelo que desistia (com exceção) de sábados que a tentativa 4 ainda
+        // conseguiria cobrir com uma chefia em 6.º dia da semana.
         for (EstadoColaborador estado : estados) {
             if (!estado.ehChefiaAoSabado()) continue;
             for (SlotDia slot : slots) {
                 for (Turno t : slot.turnosCompativeis()) {
                     if (estado.podeReceber(data, t,
-                            validator.calcularDuracaoEmMinutos(t), pedido, true, false)) {
+                            validator.calcularDuracaoEmMinutos(t), pedido, true, true)) {
                         return true;
                     }
                 }
@@ -827,6 +829,82 @@ public class HorarioGeneratorEngine {
                 diagnostico.motivoPrincipal(),
                 diagnostico.motivos(),
                 diagnostico.sugestoes()
+        );
+    }
+
+    /**
+     * Falha de chefia ao sábado com diagnóstico nominal: explica porque é que cada
+     * gerente/subgerente está indisponível (mesmo com rotação e descanso semanal
+     * relaxados) e o que o gestor pode fazer. Substitui a mensagem seca anterior
+     * ("Nao foi possivel garantir presenca de gerente/subgerente...") que não dava
+     * qualquer pista de resolução.
+     */
+    private void lancarFalhaChefia(LocalDate data,
+                                   List<SlotDia> slots,
+                                   Collection<EstadoColaborador> estados,
+                                   PedidoGeracao pedido) {
+        List<Turno> turnosDoDia = slots.stream()
+                .flatMap(s -> s.turnosCompativeis().stream())
+                .distinct()
+                .toList();
+
+        StringBuilder detalhe = new StringBuilder();
+        List<com.example.projeto2.API.Services.geracao.MotivoFalhaGeracao> motivos = new ArrayList<>();
+        for (EstadoColaborador estado : estados) {
+            if (!estado.ehChefiaAoSabado()) continue;
+            // Código do turno mais longo — o representativo do dia (mesma heurística do
+            // DiagnosticoCobertura); um turno curto daria "turno_curto" pouco informativo.
+            String codigo = null;
+            long maiorDuracao = -1;
+            for (Turno t : turnosDoDia) {
+                long minutos = validator.calcularDuracaoEmMinutos(t);
+                String codigoTurno = estado.diagnosticarExclusao(data, t, minutos, pedido);
+                if (codigoTurno == null) { codigo = null; break; }
+                if (minutos > maiorDuracao) {
+                    maiorDuracao = minutos;
+                    codigo = codigoTurno;
+                }
+            }
+            String motivo = switch (codigo != null ? codigo : "desconhecido") {
+                case "carga_esgotada"    -> "carga contratual esgotada";
+                case "descanso_semanal"  -> "máximo de dias da semana atingido";
+                case "dias_consecutivos" -> "máximo de dias consecutivos atingido";
+                case "bloqueado"         -> "folga ou ausência aprovada neste dia";
+                case "rotacao_fim_semana"-> "rotação de fins de semana";
+                case "descanso_minimo"   -> "descanso mínimo entre turnos";
+                case "turno_curto"       -> "nenhum turno de 8h+ disponível para o perfil";
+                default                   -> "indisponível";
+            };
+            if (!detalhe.isEmpty()) detalhe.append("; ");
+            detalhe.append(estado.nome()).append(" — ").append(motivo);
+            motivos.add(new com.example.projeto2.API.Services.geracao.MotivoFalhaGeracao(
+                    codigo != null ? codigo : "desconhecido", 1, motivo, List.of(estado.nome())));
+        }
+
+        throw new FalhaGeracaoHorarioException(
+                "Não foi possível garantir gerente/subgerente no sábado "
+                        + DATA_FORMATTER.format(data) + ". Estado das chefias: "
+                        + (detalhe.isEmpty() ? "nenhuma chefia na equipa selecionada" : detalhe) + ".",
+                "chefia ao sábado",
+                DATA_FORMATTER.format(data),
+                pedido.colaboradores().size(),
+                detalhe.isEmpty()
+                        ? "A equipa selecionada não tem gerente nem subgerente."
+                        : "Nenhuma chefia disponível: " + detalhe + ".",
+                motivos,
+                List.of(
+                        new SugestaoFalhaGeracao("chefia_equipa",
+                                detalhe.isEmpty()
+                                        ? "Inclui o gerente ou o subgerente na seleção de colaboradores da geração."
+                                        : "Verifica as folgas/ausências aprovadas das chefias neste sábado e nos dias próximos.",
+                                null),
+                        new SugestaoFalhaGeracao("chefia_carga",
+                                "Se a carga das chefias está esgotada, aumenta a carga contratual do perfil de gestão ou reduz os mínimos por turno para libertar os dias úteis.",
+                                null),
+                        new SugestaoFalhaGeracao("chefia_regra",
+                                "Em último caso, desativa a regra de chefia obrigatória ao sábado nas regras da loja.",
+                                null)
+                )
         );
     }
 
