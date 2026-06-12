@@ -89,6 +89,18 @@ public class PermutaService {
         Horario horarioOrigem = pedido.getIdHorarioOrigem();
         Horario horarioDestino = pedido.getIdHorarioDestino();
 
+        // Revalidar descanso mínimo com o estado actual do horário — pode ter mudado desde o pedido
+        validarDescansoMinimoPosPermuta(
+                horarioOrigem.getIdLojautilizador().getIdUtilizador().getId(),
+                horarioDestino.getIdTurno(),
+                horarioOrigem.getDataTurno()
+        );
+        validarDescansoMinimoPosPermuta(
+                horarioDestino.getIdLojautilizador().getIdUtilizador().getId(),
+                horarioOrigem.getIdTurno(),
+                horarioDestino.getDataTurno()
+        );
+
         var turnoOrigem = horarioOrigem.getIdTurno();
         horarioOrigem.setIdTurno(horarioDestino.getIdTurno());
         horarioDestino.setIdTurno(turnoOrigem);
