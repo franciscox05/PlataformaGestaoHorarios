@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 @Service
 public class GeracaoHorariosService {
 
@@ -302,6 +303,16 @@ public class GeracaoHorariosService {
                                                   Integer mes,
                                                   Integer quantidade,
                                                   Collection<Integer> idsColaboradoresSelecionados) {
+        return gerarPropostas(idUtilizador, ano, mes, quantidade, idsColaboradoresSelecionados, null);
+    }
+
+    @Transactional
+    public List<PropostaResultado> gerarPropostas(Integer idUtilizador,
+                                                  Integer ano,
+                                                  Integer mes,
+                                                  Integer quantidade,
+                                                  Collection<Integer> idsColaboradoresSelecionados,
+                                                  Consumer<String> onProgresso) {
         DadosGeracao dados = prepararDadosGeracao(idUtilizador, ano, mes, idsColaboradoresSelecionados);
         int quantidadeNormalizada = normalizarQuantidadeAlternativas(quantidade);
         int alternativasExistentes = Math.toIntExact(Math.min(
@@ -325,6 +336,9 @@ public class GeracaoHorariosService {
         // produzem horários diferentes mesmo com a mesma política de otimização.
         long sementeBase = System.nanoTime();
         for (int indice = 0; indice < quantidadeNormalizada; indice++) {
+            if (onProgresso != null && quantidadeNormalizada > 1) {
+                onProgresso.accept("A gerar alternativa " + (indice + 1) + " de " + quantidadeNormalizada + "...");
+            }
             PoliticaOtimizacao politica = PoliticaOtimizacao.porIndice(alternativasExistentes + indice);
             // Cada alternativa tem uma semente única: base × primo × índice
             long sementeAlternativa = sementeBase ^ ((long)(alternativasExistentes + indice + 1) * 0x9e3779b97f4a7c15L);

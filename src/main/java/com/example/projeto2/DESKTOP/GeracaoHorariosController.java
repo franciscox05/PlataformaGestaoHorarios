@@ -1057,7 +1057,7 @@ public class GeracaoHorariosController {
                             + " colaboradores selecionados. Depois podes enviar ao supervisor apenas as alternativas escolhidas."
             )) return;
 
-            final Stage overlayCarregamento = DialogosHelper.mostrarCarregamento(
+            final DialogosHelper.CarregamentoHandle overlayCarregamento = DialogosHelper.mostrarCarregamento(
                     obterJanela(),
                     quantidade == 1 ? "A gerar o horário para o período selecionado..." : "A gerar " + quantidade + " alternativas de horário...");
 
@@ -1067,7 +1067,8 @@ public class GeracaoHorariosController {
                         MesOption mes = obterMesSelecionado();
                         List<PropostaResultado> resultados = geracaoHorariosBLL.gerarPropostas(
                                 utilizadorLogado.getId(), spAno.getValue(), mes.numero(),
-                                quantidade, idsColaboradoresSelecionados);
+                                quantidade, idsColaboradoresSelecionados,
+                                overlayCarregamento::atualizarMensagem);
                         PropostaResultado melhorResultado = resultados.stream()
                                 .min(Comparator.comparingInt(r -> r.metricas().pontuacao()))
                                 .orElse(resultados.getFirst());
@@ -1076,7 +1077,7 @@ public class GeracaoHorariosController {
                         return new GeracaoAlternativasDados(propostas, melhorResultado, resultados.size());
                     },
                     dados -> {
-                        overlayCarregamento.close();
+                        overlayCarregamento.fechar();
                         aplicarListaPropostas(dados.propostas(), dados.melhorResultado().idProposta());
                         preencherResultado(dados.melhorResultado());
                         selecionarPropostaNaTabela(dados.melhorResultado().idProposta());
@@ -1093,7 +1094,7 @@ public class GeracaoHorariosController {
                                 : dados.totalGeradas() + " alternativas geradas. A melhor pontuação ficou selecionada para análise.");
                     },
                     erro -> {
-                        overlayCarregamento.close();
+                        overlayCarregamento.fechar();
                         String mensagem = resolverMensagemErro(erro, "Não foi possível gerar alternativas para o período selecionado.");
                         String mensagemCurta = mensagem.length() > 220 ? mensagem.substring(0, 217) + "..." : mensagem;
                         DialogosHelper.mostrarNotificacaoGeracao(obterJanela(), false, "Não foi possível gerar o horário", mensagemCurta);
