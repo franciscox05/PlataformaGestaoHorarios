@@ -153,6 +153,11 @@ public class GeracaoHorariosController {
     @FXML private Button btnVistaCalendario;
     @FXML private Button btnVistaGrelha;
     @FXML private Button btnVerificarHorario;
+    @FXML private Button btnExpandirGrelha;
+    @FXML private VBox painelVerificacaoHorario;
+    @FXML private Label lblVerificacaoTitulo;
+    @FXML private VBox vbVerificacaoGrelha;
+    @FXML private VBox vbVerificacaoResultados;
     @FXML private VBox painelVistaCalendario;
     @FXML private VBox painelVistaGrelha;
     @FXML private Button btnGrelhaSemana;
@@ -184,6 +189,7 @@ public class GeracaoHorariosController {
     private SelecaoColaboradoresPainel selecaoColaboradoresPainel;
     private boolean grelhaVistaSemanais = true;
     private LocalDate grelhaDataInicio = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+    private boolean verificacaoAtiva = false;
     private VistaGrelhaHorarioRender vistaGrelhaRender;
     private DiagnosticoGeracaoPanel diagnosticoGeracaoPanel;
     private GeracaoStepperPanel stepperPanel;
@@ -304,14 +310,107 @@ public class GeracaoHorariosController {
                     utilizadorLogado.getId(), spAno.getValue(), mes.numero());
             ValidacaoHorarioResultado resultado =
                     ValidadorHorarioProposta.validar(propostaAtual.linhas(), criterios);
-            String contexto = (propostaAtual.idProposta() != null
-                    ? "Proposta #" + propostaAtual.idProposta() + " · " : "")
+
+            // Título
+            String titulo = (propostaAtual.idProposta() != null
+                    ? "Proposta #" + propostaAtual.idProposta() + "  ·  " : "")
                     + mes + " " + spAno.getValue();
-            ValidacaoHorarioDialog.abrir(resultado, contexto, obterJanela());
+            if (lblVerificacaoTitulo != null) lblVerificacaoTitulo.setText(titulo);
+
+            // Grelha compacta do mês na sub-página
+            if (vbVerificacaoGrelha != null) {
+                java.time.YearMonth ym = java.time.YearMonth.of(spAno.getValue(), mes.numero());
+                java.util.List<LocalDate> dias = new java.util.ArrayList<>();
+                for (LocalDate d = ym.atDay(1); !d.isAfter(ym.atEndOfMonth()); d = d.plusDays(1)) dias.add(d);
+                java.util.List<com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer.LinhaGrelha> linhas =
+                        com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender
+                                .construirLinhasGrelha(propostaAtual.linhas(), ym.atDay(1), ym.atEndOfMonth());
+                com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
+                        .renderizarCompacto(vbVerificacaoGrelha, dias, linhas, LocalDate.now(), this::abrirDetalheDia);
+            }
+
+            // Painel de resultados
+            if (vbVerificacaoResultados != null) {
+                com.example.projeto2.DESKTOP.support.VerificacaoHorarioPainelRenderer
+                        .renderizar(vbVerificacaoResultados, resultado, criterios,
+                                propostaAtual.linhas(), spAno.getValue());
+            }
+
+            mostrarPainelVerificacao(true);
         } catch (IllegalArgumentException e) {
             mostrarErro(e.getMessage());
         } catch (Exception e) {
             mostrarErro("Não foi possível verificar o horário.");
+        }
+    }
+
+    @FXML
+    public void onVoltarAoHorarioClick() {
+        mostrarPainelVerificacao(false);
+    }
+
+    @FXML
+    public void onExpandirGrelhaClick() {
+        if (propostaAtual == null || propostaAtual.linhas() == null) return;
+        try {
+            MesOption mes = obterMesSelecionado();
+            java.time.YearMonth ym = java.time.YearMonth.of(spAno.getValue(), mes.numero());
+            java.util.List<LocalDate> dias = new java.util.ArrayList<>();
+            for (LocalDate d = ym.atDay(1); !d.isAfter(ym.atEndOfMonth()); d = d.plusDays(1)) dias.add(d);
+            java.util.List<com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer.LinhaGrelha> linhasGrelha =
+                    com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender
+                            .construirLinhasGrelha(propostaAtual.linhas(), ym.atDay(1), ym.atEndOfMonth());
+
+            javafx.scene.layout.VBox conteudo = new javafx.scene.layout.VBox();
+            com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
+                    .renderizar(conteudo, dias, linhasGrelha, LocalDate.now(), null);
+
+            javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(conteudo);
+            sp.setFitToWidth(true);
+            sp.setFitToHeight(false);
+            sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+            sp.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+            sp.setStyle("-fx-background-color: white; -fx-background: white;");
+
+            javafx.scene.Scene cena = new javafx.scene.Scene(sp, 1300, 680);
+            if (obterJanela() != null && obterJanela().getScene() != null) {
+                cena.getStylesheets().addAll(obterJanela().getScene().getStylesheets());
+            }
+            javafx.stage.Stage janela = new javafx.stage.Stage();
+            janela.setTitle("Horário em detalhe  —  " + mes + " " + spAno.getValue());
+            janela.setScene(cena);
+            janela.initModality(javafx.stage.Modality.NONE);
+            if (obterJanela() != null) janela.initOwner(obterJanela());
+            janela.show();
+        } catch (Exception e) {
+            mostrarErro("Não foi possível abrir a vista em detalhe.");
+        }
+    }
+
+    private void mostrarPainelVerificacao(boolean mostrar) {
+        verificacaoAtiva = mostrar;
+        if (painelVerificacaoHorario != null) {
+            painelVerificacaoHorario.setVisible(mostrar);
+            painelVerificacaoHorario.setManaged(mostrar);
+        }
+        // Restaurar ou esconder as vistas normais
+        boolean eraCalendario = painelVistaCalendario != null && painelVistaCalendario.isVisible();
+        if (mostrar) {
+            if (painelVistaCalendario != null) { painelVistaCalendario.setVisible(false); painelVistaCalendario.setManaged(false); }
+            if (painelVistaGrelha != null) { painelVistaGrelha.setVisible(false); painelVistaGrelha.setManaged(false); }
+        } else {
+            // Restaurar a última vista ativa (calendário ou grelha, consoante o estado dos toggles)
+            boolean mostrarCalendario = btnVistaCalendario == null
+                    || btnVistaCalendario.getStyleClass().contains("btn-vista-ativo");
+            if (painelVistaCalendario != null) {
+                painelVistaCalendario.setVisible(mostrarCalendario);
+                painelVistaCalendario.setManaged(mostrarCalendario);
+            }
+            if (painelVistaGrelha != null) {
+                painelVistaGrelha.setVisible(!mostrarCalendario);
+                painelVistaGrelha.setManaged(!mostrarCalendario);
+            }
+            if (!mostrarCalendario) construirVistaGrelha();
         }
     }
 
@@ -517,6 +616,8 @@ public class GeracaoHorariosController {
     // ── Lógica interna da Vista em Grelha ─────────────────────────────────────
 
     private void mudarVistaCalendario(boolean mostrarCalendario) {
+        // Fechar painel de verificação se estiver aberto
+        if (verificacaoAtiva) mostrarPainelVerificacao(false);
         if (painelVistaCalendario != null) {
             painelVistaCalendario.setVisible(mostrarCalendario);
             painelVistaCalendario.setManaged(mostrarCalendario);
@@ -543,6 +644,11 @@ public class GeracaoHorariosController {
         if (btnGrelhaMes != null) {
             btnGrelhaMes.getStyleClass().removeAll("btn-grelha-sub-ativo", "btn-grelha-sub-inativo");
             btnGrelhaMes.getStyleClass().add(grelhaVistaSemanais ? "btn-grelha-sub-inativo" : "btn-grelha-sub-ativo");
+        }
+        // Mostrar botão de expandir apenas na vista de mês
+        if (btnExpandirGrelha != null) {
+            btnExpandirGrelha.setVisible(!grelhaVistaSemanais);
+            btnExpandirGrelha.setManaged(!grelhaVistaSemanais);
         }
     }
 

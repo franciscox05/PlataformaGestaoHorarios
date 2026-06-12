@@ -675,6 +675,12 @@
                                                 <Button fx:id="btnGrelhaSeguinte"
                                                         onAction="#onGrelhaSeguinteClick"
                                                         styleClass="botao-nav" text="&#8250;"/>
+                                                <Region minWidth="4.0"/>
+                                                <Button fx:id="btnExpandirGrelha"
+                                                        onAction="#onExpandirGrelhaClick"
+                                                        styleClass="botao-nav"
+                                                        text="&#8599;"
+                                                        managed="false" visible="false"/>
                                             </HBox>
                                             <Label styleClass="bento-card-subtitulo"
                                                    text="Vista matricial: colaboradores em linha, dias em coluna."
@@ -708,6 +714,49 @@
                                         </VBox>
                                     </VBox>
                                     <!-- ── FIM PAINEL GRELHA ── -->
+
+                                    <!-- ── PAINEL VERIFICAÇÃO DO HORÁRIO ── -->
+                                    <VBox fx:id="painelVerificacaoHorario" spacing="16.0"
+                                          managed="false" visible="false">
+
+                                        <!-- Cabeçalho -->
+                                        <VBox styleClass="bento-card" spacing="8.0">
+                                            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                                <Button onAction="#onVoltarAoHorarioClick"
+                                                        styleClass="btn-wizard-voltar"
+                                                        text="&#8592;  Horário"/>
+                                                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                                    <Label styleClass="stat-kicker"
+                                                           text="VERIFICA&#199;&#195;O DO HOR&#193;RIO"/>
+                                                    <Label fx:id="lblVerificacaoTitulo"
+                                                           styleClass="bento-card-titulo"
+                                                           text="&#8212;"/>
+                                                </VBox>
+                                            </HBox>
+                                        </VBox>
+
+                                        <!-- Conteúdo: grelha + resultados lado a lado -->
+                                        <HBox spacing="16.0" alignment="TOP_LEFT">
+
+                                            <!-- Esquerda: grelha compacta -->
+                                            <VBox styleClass="bento-card" spacing="8.0"
+                                                  HBox.hgrow="ALWAYS">
+                                                <Label styleClass="stat-kicker"
+                                                       text="HOR&#193;RIO DO M&#202;S"/>
+                                                <Label styleClass="bento-card-subtitulo"
+                                                       text="Clica num dia para o detalhe."
+                                                       wrapText="true"/>
+                                                <VBox fx:id="vbVerificacaoGrelha"/>
+                                            </VBox>
+
+                                            <!-- Direita: resultados de compliance -->
+                                            <VBox fx:id="vbVerificacaoResultados"
+                                                  spacing="6.0"
+                                                  minWidth="340.0" prefWidth="380.0" maxWidth="420.0"/>
+
+                                        </HBox>
+                                    </VBox>
+                                    <!-- ── FIM PAINEL VERIFICAÇÃO ── -->
 
                                 </VBox>
                             </content>

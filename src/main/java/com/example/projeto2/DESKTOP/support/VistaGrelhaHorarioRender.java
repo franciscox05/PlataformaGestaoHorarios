@@ -112,23 +112,10 @@ public final class VistaGrelhaHorarioRender {
             return;
         }
 
-        List<GrelhaHorarioRenderer.LinhaGrelha> linhasGrelha = new ArrayList<>();
-        for (Map.Entry<Integer, Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno>> entry
-                : porColaborador.entrySet()) {
-            linhasGrelha.add(new GrelhaHorarioRenderer.LinhaGrelha(
-                    entry.getKey(),
-                    nomesColab.get(entry.getKey()),
-                    cargosColab.get(entry.getKey()),
-                    entry.getValue()));
-        }
-
-        // Ordenar colaboradores alfabeticamente (sem acentos)
-        linhasGrelha.sort(Comparator.comparing(l ->
-                Normalizer.normalize(l.nome() != null ? l.nome().toLowerCase(Locale.ROOT) : "",
-                        Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
+        List<GrelhaHorarioRenderer.LinhaGrelha> linhasGrelha =
+                construirLinhasGrelha(nomesColab, cargosColab, porColaborador);
 
         if (!vistaSemanais) {
-            // Vista mensal compacta: todos os dias visíveis sem scroll horizontal
             ajustarScrollParaCompacto();
             GrelhaHorarioRenderer.renderizarCompacto(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
         } else {
@@ -149,6 +136,44 @@ public final class VistaGrelhaHorarioRender {
                 .map(HorarioLinha::idColaborador)
                 .distinct().count();
         lblGrelhaPeriodo.setText(periodoTexto + (nPessoas > 0 ? "   · " + nPessoas + " pessoas" : ""));
+    }
+
+    /** Converte HorarioLinha → LinhaGrelha, filtradas para o intervalo [inicio,fim], ordenadas alfabeticamente. */
+    public static List<GrelhaHorarioRenderer.LinhaGrelha> construirLinhasGrelha(
+            List<HorarioLinha> linhas, LocalDate inicio, LocalDate fim) {
+        Map<Integer, String> nomesColab = new LinkedHashMap<>();
+        Map<Integer, String> cargosColab = new LinkedHashMap<>();
+        Map<Integer, Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno>> porColab = new LinkedHashMap<>();
+        for (HorarioLinha linha : linhas) {
+            if (linha == null || linha.data() == null) continue;
+            if (linha.data().isBefore(inicio) || linha.data().isAfter(fim)) continue;
+            Integer id = linha.idColaborador();
+            nomesColab.put(id, linha.colaborador() != null ? linha.colaborador() : "?");
+            cargosColab.put(id, linha.cargo() != null ? linha.cargo() : "");
+            String horas = (linha.periodo() != null && !"-".equals(linha.periodo())) ? linha.periodo() : null;
+            porColab.computeIfAbsent(id, k -> new LinkedHashMap<>())
+                    .put(linha.data(), new GrelhaHorarioRenderer.CelulaTurno(linha.turno(), horas));
+        }
+        return construirLinhasGrelha(nomesColab, cargosColab, porColab);
+    }
+
+    private static List<GrelhaHorarioRenderer.LinhaGrelha> construirLinhasGrelha(
+            Map<Integer, String> nomesColab,
+            Map<Integer, String> cargosColab,
+            Map<Integer, Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno>> porColaborador) {
+        List<GrelhaHorarioRenderer.LinhaGrelha> lista = new ArrayList<>();
+        for (Map.Entry<Integer, Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno>> entry
+                : porColaborador.entrySet()) {
+            lista.add(new GrelhaHorarioRenderer.LinhaGrelha(
+                    entry.getKey(),
+                    nomesColab.get(entry.getKey()),
+                    cargosColab.get(entry.getKey()),
+                    entry.getValue()));
+        }
+        lista.sort(Comparator.comparing(l ->
+                Normalizer.normalize(l.nome() != null ? l.nome().toLowerCase(Locale.ROOT) : "",
+                        Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
+        return lista;
     }
 
     private void ajustarScrollParaCompacto() {
