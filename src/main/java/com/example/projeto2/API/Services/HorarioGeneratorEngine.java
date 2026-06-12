@@ -132,6 +132,14 @@ public class HorarioGeneratorEngine {
         List<Horario> horarios = new ArrayList<>();
         Set<LocalDate> sabadosComChefia = new LinkedHashSet<>();
 
+        // ── FASE 1 — Cobertura mínima de TODOS os dias do período ──────────────
+        // Garante a cobertura obrigatória do mês inteiro ANTES de qualquer top-up.
+        // Antes, o top-up era interleaved (mínimo do dia 1 → top-up do dia 1 → mínimo
+        // do dia 2 → ...): os turnos extra do início do mês esgotavam a carga das
+        // pessoas necessárias no fim do mês, e dias como o 30 ficavam sem candidatos,
+        // mesmo havendo capacidade total de sobra. Separar as fases garante que a
+        // capacidade é gasta primeiro no que é obrigatório, e só a folga sobrante
+        // alimenta o top-up.
         for (LocalDate data = pedido.dataInicio(); !data.isAfter(pedido.dataFim()); data = data.plusDays(1)) {
             validarPrazo(pedido.prazoLimite(), data, pedido.politica().nome());
 
@@ -150,16 +158,22 @@ public class HorarioGeneratorEngine {
                     data, turnosDoDia, configDia, estadoPorColaborador,
                     horarios, sabadosComChefia.contains(data), pedido);
             registarAtribuicoes(data, atribuicoes, horarios, sabadosComChefia);
-
-            // Fase de preenchimento de capacidade: com o mínimo do dia garantido,
-            // reforça a cobertura com colaboradores atrasados face ao ritmo contratual.
-            // Dias com configuração especial cumprem exatamente o mínimo definido pelo gerente.
-            if (configDia == null) {
-                List<AtribuicaoDia> extras = reforcarCoberturaDoDia(
-                        data, turnosDoDia, estadoPorColaborador.values(), horarios, pedido);
-                registarAtribuicoes(data, extras, horarios, sabadosComChefia);
-            }
         }
+
+        // ── FASE 2 — Preenchimento de capacidade (top-up) ─────────────────────
+        // Com todos os mínimos garantidos, distribui a capacidade contratual ainda
+        // por consumir pelos dias do mês, sem nunca ultrapassar o teto contratual de
+        // cada colaborador. Dias com configuração especial cumprem exatamente o mínimo.
+        for (LocalDate data = pedido.dataInicio(); !data.isAfter(pedido.dataFim()); data = data.plusDays(1)) {
+            ConfiguracaoDia configDia = pedido.configuracoesPorData().get(data);
+            if (configDia != null) {
+                continue;
+            }
+            List<AtribuicaoDia> extras = reforcarCoberturaDoDia(
+                    data, pedido.turnos(), estadoPorColaborador.values(), horarios, pedido);
+            registarAtribuicoes(data, extras, horarios, sabadosComChefia);
+        }
+
         // Fase final: refinamento por pesquisa local (folgas preferidas + equilíbrio de carga)
         return refinador.refinar(pedido, horarios);
     }
@@ -260,28 +274,26 @@ public class HorarioGeneratorEngine {
     // =========================================================================
 
     /**
-     * Reforça a cobertura de um dia para além do mínimo, usando a capacidade
-     * contratual ainda por consumir. Sem isto, o motor tratava o mínimo por turno
-     * como alvo exato e os colaboradores ficavam muito aquém da carga contratual —
-     * horários "desfalcados" com a equipa em casa.
+     * Reforça a cobertura de um dia para além do mínimo (FASE 2), usando a capacidade
+     * contratual que sobrou depois de todos os mínimos do mês estarem garantidos.
+     * Corre num segundo passo, depois da fase 1 ter coberto os mínimos de todos os
+     * dias — pelo que <b>nenhum</b> turno extra pode comprometer a cobertura mínima.
      *
      * <p>Critérios, por colaborador:
      * <ul>
-     *   <li><b>Ritmo contratual:</b> só recebe turno extra quem está atrasado face ao
-     *       ritmo {@code carga × diasDecorridos / diasTotais} — distribui a carga
-     *       uniformemente pelo mês e nunca ultrapassa o teto contratual.</li>
+     *   <li><b>Capacidade restante:</b> só recebe turno extra quem ainda tem carga
+     *       contratual por consumir; nunca ultrapassa o teto (via {@code podeReceber}).</li>
+     *   <li><b>Orçamento diário:</b> a folga total é distribuída uniformemente pelos
+     *       dias que faltam ({@code capacidadeRestante / diasRestantes}), para o reforço
+     *       ser equilibrado ao longo do mês em vez de se concentrar nos primeiros dias.</li>
      *   <li><b>Regras hard intactas:</b> cada turno extra passa por
      *       {@link EstadoColaborador#podeReceber} sem qualquer relaxação.</li>
      *   <li><b>Folgas preferidas respeitadas:</b> um turno extra nunca cai num dia de
      *       folga preferida — a cobertura mínima já está garantida sem ele.</li>
-     *   <li><b>Margem para o fim de semana:</b> em dias úteis, quem ainda pode vir a
-     *       ser necessário ao fim de semana guarda um dia de folga semanal de reserva,
-     *       para que o preenchimento não esgote os candidatos de sábado/domingo.</li>
      * </ul>
      *
      * <p>O turno escolhido para cada colaborador é o de melhor pontuação no
-     * {@link AvaliadorAtribuicao} (respeita preferências de turno aprovadas, política
-     * de otimização ativa, etc.). Devolve no máximo um turno extra por colaborador.
+     * {@link AvaliadorAtribuicao}. Devolve no máximo um turno extra por colaborador.
      */
     private List<AtribuicaoDia> reforcarCoberturaDoDia(LocalDate data,
                                                        List<Turno> turnosDoDia,
@@ -291,41 +303,35 @@ public class HorarioGeneratorEngine {
         if (pedido.prazoLimite() != null && Instant.now().isAfter(pedido.prazoLimite())) {
             return List.of();
         }
-        // Top-up ao fim de semana: outrora bloqueado por completo — sem visão dos fins de
-        // semana seguintes, encher um FDS via top-up esgotava o grupo elegível e a rotação
-        // bloqueava o FDS seguinte. Com o lookahead de FDS ativo passa a ser permitido, mas
-        // restrito aos colaboradores DESIGNADOS para este FDS (filtro no ciclo abaixo): esses
-        // já estão comprometidos com este fim de semana pelo plano, pelo que reforçá-los não
-        // rouba candidatos aos fins de semana seguintes. Sem plano ativo, mantém-se o
-        // bloqueio total (comportamento seguro anterior).
+        // Top-up ao fim de semana só para colaboradores DESIGNADOS pelo plano de FDS —
+        // os mínimos do FDS já estão garantidos (fase 1), mas reforçar não-designados
+        // gastaria carga de quem o plano reserva para outros fins de semana.
         boolean fimDeSemana = validator.ehFimDeSemana(data);
         boolean planoFinsDeSemanaAtivo = estados.stream()
                 .anyMatch(EstadoColaborador::temPlanoFinsDeSemana);
         if (fimDeSemana && !planoFinsDeSemanaAtivo) {
             return List.of();
         }
-        long diasTotais = ChronoUnit.DAYS.between(pedido.dataInicio(), pedido.dataFim()) + 1;
-        long diasDecorridos = ChronoUnit.DAYS.between(pedido.dataInicio(), data) + 1;
-        boolean diaUtil = !fimDeSemana;
-        int maxDiasTrabalhadosNaSemana = 7 - pedido.descansoSemanalMinimoDias();
+
+        // Orçamento de hoje: distribui a folga de capacidade restante uniformemente
+        // pelos dias que ainda faltam. Como todos os mínimos já estão colocados, esta
+        // folga é puro excedente — não há cobertura futura para reservar.
+        long diasRestantes = ChronoUnit.DAYS.between(data, pedido.dataFim()) + 1;
+        long capacidadeRestante = estados.stream()
+                .mapToLong(EstadoColaborador::capacidadeRestanteMinutos)
+                .sum();
+        long orcamentoHoje = diasRestantes > 0 ? capacidadeRestante / diasRestantes : capacidadeRestante;
+        if (orcamentoHoje <= 0) {
+            return List.of();
+        }
 
         AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horariosJaGerados);
         List<CandidatoPontuado> candidatos = new ArrayList<>();
         for (EstadoColaborador estado : estados) {
-            // Exige pelo menos um dia completo de atraso antes de reforçar:
-            // evita que workers marginalmente abaixo do ritmo esgotem a carga
-            // antes do fim do mês, deixando os últimos dias sem cobertura.
-            if (!estado.abaixoDoRitmoContratual(diasDecorridos - 1, diasTotais)) continue;
+            if (estado.capacidadeRestanteMinutos() <= 0) continue;
             if (pedido.folgasPreferidasPorColaborador()
                     .getOrDefault(estado.idUtilizador(), Set.of()).contains(data)) continue;
-            // Ao fim de semana, só reforça quem o plano designou para este FDS — preserva
-            // os candidatos dos fins de semana seguintes (a rotação não os bloqueia cedo).
             if (fimDeSemana && !estado.designadoParaFimDeSemana(data)) continue;
-            if (diaUtil
-                    && estado.podeVirASerPrecisoNoFimDeSemana(data, pedido)
-                    && estado.diasTrabalhadosNaSemana(data) >= maxDiasTrabalhadosNaSemana - 1) {
-                continue; // reserva de margem semanal para a cobertura do fim de semana
-            }
 
             CandidatoPontuado melhor = null;
             for (Turno turno : turnosDoDia) {
@@ -341,11 +347,8 @@ public class HorarioGeneratorEngine {
             }
         }
 
-        // Limita o top-up inversamente ao mínimo por tipo: com mínimo=1, acrescenta
-        // até 1 por tipo (3 total); com mínimo=2, o mínimo já absorve metade da carga
-        // contratual, por isso o top-up é reduzido para evitar exaustão antes do final
-        // do mês. Garante sempre pelo menos 1 (fix: a divisão inteira podia produzir 0
-        // quando minimoMaxGlobal > numTipos, bloqueando por completo o top-up).
+        // Limita o top-up inversamente ao mínimo por tipo. Garante sempre pelo menos 1
+        // (fix: a divisão inteira podia produzir 0 quando minimoMaxGlobal > numTipos).
         int minimoMaxGlobal = pedido.minimosPorTurno().values().stream()
                 .mapToInt(Integer::intValue)
                 .max()
@@ -356,20 +359,8 @@ public class HorarioGeneratorEngine {
                 .count();
         long limiteTopUp = Math.max(1L, numTiposDistintos / Math.max(1, minimoMaxGlobal));
 
-        // Orçamento de capacidade: o top-up de hoje só pode gastar a folga que sobra
-        // depois de reservar carga para a cobertura mínima de TODOS os dias restantes.
-        // Sem esta reserva, os turnos extra do início do mês esgotavam a carga da equipa
-        // e os últimos dias ficavam sem candidatos ("carga contratual esgotada").
-        long minutosMinimosRestantes = minutosMinimosNecessarios(data.plusDays(1), pedido);
-        long capacidadeRestante = estados.stream()
-                .mapToLong(EstadoColaborador::capacidadeRestanteMinutos)
-                .sum();
-        long orcamentoDisponivel = capacidadeRestante - minutosMinimosRestantes;
-        if (orcamentoDisponivel <= 0) {
-            return List.of();
-        }
-
         List<AtribuicaoDia> selecionados = new ArrayList<>();
+        long gastoHoje = 0;
         for (CandidatoPontuado candidato : candidatos.stream()
                 .sorted(Comparator.comparingDouble(CandidatoPontuado::score))
                 .toList()) {
@@ -377,10 +368,10 @@ public class HorarioGeneratorEngine {
                 break;
             }
             long minutos = candidato.atribuicao().minutosTurno();
-            if (minutos > orcamentoDisponivel) {
+            if (gastoHoje + minutos > orcamentoHoje) {
                 continue;
             }
-            orcamentoDisponivel -= minutos;
+            gastoHoje += minutos;
             selecionados.add(candidato.atribuicao());
         }
         return selecionados;

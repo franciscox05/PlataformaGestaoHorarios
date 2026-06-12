@@ -86,6 +86,13 @@ public final class AvaliadorAtribuicao {
     // carga das chefias, e o sábado ficava sem gerente/subgerente possível.
     private static final double PROTECAO_CHEFIA_SABADO = 1500.0;
 
+    // Penalização forte (independente da política) para trabalhar fins de semana
+    // consecutivos. Quando o motor RELAXA a rotação para cobrir um FDS sem candidatos
+    // suficientes, esta penalização garante que quem já trabalhou o FDS anterior só é
+    // escolhido em último recurso — os colegas que descansaram têm prioridade. Não se
+    // aplica ao reforço de fim de semana (trabalhar FDS seguidos é o propósito dele).
+    private static final double PENALIZACAO_FDS_CONSECUTIVO = 250.0;
+
     private final HorarioValidatorService validator;
 
     public AvaliadorAtribuicao(HorarioValidatorService validator) {
@@ -155,6 +162,9 @@ public final class AvaliadorAtribuicao {
             double componenteFds = Math.min(estado.totalFimDeSemanaTrabalhados(), 5) / 5.0;
             if (fimDeSemana && estado.trabalhouFimDeSemanaAnterior(data)) {
                 componenteFds += 1.0;
+                // Penalização base, independente da política: quando a rotação é relaxada
+                // para cobrir o FDS, quem descansou no FDS anterior tem prioridade clara.
+                pontuacao += PENALIZACAO_FDS_CONSECUTIVO;
             }
             pontuacao += politica.pesoFinsDeSemana() * componenteFds * ESCALA_FDS;
 

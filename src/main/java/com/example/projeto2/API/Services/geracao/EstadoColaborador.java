@@ -221,28 +221,78 @@ public final class EstadoColaborador {
         // A rotação de FDS protege o descanso de quem também trabalha à semana;
         // o reforço de fim de semana é contratado precisamente para os FDS, pelo
         // que aplicar-lhe a rotação tornaria a carga contratual dele inalcançável.
-        if (!ignorarRotacaoFDS && !apenasFimDeSemana && validator.ehFimDeSemana(data)) {
-            LocalDate ultimoFDS = ultimoFimDeSemanaInicio();
-            if (validator.violaRotacaoDeFimDeSemana(data,
-                    totalFimDeSemanaTrabalhados, ultimoFDS,
-                    pedido.janelaRotacaoFimDeSemana())) {
-                return false;
-            }
-        }
-
-        if (validator.violaMaximoDiasConsecutivos(ultimaDataAtribuida,
-                diasConsecutivos, data, pedido.maxDiasConsecutivos())) {
+        if (!ignorarRotacaoFDS && !apenasFimDeSemana
+                && violaRotacaoVizinhanca(data, pedido.janelaRotacaoFimDeSemana())) {
             return false;
         }
 
-        if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
-            Turno turnoAnterior = atribuicoesConhecidas.get(ultimaDataAtribuida);
-            if (!validator.respeitaDescansoMinimo(ultimaDataAtribuida, turnoAnterior,
-                    data, turno, pedido.descansoMinimoHoras())) {
-                return false;
-            }
+        if (violaMaximoDiasConsecutivosVizinhanca(data, pedido.maxDiasConsecutivos())) {
+            return false;
         }
 
+        if (!respeitaDescansoVizinhanca(data, turno, pedido.descansoMinimoHoras())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // -------------------------------------------------------------------------
+    // Verificações hard independentes da ordem de processamento
+    //
+    // O motor passou a gerar em duas fases (mínimos de todos os dias, depois top-up),
+    // pelo que um dia pode ser avaliado depois de dias posteriores já estarem marcados.
+    // Estas verificações inspecionam os vizinhos REAIS no mapa de atribuições — para
+    // trás E para a frente — em vez de assumir que a "última data" é a mais recente.
+    // -------------------------------------------------------------------------
+
+    /** Rotação de FDS: existe um fim de semana trabalhado dentro da janela, antes ou depois. */
+    private boolean violaRotacaoVizinhanca(LocalDate data, int janelaSemanas) {
+        if (janelaSemanas <= 0 || !validator.ehFimDeSemana(data)) {
+            return false;
+        }
+        LocalDate sabadoAtual = validator.inicioFimDeSemana(data);
+        for (int semanas = 1; semanas < janelaSemanas; semanas++) {
+            if (trabalhouNoFimDeSemana(sabadoAtual.minusWeeks(semanas))
+                    || trabalhouNoFimDeSemana(sabadoAtual.plusWeeks(semanas))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean trabalhouNoFimDeSemana(LocalDate sabado) {
+        return atribuicoesConhecidas.containsKey(sabado)
+                || atribuicoesConhecidas.containsKey(sabado.plusDays(1));
+    }
+
+    /** Máximo de dias consecutivos: conta a sequência que se formaria à volta de {@code data}. */
+    private boolean violaMaximoDiasConsecutivosVizinhanca(LocalDate data, int maxConsecutivos) {
+        if (maxConsecutivos <= 0) {
+            return false;
+        }
+        int sequencia = 1;
+        for (LocalDate d = data.minusDays(1); atribuicoesConhecidas.containsKey(d); d = d.minusDays(1)) {
+            sequencia++;
+        }
+        for (LocalDate d = data.plusDays(1); atribuicoesConhecidas.containsKey(d); d = d.plusDays(1)) {
+            sequencia++;
+        }
+        return sequencia > maxConsecutivos;
+    }
+
+    /** Descanso mínimo entre turnos: valida o gap com o dia anterior E com o dia seguinte. */
+    private boolean respeitaDescansoVizinhanca(LocalDate data, Turno turno, int descansoMinimoHoras) {
+        Turno turnoOntem = atribuicoesConhecidas.get(data.minusDays(1));
+        if (turnoOntem != null && !validator.respeitaDescansoMinimo(
+                data.minusDays(1), turnoOntem, data, turno, descansoMinimoHoras)) {
+            return false;
+        }
+        Turno turnoAmanha = atribuicoesConhecidas.get(data.plusDays(1));
+        if (turnoAmanha != null && !validator.respeitaDescansoMinimo(
+                data, turno, data.plusDays(1), turnoAmanha, descansoMinimoHoras)) {
+            return false;
+        }
         return true;
     }
 
@@ -267,21 +317,14 @@ public final class EstadoColaborador {
         if (validator.excedeDiasTrabalhadosNaSemana(data, diasNaSemana, pedido.descansoSemanalMinimoDias())) {
             return "descanso_semanal";
         }
-        if (!apenasFimDeSemana && validator.ehFimDeSemana(data)
-                && validator.violaRotacaoDeFimDeSemana(data, totalFimDeSemanaTrabalhados,
-                        ultimoFimDeSemanaInicio(), pedido.janelaRotacaoFimDeSemana())) {
+        if (!apenasFimDeSemana && violaRotacaoVizinhanca(data, pedido.janelaRotacaoFimDeSemana())) {
             return "rotacao_fim_semana";
         }
-        if (validator.violaMaximoDiasConsecutivos(ultimaDataAtribuida, diasConsecutivos, data,
-                pedido.maxDiasConsecutivos())) {
+        if (violaMaximoDiasConsecutivosVizinhanca(data, pedido.maxDiasConsecutivos())) {
             return "dias_consecutivos";
         }
-        if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
-            Turno turnoAnterior = atribuicoesConhecidas.get(ultimaDataAtribuida);
-            if (!validator.respeitaDescansoMinimo(ultimaDataAtribuida, turnoAnterior, data, turno,
-                    pedido.descansoMinimoHoras())) {
-                return "descanso_minimo";
-            }
+        if (!respeitaDescansoVizinhanca(data, turno, pedido.descansoMinimoHoras())) {
+            return "descanso_minimo";
         }
         return null;
     }
@@ -330,8 +373,15 @@ public final class EstadoColaborador {
      * colaborador. Usado pelo avaliador para penalizar longas ausências.
      */
     public int diasDesdeUltimoTurno(LocalDate data) {
-        if (ultimaDataAtribuida == null) return 0;
-        return (int) Math.max(0, ChronoUnit.DAYS.between(ultimaDataAtribuida, data));
+        if (atribuicoesConhecidas.isEmpty()) return 0;
+        // Independente da ordem: distância ao dia trabalhado mais próximo ANTES de `data`.
+        // Limita a procura a 14 dias — o bónus de idle satura aos 5, pelo que basta.
+        for (int gap = 1; gap <= 14; gap++) {
+            if (atribuicoesConhecidas.containsKey(data.minusDays(gap))) {
+                return gap;
+            }
+        }
+        return 0;
     }
 
     /** Tipo do turno já atribuído na véspera, ou {@code null} se não trabalhou ontem. */
