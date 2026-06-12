@@ -10,9 +10,11 @@ import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
 import com.example.projeto2.DESKTOP.support.DetalheDiaDialog;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
+import com.example.projeto2.DESKTOP.support.EdicaoTurnoDialog;
 import com.example.projeto2.DESKTOP.support.GrelhaHorarioHelper;
 import com.example.projeto2.DESKTOP.support.HomePedidosHelper;
 import com.example.projeto2.DESKTOP.support.MesOption;
+import com.example.projeto2.API.Services.geracao.dto.HorarioLinha;
 import com.example.projeto2.API.Enums.EstadoHorario;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Utilizador;
@@ -1006,10 +1008,45 @@ public class HomeController {
 
     private void renderizarGrelhaEscalaLoja(LocalDate dataInicio, LocalDate dataFim, List<Horario> horarios) {
         if (boxGrelhaEscalaLoja == null) return;
+        boolean podeEditar = utilizadorLogado != null
+                && gestaoLojaBLL.utilizadorPodeGerirLoja(utilizadorLogado.getId());
+        List<HorarioLinha> linhas = horarios.stream()
+                .filter(h -> h != null && h.getDataTurno() != null)
+                .map(this::converterHorario)
+                .toList();
         GrelhaHorarioHelper.preencherSemanal(
                 boxGrelhaEscalaLoja, dataInicio, dataFim,
                 horarios, LocalDate.now(),
-                data -> DetalheDiaDialog.abrirHorariosPublicados(data, horarios, obterJanela()));
+                data -> DetalheDiaDialog.abrir(
+                        data, linhas, obterJanela(), podeEditar,
+                        (linha, janelaDialogo) -> EdicaoTurnoDialog.abrir(
+                                linha,
+                                janelaDialogo != null ? janelaDialogo : obterJanela(),
+                                horarioBll,
+                                utilizadorLogado != null ? utilizadorLogado.getId() : null,
+                                msg -> {},
+                                this::mostrarFeedbackOperacao,
+                                this::carregarEscalaDetalhadaLoja
+                        )
+                )
+        );
+    }
+
+    private HorarioLinha converterHorario(Horario h) {
+        String nome = h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdUtilizador() != null
+                ? h.getIdLojautilizador().getIdUtilizador().getNome() : "?";
+        String cargo = h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdCargo() != null
+                ? h.getIdLojautilizador().getIdCargo().getNome() : "-";
+        Integer idColab = h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdUtilizador() != null
+                ? h.getIdLojautilizador().getIdUtilizador().getId() : null;
+        String periodo = formatarPeriodo(h);
+        String tipoTurno = h.getIdTurno() != null && h.getIdTurno().getTipo() != null
+                ? h.getIdTurno().getTipo() : null;
+        String turnoStr = tipoTurno != null ? tipoTurno + " " + periodo : periodo;
+        String diaSemana = h.getDataTurno() != null
+                ? h.getDataTurno().getDayOfWeek().getDisplayName(TextStyle.SHORT, LOCALE_PT) : "-";
+        String estado = h.getEstado() != null ? h.getEstado().name() : "-";
+        return new HorarioLinha(h.getId(), idColab, h.getDataTurno(), diaSemana, turnoStr, periodo, nome, cargo, estado);
     }
 
     private void carregarHorarioMensalLoja() {

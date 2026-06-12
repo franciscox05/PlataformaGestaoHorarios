@@ -8,6 +8,7 @@ import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
+import com.example.projeto2.DESKTOP.support.DetalheDiaDialog;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.PreferenciaFormatters;
 import com.example.projeto2.API.Modules.DayOff;
@@ -739,7 +740,11 @@ public class GestaoFuncionariosController {
                         + h.getIdLojautilizador().getIdLoja().getNome();
                 eventos.computeIfAbsent(h.getDataTurno(), k -> new java.util.ArrayList<>()).add(evento);
             }
-            CalendarioMensalHelper.preencherCalendario(grelhaHorarioMensalColaborador, mesColaboradorAtual, eventos, "Sem turno");
+            List<Horario> horariosFinal = horarios;
+            CalendarioMensalHelper.preencherCalendario(
+                    grelhaHorarioMensalColaborador, mesColaboradorAtual, eventos, "Sem turno",
+                    data -> DetalheDiaDialog.abrirHorariosPublicados(data, horariosFinal, obterJanela())
+            );
             lblResumoHorarioColaborador.setText(horarios.isEmpty()
                     ? nomeColaborador + " não tem horário publicado neste mês."
                     : nomeColaborador + " tem " + horarios.size() + " turno(s) publicados neste mês."
