@@ -250,4 +250,7 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
                                                @Param("dataFim") LocalDate dataFim);
 
     void deleteByIdPropostaHorarioId(Integer idPropostaHorario);
+
+    boolean existsByIdLojautilizadorIdAndDataTurnoAndIdPropostaHorarioId(
+            Integer idLojautilizador, LocalDate dataTurno, Integer idPropostaHorario);
 }

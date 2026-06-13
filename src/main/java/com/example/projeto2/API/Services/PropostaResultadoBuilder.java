@@ -214,6 +214,8 @@ public class PropostaResultadoBuilder {
         Integer idColaborador = horario.getIdLojautilizador() != null
                 && horario.getIdLojautilizador().getIdUtilizador() != null
                 ? horario.getIdLojautilizador().getIdUtilizador().getId() : null;
+        Integer idLojautilizador = horario.getIdLojautilizador() != null
+                ? horario.getIdLojautilizador().getId() : null;
         String colaborador = horario.getIdLojautilizador() != null
                 && horario.getIdLojautilizador().getIdUtilizador() != null
                 ? valorOuTraco(horario.getIdLojautilizador().getIdUtilizador().getNome()) : "-";
@@ -221,7 +223,7 @@ public class PropostaResultadoBuilder {
                 && horario.getIdLojautilizador().getIdCargo() != null
                 ? valorOuTraco(horario.getIdLojautilizador().getIdCargo().getNome()) : "-";
         return new HorarioLinha(
-                horario.getId(), idColaborador, horario.getDataTurno(),
+                horario.getId(), idColaborador, idLojautilizador, horario.getDataTurno(),
                 horario.getDataTurno() != null ? nomeDiaSemana(horario.getDataTurno()) : "-",
                 formatarTurno(horario.getIdTurno()),
                 formatarPeriodo(horario.getIdTurno()),

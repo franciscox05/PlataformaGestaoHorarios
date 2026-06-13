@@ -168,6 +168,18 @@ public final class AvaliadorAtribuicao {
         if (!estado.ehApenasFimDeSemana()) {
             double componenteFds = Math.min(estado.totalFimDeSemanaTrabalhados(), 5) / 5.0;
             if (fimDeSemana) {
+                // Guarda "fim de semana livre": se esta atribuição deixar o colaborador
+                // sem nenhum FDS livre no período, penalização quasi-hard (3 500 pts).
+                // Só activo quando o período tem > 1 FDS (se só há 1, alguém tem de o cobrir).
+                // Conta fins de semana DISTINTOS — quem já trabalhou este FDS (o outro dia)
+                // não consome um FDS livre adicional ao receber o segundo dia.
+                int totalFdsNoPeriodo = contarSabadosNoPeriodo(pedido.dataInicio(), pedido.dataFim());
+                int fdsDistintosApos = estado.fimsDeSemanaDistintosTrabalhados()
+                        + (estado.fimDeSemanaJaTrabalhado(data) ? 0 : 1);
+                if (totalFdsNoPeriodo > 1 && fdsDistintosApos >= totalFdsNoPeriodo) {
+                    pontuacao += 3500.0;
+                }
+
                 int semanasSinceFds = estado.semanasDesdeUltimoFimDeSemana(data);
                 if (semanasSinceFds == 1) {
                     // FDS consecutivos: penalização máxima independente da política.
@@ -330,6 +342,15 @@ public final class AvaliadorAtribuicao {
             }
         }
         return false;
+    }
+
+    /** Conta os sábados entre {@code inicio} e {@code fim} (inclusive). */
+    private static int contarSabadosNoPeriodo(LocalDate inicio, LocalDate fim) {
+        int count = 0;
+        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {
+            if (d.getDayOfWeek() == DayOfWeek.SATURDAY) count++;
+        }
+        return count;
     }
 
     /** Contexto pré-computado, partilhado por todos os candidatos de uma resolução. */

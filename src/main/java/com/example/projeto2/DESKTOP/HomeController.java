@@ -1027,7 +1027,8 @@ public class HomeController {
                                 msg -> {},
                                 this::mostrarFeedbackOperacao,
                                 this::carregarEscalaDetalhadaLoja
-                        )
+                        ),
+                        null  // sem "adicionar" no horário publicado da loja
                 )
         );
     }
@@ -1046,7 +1047,8 @@ public class HomeController {
         String diaSemana = h.getDataTurno() != null
                 ? h.getDataTurno().getDayOfWeek().getDisplayName(TextStyle.SHORT, LOCALE_PT) : "-";
         String estado = h.getEstado() != null ? h.getEstado().name() : "-";
-        return new HorarioLinha(h.getId(), idColab, h.getDataTurno(), diaSemana, turnoStr, periodo, nome, cargo, estado);
+        Integer idLojautilizador = h.getIdLojautilizador() != null ? h.getIdLojautilizador().getId() : null;
+        return new HorarioLinha(h.getId(), idColab, idLojautilizador, h.getDataTurno(), diaSemana, turnoStr, periodo, nome, cargo, estado);
     }
 
     private void carregarHorarioMensalLoja() {

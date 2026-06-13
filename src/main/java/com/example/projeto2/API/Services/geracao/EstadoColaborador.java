@@ -144,6 +144,20 @@ public final class EstadoColaborador {
     public int totalFimDeSemanaTrabalhados() { return totalFimDeSemanaTrabalhados; }
 
     /**
+     * Número de fins de semana <b>distintos</b> trabalhados (ao contrário de
+     * {@link #totalFimDeSemanaTrabalhados()}, que conta dias — sábado e domingo
+     * separados). Usado pela guarda de "fim de semana livre" para não contar a dobrar
+     * quem trabalha os dois dias do mesmo fim de semana.
+     */
+    public int fimsDeSemanaDistintosTrabalhados() { return ultimoFimDeSemana.size(); }
+
+    /** O fim de semana a que {@code data} pertence já tem (pelo menos) um dia trabalhado. */
+    public boolean fimDeSemanaJaTrabalhado(LocalDate data) {
+        return data != null && validator.ehFimDeSemana(data)
+                && ultimoFimDeSemana.containsKey(validator.inicioFimDeSemana(data));
+    }
+
+    /**
      * Indica se o colaborador está atrasado face ao ritmo contratual: ao fim de
      * {@code diasDecorridos} de {@code diasTotais}, espera-se que tenha
      * aproximadamente {@code carga × diasDecorridos / diasTotais} minutos atribuídos.

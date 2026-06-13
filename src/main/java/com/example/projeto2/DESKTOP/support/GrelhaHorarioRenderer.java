@@ -336,29 +336,35 @@ public final class GrelhaHorarioRenderer {
                 Normalizer.normalize(l.nome() != null ? l.nome().toLowerCase(Locale.ROOT) : "",
                         Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
 
-        // Altura de linha adaptativa: preenche o ecrã sem scroll vertical.
-        // Subtrai o cabeçalho da app (70px), o cabeçalho da tabela e uma margem.
+        // ── Largura adaptativa: todos os dias do mês cabem sem scroll horizontal ──
+        double screenW = Screen.getPrimary().getVisualBounds().getWidth();
         double screenH = Screen.getPrimary().getVisualBounds().getHeight();
-        double disponivelParaLinhas = screenH - 70 - ALTURA_HEADER_DET - 12;
-        double alturaLinha = Math.max(46.0, Math.min(84.0,
-                Math.floor(disponivelParaLinhas / Math.max(1, ordenadas.size()))));
+        double larguraDia = Math.max(34.0, Math.min(72.0,
+                Math.floor((screenW - NOME_COL_DET - 26.0) / Math.max(1, dias.size()))));
 
-        // Chips e fontes escalam com a altura da linha
-        double chipH    = Math.max(22.0, alturaLinha * 0.38);
-        double chipW    = Math.max(32.0, alturaLinha * 0.52);
-        double fntLetra = Math.max(11.0, Math.min(15.0, alturaLinha * 0.20));
-        double fntHoras = Math.max(9.0,  Math.min(11.0, alturaLinha * 0.13));
+        // Altura estimada por linha: usada apenas para dimensionar chips e fontes.
+        // As linhas não têm altura fixa — crescem com VGrow=ALWAYS para preencher o ecrã.
+        // 106 = barra de título do SO (~32) + cabeçalho escuro do diálogo (~74)
+        double alturaEstimada = Math.max(36.0, Math.min(90.0,
+                Math.floor((screenH - 106.0 - ALTURA_HEADER_DET) / Math.max(1, ordenadas.size()))));
+
+        boolean mostrarHoras = larguraDia >= 38.0;
+        double chipH    = Math.max(18.0, alturaEstimada * 0.36);
+        double chipW    = Math.max(22.0, Math.min(larguraDia - 10.0, chipH * 1.45));
+        double fntLetra = Math.max(9.0,  Math.min(14.0, chipW * 0.44));
+        double fntHoras = Math.max(8.5,  Math.min(11.0, larguraDia * 0.22));
 
         // ── Coluna fixa ────────────────────────────────────────────────────
         VBox colunaFixa = new VBox();
+        colunaFixa.setMaxHeight(Double.MAX_VALUE);
         colunaFixa.setStyle("-fx-border-color: #e2e8f0; -fx-border-width: 0 2 0 0; "
-                + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 2, 0);");
+                + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 6, 0, 2, 0);");
 
         HBox hdrColab = new HBox();
         hdrColab.setAlignment(Pos.CENTER_LEFT);
         fixarAltura(hdrColab, ALTURA_HEADER_DET);
-        hdrColab.setStyle("-fx-background-color: #f1f5f9; "
-                + "-fx-border-color: #e2e8f0; -fx-border-width: 0 0 2 0; -fx-padding: 0 12 0 18;");
+        hdrColab.setStyle("-fx-background-color: #f1f5f9; -fx-border-color: #e2e8f0; "
+                + "-fx-border-width: 0 0 2 0; -fx-padding: 0 12 0 18;");
         Label lblColab = new Label("COLABORADOR");
         lblColab.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #94a3b8;");
         hdrColab.getChildren().add(lblColab);
@@ -367,13 +373,14 @@ public final class GrelhaHorarioRenderer {
 
         // ── Parte deslizante ───────────────────────────────────────────────
         VBox parteDias = new VBox();
+        parteDias.setMaxHeight(Double.MAX_VALUE);
 
         HBox hdrDias = new HBox();
         hdrDias.setAlignment(Pos.CENTER_LEFT);
         fixarAltura(hdrDias, ALTURA_HEADER_DET);
         hdrDias.setStyle("-fx-background-color: #f1f5f9; -fx-border-color: #e2e8f0; -fx-border-width: 0 0 2 0;");
         for (LocalDate dia : dias) {
-            hdrDias.getChildren().add(construirCabecalhoDetalhado(dia, hoje, aoAbrirDia));
+            hdrDias.getChildren().add(construirCabecalhoDetalhado(dia, hoje, larguraDia, aoAbrirDia));
         }
         parteDias.getChildren().add(hdrDias);
 
@@ -384,20 +391,24 @@ public final class GrelhaHorarioRenderer {
             String bg = alt ? "#f8fafc" : "white";
             alt = !alt;
 
-            HBox nomeCell = construirCelulaColabDetalhada(linha.nome(), linha.cargo(), corAvatar, bg, alturaLinha);
-            fixarAltura(nomeCell, alturaLinha);
+            HBox nomeCell = construirCelulaColabDetalhada(
+                    linha.nome(), linha.cargo(), corAvatar, bg, alturaEstimada);
+            nomeCell.setMaxHeight(Double.MAX_VALUE);
             fixarLargura(nomeCell, NOME_COL_DET);
+            VBox.setVgrow(nomeCell, Priority.ALWAYS); // linha expande para preencher
 
             HBox rowDias = new HBox();
             rowDias.setAlignment(Pos.CENTER_LEFT);
-            fixarAltura(rowDias, alturaLinha);
+            rowDias.setMaxHeight(Double.MAX_VALUE);
             rowDias.setStyle("-fx-background-color: " + bg
                     + "; -fx-border-color: #f1f5f9; -fx-border-width: 0 0 1 0;");
+            VBox.setVgrow(rowDias, Priority.ALWAYS);  // linha expande para preencher
 
             for (LocalDate dia : dias) {
                 CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
-                rowDias.getChildren().add(
-                        construirCelulaDetalhada(celula, dia, hoje, bg, chipH, chipW, fntLetra, fntHoras, aoAbrirDia));
+                rowDias.getChildren().add(construirCelulaDetalhada(
+                        celula, dia, hoje, chipH, chipW, fntLetra, fntHoras,
+                        larguraDia, mostrarHoras, aoAbrirDia));
             }
 
             sincronizarHoverDet(nomeCell, rowDias);
@@ -405,27 +416,32 @@ public final class GrelhaHorarioRenderer {
             parteDias.getChildren().add(rowDias);
         }
 
+        // fitToHeight=true: parteDias estica até à altura do ScrollPane,
+        // o que distribui o espaço pelas linhas com VGrow=ALWAYS.
+        // hbarPolicy=NEVER: a largura adaptativa garante que todos os dias cabem.
         ScrollPane scrollDias = new ScrollPane(parteDias);
-        scrollDias.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollDias.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollDias.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollDias.setFitToHeight(true);
         scrollDias.setFitToWidth(false);
-        scrollDias.setPannable(true);
+        scrollDias.setPannable(false);
         scrollDias.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         HBox.setHgrow(scrollDias, Priority.ALWAYS);
 
         HBox raiz = new HBox(colunaFixa, scrollDias);
+        raiz.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(raiz, Priority.ALWAYS);
         container.getChildren().add(raiz);
     }
 
-    private static VBox construirCabecalhoDetalhado(LocalDate dia, LocalDate hoje, Consumer<LocalDate> aoAbrirDia) {
+    private static VBox construirCabecalhoDetalhado(LocalDate dia, LocalDate hoje,
+                                                     double larguraDia, Consumer<LocalDate> aoAbrirDia) {
         boolean fds = dia.getDayOfWeek() == DayOfWeek.SATURDAY || dia.getDayOfWeek() == DayOfWeek.SUNDAY;
         boolean eHoje = dia.equals(hoje);
 
         VBox hDia = new VBox(2);
         hDia.setAlignment(Pos.CENTER);
-        fixarLargura(hDia, LARGURA_DIA_DET);
+        fixarLargura(hDia, larguraDia);
         String bgHdr = fds ? "#f0f4ff" : "transparent";
         hDia.setStyle("-fx-background-color: " + bgHdr + "; -fx-border-color: #e5e7eb; "
                 + "-fx-border-width: 0 1 0 0; -fx-cursor: hand;");
@@ -490,14 +506,16 @@ public final class GrelhaHorarioRenderer {
     private static StackPane construirCelulaDetalhada(CelulaTurno celula,
                                                        LocalDate dia,
                                                        LocalDate hoje,
-                                                       String rowBg,
                                                        double chipH,
                                                        double chipW,
                                                        double fntLetra,
                                                        double fntHoras,
+                                                       double larguraDia,
+                                                       boolean mostrarHoras,
                                                        Consumer<LocalDate> aoAbrirDia) {
         StackPane cell = new StackPane();
-        fixarLargura(cell, LARGURA_DIA_DET);
+        fixarLargura(cell, larguraDia);
+        cell.setMaxHeight(Double.MAX_VALUE);
 
         boolean fds   = dia.getDayOfWeek() == DayOfWeek.SATURDAY || dia.getDayOfWeek() == DayOfWeek.SUNDAY;
         boolean eHoje = dia.equals(hoje);
@@ -529,12 +547,20 @@ public final class GrelhaHorarioRenderer {
             chip.getChildren().add(letra);
             content.getChildren().add(chip);
 
-            if (horas != null && !horas.isBlank()) {
+            if (mostrarHoras && horas != null && !horas.isBlank()) {
                 Label lblHoras = new Label(formatarHorasGrelha(horas));
                 lblHoras.setStyle("-fx-font-size: " + fntHoras + "px; -fx-font-weight: 600; -fx-text-fill: " + cores[0] + ";");
                 content.getChildren().add(lblHoras);
             }
             cell.getChildren().add(content);
+
+            // Tooltip com horas quando as células são demasiado estreitas para mostrá-las
+            if (!mostrarHoras && horas != null && !horas.isBlank()) {
+                javafx.scene.control.Tooltip tip = new javafx.scene.control.Tooltip(
+                        turnoLetraCompacta(tipo) + " " + formatarHorasGrelha(horas));
+                tip.setStyle("-fx-font-size: 11px;");
+                javafx.scene.control.Tooltip.install(cell, tip);
+            }
         }
 
         if (aoAbrirDia != null) {

@@ -10,14 +10,15 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * Diálogo para o gestor mudar o turno de um horário publicado.
- * Mostra um ChoiceDialog formatado com a lista de turnos, e — em caso de sucesso —
- * chama os callbacks de notificação (sucesso/erro) e de recarregamento.
+ * Diálogo para o gestor ajustar o turno de um colaborador num dia: trocar o tipo de
+ * turno ou <b>marcar folga</b> (remover o turno). Em caso de sucesso chama os callbacks
+ * de notificação e de recarregamento (que re-verifica o horário).
  */
 public final class EdicaoTurnoDialog {
 
@@ -39,41 +40,38 @@ public final class EdicaoTurnoDialog {
                 return;
             }
 
-            ChoiceDialog<Turno> dialogo = new ChoiceDialog<>(null, turnos);
-            dialogo.setTitle("Editar turno");
+            // Primeira opção: folga (remover); seguidas dos turnos disponíveis.
+            List<Opcao> opcoes = new ArrayList<>();
+            opcoes.add(Opcao.folga());
+            for (Turno t : turnos) opcoes.add(Opcao.de(t));
+
+            ChoiceDialog<Opcao> dialogo = new ChoiceDialog<>(null, opcoes);
+            dialogo.setTitle("Ajustar turno");
             dialogo.setHeaderText("Colaborador: " + (linha.colaborador() != null ? linha.colaborador() : "-")
                     + "\nDia: " + (linha.data() != null ? linha.data() : "-")
                     + "\nTurno atual: " + (linha.turno() != null ? linha.turno() : "-"));
             dialogo.setContentText("Novo turno:");
 
-            StringConverter<Turno> conversor = new StringConverter<>() {
-                @Override
-                public String toString(Turno t) {
-                    if (t == null) return "-";
-                    return (t.getTipo() != null ? t.getTipo() + " " : "")
-                            + t.getHoraInicio() + " — " + t.getHoraFim();
-                }
-                @Override
-                public Turno fromString(String s) { return null; }
+            StringConverter<Opcao> conversor = new StringConverter<>() {
+                @Override public String toString(Opcao o) { return o == null ? "-" : o.label(); }
+                @Override public Opcao fromString(String s) { return null; }
             };
 
             if (dialogo.getDialogPane().lookupAll(".combo-box").stream()
                     .findFirst().orElse(null) instanceof ComboBox<?> combo) {
                 @SuppressWarnings("unchecked")
-                ComboBox<Turno> turnoCombo = (ComboBox<Turno>) combo;
-                turnoCombo.setConverter(conversor);
-                turnoCombo.setButtonCell(new ListCell<>() {
-                    @Override
-                    protected void updateItem(Turno t, boolean empty) {
-                        super.updateItem(t, empty);
-                        setText(empty || t == null ? "-" : conversor.toString(t));
+                ComboBox<Opcao> opcaoCombo = (ComboBox<Opcao>) combo;
+                opcaoCombo.setConverter(conversor);
+                opcaoCombo.setButtonCell(new ListCell<>() {
+                    @Override protected void updateItem(Opcao o, boolean empty) {
+                        super.updateItem(o, empty);
+                        setText(empty || o == null ? "-" : conversor.toString(o));
                     }
                 });
-                turnoCombo.setCellFactory(lv -> new ListCell<>() {
-                    @Override
-                    protected void updateItem(Turno t, boolean empty) {
-                        super.updateItem(t, empty);
-                        setText(empty || t == null ? "-" : conversor.toString(t));
+                opcaoCombo.setCellFactory(lv -> new ListCell<>() {
+                    @Override protected void updateItem(Opcao o, boolean empty) {
+                        super.updateItem(o, empty);
+                        setText(empty || o == null ? "-" : conversor.toString(o));
                     }
                 });
             }
@@ -81,28 +79,40 @@ public final class EdicaoTurnoDialog {
             if (owner != null) {
                 dialogo.initOwner(owner);
             }
-            Optional<Turno> resultado = dialogo.showAndWait();
-            resultado.ifPresent(novoTurno -> {
+            Optional<Opcao> resultado = dialogo.showAndWait();
+            resultado.ifPresent(opcao -> {
                 try {
-                    horarioBLL.editarTurnoPublicado(
-                            linha.idHorario(),
-                            novoTurno.getId(),
-                            idUtilizador,
-                            null
-                    );
-                    if (owner instanceof Stage ownerStage) {
-                        ownerStage.close();
+                    if (opcao.ehFolga()) {
+                        horarioBLL.removerTurno(linha.idHorario(), idUtilizador);
+                        if (owner instanceof Stage ownerStage) ownerStage.close();
+                        onSucesso.accept("Turno removido — o colaborador fica de folga nesse dia.");
+                    } else {
+                        horarioBLL.editarTurnoPublicado(
+                                linha.idHorario(), opcao.turno().getId(), idUtilizador, null);
+                        if (owner instanceof Stage ownerStage) ownerStage.close();
+                        onSucesso.accept("Turno alterado para " + opcao.label() + " com sucesso.");
                     }
-                    onSucesso.accept("Turno alterado para " + conversor.toString(novoTurno) + " com sucesso.");
                     if (onRecarregar != null) onRecarregar.run();
                 } catch (IllegalArgumentException ex) {
                     onErro.accept(ex.getMessage());
                 } catch (Exception ex) {
-                    onErro.accept("Não foi possível alterar o turno.");
+                    onErro.accept("Não foi possível aplicar a alteração.");
                 }
             });
         } catch (Exception e) {
             onErro.accept("Não foi possível abrir o editor de turno.");
+        }
+    }
+
+    /** Uma opção do seletor: um turno concreto ou "folga" (remover). */
+    private record Opcao(Turno turno, boolean ehFolga) {
+        static Opcao folga() { return new Opcao(null, true); }
+        static Opcao de(Turno t) { return new Opcao(t, false); }
+
+        String label() {
+            if (ehFolga) return "— Folga (remover turno) —";
+            return (turno.getTipo() != null ? turno.getTipo() + " " : "")
+                    + turno.getHoraInicio() + " — " + turno.getHoraFim();
         }
     }
 }

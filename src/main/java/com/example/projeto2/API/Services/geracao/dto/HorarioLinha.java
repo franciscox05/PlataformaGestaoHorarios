@@ -6,6 +6,7 @@ import java.time.LocalDate;
 public record HorarioLinha(
         Integer idHorario,
         Integer idColaborador,
+        Integer idLojautilizador,
         LocalDate data,
         String diaSemana,
         String turno,
