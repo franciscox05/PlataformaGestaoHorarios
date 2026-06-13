@@ -394,12 +394,11 @@ public class GeracaoHorariosController {
             legenda.getChildren().add(lblFolga);
             header.getChildren().addAll(lblTitulo, esp, legenda);
 
-            // ── Grelha compacta (M/N/I/—) ───────────────────────────────────
+            // ── Grelha detalhada (chip colorido + horas, coluna fixa) ────────
             javafx.scene.layout.VBox grelha = new javafx.scene.layout.VBox();
-            grelha.setPadding(new javafx.geometry.Insets(16, 24, 24, 24));
             grelha.setStyle("-fx-background-color: white;");
             com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
-                    .renderizarCompacto(grelha, dias, linhasGrelha, LocalDate.now(), this::abrirDetalheDia);
+                    .renderizarDetalhado(grelha, dias, linhasGrelha, LocalDate.now(), this::abrirDetalheDia);
 
             javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(grelha);
             sp.setFitToWidth(true);

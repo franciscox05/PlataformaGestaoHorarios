@@ -299,6 +299,238 @@ public final class GrelhaHorarioRenderer {
         return AVATAR_CORES[base % AVATAR_CORES.length];
     }
 
+    // ── Vista detalhada (ecrã inteiro, chip colorido + horas) ─────────────
+
+    private static final double ALTURA_HEADER_DET  = 64.0;
+    private static final double ALTURA_LINHA_DET   = 80.0;
+    private static final double NOME_COL_DET       = 210.0;
+    private static final double LARGURA_DIA_DET    = 62.0;
+
+    // cores por tipo: [chip-bg, chip-text, cell-bg, cell-bg-fds]
+    private static final Map<String, String[]> CORES_DET = Map.of(
+            "manha",      new String[]{"#2563eb", "white",    "#eff6ff", "#dbeafe"},
+            "tarde",      new String[]{"#0891b2", "white",    "#f0fdfa", "#ccfbf1"},
+            "noite",      new String[]{"#7c3aed", "white",    "#f5f3ff", "#ede9fe"},
+            "intermedio", new String[]{"#d97706", "white",    "#fffbeb", "#fef3c7"},
+            "folga",      new String[]{"#6b7280", "#9ca3af",  "#f9fafb", "#f3f4f6"},
+            "outro",      new String[]{"#374151", "white",    "#f9fafb", "#f3f4f6"}
+    );
+
+    /**
+     * Vista detalhada para a janela em ecrã inteiro: coluna fixa de colaboradores
+     * + dias em scroll horizontal. Cada célula mostra um chip colorido com a letra
+     * do turno e as horas por baixo. Mais legível que a vista compacta para análise.
+     */
+    public static void renderizarDetalhado(VBox container,
+                                           List<LocalDate> dias,
+                                           List<LinhaGrelha> linhas,
+                                           LocalDate hoje,
+                                           Consumer<LocalDate> aoAbrirDia) {
+        if (container == null) return;
+        container.getChildren().clear();
+        if (dias == null || dias.isEmpty() || linhas == null || linhas.isEmpty()) return;
+
+        List<LinhaGrelha> ordenadas = new ArrayList<>(linhas);
+        ordenadas.sort(Comparator.comparing(l ->
+                Normalizer.normalize(l.nome() != null ? l.nome().toLowerCase(Locale.ROOT) : "",
+                        Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
+
+        // ── Coluna fixa ────────────────────────────────────────────────────
+        VBox colunaFixa = new VBox();
+        colunaFixa.setStyle("-fx-border-color: #e5e7eb; -fx-border-width: 0 1 0 0;");
+
+        HBox hdrColab = new HBox();
+        hdrColab.setAlignment(Pos.CENTER_LEFT);
+        fixarAltura(hdrColab, ALTURA_HEADER_DET);
+        hdrColab.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e5e7eb; -fx-border-width: 0 0 2 0; -fx-padding: 0 12 0 16;");
+        Label lblColab = new Label("COLABORADOR");
+        lblColab.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #6b7280; -fx-letter-spacing: 0.5;");
+        hdrColab.getChildren().add(lblColab);
+        fixarLargura(hdrColab, NOME_COL_DET);
+        colunaFixa.getChildren().add(hdrColab);
+
+        // ── Parte deslizante ───────────────────────────────────────────────
+        VBox parteDias = new VBox();
+
+        HBox hdrDias = new HBox();
+        hdrDias.setAlignment(Pos.CENTER_LEFT);
+        fixarAltura(hdrDias, ALTURA_HEADER_DET);
+        hdrDias.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e5e7eb; -fx-border-width: 0 0 2 0;");
+        for (LocalDate dia : dias) {
+            hdrDias.getChildren().add(construirCabecalhoDetalhado(dia, hoje, aoAbrirDia));
+        }
+        parteDias.getChildren().add(hdrDias);
+
+        boolean alt = false;
+        int idx = 0;
+        for (LinhaGrelha linha : ordenadas) {
+            String corAvatar = corPara(linha.idColaborador(), idx++);
+            String bg = alt ? "#fafafa" : "white";
+            alt = !alt;
+
+            HBox nomeCell = construirCelulaColabDetalhada(linha.nome(), linha.cargo(), corAvatar, bg);
+            fixarAltura(nomeCell, ALTURA_LINHA_DET);
+            fixarLargura(nomeCell, NOME_COL_DET);
+
+            HBox rowDias = new HBox();
+            rowDias.setAlignment(Pos.CENTER_LEFT);
+            fixarAltura(rowDias, ALTURA_LINHA_DET);
+            rowDias.setStyle("-fx-background-color: " + bg + "; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
+
+            for (LocalDate dia : dias) {
+                CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
+                rowDias.getChildren().add(construirCelulaDetalhada(celula, dia, hoje, bg, aoAbrirDia));
+            }
+
+            sincronizarHoverDet(nomeCell, rowDias);
+            colunaFixa.getChildren().add(nomeCell);
+            parteDias.getChildren().add(rowDias);
+        }
+
+        ScrollPane scrollDias = new ScrollPane(parteDias);
+        scrollDias.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollDias.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollDias.setFitToHeight(false);
+        scrollDias.setFitToWidth(false);
+        scrollDias.setPannable(true);
+        scrollDias.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        HBox.setHgrow(scrollDias, Priority.ALWAYS);
+
+        HBox raiz = new HBox(colunaFixa, scrollDias);
+        container.getChildren().add(raiz);
+    }
+
+    private static VBox construirCabecalhoDetalhado(LocalDate dia, LocalDate hoje, Consumer<LocalDate> aoAbrirDia) {
+        boolean fds = dia.getDayOfWeek() == DayOfWeek.SATURDAY || dia.getDayOfWeek() == DayOfWeek.SUNDAY;
+        boolean eHoje = dia.equals(hoje);
+
+        VBox hDia = new VBox(2);
+        hDia.setAlignment(Pos.CENTER);
+        fixarLargura(hDia, LARGURA_DIA_DET);
+        String bgHdr = fds ? "#f0f4ff" : "transparent";
+        hDia.setStyle("-fx-background-color: " + bgHdr + "; -fx-border-color: #e5e7eb; "
+                + "-fx-border-width: 0 1 0 0; -fx-cursor: hand;");
+
+        Label lblSem = new Label(diaSemanaAbrev(dia.getDayOfWeek()).toUpperCase(Locale.ROOT));
+        lblSem.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: " + (fds ? "#4f46e5" : "#9ca3af") + ";");
+
+        if (eHoje) {
+            StackPane circulo = new StackPane();
+            circulo.setStyle("-fx-background-color: #dc2626; -fx-background-radius: 100;");
+            circulo.setMinSize(30, 30); circulo.setPrefSize(30, 30); circulo.setMaxSize(30, 30);
+            Label num = new Label(String.valueOf(dia.getDayOfMonth()));
+            num.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: white;");
+            circulo.getChildren().add(num);
+            hDia.getChildren().addAll(lblSem, circulo);
+        } else {
+            Label lblNum = new Label(String.valueOf(dia.getDayOfMonth()));
+            lblNum.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: " + (fds ? "#4338ca" : "#374151") + ";");
+            hDia.getChildren().addAll(lblSem, lblNum);
+        }
+
+        if (aoAbrirDia != null) {
+            hDia.setOnMouseClicked(e -> aoAbrirDia.accept(dia));
+        }
+        return hDia;
+    }
+
+    private static HBox construirCelulaColabDetalhada(String nome, String cargo, String corAvatar, String bg) {
+        HBox cell = new HBox(10);
+        cell.setAlignment(Pos.CENTER_LEFT);
+        cell.setStyle("-fx-background-color: " + bg + "; -fx-border-color: #e5e7eb; "
+                + "-fx-border-width: 0 1 1 0; -fx-padding: 0 12 0 14;");
+
+        StackPane avatar = new StackPane();
+        avatar.setStyle("-fx-background-color: " + corAvatar + "; -fx-background-radius: 100;");
+        avatar.setMinSize(34, 34); avatar.setPrefSize(34, 34); avatar.setMaxSize(34, 34);
+        Label ini = new Label(gerarIniciais(nome));
+        ini.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: white;");
+        avatar.getChildren().add(ini);
+
+        VBox nomeBox = new VBox(1);
+        nomeBox.setAlignment(Pos.CENTER_LEFT);
+        Label lblNome = new Label(nome != null ? nome : "?");
+        lblNome.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #111827;");
+        lblNome.setMaxWidth(NOME_COL_DET - 70);
+        lblNome.setEllipsisString("…");
+        Label lblCargo = new Label(cargo != null ? cargo : "");
+        lblCargo.setStyle("-fx-font-size: 10px; -fx-text-fill: #6b7280;");
+        nomeBox.getChildren().addAll(lblNome, lblCargo);
+
+        cell.getChildren().addAll(avatar, nomeBox);
+        return cell;
+    }
+
+    private static StackPane construirCelulaDetalhada(CelulaTurno celula,
+                                                       LocalDate dia,
+                                                       LocalDate hoje,
+                                                       String rowBg,
+                                                       Consumer<LocalDate> aoAbrirDia) {
+        StackPane cell = new StackPane();
+        fixarLargura(cell, LARGURA_DIA_DET);
+
+        boolean fds   = dia.getDayOfWeek() == DayOfWeek.SATURDAY || dia.getDayOfWeek() == DayOfWeek.SUNDAY;
+        boolean eHoje = dia.equals(hoje);
+
+        String tipo  = celula != null ? celula.tipo() : null;
+        String horas = celula != null ? celula.horas() : null;
+        String chave = turnoChave(tipo != null ? tipo : "folga");
+        boolean ehFolga = celula == null || "folga".equals(chave);
+
+        String[] cores = CORES_DET.getOrDefault(chave, CORES_DET.get("outro"));
+        String bgCell = fds ? cores[3] : cores[2];
+        String borda = eHoje ? "-fx-border-color: #dc2626; -fx-border-width: 0 1 1 0; -fx-border-insets: 1;"
+                             : "-fx-border-color: #e5e7eb; -fx-border-width: 0 1 1 0;";
+        cell.setStyle("-fx-background-color: " + bgCell + "; " + borda + " -fx-cursor: hand;");
+
+        if (ehFolga) {
+            Label dash = new Label("–");
+            dash.setStyle("-fx-font-size: 18px; -fx-font-weight: 300; -fx-text-fill: #d1d5db;");
+            cell.getChildren().add(dash);
+        } else {
+            VBox content = new VBox(3);
+            content.setAlignment(Pos.CENTER);
+
+            // Chip com letra do turno
+            StackPane chip = new StackPane();
+            chip.setStyle("-fx-background-color: " + cores[0] + "; -fx-background-radius: 6;"
+                    + " -fx-min-width: 34; -fx-min-height: 28; -fx-pref-width: 34; -fx-pref-height: 28;");
+            Label letra = new Label(turnoLetraCompacta(tipo));
+            letra.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: " + cores[1] + ";");
+            chip.getChildren().add(letra);
+
+            content.getChildren().add(chip);
+
+            // Horas por baixo do chip
+            if (horas != null && !horas.isBlank()) {
+                Label lblHoras = new Label(formatarHorasGrelha(horas));
+                lblHoras.setStyle("-fx-font-size: 10px; -fx-font-weight: 500; -fx-text-fill: " + cores[0] + ";");
+                content.getChildren().add(lblHoras);
+            }
+            cell.getChildren().add(content);
+        }
+
+        if (aoAbrirDia != null) {
+            cell.setOnMouseClicked(e -> aoAbrirDia.accept(dia));
+        }
+        return cell;
+    }
+
+    private static void sincronizarHoverDet(HBox nomeCell, HBox rowDias) {
+        Runnable entrar = () -> {
+            adicionarClasse(nomeCell, "grelha-row-hover");
+            adicionarClasse(rowDias, "grelha-row-hover");
+        };
+        Runnable sair = () -> {
+            nomeCell.getStyleClass().remove("grelha-row-hover");
+            rowDias.getStyleClass().remove("grelha-row-hover");
+        };
+        nomeCell.setOnMouseEntered(e -> entrar.run());
+        nomeCell.setOnMouseExited(e -> sair.run());
+        rowDias.setOnMouseEntered(e -> entrar.run());
+        rowDias.setOnMouseExited(e -> sair.run());
+    }
+
     // ── Vista compacta (mês sem scroll horizontal) ─────────────────────────
 
     /**
