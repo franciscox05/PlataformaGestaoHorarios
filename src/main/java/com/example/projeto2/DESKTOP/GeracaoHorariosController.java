@@ -361,24 +361,64 @@ public class GeracaoHorariosController {
                     com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender
                             .construirLinhasGrelha(propostaAtual.linhas(), ym.atDay(1), ym.atEndOfMonth());
 
-            javafx.scene.layout.VBox conteudo = new javafx.scene.layout.VBox();
-            com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
-                    .renderizar(conteudo, dias, linhasGrelha, LocalDate.now(), null);
+            // ── Cabeçalho da janela ──────────────────────────────────────────
+            javafx.scene.layout.VBox root = new javafx.scene.layout.VBox(0);
+            root.setStyle("-fx-background-color: white;");
 
-            javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(conteudo);
+            javafx.scene.layout.HBox header = new javafx.scene.layout.HBox(12);
+            header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            header.setPadding(new javafx.geometry.Insets(16, 24, 14, 24));
+            header.setStyle("-fx-background-color: #7f1d1d; -fx-border-color: transparent;");
+
+            javafx.scene.control.Label lblTitulo = new javafx.scene.control.Label(
+                    "Horário — " + mes + " " + spAno.getValue()
+                    + (propostaAtual.idProposta() != null ? "  •  Proposta #" + propostaAtual.idProposta() : ""));
+            lblTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: white;");
+
+            javafx.scene.layout.Region esp = new javafx.scene.layout.Region();
+            javafx.scene.layout.HBox.setHgrow(esp, javafx.scene.layout.Priority.ALWAYS);
+
+            // Legenda de cores
+            javafx.scene.layout.HBox legenda = new javafx.scene.layout.HBox(12);
+            legenda.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            for (String[] par : new String[][]{
+                    {"M", "#3b82f6"}, {"N", "#8b5cf6"}, {"I", "#f59e0b"}, {"—", "#6b7280"}}) {
+                javafx.scene.control.Label chip = new javafx.scene.control.Label(par[0]);
+                chip.setStyle("-fx-background-color: " + par[1] + "22; -fx-text-fill: " + par[1]
+                        + "; -fx-font-weight: 700; -fx-font-size: 12px; "
+                        + "-fx-padding: 3 8 3 8; -fx-background-radius: 6;");
+                legenda.getChildren().add(chip);
+            }
+            javafx.scene.control.Label lblFolga = new javafx.scene.control.Label("Folga");
+            lblFolga.setStyle("-fx-font-size: 11px; -fx-text-fill: #fca5a5;");
+            legenda.getChildren().add(lblFolga);
+            header.getChildren().addAll(lblTitulo, esp, legenda);
+
+            // ── Grelha compacta (M/N/I/—) ───────────────────────────────────
+            javafx.scene.layout.VBox grelha = new javafx.scene.layout.VBox();
+            grelha.setPadding(new javafx.geometry.Insets(16, 24, 24, 24));
+            grelha.setStyle("-fx-background-color: white;");
+            com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
+                    .renderizarCompacto(grelha, dias, linhasGrelha, LocalDate.now(), this::abrirDetalheDia);
+
+            javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(grelha);
             sp.setFitToWidth(true);
             sp.setFitToHeight(false);
             sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
             sp.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
             sp.setStyle("-fx-background-color: white; -fx-background: white;");
+            javafx.scene.layout.VBox.setVgrow(sp, javafx.scene.layout.Priority.ALWAYS);
 
-            javafx.scene.Scene cena = new javafx.scene.Scene(sp, 1300, 680);
+            root.getChildren().addAll(header, sp);
+
+            javafx.scene.Scene cena = new javafx.scene.Scene(root, 1400, 800);
             if (obterJanela() != null && obterJanela().getScene() != null) {
                 cena.getStylesheets().addAll(obterJanela().getScene().getStylesheets());
             }
             javafx.stage.Stage janela = new javafx.stage.Stage();
-            janela.setTitle("Horário em detalhe  —  " + mes + " " + spAno.getValue());
+            janela.setTitle("Horário — " + mes + " " + spAno.getValue());
             janela.setScene(cena);
+            janela.setMaximized(true);
             janela.initModality(javafx.stage.Modality.NONE);
             if (obterJanela() != null) janela.initOwner(obterJanela());
             janela.show();
