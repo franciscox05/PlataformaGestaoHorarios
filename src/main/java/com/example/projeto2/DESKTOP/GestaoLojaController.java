@@ -111,6 +111,8 @@ public class GestaoLojaController {
     private final GestaoLojaService gestaoLojaBLL;
     private final Map<Integer, TextField> camposValor = new LinkedHashMap<>();
     private final Map<Integer, CheckBox> camposBooleanos = new LinkedHashMap<>();
+    /** Toggle "Ativa nesta loja" para regras numéricas EDITAVEL. */
+    private final Map<Integer, CheckBox> camposAtivos = new LinkedHashMap<>();
     private final Map<Integer, TextArea> camposObservacoes = new LinkedHashMap<>();
     private Utilizador utilizadorLogado;
     private Integer idHorarioEspecialEmEdicao;
@@ -159,11 +161,18 @@ public class GestaoLojaController {
             List<GestaoLojaService.ConfiguracaoRegraRequest> regras = new ArrayList<>();
             for (Map.Entry<Integer, TextField> entry : camposValor.entrySet()) {
                 Integer idRegra = entry.getKey();
-                Integer valorEspecifico = parseInteiroOpcional(entry.getValue().getText(), idRegra);
+                CheckBox chkAtiva = camposAtivos.get(idRegra);
+                Integer valorEspecifico;
+                if (chkAtiva != null && !chkAtiva.isSelected()) {
+                    // Toggle OFF → remove o override desta loja; motor usa o valor base global.
+                    valorEspecifico = null;
+                } else {
+                    valorEspecifico = parseInteiroOpcional(entry.getValue().getText(), idRegra);
+                }
                 regras.add(new GestaoLojaService.ConfiguracaoRegraRequest(
                         idRegra, valorEspecifico, observacoesDe(idRegra)));
             }
-            // Regras liga/desliga: guardadas como 1 (ativa) / 0 (inativa).
+            // Regras liga/desliga (ex.: chefia ao sábado): 1 = ativa, 0 = inativa.
             for (Map.Entry<Integer, CheckBox> entry : camposBooleanos.entrySet()) {
                 Integer idRegra = entry.getKey();
                 regras.add(new GestaoLojaService.ConfiguracaoRegraRequest(
@@ -304,6 +313,7 @@ public class GestaoLojaController {
         regrasContainer.getChildren().clear();
         camposValor.clear();
         camposBooleanos.clear();
+        camposAtivos.clear();
         camposObservacoes.clear();
 
         if (regras == null || regras.isEmpty()) {
@@ -422,23 +432,38 @@ public class GestaoLojaController {
         camposBooleanos.put(regra.idRegra(), chk);
     }
 
-    /** Regra numérica personalizável (comportamento clássico). */
+    /** Regra numérica personalizável — com toggle "Ativa nesta loja". */
     private void preencherCardEditavel(VBox card, GestaoLojaService.RegraLojaResumo regra) {
+        // Toggle ON se não houver override (usa valor base global) ou se o override for positivo.
+        // Toggle OFF só quando o override é explicitamente 0 (override antigo de desativação).
+        boolean ativa = regra.valorEspecifico() == null || regra.valorEspecifico() > 0;
+        CheckBox chkAtiva = new CheckBox("Ativa nesta loja");
+        chkAtiva.setSelected(ativa);
+
         Label lblValor = new Label("Valor específico da loja");
         lblValor.getStyleClass().add("campo-titulo");
 
         TextField txtValor = new TextField();
         txtValor.getStyleClass().add("campo-input");
-        txtValor.setPromptText("Usar valor base");
-        if (regra.valorEspecifico() != null) {
+        if (regra.valorPadrao() != null) {
+            txtValor.setPromptText("Base: " + regra.valorPadrao());
+        } else {
+            txtValor.setPromptText("Usar valor base");
+        }
+        // Mostra o valor específico se existir e for positivo (0 = desativada).
+        if (regra.valorEspecifico() != null && regra.valorEspecifico() > 0) {
             txtValor.setText(String.valueOf(regra.valorEspecifico()));
         }
+        txtValor.setDisable(!ativa);
+
+        chkAtiva.selectedProperty().addListener((obs, antigo, agora) -> txtValor.setDisable(!agora));
 
         HBox linhaValor = new HBox(12, lblValor, txtValor);
         linhaValor.setFillHeight(true);
         HBox.setHgrow(txtValor, Priority.ALWAYS);
-        card.getChildren().add(linhaValor);
+        card.getChildren().addAll(chkAtiva, linhaValor);
 
+        camposAtivos.put(regra.idRegra(), chkAtiva);
         camposValor.put(regra.idRegra(), txtValor);
     }
 
