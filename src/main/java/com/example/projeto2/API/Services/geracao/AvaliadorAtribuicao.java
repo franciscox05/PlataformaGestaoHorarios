@@ -93,6 +93,13 @@ public final class AvaliadorAtribuicao {
     // aplica ao reforço de fim de semana (trabalhar FDS seguidos é o propósito dele).
     private static final double PENALIZACAO_FDS_CONSECUTIVO = 250.0;
 
+    // Penalização proporcional para trabalhar dentro da janela de rotação de FDS
+    // (não consecutivos, mas ainda dentro da janela configurada). Decresce linearmente
+    // de PENALIZACAO_JANELA_FDS (2 semanas de intervalo) até 0 (janela exata).
+    // Só é activa quando a rotação é relaxada (fase 3 do backtracking) — em condições
+    // normais o hard-check podeReceber já bloqueia estes candidatos.
+    private static final double PENALIZACAO_JANELA_FDS = 180.0;
+
     private final HorarioValidatorService validator;
 
     public AvaliadorAtribuicao(HorarioValidatorService validator) {
@@ -160,11 +167,21 @@ public final class AvaliadorAtribuicao {
         // do perfil, pelo que penalizá-lo só empurrava os FDS para a equipa regular.
         if (!estado.ehApenasFimDeSemana()) {
             double componenteFds = Math.min(estado.totalFimDeSemanaTrabalhados(), 5) / 5.0;
-            if (fimDeSemana && estado.trabalhouFimDeSemanaAnterior(data)) {
-                componenteFds += 1.0;
-                // Penalização base, independente da política: quando a rotação é relaxada
-                // para cobrir o FDS, quem descansou no FDS anterior tem prioridade clara.
-                pontuacao += PENALIZACAO_FDS_CONSECUTIVO;
+            if (fimDeSemana) {
+                int semanasSinceFds = estado.semanasDesdeUltimoFimDeSemana(data);
+                if (semanasSinceFds == 1) {
+                    // FDS consecutivos: penalização máxima independente da política.
+                    componenteFds += 1.0;
+                    pontuacao += PENALIZACAO_FDS_CONSECUTIVO;
+                } else if (semanasSinceFds > 1) {
+                    int janela = pedido.janelaRotacaoFimDeSemana();
+                    if (janela > 1 && semanasSinceFds < janela) {
+                        // Dentro da janela mas não consecutivos: penalização proporcional
+                        // ao quão próximo está do limite (máximo em 2 semanas, 0 na janela).
+                        double frac = (double)(janela - semanasSinceFds) / (janela - 1);
+                        pontuacao += PENALIZACAO_JANELA_FDS * frac;
+                    }
+                }
             }
             pontuacao += politica.pesoFinsDeSemana() * componenteFds * ESCALA_FDS;
 

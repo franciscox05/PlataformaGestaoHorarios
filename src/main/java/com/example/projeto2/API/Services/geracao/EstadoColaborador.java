@@ -398,6 +398,24 @@ public final class EstadoColaborador {
         return ultimoFimDeSemana.containsKey(fimDeSemanaAtual.minusWeeks(1));
     }
 
+    /**
+     * Número de semanas desde o fim de semana trabalhado mais recente anterior a {@code data}.
+     * Devolve {@link Integer#MAX_VALUE} se nunca trabalhou um FDS antes desta data.
+     * Só é relevante quando {@code data} é um fim de semana.
+     */
+    public int semanasDesdeUltimoFimDeSemana(LocalDate data) {
+        if (!validator.ehFimDeSemana(data) || ultimoFimDeSemana.isEmpty()) return Integer.MAX_VALUE;
+        LocalDate fdsAtual = validator.inicioFimDeSemana(data);
+        int minSemanas = Integer.MAX_VALUE;
+        for (LocalDate fds : ultimoFimDeSemana.keySet()) {
+            if (fds.isBefore(fdsAtual)) {
+                int semanas = (int) ((fdsAtual.toEpochDay() - fds.toEpochDay()) / 7);
+                if (semanas < minSemanas) minSemanas = semanas;
+            }
+        }
+        return minSemanas;
+    }
+
     private LocalDate ultimoFimDeSemanaInicio() {
         return ultimoFimDeSemana.values().stream()
                 .max(Comparator.naturalOrder())

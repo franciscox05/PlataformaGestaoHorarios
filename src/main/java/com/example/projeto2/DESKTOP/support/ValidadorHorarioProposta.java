@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 /** Valida uma lista de linhas de horário face às regras configuradas. */
 public final class ValidadorHorarioProposta {
 
-    private static final DateTimeFormatter HORA_FMT = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter DATA_FMT  =
-            DateTimeFormatter.ofPattern("d 'de' MMM", Locale.forLanguageTag("pt-PT"));
+    private static final DateTimeFormatter HORA_FMT    = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATA_FMT    = DateTimeFormatter.ofPattern("d 'de' MMM", Locale.forLanguageTag("pt-PT"));
+    private static final DateTimeFormatter DATA_FMT_FDS = DateTimeFormatter.ofPattern("d/M");
 
     private ValidadorHorarioProposta() {}
 
@@ -149,8 +149,9 @@ public final class ValidadorHorarioProposta {
             Map<Integer, List<HorarioLinha>> porColaborador, int janelaFDS) {
         List<String> violacoes = new ArrayList<>();
         for (List<HorarioLinha> turnos : porColaborador.values()) {
-            String nome = turnos.isEmpty() ? "?" : turnos.getFirst().colaborador();
-            String cargo = turnos.isEmpty() ? "" : turnos.getFirst().cargo();
+            if (turnos.isEmpty()) continue;
+            String nome  = turnos.getFirst().colaborador();
+            String cargo = turnos.getFirst().cargo();
             if (cargo != null && (cargo.toLowerCase(Locale.ROOT).contains("gerente")
                     || cargo.toLowerCase(Locale.ROOT).contains("subgerente")
                     || cargo.toLowerCase(Locale.ROOT).contains("reforco_parttime")
@@ -164,19 +165,34 @@ public final class ValidadorHorarioProposta {
                     .distinct()
                     .sorted()
                     .toList();
+
+            // Recolher os FDS que participam em pelo menos uma violação de janela.
+            // Uma violação existe quando dois FDS consecutivos (na lista ordenada) estão
+            // a menos de janelaFDS semanas de distância. Agrupa-se por colaborador —
+            // uma linha de violação por pessoa em vez de uma por par.
+            List<LocalDate> fdsVioladores = new ArrayList<>();
             for (int i = 1; i < sabadosTrabalhados.size(); i++) {
                 LocalDate anterior = sabadosTrabalhados.get(i - 1);
                 LocalDate atual    = sabadosTrabalhados.get(i);
                 long semanasEntre  = (atual.toEpochDay() - anterior.toEpochDay()) / 7;
                 if (semanasEntre > 0 && semanasEntre < janelaFDS) {
-                    violacoes.add(String.format("%s: FDS consecutivos — %s e %s (janela: %d sem.)",
-                            nome, DATA_FMT.format(anterior), DATA_FMT.format(atual), janelaFDS));
+                    if (!fdsVioladores.contains(anterior)) fdsVioladores.add(anterior);
+                    if (!fdsVioladores.contains(atual))    fdsVioladores.add(atual);
                 }
+            }
+            if (!fdsVioladores.isEmpty()) {
+                fdsVioladores.sort(Comparator.naturalOrder());
+                String datas = fdsVioladores.stream()
+                        .map(DATA_FMT_FDS::format)
+                        .collect(Collectors.joining(", "));
+                int nFds = fdsVioladores.size();
+                violacoes.add(String.format("%s: %d FDS em menos de %d sem. — %s",
+                        nome, nFds, janelaFDS, datas));
             }
         }
         String resumo = violacoes.isEmpty()
-                ? "Rotação de fins de semana respeitada (janela " + janelaFDS + " semanas)"
-                : violacoes.size() + " colaborador(es) com fins de semana demasiado próximos";
+                ? "Rotação de fins de semana respeitada (janela " + janelaFDS + " sem.)"
+                : violacoes.size() + " colaborador(es) com FDS demasiado próximos (< " + janelaFDS + " sem.)";
         return new ValidacaoHorarioResultado.CategoriaValidacao(
                 "Rotação de fins de semana (" + janelaFDS + " sem.)",
                 violacoes.isEmpty() ? ValidacaoHorarioResultado.Estado.OK : ValidacaoHorarioResultado.Estado.VIOLACAO,
