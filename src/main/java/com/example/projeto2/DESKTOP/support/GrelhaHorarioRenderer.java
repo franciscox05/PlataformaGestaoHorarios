@@ -9,6 +9,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Screen;
 import javafx.util.Duration;
 
 import java.text.Normalizer;
@@ -301,10 +302,10 @@ public final class GrelhaHorarioRenderer {
 
     // ── Vista detalhada (ecrã inteiro, chip colorido + horas) ─────────────
 
-    private static final double ALTURA_HEADER_DET  = 64.0;
-    private static final double ALTURA_LINHA_DET   = 80.0;
+    private static final double ALTURA_HEADER_DET  = 58.0;
     private static final double NOME_COL_DET       = 210.0;
     private static final double LARGURA_DIA_DET    = 62.0;
+    // Altura de linha calculada dinamicamente em renderizarDetalhado()
 
     // cores por tipo: [chip-bg, chip-text, cell-bg, cell-bg-fds]
     private static final Map<String, String[]> CORES_DET = Map.of(
@@ -335,16 +336,31 @@ public final class GrelhaHorarioRenderer {
                 Normalizer.normalize(l.nome() != null ? l.nome().toLowerCase(Locale.ROOT) : "",
                         Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
 
+        // Altura de linha adaptativa: preenche o ecrã sem scroll vertical.
+        // Subtrai o cabeçalho da app (70px), o cabeçalho da tabela e uma margem.
+        double screenH = Screen.getPrimary().getVisualBounds().getHeight();
+        double disponivelParaLinhas = screenH - 70 - ALTURA_HEADER_DET - 12;
+        double alturaLinha = Math.max(46.0, Math.min(84.0,
+                Math.floor(disponivelParaLinhas / Math.max(1, ordenadas.size()))));
+
+        // Chips e fontes escalam com a altura da linha
+        double chipH    = Math.max(22.0, alturaLinha * 0.38);
+        double chipW    = Math.max(32.0, alturaLinha * 0.52);
+        double fntLetra = Math.max(11.0, Math.min(15.0, alturaLinha * 0.20));
+        double fntHoras = Math.max(9.0,  Math.min(11.0, alturaLinha * 0.13));
+
         // ── Coluna fixa ────────────────────────────────────────────────────
         VBox colunaFixa = new VBox();
-        colunaFixa.setStyle("-fx-border-color: #e5e7eb; -fx-border-width: 0 1 0 0;");
+        colunaFixa.setStyle("-fx-border-color: #e2e8f0; -fx-border-width: 0 2 0 0; "
+                + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 2, 0);");
 
         HBox hdrColab = new HBox();
         hdrColab.setAlignment(Pos.CENTER_LEFT);
         fixarAltura(hdrColab, ALTURA_HEADER_DET);
-        hdrColab.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e5e7eb; -fx-border-width: 0 0 2 0; -fx-padding: 0 12 0 16;");
+        hdrColab.setStyle("-fx-background-color: #f1f5f9; "
+                + "-fx-border-color: #e2e8f0; -fx-border-width: 0 0 2 0; -fx-padding: 0 12 0 18;");
         Label lblColab = new Label("COLABORADOR");
-        lblColab.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #6b7280; -fx-letter-spacing: 0.5;");
+        lblColab.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #94a3b8;");
         hdrColab.getChildren().add(lblColab);
         fixarLargura(hdrColab, NOME_COL_DET);
         colunaFixa.getChildren().add(hdrColab);
@@ -355,7 +371,7 @@ public final class GrelhaHorarioRenderer {
         HBox hdrDias = new HBox();
         hdrDias.setAlignment(Pos.CENTER_LEFT);
         fixarAltura(hdrDias, ALTURA_HEADER_DET);
-        hdrDias.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e5e7eb; -fx-border-width: 0 0 2 0;");
+        hdrDias.setStyle("-fx-background-color: #f1f5f9; -fx-border-color: #e2e8f0; -fx-border-width: 0 0 2 0;");
         for (LocalDate dia : dias) {
             hdrDias.getChildren().add(construirCabecalhoDetalhado(dia, hoje, aoAbrirDia));
         }
@@ -365,21 +381,23 @@ public final class GrelhaHorarioRenderer {
         int idx = 0;
         for (LinhaGrelha linha : ordenadas) {
             String corAvatar = corPara(linha.idColaborador(), idx++);
-            String bg = alt ? "#fafafa" : "white";
+            String bg = alt ? "#f8fafc" : "white";
             alt = !alt;
 
-            HBox nomeCell = construirCelulaColabDetalhada(linha.nome(), linha.cargo(), corAvatar, bg);
-            fixarAltura(nomeCell, ALTURA_LINHA_DET);
+            HBox nomeCell = construirCelulaColabDetalhada(linha.nome(), linha.cargo(), corAvatar, bg, alturaLinha);
+            fixarAltura(nomeCell, alturaLinha);
             fixarLargura(nomeCell, NOME_COL_DET);
 
             HBox rowDias = new HBox();
             rowDias.setAlignment(Pos.CENTER_LEFT);
-            fixarAltura(rowDias, ALTURA_LINHA_DET);
-            rowDias.setStyle("-fx-background-color: " + bg + "; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
+            fixarAltura(rowDias, alturaLinha);
+            rowDias.setStyle("-fx-background-color: " + bg
+                    + "; -fx-border-color: #f1f5f9; -fx-border-width: 0 0 1 0;");
 
             for (LocalDate dia : dias) {
                 CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
-                rowDias.getChildren().add(construirCelulaDetalhada(celula, dia, hoje, bg, aoAbrirDia));
+                rowDias.getChildren().add(
+                        construirCelulaDetalhada(celula, dia, hoje, bg, chipH, chipW, fntLetra, fntHoras, aoAbrirDia));
             }
 
             sincronizarHoverDet(nomeCell, rowDias);
@@ -390,13 +408,14 @@ public final class GrelhaHorarioRenderer {
         ScrollPane scrollDias = new ScrollPane(parteDias);
         scrollDias.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollDias.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollDias.setFitToHeight(false);
+        scrollDias.setFitToHeight(true);
         scrollDias.setFitToWidth(false);
         scrollDias.setPannable(true);
         scrollDias.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         HBox.setHgrow(scrollDias, Priority.ALWAYS);
 
         HBox raiz = new HBox(colunaFixa, scrollDias);
+        VBox.setVgrow(raiz, Priority.ALWAYS);
         container.getChildren().add(raiz);
     }
 
@@ -434,28 +453,35 @@ public final class GrelhaHorarioRenderer {
         return hDia;
     }
 
-    private static HBox construirCelulaColabDetalhada(String nome, String cargo, String corAvatar, String bg) {
+    private static HBox construirCelulaColabDetalhada(String nome, String cargo, String corAvatar,
+                                                       String bg, double alturaLinha) {
         HBox cell = new HBox(10);
         cell.setAlignment(Pos.CENTER_LEFT);
-        cell.setStyle("-fx-background-color: " + bg + "; -fx-border-color: #e5e7eb; "
-                + "-fx-border-width: 0 1 1 0; -fx-padding: 0 12 0 14;");
+        cell.setStyle("-fx-background-color: " + bg + "; -fx-border-color: #e2e8f0; "
+                + "-fx-border-width: 0 2 1 0; -fx-padding: 0 12 0 18;");
 
+        double avatarSz = Math.max(28.0, Math.min(38.0, alturaLinha * 0.48));
         StackPane avatar = new StackPane();
         avatar.setStyle("-fx-background-color: " + corAvatar + "; -fx-background-radius: 100;");
-        avatar.setMinSize(34, 34); avatar.setPrefSize(34, 34); avatar.setMaxSize(34, 34);
+        avatar.setMinSize(avatarSz, avatarSz); avatar.setPrefSize(avatarSz, avatarSz); avatar.setMaxSize(avatarSz, avatarSz);
         Label ini = new Label(gerarIniciais(nome));
-        ini.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: white;");
+        ini.setStyle("-fx-font-size: " + Math.max(10.0, avatarSz * 0.38) + "px; -fx-font-weight: 700; -fx-text-fill: white;");
         avatar.getChildren().add(ini);
 
         VBox nomeBox = new VBox(1);
         nomeBox.setAlignment(Pos.CENTER_LEFT);
         Label lblNome = new Label(nome != null ? nome : "?");
-        lblNome.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #111827;");
+        double fntNome = Math.max(11.0, Math.min(14.0, alturaLinha * 0.185));
+        lblNome.setStyle("-fx-font-size: " + fntNome + "px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
         lblNome.setMaxWidth(NOME_COL_DET - 70);
-        lblNome.setEllipsisString("…");
-        Label lblCargo = new Label(cargo != null ? cargo : "");
-        lblCargo.setStyle("-fx-font-size: 10px; -fx-text-fill: #6b7280;");
-        nomeBox.getChildren().addAll(lblNome, lblCargo);
+        if (cargo != null && !cargo.isBlank()) {
+            Label lblCargo = new Label(cargo);
+            double fntCargo = Math.max(9.0, Math.min(11.0, alturaLinha * 0.135));
+            lblCargo.setStyle("-fx-font-size: " + fntCargo + "px; -fx-text-fill: #64748b;");
+            nomeBox.getChildren().addAll(lblNome, lblCargo);
+        } else {
+            nomeBox.getChildren().add(lblNome);
+        }
 
         cell.getChildren().addAll(avatar, nomeBox);
         return cell;
@@ -465,6 +491,10 @@ public final class GrelhaHorarioRenderer {
                                                        LocalDate dia,
                                                        LocalDate hoje,
                                                        String rowBg,
+                                                       double chipH,
+                                                       double chipW,
+                                                       double fntLetra,
+                                                       double fntHoras,
                                                        Consumer<LocalDate> aoAbrirDia) {
         StackPane cell = new StackPane();
         fixarLargura(cell, LARGURA_DIA_DET);
@@ -478,33 +508,30 @@ public final class GrelhaHorarioRenderer {
         boolean ehFolga = celula == null || "folga".equals(chave);
 
         String[] cores = CORES_DET.getOrDefault(chave, CORES_DET.get("outro"));
-        String bgCell = fds ? cores[3] : cores[2];
-        String borda = eHoje ? "-fx-border-color: #dc2626; -fx-border-width: 0 1 1 0; -fx-border-insets: 1;"
-                             : "-fx-border-color: #e5e7eb; -fx-border-width: 0 1 1 0;";
-        cell.setStyle("-fx-background-color: " + bgCell + "; " + borda + " -fx-cursor: hand;");
+        String bgCell = fds ? cores[3] : (eHoje ? "#fef2f2" : cores[2]);
+        String bordaTop = eHoje ? "-fx-border-color: #dc2626; -fx-border-width: 2 1 1 0;" : "-fx-border-color: #f1f5f9; -fx-border-width: 0 1 1 0;";
+        cell.setStyle("-fx-background-color: " + bgCell + "; " + bordaTop + " -fx-cursor: hand;");
 
         if (ehFolga) {
             Label dash = new Label("–");
-            dash.setStyle("-fx-font-size: 18px; -fx-font-weight: 300; -fx-text-fill: #d1d5db;");
+            dash.setStyle("-fx-font-size: " + (fntLetra + 2) + "px; -fx-font-weight: 300; -fx-text-fill: #cbd5e1;");
             cell.getChildren().add(dash);
         } else {
-            VBox content = new VBox(3);
+            VBox content = new VBox(2);
             content.setAlignment(Pos.CENTER);
 
-            // Chip com letra do turno
             StackPane chip = new StackPane();
-            chip.setStyle("-fx-background-color: " + cores[0] + "; -fx-background-radius: 6;"
-                    + " -fx-min-width: 34; -fx-min-height: 28; -fx-pref-width: 34; -fx-pref-height: 28;");
+            chip.setStyle("-fx-background-color: " + cores[0] + "; -fx-background-radius: 5;"
+                    + " -fx-min-width: " + chipW + "; -fx-min-height: " + chipH
+                    + "; -fx-pref-width: " + chipW + "; -fx-pref-height: " + chipH + ";");
             Label letra = new Label(turnoLetraCompacta(tipo));
-            letra.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: " + cores[1] + ";");
+            letra.setStyle("-fx-font-size: " + fntLetra + "px; -fx-font-weight: 700; -fx-text-fill: " + cores[1] + ";");
             chip.getChildren().add(letra);
-
             content.getChildren().add(chip);
 
-            // Horas por baixo do chip
             if (horas != null && !horas.isBlank()) {
                 Label lblHoras = new Label(formatarHorasGrelha(horas));
-                lblHoras.setStyle("-fx-font-size: 10px; -fx-font-weight: 500; -fx-text-fill: " + cores[0] + ";");
+                lblHoras.setStyle("-fx-font-size: " + fntHoras + "px; -fx-font-weight: 600; -fx-text-fill: " + cores[0] + ";");
                 content.getChildren().add(lblHoras);
             }
             cell.getChildren().add(content);
