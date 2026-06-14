@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,14 +57,27 @@ public final class PolisherHorario {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PolisherHorario.class);
 
-    /** Número de trocas tentadas (cada uma é O(H) — milissegundos no total). */
-    private static final int MAX_ITERACOES = 2500;
+    /**
+     * Orçamento máximo de avaliações de pares por sessão de polimento. Com a enumeração
+     * sistemática (sem repetições), cobre todos os pares de um plano com até ~100
+     * atribuições (C(100,2)=4950) num único passe. Para planos maiores, cobre um subconjunto
+     * aleatório mas sem desperdiçar budget em duplicados.
+     */
+    private static final int MAX_ITERACOES = 5000;
 
     /** Penalização por folga preferida (soft) trabalhada — pesa como ~uma falha de regra leve. */
     private static final double PESO_FOLGA_PREFERIDA = 50.0;
 
     /** Penalização por turno preferido não honrado num dia em que a preferência está ativa. */
     private static final double PESO_TURNO_PREFERIDO = 12.0;
+
+    /**
+     * Penalização por co-presença perdida: dois colaboradores que se preferem estão ambos
+     * escalados no mesmo dia mas em tipos de turno diferentes. Mantida abaixo de
+     * PESO_TURNO_PREFERIDO para não dominar o custo, mas suficiente para que o polisher
+     * prefira trocas que os juntem.
+     */
+    private static final double PESO_COLEGA_NAO_ALINHADO = 8.0;
 
     private final HorarioValidatorService validator;
     private final MetricasPlaneamentoCalculator metricas = new MetricasPlaneamentoCalculator();
@@ -93,18 +107,32 @@ public final class PolisherHorario {
             Random rnd = new Random(pedido.semente());
             double custoAtual = custo(horarios, pedido);
             int aceites = 0;
+            int totalIteracoes = 0;
+            boolean melhorou = true;
 
-            for (int it = 0; it < MAX_ITERACOES; it++) {
-                if ((it & 63) == 0 && prazoEsgotado(pedido)) {
-                    break;
+            // Enumeração sistemática: constrói todos os pares únicos por passe, baralha-os
+            // e itera até não haver mais melhorias ou o orçamento estar esgotado.
+            while (melhorou && totalIteracoes < MAX_ITERACOES) {
+                int n = trocaveis.size();
+                List<int[]> pares = new ArrayList<>(n * (n - 1) / 2);
+                for (int i = 0; i < n; i++) {
+                    for (int j = i + 1; j < n; j++) {
+                        pares.add(new int[]{i, j});
+                    }
                 }
-                Horario hA = trocaveis.get(rnd.nextInt(trocaveis.size()));
-                Horario hB = trocaveis.get(rnd.nextInt(trocaveis.size()));
-                if (hA == hB) continue;
+                Collections.shuffle(pares, rnd);
 
-                if (tentarTroca(pedido, horarios, trocaveis, hA, hB, custoAtual)) {
-                    custoAtual = custo(horarios, pedido);
-                    aceites++;
+                melhorou = false;
+                for (int[] par : pares) {
+                    if (++totalIteracoes > MAX_ITERACOES) break;
+                    if ((totalIteracoes & 63) == 0 && prazoEsgotado(pedido)) break;
+                    Horario hA = trocaveis.get(par[0]);
+                    Horario hB = trocaveis.get(par[1]);
+                    if (tentarTroca(pedido, horarios, trocaveis, hA, hB, custoAtual)) {
+                        custoAtual = custo(horarios, pedido);
+                        aceites++;
+                        melhorou = true;
+                    }
                 }
             }
 
@@ -334,6 +362,33 @@ public final class PolisherHorario {
         for (int n : turnosNaoHonradosPorColab.values()) {
             total += PESO_TURNO_PREFERIDO * (n * (n + 1) / 2.0);
         }
+
+        // Co-presença perdida: C e colega preferido P ambos escalados no mesmo dia mas em
+        // tipos de turno diferentes — podiam estar juntos, não estão.
+        Map<Integer, Set<Integer>> paresPref = pedido.paresPreferisPorColaborador();
+        if (!paresPref.isEmpty()) {
+            Map<Integer, Map<LocalDate, String>> turnoPorDia = new HashMap<>();
+            for (Horario h : plano) {
+                Integer id = idColab(h);
+                if (id == null || h.getDataTurno() == null || h.getIdTurno() == null) continue;
+                turnoPorDia.computeIfAbsent(id, k -> new HashMap<>())
+                           .put(h.getDataTurno(), TurnoClassifier.tipoNormalizado(h.getIdTurno()));
+            }
+            for (Map.Entry<Integer, Set<Integer>> entry : paresPref.entrySet()) {
+                Integer idC = entry.getKey();
+                Map<LocalDate, String> turnosC = turnoPorDia.getOrDefault(idC, Map.of());
+                for (Integer idP : entry.getValue()) {
+                    Map<LocalDate, String> turnosP = turnoPorDia.getOrDefault(idP, Map.of());
+                    for (Map.Entry<LocalDate, String> diaC : turnosC.entrySet()) {
+                        String tipoP = turnosP.get(diaC.getKey());
+                        if (tipoP != null && !tipoP.equals(diaC.getValue())) {
+                            total += PESO_COLEGA_NAO_ALINHADO;
+                        }
+                    }
+                }
+            }
+        }
+
         return total;
     }
 

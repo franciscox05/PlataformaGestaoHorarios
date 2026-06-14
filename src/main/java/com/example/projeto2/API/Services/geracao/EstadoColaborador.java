@@ -383,13 +383,13 @@ public final class EstadoColaborador {
     /**
      * Dias de inatividade consecutivos antes de {@code data}: distância em dias desde
      * o último turno atribuído (incluindo histórico do mês anterior). Devolve 0 se nunca
-     * houve atribuição — nesse caso o equilíbrio de carga já trata de priorizar este
-     * colaborador. Usado pelo avaliador para penalizar longas ausências.
+     * houve atribuição — o equilíbrio de carga já trata de priorizar estes colaboradores;
+     * adicionar um bónus idle artificial causaria clustering indesejado no top-up.
+     * A janela de procura limita-se a 14 dias: o bónus de idle satura aos 5, pelo que
+     * além disso não há diferença prática.
      */
     public int diasDesdeUltimoTurno(LocalDate data) {
         if (atribuicoesConhecidas.isEmpty()) return 0;
-        // Independente da ordem: distância ao dia trabalhado mais próximo ANTES de `data`.
-        // Limita a procura a 14 dias — o bónus de idle satura aos 5, pelo que basta.
         for (int gap = 1; gap <= 14; gap++) {
             if (atribuicoesConhecidas.containsKey(data.minusDays(gap))) {
                 return gap;

@@ -9,6 +9,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -108,19 +109,33 @@ public final class AvaliadorAtribuicao {
 
     /**
      * Pré-computa, uma vez por resolução de candidatos, o conjunto de colaboradores
-     * já escalados no histórico do mês — evitando varrer {@code horariosJaGerados} por
-     * cada candidato (antes era O(H) por candidato; passa a O(1)).
+     * já escalados no histórico do mês e um índice por (dia, tipo-de-turno) — evitando
+     * varrer {@code horariosJaGerados} por cada candidato (O(H) → O(1) por avaliação).
+     *
+     * <p>O índice {@code colabsPorDiaTipo} é usado pela verificação de colegas preferidos
+     * (componente 5): só atribui o bónus quando o colega preferido está já confirmado
+     * no <em>mesmo dia e mesmo tipo de turno</em> que estamos a avaliar — não basta ter
+     * trabalhado em qualquer dia do mês.
      */
     public ContextoAvaliacao novoContexto(List<Horario> horariosJaGerados) {
         Set<Integer> noMes = new LinkedHashSet<>();
+        Map<LocalDate, Map<String, Set<Integer>>> porDiaTipo = new HashMap<>();
         for (Horario h : horariosJaGerados) {
-            if (h.getIdLojautilizador() != null
-                    && h.getIdLojautilizador().getIdUtilizador() != null
-                    && h.getIdLojautilizador().getIdUtilizador().getId() != null) {
-                noMes.add(h.getIdLojautilizador().getIdUtilizador().getId());
+            if (h.getIdLojautilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador().getId() == null) {
+                continue;
+            }
+            Integer id = h.getIdLojautilizador().getIdUtilizador().getId();
+            noMes.add(id);
+            if (h.getDataTurno() != null && h.getIdTurno() != null) {
+                String tipo = TurnoClassifier.tipoNormalizado(h.getIdTurno());
+                porDiaTipo.computeIfAbsent(h.getDataTurno(), k -> new HashMap<>())
+                          .computeIfAbsent(tipo, k -> new LinkedHashSet<>())
+                          .add(id);
             }
         }
-        return new ContextoAvaliacao(noMes);
+        return new ContextoAvaliacao(noMes, porDiaTipo);
     }
 
     /** Pontua uma atribuição candidata. Menor = melhor. */
@@ -212,6 +227,10 @@ public final class AvaliadorAtribuicao {
         }
 
         // (5) Preferências aprovadas (turno + colegas)
+        // A verificação de colega usa o índice (dia, tipo-de-turno) do contexto para garantir
+        // que o bónus só dispara quando o colega preferido já está confirmado no MESMO slot
+        // (mesmo dia e mesmo tipo de turno). Verificar apenas "trabalhou este mês" (abordagem
+        // anterior) tornava o bónus quase constante a partir do 3.º dia, sem sinal real.
         double componentePref = 0;
         boolean temPrefTurno = temPreferenciaTurnoFavoravel(
                 estado.idUtilizador(), turno, data, pedido.preferenciasTurnos());
@@ -220,8 +239,14 @@ public final class AvaliadorAtribuicao {
         }
         Set<Integer> colegasPref = pedido.paresPreferisPorColaborador()
                 .getOrDefault(estado.idUtilizador(), Set.of());
-        if (!colegasPref.isEmpty() && !Collections.disjoint(colegasPref, contexto.colaboradoresNoMes())) {
-            componentePref -= 0.45;
+        if (!colegasPref.isEmpty()) {
+            String tipoTurno = TurnoClassifier.tipoNormalizado(turno);
+            Set<Integer> colabsJaNesseSlot = contexto.colabsPorDiaTipo()
+                    .getOrDefault(data, Map.of())
+                    .getOrDefault(tipoTurno, Set.of());
+            if (!Collections.disjoint(colegasPref, colabsJaNesseSlot)) {
+                componentePref -= 0.45;
+            }
         }
         pontuacao += politica.pesoPreferencias() * componentePref * ESCALA_PREFERENCIAS;
         // Tie-break: base mínima garantida independentemente da política ativa. O valor é
@@ -353,7 +378,16 @@ public final class AvaliadorAtribuicao {
         return count;
     }
 
-    /** Contexto pré-computado, partilhado por todos os candidatos de uma resolução. */
-    public record ContextoAvaliacao(Set<Integer> colaboradoresNoMes) {
+    /**
+     * Contexto pré-computado, partilhado por todos os candidatos de uma resolução.
+     *
+     * @param colaboradoresNoMes  ids de todos os colaboradores que já têm pelo menos
+     *                            um turno no período gerado até agora (kept for compat)
+     * @param colabsPorDiaTipo    índice dia → (tipo-turno → ids já confirmados nesse slot);
+     *                            usado pela verificação de co-presença com colegas preferidos
+     */
+    public record ContextoAvaliacao(
+            Set<Integer> colaboradoresNoMes,
+            Map<LocalDate, Map<String, Set<Integer>>> colabsPorDiaTipo) {
     }
 }
