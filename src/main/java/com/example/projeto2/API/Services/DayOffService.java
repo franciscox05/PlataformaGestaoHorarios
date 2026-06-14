@@ -277,6 +277,24 @@ public class DayOffService {
         historicoHorarioEstadoRepository.saveAll(historicos);
     }
 
+    /** Projection used by the employee "who is off today" endpoint — motivo intentionally excluded. */
+    public record FolgaResumida(String nome, String tipo) {}
+
+    @Transactional(readOnly = true)
+    public List<FolgaResumida> listarFolgasAprovadasNaLojaNoDia(Integer idUtilizadorLogado, LocalDate data) {
+        if (idUtilizadorLogado == null || data == null) return List.of();
+        return lojautilizadorHelper.findLigacaoAtiva(idUtilizadorLogado)
+                .map(lu -> dayOffRepository
+                        .findFolgasAprovadasDaLojaNoDia(lu.getIdLoja().getId(), data)
+                        .stream()
+                        .filter(d -> d.getIdUtilizador() != null)
+                        .map(d -> new FolgaResumida(
+                                d.getIdUtilizador().getNome(),
+                                d.getTipo()))
+                        .toList())
+                .orElse(List.of());
+    }
+
     /**
      * Resultado enriquecido da aprovação de uma folga, com aviso de cobertura.
      * Usado quando o gestor aprova uma ausência e precisa de saber o impacto na equipa.

@@ -83,16 +83,16 @@
                 </span>
                 <h2 class="font-display font-bold text-[15px] text-on-surface">Nova preferência</h2>
             </div>
-            <form method="post" action="/web/complementares/preferencias" class="flex flex-col gap-4 p-5 flex-1">
+            <form id="pref-form" method="post" action="/web/complementares/preferencias" class="flex flex-col gap-4 p-5 flex-1">
                 <div class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</label>
-                    <select name="tipo" required
+                    <select id="pref-tipo" name="tipo" required
                             class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                         <option th:each="tipo : ${tiposPreferencia}" th:value="${tipo}"
                                 th:text="${#strings.capitalize(#strings.replace(tipo,'_',' '))}"></option>
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div id="pref-datas-panel" class="grid grid-cols-2 gap-3">
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data início</label>
                         <input name="dataInicio" type="date"
@@ -109,11 +109,65 @@
                     <input name="prioridade" type="number" min="1" max="5" placeholder="3"
                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                 </div>
-                <div class="flex flex-col gap-1.5">
+                <div id="pref-desc-panel" class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</label>
-                    <textarea name="descricao" rows="2" required placeholder="Explica a preferência…"
+                    <textarea id="pref-descricao" name="descricao" rows="2" placeholder="Explica a preferência…"
                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
                 </div>
+
+                <!-- ── Painel de colegas (UC-F01c) ── -->
+                <div id="pref-colegas-panel" class="flex flex-col gap-3" style="display:none"
+                     th:if="${colegasDaLoja != null}">
+                    <!-- Mensagem de erro inline -->
+                    <p id="pref-colegas-erro"
+                       class="font-body text-[12px] flex items-center gap-1.5" style="display:none;color:#991b1b">
+                        <span class="material-symbols-outlined text-[14px]">error_outline</span>
+                        <span id="pref-colegas-erro-txt">Seleciona pelo menos um colega.</span>
+                    </p>
+                    <!-- Duas colunas: preferidos / evitados -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Coluna: Trabalhar com -->
+                        <div class="flex flex-col gap-2">
+                            <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[13px]" style="color:#059669">thumb_up</span>
+                                Trabalhar com
+                            </p>
+                            <div class="bg-surface-container-low rounded-xl border border-outline-variant p-3 flex flex-col gap-2 overflow-y-auto" style="max-height:9rem">
+                                <label th:each="colega : ${colegasDaLoja}"
+                                       class="flex items-center gap-2 cursor-pointer select-none group">
+                                    <input type="checkbox" class="pref-cb-prefer" th:value="${colega}"
+                                           style="accent-color:#c0001f;width:14px;height:14px;flex-shrink:0">
+                                    <span class="font-body text-[12px] text-on-surface group-hover:text-primary-container transition-colors"
+                                          th:text="${colega}">Colega</span>
+                                </label>
+                                <p th:if="${#lists.isEmpty(colegasDaLoja)}"
+                                   class="font-body text-[11px] text-on-surface-variant italic">Sem colegas disponíveis.</p>
+                            </div>
+                        </div>
+                        <!-- Coluna: Evitar -->
+                        <div class="flex flex-col gap-2">
+                            <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[13px] text-on-surface-variant">thumb_down</span>
+                                Evitar
+                            </p>
+                            <div class="bg-surface-container-low rounded-xl border border-outline-variant p-3 flex flex-col gap-2 overflow-y-auto" style="max-height:9rem">
+                                <label th:each="colega : ${colegasDaLoja}"
+                                       class="flex items-center gap-2 cursor-pointer select-none group">
+                                    <input type="checkbox" class="pref-cb-avoid" th:value="${colega}"
+                                           style="accent-color:#906f6d;width:14px;height:14px;flex-shrink:0">
+                                    <span class="font-body text-[12px] text-on-surface group-hover:text-primary-container transition-colors"
+                                          th:text="${colega}">Colega</span>
+                                </label>
+                                <p th:if="${#lists.isEmpty(colegasDaLoja)}"
+                                   class="font-body text-[11px] text-on-surface-variant italic">Sem colegas disponíveis.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="font-body text-[11px] text-on-surface-variant">
+                        As preferências de colegas são tidas em conta na geração do horário, mediante aprovação da gerência.
+                    </p>
+                </div>
+
                 <button type="submit"
                         class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-primary transition-colors flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-[17px]">save</span>
@@ -936,6 +990,66 @@ function showTab(id) {
     };
 
     carregarTurnosD();
+})();
+
+// ── Preferências de colegas (UC-F01c) – toggle dinâmico ──────────────────
+(function () {
+    const tipoSel    = document.getElementById('pref-tipo');
+    const form       = document.getElementById('pref-form');
+    const descPanel  = document.getElementById('pref-desc-panel');
+    const datasPanel = document.getElementById('pref-datas-panel');
+    const colPanel   = document.getElementById('pref-colegas-panel');
+    const descArea   = document.getElementById('pref-descricao');
+    const erroDiv    = document.getElementById('pref-colegas-erro');
+    const erroTxt    = document.getElementById('pref-colegas-erro-txt');
+
+    if (!tipoSel) return;
+
+    function atualizar() {
+        const isColegas = tipoSel.value === 'colegas';
+        if (descPanel)  descPanel.style.display  = isColegas ? 'none'  : '';
+        if (datasPanel) datasPanel.style.display = isColegas ? 'none'  : '';
+        if (colPanel)   colPanel.style.display   = isColegas ? 'flex'  : 'none';
+        if (erroDiv)    erroDiv.style.display    = 'none';
+    }
+
+    tipoSel.addEventListener('change', atualizar);
+    atualizar();
+
+    if (!form) return;
+
+    form.addEventListener('submit', function (e) {
+        if (tipoSel.value !== 'colegas') return;
+
+        const preferidos = [...document.querySelectorAll('.pref-cb-prefer:checked')].map(cb => cb.value);
+        const evitados   = [...document.querySelectorAll('.pref-cb-avoid:checked')].map(cb => cb.value);
+
+        function mostrarErro(msg) {
+            if (!erroDiv || !erroTxt) return;
+            erroTxt.textContent = msg;
+            erroDiv.style.display = 'flex';
+        }
+
+        if (preferidos.length === 0 && evitados.length === 0) {
+            e.preventDefault();
+            mostrarErro('Seleciona pelo menos um colega em qualquer das colunas.');
+            return;
+        }
+
+        const conflito = preferidos.some(n => evitados.includes(n));
+        if (conflito) {
+            e.preventDefault();
+            mostrarErro('O mesmo colega não pode estar em ambas as colunas.');
+            return;
+        }
+
+        let desc = '';
+        if (preferidos.length > 0) desc += 'Prefere trabalhar com: ' + preferidos.join(', ');
+        if (preferidos.length > 0 && evitados.length > 0) desc += ' | ';
+        if (evitados.length > 0)   desc += 'Prefere evitar: ' + evitados.join(', ');
+
+        if (descArea) descArea.value = desc;
+    });
 })();
 </script>
 </body>

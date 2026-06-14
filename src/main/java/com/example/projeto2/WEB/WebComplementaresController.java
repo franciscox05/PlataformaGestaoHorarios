@@ -33,6 +33,10 @@ import java.util.stream.Collectors;
 @RequestMapping("/web/complementares")
 public class WebComplementaresController {
 
+    private static final List<String> TIPOS_PREFERENCIA =
+            List.of("folgas", "ferias", "folga_preferida", "colegas", "turnos");
+    private static final Set<String> TIPOS_PREFERENCIA_VALIDOS = Set.copyOf(TIPOS_PREFERENCIA);
+
     private final WebAppService webAppService;
     private final DayOffService dayOffBLL;
     private final PreferenciaService preferenciaBLL;
@@ -86,13 +90,15 @@ public class WebComplementaresController {
         Set<Integer> idsPreferencias = preferenciasPendentes.stream()
                 .map(Preferencia::getIdUtilizador)
                 .filter(item -> item != null && item.getId() != null)
-                .map(item -> item.getId())
+                .map(Utilizador::getId)
                 .collect(Collectors.toSet());
-        idsPreferencias.addAll(preferenciaBLL.listarHistoricoDecisoesDaLoja(utilizadorId).stream()
-                .map(Preferencia::getIdUtilizador)
-                .filter(item -> item != null && item.getId() != null)
-                .map(item -> item.getId())
-                .collect(Collectors.toSet()));
+        if (permissoes.podeAprovarPreferencias()) {
+            idsPreferencias.addAll(preferenciaBLL.listarHistoricoDecisoesDaLoja(utilizadorId).stream()
+                    .map(Preferencia::getIdUtilizador)
+                    .filter(item -> item != null && item.getId() != null)
+                    .map(Utilizador::getId)
+                    .collect(Collectors.toSet()));
+        }
         Map<Integer, String> nomesPreferencias = dayOffBLL.listarNomesUtilizadores(idsPreferencias);
 
         List<Horario> meusTurnosPermutaveis = horarioBLL.listarMeusTurnosDisponiveisParaPermuta(utilizadorId);
@@ -121,7 +127,12 @@ public class WebComplementaresController {
         model.addAttribute("permutasFolgaPendentes", permutasFolgaPendentes);
         model.addAttribute("totalPermutasFolgaPendentes", permutasFolgaPendentes.size());
 
-        model.addAttribute("tiposPreferencia", List.of("folgas", "ferias", "folga_preferida", "colegas", "turnos"));
+        model.addAttribute("tiposPreferencia", TIPOS_PREFERENCIA);
+        try {
+            model.addAttribute("colegasDaLoja", preferenciaBLL.listarColegasDaLoja(utilizadorId));
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("colegasDaLoja", List.of());
+        }
         model.addAttribute("meusTurnosPermutaveis", meusTurnosPermutaveis);
         model.addAttribute("turnosElegiveis", turnosElegiveis);
         model.addAttribute("origemPermutaSelecionada", idHorarioOrigem);
@@ -129,21 +140,27 @@ public class WebComplementaresController {
     }
 
     @PostMapping("/folgas")
-    public String registarFolga(@RequestParam("dataAusencia") String dataAusencia,
-                                @RequestParam("tipo") String tipo,
+    public String registarFolga(@RequestParam(value = "dataAusencia", required = false) String dataAusencia,
+                                @RequestParam(value = "tipo", required = false) String tipo,
                                 @RequestParam(value = "motivo", required = false) String motivo,
                                 HttpSession session,
                                 RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
 
         try {
+            if (dataAusencia == null || dataAusencia.isBlank()) {
+                throw new IllegalArgumentException("A data de ausencia e obrigatoria.");
+            }
+            if (motivo != null && motivo.strip().length() > 500) {
+                throw new IllegalArgumentException("O motivo nao pode ter mais de 500 caracteres.");
+            }
             DayOff pedido = new DayOff();
             Utilizador utilizadorProxy = new Utilizador();
             utilizadorProxy.setId(utilizadorId);
             pedido.setIdUtilizador(utilizadorProxy);
             pedido.setDataAusencia(parseData(dataAusencia, "ausencia"));
             pedido.setTipo(normalizarTipoFolga(tipo));
-            pedido.setMotivo(motivo);
+            pedido.setMotivo(motivo != null ? motivo.strip() : null);
             dayOffBLL.registarPedidoFolga(pedido);
             redirectAttributes.addFlashAttribute("sucesso", "Pedido de folga submetido com sucesso.");
         } catch (IllegalArgumentException ex) {
@@ -181,21 +198,29 @@ public class WebComplementaresController {
     }
 
     @PostMapping("/preferencias")
-    public String registarPreferencia(@RequestParam("tipo") String tipo,
+    public String registarPreferencia(@RequestParam(value = "tipo", required = false) String tipo,
                                       @RequestParam(value = "dataInicio", required = false) String dataInicio,
                                       @RequestParam(value = "dataFim", required = false) String dataFim,
-                                      @RequestParam(value = "prioridade", required = false) Integer prioridade,
-                                      @RequestParam("descricao") String descricao,
+                                      @RequestParam(value = "prioridade", required = false) String prioridade,
+                                      @RequestParam(value = "descricao", required = false) String descricao,
                                       HttpSession session,
                                       RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
 
         try {
+            Integer prioridadeParsed = null;
+            if (prioridade != null && !prioridade.isBlank()) {
+                try {
+                    prioridadeParsed = Integer.parseInt(prioridade.strip());
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("A prioridade indicada e invalida.");
+                }
+            }
             Preferencia preferencia = new Preferencia();
             preferencia.setTipo(normalizarTipoPreferencia(tipo));
             preferencia.setDataInicio(parseDataOpcional(dataInicio));
             preferencia.setDataFim(parseDataOpcional(dataFim));
-            preferencia.setPrioridade(prioridade);
+            preferencia.setPrioridade(prioridadeParsed);
             preferencia.setDescricao(descricao);
             preferenciaBLL.guardarPreferencia(utilizadorId, preferencia);
             redirectAttributes.addFlashAttribute("sucesso", "Preferencia guardada com sucesso.");
@@ -236,33 +261,34 @@ public class WebComplementaresController {
     }
 
     @PostMapping("/permutas")
-    public String registarPermuta(@RequestParam("idHorarioOrigem") Integer idHorarioOrigem,
-                                  @RequestParam("idHorarioDestino") Integer idHorarioDestino,
+    public String registarPermuta(@RequestParam(value = "idHorarioOrigem", required = false) Integer idHorarioOrigem,
+                                  @RequestParam(value = "idHorarioDestino", required = false) Integer idHorarioDestino,
                                   HttpSession session,
                                   RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
 
-        List<Horario> meusTurnos = horarioBLL.listarMeusTurnosDisponiveisParaPermuta(utilizadorId);
-        Horario turnoOrigem = meusTurnos.stream()
-                .filter(item -> item.getId() != null && item.getId().equals(idHorarioOrigem))
-                .findFirst()
-                .orElse(null);
-
-        List<Horario> turnosElegiveis = idHorarioOrigem == null
-                ? List.of()
-                : horarioBLL.listarTurnosElegiveisParaPermuta(utilizadorId, idHorarioOrigem);
-        Horario turnoDestino = turnosElegiveis.stream()
-                .filter(item -> item.getId() != null && item.getId().equals(idHorarioDestino))
-                .findFirst()
-                .orElse(null);
-
         try {
+            if (idHorarioOrigem == null || idHorarioDestino == null) {
+                throw new IllegalArgumentException("Seleciona os turnos de origem e destino para a permuta.");
+            }
+            List<Horario> meusTurnos = horarioBLL.listarMeusTurnosDisponiveisParaPermuta(utilizadorId);
+            Horario turnoOrigem = meusTurnos.stream()
+                    .filter(item -> item.getId() != null && item.getId().equals(idHorarioOrigem))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("O turno de origem selecionado nao e valido."));
+
+            List<Horario> turnosElegiveis = horarioBLL.listarTurnosElegiveisParaPermuta(utilizadorId, idHorarioOrigem);
+            Horario turnoDestino = turnosElegiveis.stream()
+                    .filter(item -> item.getId() != null && item.getId().equals(idHorarioDestino))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("O turno de destino selecionado nao e elegivel para permuta."));
+
             permutaBLL.registarPedidoTroca(utilizadorId, turnoOrigem, turnoDestino);
             redirectAttributes.addFlashAttribute("sucesso", "Pedido de permuta submetido com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
-        return "redirect:/web/complementares?origemPermuta=" + idHorarioOrigem;
+        return "redirect:/web/complementares" + (idHorarioOrigem != null ? "?origemPermuta=" + idHorarioOrigem : "");
     }
 
     @PostMapping("/permutas/{idPermuta}/aprovar")
@@ -372,7 +398,7 @@ public class WebComplementaresController {
         }
 
         String normalizado = tipo.trim().toLowerCase(Locale.ROOT);
-        if (!Set.of("folgas", "ferias", "colegas", "turnos").contains(normalizado)) {
+        if (!TIPOS_PREFERENCIA_VALIDOS.contains(normalizado)) {
             throw new IllegalArgumentException("O tipo de preferencia selecionado e invalido.");
         }
         return normalizado;

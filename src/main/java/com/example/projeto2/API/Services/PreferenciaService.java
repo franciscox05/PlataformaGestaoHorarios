@@ -346,22 +346,8 @@ public class PreferenciaService {
                                                LocalDate dataInicio,
                                                LocalDate dataFim,
                                                Integer idIgnorado) {
-        return preferenciaRepository.findByIdUtilizadorIdOrderByDataInicioAscIdDesc(idUtilizador).stream()
-                .filter(preferencia -> idIgnorado == null || !Objects.equals(preferencia.getId(), idIgnorado))
-                .anyMatch(preferencia ->
-                        equalsIgnoreCase(preferencia.getTipo(), tipo)
-                                && equalsIgnoreCase(preferencia.getDescricao(), descricao)
-                                && Objects.equals(preferencia.getPrioridade(), prioridade)
-                                && Objects.equals(preferencia.getDataInicio(), dataInicio)
-                                && Objects.equals(preferencia.getDataFim(), dataFim)
-                );
-    }
-
-    private boolean equalsIgnoreCase(String valor1, String valor2) {
-        if (valor1 == null || valor2 == null) {
-            return Objects.equals(valor1, valor2);
-        }
-        return valor1.equalsIgnoreCase(valor2);
+        return preferenciaRepository.existsPreferenciaDuplicada(
+                idUtilizador, tipo, descricao, prioridade, dataInicio, dataFim, idIgnorado);
     }
 
     private boolean preferenciaPodeSerEditada(Preferencia preferencia) {

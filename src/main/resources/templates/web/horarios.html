@@ -45,11 +45,6 @@
                     <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
                 </select>
             </div>
-            <button type="submit"
-                    class="flex items-center gap-2 bg-surface-container text-on-surface font-body font-bold text-[13px] px-4 py-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high transition-colors">
-                <span class="material-symbols-outlined text-[16px]">search</span>
-                Consultar
-            </button>
         </form>
     </section>
 
@@ -198,13 +193,28 @@
             <span th:if="${turnos != null && !#lists.isEmpty(turnos)}"
                   class="inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full badge-ok"
                   th:text="${#lists.size(turnos)} + ' turno(s)'">0 turnos</span>
-            <!-- W7: Exportar PDF -->
-            <a th:if="${turnos != null && !#lists.isEmpty(turnos)}"
-               th:href="@{/web/horarios/exportar.pdf(ano=${ano},mes=${mes})}"
-               class="ml-auto inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high border border-outline-variant/30 transition-colors">
-                <span class="material-symbols-outlined text-[14px]">picture_as_pdf</span>
-                PDF
-            </a>
+            <!-- Toggle Lista / Calendário + PDF (só quando há turnos) -->
+            <div th:if="${turnos != null && !#lists.isEmpty(turnos)}" class="ml-auto flex items-center gap-2">
+                <div class="inline-flex rounded-xl border border-outline-variant/40 overflow-hidden bg-surface-container-low">
+                    <button id="btn-vista-lista" type="button" onclick="setVista('lista')"
+                            class="flex items-center gap-1.5 px-3.5 py-2 font-body font-semibold text-[12px] transition-colors cursor-pointer bg-surface-container-high text-on-surface"
+                            aria-pressed="true">
+                        <span class="material-symbols-outlined text-[15px]">view_list</span>
+                        Lista
+                    </button>
+                    <button id="btn-vista-calendario" type="button" onclick="setVista('calendario')"
+                            class="flex items-center gap-1.5 px-3.5 py-2 font-body font-semibold text-[12px] transition-colors cursor-pointer text-on-surface-variant"
+                            aria-pressed="false">
+                        <span class="material-symbols-outlined text-[15px]">calendar_view_month</span>
+                        Calendário
+                    </button>
+                </div>
+                <a th:href="@{/api/horarios/exportar-pdf(ano=${ano},mes=${mes})}"
+                   class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high border border-outline-variant/30 transition-colors">
+                    <span class="material-symbols-outlined text-[14px]">picture_as_pdf</span>
+                    PDF
+                </a>
+            </div>
         </div>
 
         <!-- sem turnos -->
@@ -220,7 +230,7 @@
         </div>
 
         <!-- tabela de turnos -->
-        <div th:if="${turnos != null && !#lists.isEmpty(turnos)}" class="overflow-x-auto">
+        <div th:if="${turnos != null && !#lists.isEmpty(turnos)}" id="lista-turnos-view" class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-surface-container-low">
                     <tr>
@@ -234,15 +244,18 @@
                 <tbody class="divide-y divide-outline-variant/20">
                     <tr th:each="t : ${turnos}"
                         th:classappend="${t.dataTurno.equals(hoje)} ? 'bg-primary-fixed/10' : 'hover:bg-surface-container-low/60'"
-                        class="transition-colors">
+                        th:attr="data-date=${#temporals.format(t.dataTurno, 'yyyy-MM-dd')}"
+                        th:onclick="|openDayDetail(this.dataset.date,${t.dataTurno.dayOfMonth})|"
+                        class="transition-colors cursor-pointer">
                         <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface"
                             th:text="${#temporals.format(t.dataTurno, 'dd/MM/yyyy')}">01/01/2026</td>
                         <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant capitalize"
                             th:text="${#temporals.format(t.dataTurno, 'EEEE', new java.util.Locale('pt','PT'))}">segunda</td>
                         <td class="px-6 py-3.5">
                             <span class="inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                  th:classappend="${#strings.toLowerCase(t.idTurno.tipo).contains('manha') or #strings.toLowerCase(t.idTurno.tipo).contains('manhã')} ? 'badge-warn' : (${#strings.toLowerCase(t.idTurno.tipo).contains('tarde')} ? 'badge-neu' : 'badge-err')"
-                                  th:text="${t.idTurno.tipo}">manhã</span>
+                                  th:with="tl=${#strings.toLowerCase(t.idTurno.tipo)}"
+                                  th:classappend="${tl.contains('manh') ? 'badge-warn' : (tl.contains('inter') ? 'badge-neu' : (tl.contains('tarde') ? 'badge-neu' : 'badge-err'))}"
+                                  th:text="${tl.contains('manh') ? 'Manhã' : (tl.contains('inter') ? 'Intermédio' : (tl.contains('noite') ? 'Noite' : (tl.contains('folga') ? 'Folga' : t.idTurno.tipo)))}">manhã</span>
                         </td>
                         <td class="px-6 py-3.5 font-body text-[13px] text-on-surface"
                             th:text="${#temporals.format(t.idTurno.horaInicio, 'HH:mm')}">09:00</td>
@@ -252,16 +265,368 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- ── Vista calendário (UC-F03) ── -->
+        <div th:if="${turnos != null && !#lists.isEmpty(turnos)}"
+             id="calendario-view" style="display:none" class="p-5">
+            <!-- Cabeçalho — dias da semana (Segunda → Domingo) -->
+            <div class="grid grid-cols-7 gap-1.5 mb-1.5">
+                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Seg</div>
+                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Ter</div>
+                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Qua</div>
+                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Qui</div>
+                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Sex</div>
+                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider py-1.5 rounded-lg bg-surface-container-low" style="color:#906f6d">Sáb</div>
+                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider py-1.5 rounded-lg bg-surface-container-low" style="color:#906f6d">Dom</div>
+            </div>
+            <!-- Células do calendário (geradas por JS) -->
+            <div id="cal-grid-body" class="grid grid-cols-7 gap-1.5"></div>
+        </div>
     </section>
 
 </div>
+
 </main>
 
 <th:block th:if="${turnos != null && !#lists.isEmpty(turnos)}">
 <script th:inline="javascript">
-    var hoje = /*[[${hoje}]]*/ null;
+/*<![CDATA[*/
+(function () {
+
+    /* ── 1. Dados injetados pelo servidor ── */
+    var hoje   = /*[[${hoje}]]*/ null;
+    var anoMes = /*[[${ano}]]*/ 0;
+    var mesMes = /*[[${mes}]]*/ 1;
+
+    var turnosMes = /*[[${turnosCalendario}]]*/ [];
+
+    /* ── 2. Parse de "hoje" sem risco de fuso horário ── */
+    var hp       = hoje ? String(hoje).split('-') : null;
+    var hojeAno  = hp ? parseInt(hp[0], 10) : -1;
+    var hojeMesN = hp ? parseInt(hp[1], 10) : -1;
+    var hojeDiaN = hp ? parseInt(hp[2], 10) : -1;
+
+    /* ── 3. Utilitário de padding ── */
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+    /* ── 4. Classe do badge por tipo de turno ── */
+    function badgeClass(tipo) {
+        var t = tipo ? tipo.toLowerCase() : '';
+        if (t.indexOf('manh')  !== -1) return 'badge-warn';
+        if (t.indexOf('inter') !== -1) return 'badge-neu';
+        if (t.indexOf('tarde') !== -1) return 'badge-neu';
+        return 'badge-err';
+    }
+
+    /* ── Label de exibição (português com acentos) para o tipo de turno ── */
+    function tipoLabel(tipo) {
+        if (!tipo) return '';
+        var t = tipo.toLowerCase();
+        if (t.indexOf('manh')  !== -1) return 'Manhã';
+        if (t.indexOf('inter') !== -1) return 'Intermédio';
+        if (t.indexOf('noite') !== -1) return 'Noite';
+        if (t.indexOf('tarde') !== -1) return 'Tarde';
+        if (t.indexOf('folga') !== -1) return 'Folga';
+        return tipo;
+    }
+
+    /* ── 4. Constrói o calendário mensal (lazy — chamado 1 vez) ── */
+    function buildCalendar() {
+        var container = document.getElementById('cal-grid-body');
+        if (!container) return;
+
+        /* mapeia dia → lista de turnos */
+        var shiftMap = {};
+        var i;
+        for (i = 0; i < turnosMes.length; i++) {
+            var entry = turnosMes[i];
+            if (!shiftMap[entry.dia]) { shiftMap[entry.dia] = []; }
+            shiftMap[entry.dia].push(entry);
+        }
+
+        var diasNoMes  = new Date(anoMes, mesMes, 0).getDate();
+        var firstDayJS = new Date(anoMes, mesMes - 1, 1).getDay(); /* JS: 0=Dom */
+        var offset     = (firstDayJS + 6) % 7;                     /* Seg=0 … Dom=6 */
+        var totalRows  = Math.ceil((offset + diasNoMes) / 7);
+
+        var html     = '';
+        var diaAtual = 1;
+        var row, col, idx, dia, isToday, isWknd, shifts, cellCls, numCls, numStyle, si, s, dateStr;
+
+        for (row = 0; row < totalRows; row++) {
+            for (col = 0; col < 7; col++) {
+                idx = row * 7 + col;
+
+                if (idx < offset || diaAtual > diasNoMes) {
+                    /* célula fantasma — antes/depois do mês */
+                    html += '<div style="min-height:88px;border-radius:12px;border:1px solid rgba(0,0,0,0.06)"></div>';
+
+                } else {
+                    dia     = diaAtual++;
+                    isToday = (anoMes === hojeAno && mesMes === hojeMesN && dia === hojeDiaN);
+                    isWknd  = (col >= 5);
+                    shifts  = shiftMap[dia] || [];
+
+                    dateStr = anoMes + '-' + pad2(mesMes) + '-' + pad2(dia);
+                    cellCls = isToday
+                        ? 'min-h-[88px] rounded-xl p-2.5 border-2 border-primary/50 bg-primary-fixed/10 flex flex-col gap-1 cursor-pointer'
+                        : 'min-h-[88px] rounded-xl p-2.5 border border-outline-variant/20 bg-surface-container-lowest hover:bg-surface-container-low/60 transition-colors flex flex-col gap-1 cursor-pointer';
+
+                    html += '<div class="' + cellCls + '" data-date="' + dateStr + '" onclick="openDayDetail(\'' + dateStr + '\',' + dia + ')">';
+
+                    /* número do dia */
+                    numCls   = isToday
+                        ? 'font-display font-bold text-[13px] leading-none text-primary'
+                        : 'font-display font-bold text-[13px] leading-none text-on-surface-variant';
+                    numStyle = (isWknd && !isToday) ? ' style="color:#906f6d"' : '';
+
+                    html += '<div class="flex items-center justify-between mb-1">';
+                    html += '<span class="' + numCls + '"' + numStyle + '>' + dia + '</span>';
+                    if (isToday) {
+                        html += '<span class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>';
+                    }
+                    html += '</div>';
+
+                    /* turno(s) ou indicador de folga */
+                    if (shifts.length > 0) {
+                        for (si = 0; si < shifts.length; si++) {
+                            s = shifts[si];
+                            html += '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold self-start '
+                                 +  badgeClass(s.tipo) + '">' + tipoLabel(s.tipo) + '</span>';
+                            html += '<span class="font-body text-[11px] text-on-surface-variant">'
+                                 +  s.inicio + '–' + s.fim + '</span>';
+                        }
+                    } else {
+                        html += '<span class="font-body text-[11px] italic mt-auto"'
+                             +  ' style="opacity:.4;color:inherit">Folga</span>';
+                    }
+
+                    html += '</div>'; /* /célula */
+                }
+            }
+        }
+
+        container.innerHTML = html;
+    } /* /buildCalendar */
+
+    /* ── 5. Troca de vista (lista ↔ calendário) ── */
+    window.setVista = function (mode) {
+        var listaView = document.getElementById('lista-turnos-view');
+        var calView   = document.getElementById('calendario-view');
+        var btnLista  = document.getElementById('btn-vista-lista');
+        var btnCal    = document.getElementById('btn-vista-calendario');
+        var eCal      = (mode === 'calendario');
+        var cls, ci;
+        var toRemove  = ['bg-surface-container-high', 'text-on-surface', 'text-on-surface-variant'];
+
+        if (listaView) { listaView.style.display = eCal ? 'none' : ''; }
+        if (calView)   { calView.style.display   = eCal ? 'block' : 'none'; }
+
+        if (btnLista && btnCal) {
+            for (ci = 0; ci < toRemove.length; ci++) {
+                cls = toRemove[ci];
+                btnLista.classList.remove(cls);
+                btnCal.classList.remove(cls);
+            }
+            if (eCal) {
+                btnCal.classList.add('bg-surface-container-high', 'text-on-surface');
+                btnLista.classList.add('text-on-surface-variant');
+            } else {
+                btnLista.classList.add('bg-surface-container-high', 'text-on-surface');
+                btnCal.classList.add('text-on-surface-variant');
+            }
+            btnLista.setAttribute('aria-pressed', String(!eCal));
+            btnCal.setAttribute('aria-pressed', String(eCal));
+        }
+
+        if (eCal && calView && !calView.dataset.built) {
+            buildCalendar();
+            calView.dataset.built = 'true';
+        }
+    }; /* /setVista */
+
+    /* ── 6. Modal: Equipa no dia ── */
+    window.openDayDetail = function (dateStr, diaNum) {
+        var overlay = document.getElementById('day-detail-overlay');
+        var loading = document.getElementById('day-detail-loading');
+        var content = document.getElementById('day-detail-content');
+        var error   = document.getElementById('day-detail-error');
+        var title   = document.getElementById('day-detail-title');
+        var sub     = document.getElementById('day-detail-subtitle');
+
+        title.textContent     = 'Equipa — ' + pad2(diaNum) + '/' + pad2(mesMes) + '/' + anoMes;
+        sub.textContent       = '';
+        loading.style.display = '';
+        content.style.display = 'none';
+        error.style.display   = 'none';
+
+        overlay.style.display = 'block';
+        var box = document.getElementById('day-modal-box');
+        if (box) {
+            var scrollContainer = document.querySelector('main') || document.querySelector('.overflow-y-auto') || document.documentElement;
+            var currentScroll = window.pageYOffset || scrollContainer.scrollTop || document.documentElement.scrollTop || document.body.scrollTop;
+            var viewportHeight = window.innerHeight;
+            var actualBoxHeight = box.offsetHeight || 450;
+            var calculatedTop = currentScroll + (viewportHeight / 2) - (actualBoxHeight / 2);
+            if (calculatedTop < currentScroll + 20) { calculatedTop = currentScroll + 20; }
+            box.style.top = calculatedTop + 'px';
+        }
+        document.body.style.overflow = 'hidden';
+
+        fetch('/api/horarios/detalhe-dia?data=' + dateStr)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.erro) { throw new Error(data.erro); }
+                renderDayDetail(data);
+            })
+            .catch(function (err) {
+                loading.style.display = 'none';
+                error.style.display   = '';
+                document.getElementById('day-detail-error-text').textContent =
+                    err.message || 'Não foi possível carregar os dados.';
+            });
+    };
+
+    function renderDayDetail(data) {
+        var loading     = document.getElementById('day-detail-loading');
+        var content     = document.getElementById('day-detail-content');
+        var sub         = document.getElementById('day-detail-subtitle');
+        var equipaDiv   = document.getElementById('day-detail-equipa');
+        var equipaEmpty = document.getElementById('day-detail-equipa-empty');
+        var folgasDiv   = document.getElementById('day-detail-folgas');
+        var folgasEmpty = document.getElementById('day-detail-folgas-empty');
+
+        sub.textContent = data.data || '';
+
+        /* equipa */
+        equipaDiv.innerHTML = '';
+        if (!data.equipa || data.equipa.length === 0) {
+            equipaEmpty.style.display = '';
+        } else {
+            equipaEmpty.style.display = 'none';
+            data.equipa.forEach(function (c) {
+                var row   = document.createElement('div');
+                row.className = 'flex items-center justify-between gap-2 bg-surface-container-low rounded-xl px-3 py-2.5';
+                var left  = document.createElement('div');
+                left.className = 'flex flex-col min-w-0';
+                var nome  = document.createElement('span');
+                nome.className = 'font-body font-semibold text-[13px] text-on-surface truncate';
+                nome.textContent = c.nome;
+                var cargo = document.createElement('span');
+                cargo.className = 'font-body text-[11px] text-on-surface-variant truncate';
+                cargo.textContent = c.cargo;
+                left.appendChild(nome);
+                left.appendChild(cargo);
+                var right = document.createElement('div');
+                right.className = 'flex flex-col items-end shrink-0 gap-0.5';
+                var badge = document.createElement('span');
+                badge.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold ' + badgeClass(c.tipoTurno);
+                badge.textContent = tipoLabel(c.tipoTurno);
+                var horas = document.createElement('span');
+                horas.className = 'font-body text-[11px] text-on-surface-variant';
+                horas.textContent = c.inicio + '–' + c.fim;
+                right.appendChild(badge);
+                right.appendChild(horas);
+                row.appendChild(left);
+                row.appendChild(right);
+                equipaDiv.appendChild(row);
+            });
+        }
+
+        /* folgas */
+        folgasDiv.innerHTML = '';
+        if (!data.folgas || data.folgas.length === 0) {
+            folgasEmpty.style.display = '';
+        } else {
+            folgasEmpty.style.display = 'none';
+            data.folgas.forEach(function (f) {
+                var row  = document.createElement('div');
+                row.className = 'flex items-center justify-between gap-2 bg-surface-container-low rounded-xl px-3 py-2.5';
+                var nome = document.createElement('span');
+                nome.className = 'font-body font-semibold text-[13px] text-on-surface';
+                nome.textContent = f.nome;
+                var tipo = document.createElement('span');
+                tipo.className = 'font-body text-[11px] text-on-surface-variant capitalize';
+                tipo.textContent = f.tipo;
+                row.appendChild(nome);
+                row.appendChild(tipo);
+                folgasDiv.appendChild(row);
+            });
+        }
+
+        loading.style.display = 'none';
+        content.style.display = '';
+
+        /* Recentre after content expands the box */
+        var box2 = document.getElementById('day-modal-box');
+        if (box2) {
+            var sc2 = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
+            var vh2 = window.innerHeight;
+            var h2  = box2.offsetHeight || 450;
+            var top2 = sc2 + (vh2 / 2) - (h2 / 2);
+            if (top2 < sc2 + 20) { top2 = sc2 + 20; }
+            box2.style.top = top2 + 'px';
+        }
+    }
+
+    window.closeDayDetail = function () {
+        document.getElementById('day-detail-overlay').style.display = 'none';
+        document.body.style.overflow = '';
+    };
+
+})(); /* /IIFE */
+/*]]>*/
 </script>
 </th:block>
+
+<!-- ── Modal: Equipa no dia ── (direct child of body — outside any stacking context) -->
+<div id="day-detail-overlay"
+     style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:9999;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);padding:16px;"
+     onclick="if(event.target===this)closeDayDetail()">
+    <div id="day-modal-box" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-6 w-full max-w-md"
+         style="position:absolute;left:50%;transform:translateX(-50%);box-shadow:0 8px 40px rgba(0,0,0,.22);z-index:10000;">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 id="day-detail-title" class="font-display font-bold text-[18px] text-on-surface">Equipa do dia</h3>
+                <p id="day-detail-subtitle" class="font-body text-[12px] text-on-surface-variant mt-0.5"></p>
+            </div>
+            <button type="button" onclick="closeDayDetail()"
+                    class="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-surface-container transition-colors">
+                <span class="material-symbols-outlined text-[18px] text-on-surface-variant">close</span>
+            </button>
+        </div>
+        <div id="day-detail-loading" class="flex items-center justify-center py-10 gap-3">
+            <span class="material-symbols-outlined text-[22px] text-on-surface-variant">autorenew</span>
+            <span class="font-body text-[13px] text-on-surface-variant">A carregar...</span>
+        </div>
+        <div id="day-detail-error" style="display:none"
+             class="flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3 rounded-xl font-body text-[13px]">
+            <span class="material-symbols-outlined text-[16px]">error_outline</span>
+            <span id="day-detail-error-text"></span>
+        </div>
+        <div id="day-detail-content" style="display:none" class="flex flex-col gap-5">
+            <div>
+                <div class="flex items-center gap-2 mb-2.5">
+                    <span class="material-symbols-outlined text-[16px] text-primary">groups</span>
+                    <span class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">A trabalhar</span>
+                </div>
+                <div id="day-detail-equipa" class="flex flex-col gap-1.5"></div>
+                <p id="day-detail-equipa-empty" style="display:none"
+                   class="font-body text-[13px] italic text-on-surface-variant">Nenhum turno publicado para este dia.</p>
+            </div>
+            <div class="border-t border-outline-variant/25"></div>
+            <div>
+                <div class="flex items-center gap-2 mb-2.5">
+                    <span class="material-symbols-outlined text-[16px] text-outline">beach_access</span>
+                    <span class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">De folga</span>
+                </div>
+                <div id="day-detail-folgas" class="flex flex-col gap-1.5"></div>
+                <p id="day-detail-folgas-empty" style="display:none"
+                   class="font-body text-[13px] italic text-on-surface-variant">Nenhuma folga aprovada para este dia.</p>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

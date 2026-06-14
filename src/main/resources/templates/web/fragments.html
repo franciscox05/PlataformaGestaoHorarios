@@ -205,6 +205,15 @@
             <span th:if="${webModuloAtivo == 'horarios'}"
                   class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
         </a>
+        <a href="/web/complementares"
+           th:classappend="${webModuloAtivo == 'complementares'} ? 'nav-active' : 'text-white/40'"
+           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
+            <span class="material-symbols-outlined text-[19px]"
+                  th:classappend="${webModuloAtivo == 'complementares'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">pending_actions</span>
+            Pedidos e Preferências
+            <span th:if="${webModuloAtivo == 'complementares'}"
+                  class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
+        </a>
         <a href="/web/relatorios"
            th:if="${webPermissoes != null && webPermissoes.podeVerRelatorios()}"
            th:classappend="${webModuloAtivo == 'relatorios'} ? 'nav-active' : 'text-white/40'"

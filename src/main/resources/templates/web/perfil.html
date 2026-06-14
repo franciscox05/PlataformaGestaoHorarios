@@ -221,7 +221,8 @@
                 <form method="post" action="/web/perfil/telemovel" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Número (9 dígitos)</label>
-                        <input name="telemovel" type="text" maxlength="9" placeholder="9XXXXXXXX" required
+                        <input name="telemovel" type="text" maxlength="9" pattern="[0-9]{9}" placeholder="9XXXXXXXX" required
+                               th:value="${resumo.telemovel()}"
                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                     </div>
                     <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
@@ -245,8 +246,7 @@
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Nova</label>
-                        <input name="novaPassword" type="password" required placeholder="••••••••"
-                               oninput="updateStrength(this.value)"
+                        <input id="novaPassword" name="novaPassword" type="password" required placeholder="••••••••"
                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                         <div class="flex gap-1 mt-0.5" id="strengthBars">
                             <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb1"></div>
@@ -272,21 +272,40 @@
 </main>
 
 <script>
-function updateStrength(val){
-    var score=0;
-    if(val.length>=8) score++;
-    if(/[A-Z]/.test(val)) score++;
-    if(/[0-9]/.test(val)) score++;
-    if(/[^A-Za-z0-9]/.test(val)) score++;
-    var colors=['','#ef4444','#f97316','#eab308','#22c55e'];
-    var labels=['','Fraca','Razoável','Boa','Forte'];
-    for(var i=1;i<=4;i++){
-        var el=document.getElementById('sb'+i);
-        if(el) el.style.background = i<=score ? colors[score] : 'rgba(144,111,109,.18)';
+(function () {
+    var COLORS = ['', '#ef4444', '#f97316', '#eab308', '#22c55e'];
+    var LABELS = ['', 'Fraca',   'Razoável', 'Boa',    'Forte' ];
+    var EMPTY  = 'rgba(144,111,109,.18)';
+
+    function score(val) {
+        var s = 0;
+        if (val.length >= 8)           s++;
+        if (/[A-Z]/.test(val))         s++;
+        if (/[0-9]/.test(val))         s++;
+        if (/[^A-Za-z0-9]/.test(val))  s++;
+        return s;
     }
-    var lbl=document.getElementById('strengthLabel');
-    if(lbl){ lbl.textContent=val.length?labels[score]:''; lbl.style.color=colors[score]||''; }
-}
+
+    function render(val) {
+        var s = val.length ? score(val) : 0;
+        for (var i = 1; i <= 4; i++) {
+            var bar = document.getElementById('sb' + i);
+            if (bar) bar.style.background = (i <= s && s > 0) ? COLORS[s] : EMPTY;
+        }
+        var lbl = document.getElementById('strengthLabel');
+        if (lbl) {
+            lbl.textContent  = val.length ? LABELS[s] : '';
+            lbl.style.color  = val.length ? COLORS[s] : '';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var input = document.getElementById('novaPassword');
+        if (input) {
+            input.addEventListener('input', function () { render(this.value); });
+        }
+    });
+})();
 </script>
 </body>
 </html>

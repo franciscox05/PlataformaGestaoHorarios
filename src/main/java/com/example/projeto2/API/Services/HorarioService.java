@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -263,5 +264,30 @@ public class HorarioService {
             }
             return nome + " (" + cargo + ")";
         }
+    }
+
+    /** Projection used by the employee "team on a day" endpoint. */
+    public record ColaboradorNoDia(String nome, String cargo, String tipoTurno,
+                                   String inicio, String fim) {}
+
+    @Transactional(readOnly = true)
+    public List<ColaboradorNoDia> listarColegasNoDia(Integer idUtilizadorLogado, LocalDate data) {
+        if (idUtilizadorLogado == null || data == null) return List.of();
+        DateTimeFormatter hhmm = DateTimeFormatter.ofPattern("HH:mm");
+        return lojautilizadorHelper.findLigacaoAtiva(idUtilizadorLogado)
+                .map(lu -> horarioRepository
+                        .findColeaguesDaLojaNoDia(lu.getIdLoja().getId(), data, idUtilizadorLogado)
+                        .stream()
+                        .map(h -> new ColaboradorNoDia(
+                                h.getIdLojautilizador().getIdUtilizador().getNome(),
+                                h.getIdLojautilizador().getIdCargo() != null
+                                        ? h.getIdLojautilizador().getIdCargo().getNome() : "-",
+                                h.getIdTurno().getTipo() != null ? h.getIdTurno().getTipo() : "-",
+                                h.getIdTurno().getHoraInicio() != null
+                                        ? h.getIdTurno().getHoraInicio().format(hhmm) : "--:--",
+                                h.getIdTurno().getHoraFim() != null
+                                        ? h.getIdTurno().getHoraFim().format(hhmm) : "--:--"))
+                        .toList())
+                .orElse(List.of());
     }
 }

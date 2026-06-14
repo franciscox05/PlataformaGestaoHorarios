@@ -1,6 +1,7 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.API.Services.geracao.dto.*;
+import com.example.projeto2.API.Services.geracao.dto.PropostaResultado;
+import com.example.projeto2.API.Services.geracao.dto.PropostaResumo;
 import com.example.projeto2.API.Services.GeracaoHorariosService;
 import com.example.projeto2.API.Services.geracao.FalhaGeracaoHorarioException;
 import com.example.projeto2.API.Modules.Horario;
@@ -18,7 +19,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/web/horarios")
@@ -57,9 +61,27 @@ public class WebHorariosController {
         try {
             List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, anoConsulta, mesConsulta);
             model.addAttribute("turnos", turnos);
+
+            // Pre-formatted data for the calendar JS view — avoids complex inline expressions
+            DateTimeFormatter hhmm = DateTimeFormatter.ofPattern("HH:mm");
+            List<Map<String, Object>> turnosCalendario = turnos.stream()
+                .filter(t -> t.getDataTurno() != null && t.getIdTurno() != null)
+                .map(t -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("dia", t.getDataTurno().getDayOfMonth());
+                    m.put("tipo", t.getIdTurno().getTipo() != null ? t.getIdTurno().getTipo() : "");
+                    m.put("inicio", t.getIdTurno().getHoraInicio() != null
+                            ? t.getIdTurno().getHoraInicio().format(hhmm) : "");
+                    m.put("fim", t.getIdTurno().getHoraFim() != null
+                            ? t.getIdTurno().getHoraFim().format(hhmm) : "");
+                    return m;
+                })
+                .toList();
+            model.addAttribute("turnosCalendario", turnosCalendario);
         } catch (IllegalArgumentException ex) {
             model.addAttribute("erro", ex.getMessage());
             model.addAttribute("turnos", List.of());
+            model.addAttribute("turnosCalendario", List.of());
         }
 
         // Carrega propostas mensais para gerentes/subgerentes
@@ -100,21 +122,25 @@ public class WebHorariosController {
 
     /** W7 — Exportar horário mensal como PDF */
     @GetMapping(value = "/exportar.pdf", produces = "application/pdf")
-    public ResponseEntity<byte[]> exportarPdf(@RequestParam("ano") Integer ano,
-                                               @RequestParam("mes") Integer mes,
-                                               HttpSession session) {
+    public Object exportarPdf(@RequestParam("ano") Integer ano,
+                              @RequestParam("mes") Integer mes,
+                              HttpSession session,
+                              RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, ano, mes);
-
-        String nomeUtilizador = (String) session.getAttribute(WebSession.UTILIZADOR_NOME);
-        byte[] conteudo = webPdfService.gerarHorarioMensalPdf(
-                turnos, ano, mes, nomeUtilizador != null ? nomeUtilizador : "");
-
-        String nomeFicheiro = "horario-" + ano + "-" + String.format("%02d", mes) + ".pdf";
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nomeFicheiro + "\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(conteudo);
+        try {
+            List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, ano, mes);
+            String nomeUtilizador = (String) session.getAttribute(WebSession.UTILIZADOR_NOME);
+            byte[] conteudo = webPdfService.gerarHorarioMensalPdf(
+                    turnos, ano, mes, nomeUtilizador != null ? nomeUtilizador : "");
+            String nomeFicheiro = "horario-" + ano + "-" + String.format("%02d", mes) + ".pdf";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nomeFicheiro + "\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(conteudo);
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+            return "redirect:/web/horarios?ano=" + ano + "&mes=" + mes;
+        }
     }
 
     /** W1 — Enviar proposta para validação pelo supervisor */

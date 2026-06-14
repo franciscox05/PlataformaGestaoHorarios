@@ -84,4 +84,19 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
             ")")
     Optional<DayOff> findPedidoDaLojaById(@Param("idLoja") Integer idLoja,
                                           @Param("idDayOff") Integer idDayOff);
+
+    // Employee "who is off today" view — JOIN FETCH loads nome eagerly to avoid LazyInitializationException
+    @Query("SELECT d FROM DayOff d " +
+            "JOIN FETCH d.idUtilizador u " +
+            "WHERE LOWER(CAST(d.estado AS string)) = 'aprovado' " +
+            "AND d.dataAusencia = :data " +
+            "AND EXISTS (" +
+            "    SELECT 1 FROM Lojautilizador lu " +
+            "    WHERE lu.idUtilizador.id = u.id " +
+            "    AND lu.idLoja.id = :idLoja " +
+            "    AND lu.dataFim IS NULL" +
+            ") " +
+            "ORDER BY u.nome ASC")
+    List<DayOff> findFolgasAprovadasDaLojaNoDia(@Param("idLoja") Integer idLoja,
+                                                @Param("data") LocalDate data);
 }

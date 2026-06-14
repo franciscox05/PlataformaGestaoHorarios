@@ -249,5 +249,24 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
                                                @Param("dataInicio") LocalDate dataInicio,
                                                @Param("dataFim") LocalDate dataFim);
 
+    // Employee "who is working with me" view — same store, same day, excluding self
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
+            "WHERE l.id = :idLoja " +
+            "AND h.dataTurno = :data " +
+            "AND u.id <> :idExcluir " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
+            "AND (h.estado IS NULL OR LOWER(CAST(h.estado AS string)) = 'aprovado') " +
+            "AND lu.dataFim IS NULL " +
+            "ORDER BY t.horaInicio ASC, u.nome ASC")
+    List<Horario> findColeaguesDaLojaNoDia(@Param("idLoja") Integer idLoja,
+                                           @Param("data") LocalDate data,
+                                           @Param("idExcluir") Integer idExcluir);
+
     void deleteByIdPropostaHorarioId(Integer idPropostaHorario);
 }

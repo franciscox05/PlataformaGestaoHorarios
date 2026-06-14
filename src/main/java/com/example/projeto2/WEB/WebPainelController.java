@@ -65,13 +65,13 @@ public class WebPainelController {
 
         WebAppService.WebPermissoes permissoes = webAppService.obterPermissoes(utilizadorId);
         long folgasParaAprovar = permissoes.podeAprovarFolgas()
-                ? dayOffBLL.listarPedidosPendentesParaAprovacao(utilizadorId).size()
+                ? dayOffBLL.contarPendentesParaAprovacao(utilizadorId)
                 : 0;
         long preferenciasParaAprovar = permissoes.podeAprovarPreferencias()
-                ? preferenciaBLL.listarPreferenciasPendentesParaAprovacao(utilizadorId).size()
+                ? preferenciaBLL.contarPendentesParaAprovacao(utilizadorId)
                 : 0;
         long permutasParaAprovar = permissoes.podeAprovarPermutas()
-                ? permutaBLL.listarPedidosPendentesParaAprovacao(utilizadorId).size()
+                ? permutaBLL.contarPendentesParaAprovacao(utilizadorId)
                 : 0;
 
         if (Boolean.TRUE.equals(acessoNegado)) {
