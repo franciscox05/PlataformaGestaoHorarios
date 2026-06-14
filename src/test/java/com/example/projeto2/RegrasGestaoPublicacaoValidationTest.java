@@ -108,10 +108,15 @@ class RegrasGestaoPublicacaoValidationTest extends FluxosCriticosTestSupport {
                 )
         );
 
-        assertEquals(
-                "Nao foi possivel garantir presenca de gerente/subgerente no sabado " + primeiroSabado.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".",
-                erro.getMessage()
-        );
+        // A mensagem passou a incluir diagnóstico nominal das chefias (porquê cada uma
+        // está indisponível) — verificamos o conteúdo essencial, não a igualdade exata.
+        String dataFormatada = primeiroSabado.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                erro.getMessage().contains("gerente/subgerente no sábado " + dataFormatada),
+                "A mensagem deve identificar o sábado em falha: " + erro.getMessage());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                erro.getMessage().contains("Estado das chefias"),
+                "A mensagem deve incluir o diagnóstico das chefias: " + erro.getMessage());
     }
 
     @Test

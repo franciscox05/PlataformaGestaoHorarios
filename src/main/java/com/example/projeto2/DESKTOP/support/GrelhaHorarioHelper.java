@@ -29,27 +29,46 @@ public final class GrelhaHorarioHelper {
 
     private static final DateTimeFormatter HORA_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
-    /** Compatibilidade: grelha sem callback de clique no dia. */
+    /** Compatibilidade: grelha mensal sem callback de clique no dia. */
     public static void preencher(VBox container, YearMonth periodo, List<Horario> horarios, LocalDate hoje) {
         preencher(container, periodo, horarios, hoje, null);
     }
 
     /**
-     * Preenche {@code container} com a grelha do mês {@code periodo}. Cada colaborador presente
-     * em {@code horarios} gera uma linha; cada dia do mês gera uma célula. Quando
-     * {@code aoAbrirDia} é fornecido, clicar numa célula ou no cabeçalho do dia invoca-o.
+     * Grelha mensal: todos os dias de {@code periodo} como colunas, colaboradores como linhas.
+     * Quando {@code aoAbrirDia} é fornecido, clicar numa célula ou no cabeçalho do dia invoca-o.
      */
     public static void preencher(VBox container,
-                                 YearMonth periodo,
-                                 List<Horario> horarios,
-                                 LocalDate hoje,
-                                 Consumer<LocalDate> aoAbrirDia) {
+                                  YearMonth periodo,
+                                  List<Horario> horarios,
+                                  LocalDate hoje,
+                                  Consumer<LocalDate> aoAbrirDia) {
+        preencherIntervalo(container, periodo.atDay(1), periodo.atEndOfMonth(), horarios, hoje, aoAbrirDia);
+    }
+
+    /**
+     * Grelha semanal (ou qualquer intervalo): de {@code inicio} a {@code fim} (inclusivo),
+     * colaboradores como linhas, dias como colunas. Tipicamente 7 colunas (Seg–Dom).
+     */
+    public static void preencherSemanal(VBox container,
+                                         LocalDate inicio,
+                                         LocalDate fim,
+                                         List<Horario> horarios,
+                                         LocalDate hoje,
+                                         Consumer<LocalDate> aoAbrirDia) {
+        preencherIntervalo(container, inicio, fim, horarios, hoje, aoAbrirDia);
+    }
+
+    /** Implementação partilhada pela grelha mensal e semanal. */
+    private static void preencherIntervalo(VBox container,
+                                            LocalDate inicio,
+                                            LocalDate fim,
+                                            List<Horario> horarios,
+                                            LocalDate hoje,
+                                            Consumer<LocalDate> aoAbrirDia) {
         if (container == null) {
             return;
         }
-
-        LocalDate inicio = periodo.atDay(1);
-        LocalDate fim = periodo.atEndOfMonth();
 
         List<LocalDate> dias = new ArrayList<>();
         for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {

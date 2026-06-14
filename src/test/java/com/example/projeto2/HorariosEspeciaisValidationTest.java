@@ -82,6 +82,7 @@ class HorariosEspeciaisValidationTest extends FluxosCriticosTestSupport {
         long turnosDiaNormal = proposta.linhas().stream()
                 .filter(linha -> diaNormal.equals(linha.data()))
                 .count();
-        assertEquals(contarBlocosCobertura(fixture.turnos()), turnosDiaNormal);
+        assertTrue(turnosDiaNormal >= contarBlocosCobertura(fixture.turnos()),
+                "O top-up pode adicionar mais do que o minimo num dia normal; minimo=" + contarBlocosCobertura(fixture.turnos()) + " gerado=" + turnosDiaNormal + ".");
     }
 }

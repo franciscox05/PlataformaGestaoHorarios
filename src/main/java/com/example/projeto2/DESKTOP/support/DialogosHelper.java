@@ -35,6 +35,26 @@ public final class DialogosHelper {
     private DialogosHelper() {
     }
 
+    public static final class CarregamentoHandle {
+        private final Stage stage;
+        private final Label lblMensagem;
+
+        CarregamentoHandle(Stage stage, Label lblMensagem) {
+            this.stage = stage;
+            this.lblMensagem = lblMensagem;
+        }
+
+        public void atualizarMensagem(String novoTexto) {
+            if (Platform.isFxApplicationThread()) lblMensagem.setText(novoTexto);
+            else Platform.runLater(() -> lblMensagem.setText(novoTexto));
+        }
+
+        public void fechar() {
+            if (Platform.isFxApplicationThread()) stage.close();
+            else Platform.runLater(stage::close);
+        }
+    }
+
     public static boolean confirmarAcao(Window owner, String titulo, String cabecalho, String conteudo) {
         return confirmarAcao(owner, titulo, cabecalho, conteudo, "Confirmar");
     }
@@ -145,10 +165,10 @@ public final class DialogosHelper {
 
     /**
      * Mostra um overlay de carregamento não-bloqueante sobre a janela owner.
-     * Devolve o Stage para que o chamador possa fechá-lo com stage.close().
-     * Deve ser chamado a partir da FX thread; fechar também na FX thread.
+     * Devolve um CarregamentoHandle que permite atualizar o texto e fechar o overlay.
+     * Deve ser chamado a partir da FX thread.
      */
-    public static Stage mostrarCarregamento(Window owner, String mensagem) {
+    public static CarregamentoHandle mostrarCarregamento(Window owner, String mensagem) {
         StackPane overlay = new StackPane();
         overlay.getStyleClass().add("dialogo-overlay");
 
@@ -199,7 +219,7 @@ public final class DialogosHelper {
         stage.setHeight(limites.getHeight());
 
         stage.show();
-        return stage;
+        return new CarregamentoHandle(stage, lblMensagem);
     }
 
     /**

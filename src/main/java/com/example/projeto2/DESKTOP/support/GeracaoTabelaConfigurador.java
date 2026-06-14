@@ -4,12 +4,16 @@ import com.example.projeto2.API.Services.geracao.dto.DiferencaColaborador;
 import com.example.projeto2.API.Services.geracao.dto.PropostaResumo;
 import com.example.projeto2.API.Services.geracao.dto.ResumoColaborador;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.geometry.Pos;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 
 import java.text.Normalizer;
 import java.util.function.BooleanSupplier;
@@ -91,12 +95,15 @@ public final class GeracaoTabelaConfigurador {
 
         colColaborador.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().colaborador()));
         colBase.setCellValueFactory(c -> new SimpleStringProperty(
-                c.getValue().turnosBase() + " turnos - " + c.getValue().horasBase()));
+                c.getValue().turnosBase() + " turnos · " + c.getValue().horasBase()));
+        colBase.setCellFactory(col -> celulaBarra(true));
         colAlvo.setCellValueFactory(c -> new SimpleStringProperty(
-                c.getValue().turnosComparada() + " turnos - " + c.getValue().horasComparada()));
+                c.getValue().turnosComparada() + " turnos · " + c.getValue().horasComparada()));
+        colAlvo.setCellFactory(col -> celulaBarra(false));
         colDiferenca.setCellValueFactory(c -> new SimpleStringProperty(
                 (c.getValue().diferencaTurnos() > 0 ? "+" : "") + c.getValue().diferencaTurnos()
-                        + " turnos - " + c.getValue().diferencaHoras()));
+                        + " turnos · " + c.getValue().diferencaHoras()));
+        colDiferenca.setCellFactory(col -> celulaDiferenca());
 
         cbBase.valueProperty().addListener((obs, ant, novo) -> onAtualizarEstado.run());
         cbAlvo.valueProperty().addListener((obs, ant, novo) -> onAtualizarEstado.run());
@@ -147,6 +154,74 @@ public final class GeracaoTabelaConfigurador {
                     chip.getStyleClass().add("chip-qualidade-baixa");
                 setGraphic(chip);
                 setText(null);
+            }
+        };
+    }
+
+    private static TableCell<DiferencaColaborador, String> celulaBarra(boolean isBase) {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(String texto, boolean empty) {
+                super.updateItem(texto, empty);
+                if (empty || texto == null) { setGraphic(null); setText(null); return; }
+                DiferencaColaborador item = getTableRow() != null
+                        ? (DiferencaColaborador) getTableRow().getItem() : null;
+                if (item == null) { setText(texto); setGraphic(null); return; }
+
+                int maxVal = 1;
+                TableView<?> tv = getTableView();
+                if (tv != null && tv.getItems() != null) {
+                    for (Object obj : tv.getItems()) {
+                        if (obj instanceof DiferencaColaborador d) {
+                            maxVal = Math.max(maxVal, Math.max(d.turnosBase(), d.turnosComparada()));
+                        }
+                    }
+                }
+                int valor = isBase ? item.turnosBase() : item.turnosComparada();
+                double progress = (double) valor / maxVal;
+
+                Label lbl = new Label(texto);
+                lbl.setStyle("-fx-font-size: 11px;");
+
+                Region track = new Region();
+                track.setPrefSize(64, 5);
+                track.setStyle("-fx-background-color: #e5e7eb; -fx-background-radius: 3;");
+
+                Region fill = new Region();
+                fill.setPrefSize(Math.max(2, 64 * progress), 5);
+                fill.setMaxWidth(Math.max(2, 64 * progress));
+                fill.setStyle("-fx-background-color: " + (isBase ? "#3b82f6" : "#f97316")
+                        + "; -fx-background-radius: 3;");
+
+                StackPane bar = new StackPane(track, fill);
+                StackPane.setAlignment(fill, Pos.CENTER_LEFT);
+                bar.setMaxWidth(64);
+                bar.setPrefWidth(64);
+                bar.setAlignment(Pos.CENTER_LEFT);
+
+                VBox box = new VBox(3, lbl, bar);
+                box.setAlignment(Pos.CENTER_LEFT);
+                setGraphic(box);
+                setText(null);
+            }
+        };
+    }
+
+    private static TableCell<DiferencaColaborador, String> celulaDiferenca() {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(String texto, boolean empty) {
+                super.updateItem(texto, empty);
+                if (empty || texto == null) { setGraphic(null); setText(null); setStyle(""); return; }
+                setText(texto);
+                setGraphic(null);
+                DiferencaColaborador item = getTableRow() != null
+                        ? (DiferencaColaborador) getTableRow().getItem() : null;
+                if (item != null) {
+                    if (item.diferencaTurnos() > 0)      setStyle("-fx-text-fill: #16a34a;");
+                    else if (item.diferencaTurnos() < 0) setStyle("-fx-text-fill: #c91428;");
+                    else                                  setStyle("");
+                }
             }
         };
     }

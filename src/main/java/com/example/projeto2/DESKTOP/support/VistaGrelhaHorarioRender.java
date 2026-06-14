@@ -5,12 +5,14 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 
+import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -110,17 +112,16 @@ public final class VistaGrelhaHorarioRender {
             return;
         }
 
-        List<GrelhaHorarioRenderer.LinhaGrelha> linhasGrelha = new ArrayList<>();
-        for (Map.Entry<Integer, Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno>> entry
-                : porColaborador.entrySet()) {
-            linhasGrelha.add(new GrelhaHorarioRenderer.LinhaGrelha(
-                    entry.getKey(),
-                    nomesColab.get(entry.getKey()),
-                    cargosColab.get(entry.getKey()),
-                    entry.getValue()));
-        }
+        List<GrelhaHorarioRenderer.LinhaGrelha> linhasGrelha =
+                construirLinhasGrelha(nomesColab, cargosColab, porColaborador);
 
-        GrelhaHorarioRenderer.renderizar(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
+        if (!vistaSemanais) {
+            ajustarScrollParaCompacto();
+            GrelhaHorarioRenderer.renderizarCompacto(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
+        } else {
+            restaurarScrollPadrão();
+            GrelhaHorarioRenderer.renderizar(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
+        }
     }
 
     private void atualizarLabelPeriodo(boolean vistaSemanais, LocalDate inicio, LocalDate fim,
@@ -135,6 +136,60 @@ public final class VistaGrelhaHorarioRender {
                 .map(HorarioLinha::idColaborador)
                 .distinct().count();
         lblGrelhaPeriodo.setText(periodoTexto + (nPessoas > 0 ? "   · " + nPessoas + " pessoas" : ""));
+    }
+
+    /** Converte HorarioLinha → LinhaGrelha, filtradas para o intervalo [inicio,fim], ordenadas alfabeticamente. */
+    public static List<GrelhaHorarioRenderer.LinhaGrelha> construirLinhasGrelha(
+            List<HorarioLinha> linhas, LocalDate inicio, LocalDate fim) {
+        Map<Integer, String> nomesColab = new LinkedHashMap<>();
+        Map<Integer, String> cargosColab = new LinkedHashMap<>();
+        Map<Integer, Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno>> porColab = new LinkedHashMap<>();
+        for (HorarioLinha linha : linhas) {
+            if (linha == null || linha.data() == null) continue;
+            if (linha.data().isBefore(inicio) || linha.data().isAfter(fim)) continue;
+            Integer id = linha.idColaborador();
+            nomesColab.put(id, linha.colaborador() != null ? linha.colaborador() : "?");
+            cargosColab.put(id, linha.cargo() != null ? linha.cargo() : "");
+            String horas = (linha.periodo() != null && !"-".equals(linha.periodo())) ? linha.periodo() : null;
+            porColab.computeIfAbsent(id, k -> new LinkedHashMap<>())
+                    .put(linha.data(), new GrelhaHorarioRenderer.CelulaTurno(linha.turno(), horas));
+        }
+        return construirLinhasGrelha(nomesColab, cargosColab, porColab);
+    }
+
+    private static List<GrelhaHorarioRenderer.LinhaGrelha> construirLinhasGrelha(
+            Map<Integer, String> nomesColab,
+            Map<Integer, String> cargosColab,
+            Map<Integer, Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno>> porColaborador) {
+        List<GrelhaHorarioRenderer.LinhaGrelha> lista = new ArrayList<>();
+        for (Map.Entry<Integer, Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno>> entry
+                : porColaborador.entrySet()) {
+            lista.add(new GrelhaHorarioRenderer.LinhaGrelha(
+                    entry.getKey(),
+                    nomesColab.get(entry.getKey()),
+                    cargosColab.get(entry.getKey()),
+                    entry.getValue()));
+        }
+        lista.sort(Comparator.comparing(l ->
+                Normalizer.normalize(l.nome() != null ? l.nome().toLowerCase(Locale.ROOT) : "",
+                        Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
+        return lista;
+    }
+
+    private void ajustarScrollParaCompacto() {
+        if (grelhaScrollPane == null) return;
+        grelhaScrollPane.setFitToWidth(true);
+        grelhaScrollPane.setFitToHeight(false);
+        grelhaScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        grelhaScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+    }
+
+    private void restaurarScrollPadrão() {
+        if (grelhaScrollPane == null) return;
+        grelhaScrollPane.setFitToWidth(true);
+        grelhaScrollPane.setFitToHeight(true);
+        grelhaScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        grelhaScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
     }
 
     private void alternarEmptyState(boolean temDados) {

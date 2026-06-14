@@ -394,15 +394,43 @@
                     </columns>
                 </TableView>
 
-                <Label styleClass="home-card-title" text="Escala publicada da loja" />
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Label styleClass="home-card-title" text="Escala publicada da loja" />
+                    <Region HBox.hgrow="ALWAYS" />
+                    <HBox alignment="CENTER" spacing="4.0" styleClass="home-vista-toggle">
+                        <Button fx:id="btnVistaStripEscala"
+                                onAction="#onVistaStripEscalaClick"
+                                styleClass="home-vista-btn-active"
+                                text="Semana" />
+                        <Button fx:id="btnVistaGrelhaEscala"
+                                onAction="#onVistaGrelhaEscalaClick"
+                                styleClass="home-vista-btn"
+                                text="Grelha" />
+                    </HBox>
+                </HBox>
                 <Label fx:id="lblResumoEscalaPublicada"
                        styleClass="home-card-subtitle"
                        text="Escala publicada indispon&#237;vel."
                        wrapText="true" />
+                <!-- Vista Semana: strip de 7 cartões diários (default) -->
                 <HBox fx:id="boxEscalaDetalhadaLoja"
                       minHeight="150.0"
                       spacing="10.0"
                       styleClass="home-week-strip" />
+                <!-- Vista Grelha: colaboradores × dias da semana -->
+                <ScrollPane fx:id="scrollGrelhaEscalaLoja"
+                            fitToWidth="true"
+                            fitToHeight="true"
+                            hbarPolicy="NEVER"
+                            vbarPolicy="NEVER"
+                            managed="false"
+                            minHeight="260.0"
+                            styleClass="grelha-scroll"
+                            visible="false">
+                    <content>
+                        <VBox fx:id="boxGrelhaEscalaLoja" styleClass="grelha-container" />
+                    </content>
+                </ScrollPane>
             </VBox>
 
         </VBox>

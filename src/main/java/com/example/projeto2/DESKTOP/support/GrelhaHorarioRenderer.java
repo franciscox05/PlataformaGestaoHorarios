@@ -1,17 +1,21 @@
 package com.example.projeto2.DESKTOP.support;
 
 import javafx.geometry.Pos;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -52,6 +56,7 @@ public final class GrelhaHorarioRenderer {
 
     private static final double ALTURA_CABECALHO = 56.0;
     private static final double ALTURA_LINHA = 72.0;
+    private static final double NOME_COL_COMPACTA = 190.0;
 
     private GrelhaHorarioRenderer() {
     }
@@ -292,6 +297,153 @@ public final class GrelhaHorarioRenderer {
     private static String corPara(Integer idColaborador, int indice) {
         int base = idColaborador != null ? Math.abs(idColaborador) : indice;
         return AVATAR_CORES[base % AVATAR_CORES.length];
+    }
+
+    // ── Vista compacta (mês sem scroll horizontal) ─────────────────────────
+
+    /**
+     * Grelha compacta para vista mensal: todos os dias visíveis de uma vez, sem scroll
+     * horizontal. Cada dia é representado por um pequeno tile colorido com a inicial do
+     * turno. Os colaboradores são ordenados alfabeticamente.
+     */
+    public static void renderizarCompacto(VBox container,
+                                          List<LocalDate> dias,
+                                          List<LinhaGrelha> linhas,
+                                          LocalDate hoje,
+                                          Consumer<LocalDate> aoAbrirDia) {
+        if (container == null) return;
+        container.getChildren().clear();
+        if (dias == null || dias.isEmpty() || linhas == null || linhas.isEmpty()) return;
+
+        List<LinhaGrelha> ordenadas = new ArrayList<>(linhas);
+        ordenadas.sort(Comparator.comparing(l ->
+                Normalizer.normalize(l.nome() != null ? l.nome().toLowerCase(Locale.ROOT) : "",
+                        Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
+
+        // ── Cabeçalho ─────────────────────────────────────────────────────
+        HBox headerRow = new HBox();
+        headerRow.getStyleClass().add("grelha-compacta-header");
+
+        Label headerNome = new Label("COLABORADOR");
+        headerNome.getStyleClass().add("grelha-compacta-header-nome");
+        fixarLargura(headerNome, NOME_COL_COMPACTA);
+        headerRow.getChildren().add(headerNome);
+
+        for (LocalDate dia : dias) {
+            boolean fds = dia.getDayOfWeek() == DayOfWeek.SATURDAY || dia.getDayOfWeek() == DayOfWeek.SUNDAY;
+            VBox hDia = new VBox(1);
+            hDia.setAlignment(Pos.CENTER);
+            hDia.getStyleClass().add("grelha-compacta-header-dia");
+            if (fds) hDia.getStyleClass().add("grelha-compacta-header-dia-fds");
+
+            Label lblSem = new Label(diaSemanaAbrev(dia.getDayOfWeek()).substring(0, 1).toUpperCase(Locale.ROOT));
+            lblSem.getStyleClass().add("grelha-compacta-dia-sem");
+            Label lblNum = new Label(String.valueOf(dia.getDayOfMonth()));
+            lblNum.getStyleClass().add("grelha-compacta-dia-num");
+            hDia.getChildren().addAll(lblSem, lblNum);
+            HBox.setHgrow(hDia, Priority.ALWAYS);
+            hDia.setMaxWidth(Double.MAX_VALUE);
+
+            if (aoAbrirDia != null) {
+                hDia.getStyleClass().add("grelha-compacta-header-dia-clicavel");
+                hDia.setOnMouseClicked(e -> aoAbrirDia.accept(dia));
+            }
+            headerRow.getChildren().add(hDia);
+        }
+        container.getChildren().add(headerRow);
+
+        // ── Linhas por colaborador ─────────────────────────────────────────
+        boolean alternado = false;
+        int indice = 0;
+        for (LinhaGrelha linha : ordenadas) {
+            String corAvatar = corPara(linha.idColaborador(), indice++);
+            HBox row = new HBox();
+            row.getStyleClass().add("grelha-compacta-row");
+            if (alternado) row.getStyleClass().add("grelha-compacta-row-alt");
+            alternado = !alternado;
+
+            // Célula do nome
+            StackPane avatar = new StackPane();
+            avatar.getStyleClass().add("grelha-compacta-avatar");
+            avatar.setStyle("-fx-background-color: " + corAvatar + ";");
+            Label lblIni = new Label(gerarIniciais(linha.nome()));
+            lblIni.getStyleClass().add("grelha-compacta-avatar-iniciais");
+            avatar.getChildren().add(lblIni);
+
+            Label lblNome = new Label(linha.nome() != null ? linha.nome() : "?");
+            lblNome.getStyleClass().add("grelha-compacta-nome");
+            lblNome.setMaxWidth(NOME_COL_COMPACTA - 42);
+
+            HBox nomeCell = new HBox(6, avatar, lblNome);
+            nomeCell.setAlignment(Pos.CENTER_LEFT);
+            fixarLargura(nomeCell, NOME_COL_COMPACTA);
+            nomeCell.getStyleClass().add("grelha-compacta-nome-cell");
+            row.getChildren().add(nomeCell);
+
+            // Tiles de dia
+            for (LocalDate dia : dias) {
+                CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
+                StackPane tile = construirTileCompacto(celula, dia, hoje, aoAbrirDia);
+                HBox.setHgrow(tile, Priority.ALWAYS);
+                tile.setMaxWidth(Double.MAX_VALUE);
+                row.getChildren().add(tile);
+            }
+            container.getChildren().add(row);
+        }
+    }
+
+    private static StackPane construirTileCompacto(CelulaTurno celula,
+                                                   LocalDate dia,
+                                                   LocalDate hoje,
+                                                   Consumer<LocalDate> aoAbrirDia) {
+        StackPane tile = new StackPane();
+        tile.getStyleClass().add("grelha-compacta-tile");
+        boolean fds = dia.getDayOfWeek() == DayOfWeek.SATURDAY || dia.getDayOfWeek() == DayOfWeek.SUNDAY;
+        if (fds)         tile.getStyleClass().add("grelha-compacta-tile-fds");
+        if (dia.equals(hoje)) tile.getStyleClass().add("grelha-compacta-tile-hoje");
+
+        String tipo  = celula != null ? celula.tipo() : null;
+        String chave = turnoChave(tipo != null ? tipo : "folga");
+        boolean ehFolga = celula == null || "folga".equals(chave);
+
+        StackPane pilula = new StackPane();
+        pilula.getStyleClass().addAll("grelha-compacta-pilula", "grelha-compacta-pilula-" + chave);
+
+        Label letra = new Label(turnoLetraCompacta(tipo));
+        letra.getStyleClass().addAll("grelha-compacta-tile-letra", "grelha-compacta-tile-letra-" + chave);
+        pilula.getChildren().add(letra);
+        tile.getChildren().add(pilula);
+
+        if (!ehFolga && celula != null && celula.horas() != null) {
+            String tooltipTxt = turnoNomeDisplay(tipo) + "\n" + celula.horas();
+            Tooltip tooltip = new Tooltip(tooltipTxt);
+            tooltip.setShowDelay(Duration.millis(400));
+            Tooltip.install(tile, tooltip);
+        }
+
+        if (aoAbrirDia != null) {
+            tile.getStyleClass().add("grelha-compacta-tile-clicavel");
+            tile.setOnMouseClicked(e -> aoAbrirDia.accept(dia));
+        }
+        return tile;
+    }
+
+    private static void fixarLargura(Region nodo, double largura) {
+        nodo.setMinWidth(largura);
+        nodo.setPrefWidth(largura);
+        nodo.setMaxWidth(largura);
+    }
+
+    private static String turnoLetraCompacta(String tipo) {
+        if (tipo == null) return "–";
+        return switch (turnoChave(tipo)) {
+            case "manha"      -> "M";
+            case "tarde"      -> "T";
+            case "noite"      -> "N";
+            case "intermedio" -> "I";
+            case "folga"      -> "–";
+            default           -> tipo.isBlank() ? "?" : tipo.substring(0, 1).toUpperCase(Locale.ROOT);
+        };
     }
 
     // ── Formatadores puros ──────────────────────────────────────────────────

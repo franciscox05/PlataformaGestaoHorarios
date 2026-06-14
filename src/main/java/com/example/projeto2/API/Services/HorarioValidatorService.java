@@ -138,7 +138,10 @@ public class HorarioValidatorService {
         long semanasDesdeFimDeSemanaAnterior = inicioFimDeSemanaAtual.toEpochDay() / 7
                 - ultimoFimDeSemanaInicio.toEpochDay() / 7;
 
-        return semanasDesdeFimDeSemanaAnterior < janelaRotacaoFinsDeSemanaSemanas;
+        // semanas == 0 significa que estamos no mesmo fim de semana (sábado E domingo):
+        // trabalhar ambos os dias do mesmo FDS não é uma violação de rotação.
+        return semanasDesdeFimDeSemanaAnterior > 0
+                && semanasDesdeFimDeSemanaAnterior < janelaRotacaoFinsDeSemanaSemanas;
     }
 
     // -------------------------------------------------------------------------

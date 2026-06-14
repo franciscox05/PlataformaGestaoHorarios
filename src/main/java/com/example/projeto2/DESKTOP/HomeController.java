@@ -10,9 +10,11 @@ import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
 import com.example.projeto2.DESKTOP.support.DetalheDiaDialog;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
+import com.example.projeto2.DESKTOP.support.EdicaoTurnoDialog;
 import com.example.projeto2.DESKTOP.support.GrelhaHorarioHelper;
 import com.example.projeto2.DESKTOP.support.HomePedidosHelper;
 import com.example.projeto2.DESKTOP.support.MesOption;
+import com.example.projeto2.API.Services.geracao.dto.HorarioLinha;
 import com.example.projeto2.API.Enums.EstadoHorario;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Utilizador;
@@ -179,6 +181,18 @@ public class HomeController {
     private HBox boxEscalaDetalhadaLoja;
 
     @FXML
+    private Button btnVistaStripEscala;
+
+    @FXML
+    private Button btnVistaGrelhaEscala;
+
+    @FXML
+    private ScrollPane scrollGrelhaEscalaLoja;
+
+    @FXML
+    private VBox boxGrelhaEscalaLoja;
+
+    @FXML
     private ComboBox<MesOption> cbMesHorarioMensal;
 
     @FXML
@@ -212,6 +226,7 @@ public class HomeController {
     private GridPane calendarioMensalHome;
 
     private boolean vistaGrelhaAtiva = false;
+    private boolean vistaGrelhaEscalaAtiva = false;
 
     @FXML
     private VBox painelPedidosPendentes;
@@ -419,6 +434,41 @@ public class HomeController {
         vistaGrelhaAtiva = true;
         atualizarToggleVistaHome();
         carregarHorarioMensalLoja();
+    }
+
+    @FXML
+    public void onVistaStripEscalaClick() {
+        if (!vistaGrelhaEscalaAtiva) return;
+        vistaGrelhaEscalaAtiva = false;
+        atualizarToggleVistaEscala();
+        carregarEscalaDetalhadaLoja();
+    }
+
+    @FXML
+    public void onVistaGrelhaEscalaClick() {
+        if (vistaGrelhaEscalaAtiva) return;
+        vistaGrelhaEscalaAtiva = true;
+        atualizarToggleVistaEscala();
+        carregarEscalaDetalhadaLoja();
+    }
+
+    private void atualizarToggleVistaEscala() {
+        if (btnVistaStripEscala != null) {
+            btnVistaStripEscala.getStyleClass().removeAll("home-vista-btn", "home-vista-btn-active");
+            btnVistaStripEscala.getStyleClass().add(vistaGrelhaEscalaAtiva ? "home-vista-btn" : "home-vista-btn-active");
+        }
+        if (btnVistaGrelhaEscala != null) {
+            btnVistaGrelhaEscala.getStyleClass().removeAll("home-vista-btn", "home-vista-btn-active");
+            btnVistaGrelhaEscala.getStyleClass().add(vistaGrelhaEscalaAtiva ? "home-vista-btn-active" : "home-vista-btn");
+        }
+        if (boxEscalaDetalhadaLoja != null) {
+            boxEscalaDetalhadaLoja.setVisible(!vistaGrelhaEscalaAtiva);
+            boxEscalaDetalhadaLoja.setManaged(!vistaGrelhaEscalaAtiva);
+        }
+        if (scrollGrelhaEscalaLoja != null) {
+            scrollGrelhaEscalaLoja.setVisible(vistaGrelhaEscalaAtiva);
+            scrollGrelhaEscalaLoja.setManaged(vistaGrelhaEscalaAtiva);
+        }
     }
 
     private void atualizarToggleVistaHome() {
@@ -917,7 +967,11 @@ public class HomeController {
                     idColaborador
             );
 
-            renderizarCalendarioEscalaLoja(dataInicio, horarios);
+            if (vistaGrelhaEscalaAtiva) {
+                renderizarGrelhaEscalaLoja(dataInicio, dataFim, horarios);
+            } else {
+                renderizarCalendarioEscalaLoja(dataInicio, horarios);
+            }
 
             String etiquetaColaborador = cbColaboradorOperacao.getValue() != null
                     ? cbColaboradorOperacao.getValue().label()
@@ -943,9 +997,56 @@ public class HomeController {
                             + "."
             );
         } catch (Exception e) {
-            renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
+            if (vistaGrelhaEscalaAtiva) {
+                renderizarGrelhaEscalaLoja(LocalDate.now(), LocalDate.now().plusDays(6), List.of());
+            } else {
+                renderizarCalendarioEscalaLoja(LocalDate.now(), List.of());
+            }
             lblResumoEscalaPublicada.setText("Não foi possível carregar a escala publicada da loja neste momento.");
         }
+    }
+
+    private void renderizarGrelhaEscalaLoja(LocalDate dataInicio, LocalDate dataFim, List<Horario> horarios) {
+        if (boxGrelhaEscalaLoja == null) return;
+        boolean podeEditar = utilizadorLogado != null
+                && gestaoLojaBLL.utilizadorPodeGerirLoja(utilizadorLogado.getId());
+        List<HorarioLinha> linhas = horarios.stream()
+                .filter(h -> h != null && h.getDataTurno() != null)
+                .map(this::converterHorario)
+                .toList();
+        GrelhaHorarioHelper.preencherSemanal(
+                boxGrelhaEscalaLoja, dataInicio, dataFim,
+                horarios, LocalDate.now(),
+                data -> DetalheDiaDialog.abrir(
+                        data, linhas, obterJanela(), podeEditar,
+                        (linha, janelaDialogo) -> EdicaoTurnoDialog.abrir(
+                                linha,
+                                janelaDialogo != null ? janelaDialogo : obterJanela(),
+                                horarioBll,
+                                utilizadorLogado != null ? utilizadorLogado.getId() : null,
+                                msg -> {},
+                                this::mostrarFeedbackOperacao,
+                                this::carregarEscalaDetalhadaLoja
+                        )
+                )
+        );
+    }
+
+    private HorarioLinha converterHorario(Horario h) {
+        String nome = h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdUtilizador() != null
+                ? h.getIdLojautilizador().getIdUtilizador().getNome() : "?";
+        String cargo = h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdCargo() != null
+                ? h.getIdLojautilizador().getIdCargo().getNome() : "-";
+        Integer idColab = h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdUtilizador() != null
+                ? h.getIdLojautilizador().getIdUtilizador().getId() : null;
+        String periodo = formatarPeriodo(h);
+        String tipoTurno = h.getIdTurno() != null && h.getIdTurno().getTipo() != null
+                ? h.getIdTurno().getTipo() : null;
+        String turnoStr = tipoTurno != null ? tipoTurno + " " + periodo : periodo;
+        String diaSemana = h.getDataTurno() != null
+                ? h.getDataTurno().getDayOfWeek().getDisplayName(TextStyle.SHORT, LOCALE_PT) : "-";
+        String estado = h.getEstado() != null ? h.getEstado().name() : "-";
+        return new HorarioLinha(h.getId(), idColab, h.getDataTurno(), diaSemana, turnoStr, periodo, nome, cargo, estado);
     }
 
     private void carregarHorarioMensalLoja() {

@@ -197,7 +197,7 @@ public class DashboardController implements DashboardNavigator {
             btnHorarios.setTooltip(new Tooltip("Horários da loja  (Alt+H)"));
         }
         if (btnPainelGerente != null) {
-            btnPainelGerente.setTooltip(new Tooltip("Pedidos pendentes da loja  (Alt+G)"));
+            btnPainelGerente.setTooltip(new Tooltip("Pedidos pendentes da loja  (Alt+G / Alt+P)"));
         }
         if (btnGestaoLoja != null) {
             btnGestaoLoja.setTooltip(new Tooltip("Configurações da loja  (Alt+L)"));
@@ -685,7 +685,7 @@ public class DashboardController implements DashboardNavigator {
                     evento.consume();
                 }
             }
-            case G -> {
+            case G, P -> {
                 if (stackPainelGerente != null && stackPainelGerente.isVisible()) {
                     onPainelGerentePedidosClick();
                     evento.consume();

@@ -147,7 +147,10 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
 
         for (Map.Entry<Integer, Set<LocalDate>> entry : finsDeSemanaTrabalhadosPorColaborador.entrySet()) {
             String tipoCargo = tiposCargoPorColaborador.get(entry.getKey());
-            if ("gerente".equals(tipoCargo) || "subgerente".equals(tipoCargo)) {
+            // Gerência não está sujeita à rotação; reforco_parttime é contratado exclusivamente
+            // para FDS, pelo que trabalhar fins de semana consecutivos é o comportamento esperado.
+            if ("gerente".equals(tipoCargo) || "subgerente".equals(tipoCargo)
+                    || "reforco_parttime".equals(tipoCargo)) {
                 continue;
             }
 
@@ -161,6 +164,7 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
                         trabalhaNaJanelaCompleta,
                         "Cada colaborador deve ter pelo menos um fim de semana de descanso em cada janela de duas semanas."
                 );
+
             }
         }
     }

@@ -19,6 +19,9 @@ import com.example.projeto2.DESKTOP.support.HorarioIndividualDialog;
 import com.example.projeto2.DESKTOP.support.MensagemErroFormatter;
 import com.example.projeto2.DESKTOP.support.MesOption;
 import com.example.projeto2.DESKTOP.support.SelecaoColaboradoresPainel;
+import com.example.projeto2.DESKTOP.support.ValidacaoHorarioDialog;
+import com.example.projeto2.DESKTOP.support.ValidadorHorarioProposta;
+import com.example.projeto2.DESKTOP.support.ValidacaoHorarioResultado;
 import com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.collections.FXCollections;
@@ -67,6 +70,7 @@ public class GeracaoHorariosController {
     @FXML private ComboBox<MesOption> cbMes;
     @FXML private Spinner<Integer> spAno;
     @FXML private Button btnVerProposta;
+    @FXML private Button btnVerCriterios;
     @FXML private Button btnGerarProposta;
     @FXML private Button btnGerarAlternativas;
     @FXML private Spinner<Integer> spQuantidadeAlternativas;
@@ -148,6 +152,12 @@ public class GeracaoHorariosController {
     @FXML private ComboBox<PropostaResumo> cbSelecaoProposta;
     @FXML private Button btnVistaCalendario;
     @FXML private Button btnVistaGrelha;
+    @FXML private Button btnVerificarHorario;
+    @FXML private Button btnExpandirGrelha;
+    @FXML private VBox painelVerificacaoHorario;
+    @FXML private Label lblVerificacaoTitulo;
+    @FXML private VBox vbVerificacaoGrelha;
+    @FXML private VBox vbVerificacaoResultados;
     @FXML private VBox painelVistaCalendario;
     @FXML private VBox painelVistaGrelha;
     @FXML private Button btnGrelhaSemana;
@@ -179,6 +189,7 @@ public class GeracaoHorariosController {
     private SelecaoColaboradoresPainel selecaoColaboradoresPainel;
     private boolean grelhaVistaSemanais = true;
     private LocalDate grelhaDataInicio = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+    private boolean verificacaoAtiva = false;
     private VistaGrelhaHorarioRender vistaGrelhaRender;
     private DiagnosticoGeracaoPanel diagnosticoGeracaoPanel;
     private GeracaoStepperPanel stepperPanel;
@@ -228,6 +239,12 @@ public class GeracaoHorariosController {
         btnGerarProposta.setTooltip(new Tooltip("Gera uma alternativa com as definições atuais"));
         btnGerarAlternativas.setTooltip(new Tooltip("Gera várias alternativas em lote para comparação"));
         btnVerProposta.setTooltip(new Tooltip("Carrega o planeamento do período selecionado"));
+        if (btnVerCriterios != null) {
+            btnVerCriterios.setTooltip(new Tooltip("Mostra as regras, cargas e preferências que o motor considera neste período"));
+        }
+        if (btnVerificarHorario != null) {
+            btnVerificarHorario.setTooltip(new Tooltip("Verifica se o horário respeita as regras configuradas: descanso, rotação, chefia ao sábado, etc."));
+        }
         btnEnviarSupervisor.setTooltip(new Tooltip("Envia as alternativas selecionadas para validação do supervisor"));
         btnAprovarProposta.setTooltip(new Tooltip("Aprova e publica esta proposta — as restantes pendentes são rejeitadas automaticamente"));
         btnRejeitarProposta.setTooltip(new Tooltip("Rejeita esta proposta de horário"));
@@ -262,6 +279,139 @@ public class GeracaoHorariosController {
             return;
         }
         carregarPlaneamentoDoPeriodo();
+    }
+
+    @FXML
+    public void onVerCriteriosClick() {
+        try {
+            validarUtilizadorAutenticado();
+            MesOption mes = obterMesSelecionado();
+            var criterios = geracaoHorariosBLL.obterCriteriosGeracao(
+                    utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+            com.example.projeto2.DESKTOP.support.CriteriosGeracaoDialog.abrir(
+                    criterios, mes + " " + spAno.getValue(), obterJanela());
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Não foi possível carregar os critérios da geração.");
+        }
+    }
+
+    @FXML
+    public void onVerificarHorarioClick() {
+        if (propostaAtual == null || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty()) {
+            mostrarErro("Carrega primeiro uma proposta de horário para verificar.");
+            return;
+        }
+        try {
+            validarUtilizadorAutenticado();
+            MesOption mes = obterMesSelecionado();
+            var criterios = geracaoHorariosBLL.obterCriteriosGeracao(
+                    utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+            ValidacaoHorarioResultado resultado =
+                    ValidadorHorarioProposta.validar(propostaAtual.linhas(), criterios);
+
+            // Título
+            String titulo = (propostaAtual.idProposta() != null
+                    ? "Proposta #" + propostaAtual.idProposta() + "  ·  " : "")
+                    + mes + " " + spAno.getValue();
+            if (lblVerificacaoTitulo != null) lblVerificacaoTitulo.setText(titulo);
+
+            // Grelha compacta do mês na sub-página
+            if (vbVerificacaoGrelha != null) {
+                java.time.YearMonth ym = java.time.YearMonth.of(spAno.getValue(), mes.numero());
+                java.util.List<LocalDate> dias = new java.util.ArrayList<>();
+                for (LocalDate d = ym.atDay(1); !d.isAfter(ym.atEndOfMonth()); d = d.plusDays(1)) dias.add(d);
+                java.util.List<com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer.LinhaGrelha> linhas =
+                        com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender
+                                .construirLinhasGrelha(propostaAtual.linhas(), ym.atDay(1), ym.atEndOfMonth());
+                com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
+                        .renderizarCompacto(vbVerificacaoGrelha, dias, linhas, LocalDate.now(), this::abrirDetalheDia);
+            }
+
+            // Painel de resultados
+            if (vbVerificacaoResultados != null) {
+                com.example.projeto2.DESKTOP.support.VerificacaoHorarioPainelRenderer
+                        .renderizar(vbVerificacaoResultados, resultado, criterios,
+                                propostaAtual.linhas(), spAno.getValue());
+            }
+
+            mostrarPainelVerificacao(true);
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Não foi possível verificar o horário.");
+        }
+    }
+
+    @FXML
+    public void onVoltarAoHorarioClick() {
+        mostrarPainelVerificacao(false);
+    }
+
+    @FXML
+    public void onExpandirGrelhaClick() {
+        if (propostaAtual == null || propostaAtual.linhas() == null) return;
+        try {
+            MesOption mes = obterMesSelecionado();
+            java.time.YearMonth ym = java.time.YearMonth.of(spAno.getValue(), mes.numero());
+            java.util.List<LocalDate> dias = new java.util.ArrayList<>();
+            for (LocalDate d = ym.atDay(1); !d.isAfter(ym.atEndOfMonth()); d = d.plusDays(1)) dias.add(d);
+            java.util.List<com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer.LinhaGrelha> linhasGrelha =
+                    com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender
+                            .construirLinhasGrelha(propostaAtual.linhas(), ym.atDay(1), ym.atEndOfMonth());
+
+            javafx.scene.layout.VBox conteudo = new javafx.scene.layout.VBox();
+            com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
+                    .renderizar(conteudo, dias, linhasGrelha, LocalDate.now(), null);
+
+            javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(conteudo);
+            sp.setFitToWidth(true);
+            sp.setFitToHeight(false);
+            sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+            sp.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+            sp.setStyle("-fx-background-color: white; -fx-background: white;");
+
+            javafx.scene.Scene cena = new javafx.scene.Scene(sp, 1300, 680);
+            if (obterJanela() != null && obterJanela().getScene() != null) {
+                cena.getStylesheets().addAll(obterJanela().getScene().getStylesheets());
+            }
+            javafx.stage.Stage janela = new javafx.stage.Stage();
+            janela.setTitle("Horário em detalhe  —  " + mes + " " + spAno.getValue());
+            janela.setScene(cena);
+            janela.initModality(javafx.stage.Modality.NONE);
+            if (obterJanela() != null) janela.initOwner(obterJanela());
+            janela.show();
+        } catch (Exception e) {
+            mostrarErro("Não foi possível abrir a vista em detalhe.");
+        }
+    }
+
+    private void mostrarPainelVerificacao(boolean mostrar) {
+        verificacaoAtiva = mostrar;
+        if (painelVerificacaoHorario != null) {
+            painelVerificacaoHorario.setVisible(mostrar);
+            painelVerificacaoHorario.setManaged(mostrar);
+        }
+        // Restaurar ou esconder as vistas normais
+        boolean eraCalendario = painelVistaCalendario != null && painelVistaCalendario.isVisible();
+        if (mostrar) {
+            if (painelVistaCalendario != null) { painelVistaCalendario.setVisible(false); painelVistaCalendario.setManaged(false); }
+            if (painelVistaGrelha != null) { painelVistaGrelha.setVisible(false); painelVistaGrelha.setManaged(false); }
+        } else {
+            // Restaurar a última vista ativa (calendário ou grelha, consoante o estado dos toggles)
+            boolean mostrarCalendario = btnVistaCalendario == null
+                    || btnVistaCalendario.getStyleClass().contains("btn-vista-ativo");
+            if (painelVistaCalendario != null) {
+                painelVistaCalendario.setVisible(mostrarCalendario);
+                painelVistaCalendario.setManaged(mostrarCalendario);
+            }
+            if (painelVistaGrelha != null) {
+                painelVistaGrelha.setVisible(!mostrarCalendario);
+                painelVistaGrelha.setManaged(!mostrarCalendario);
+            }
+            if (!mostrarCalendario) construirVistaGrelha();
+        }
     }
 
     @FXML public void onGerarPropostaClick()     { gerarAlternativasEmSegundoPlano(1); }
@@ -466,6 +616,8 @@ public class GeracaoHorariosController {
     // ── Lógica interna da Vista em Grelha ─────────────────────────────────────
 
     private void mudarVistaCalendario(boolean mostrarCalendario) {
+        // Fechar painel de verificação se estiver aberto
+        if (verificacaoAtiva) mostrarPainelVerificacao(false);
         if (painelVistaCalendario != null) {
             painelVistaCalendario.setVisible(mostrarCalendario);
             painelVistaCalendario.setManaged(mostrarCalendario);
@@ -492,6 +644,11 @@ public class GeracaoHorariosController {
         if (btnGrelhaMes != null) {
             btnGrelhaMes.getStyleClass().removeAll("btn-grelha-sub-ativo", "btn-grelha-sub-inativo");
             btnGrelhaMes.getStyleClass().add(grelhaVistaSemanais ? "btn-grelha-sub-inativo" : "btn-grelha-sub-ativo");
+        }
+        // Mostrar botão de expandir apenas na vista de mês
+        if (btnExpandirGrelha != null) {
+            btnExpandirGrelha.setVisible(!grelhaVistaSemanais);
+            btnExpandirGrelha.setManaged(!grelhaVistaSemanais);
         }
     }
 
@@ -1057,7 +1214,7 @@ public class GeracaoHorariosController {
                             + " colaboradores selecionados. Depois podes enviar ao supervisor apenas as alternativas escolhidas."
             )) return;
 
-            final Stage overlayCarregamento = DialogosHelper.mostrarCarregamento(
+            final DialogosHelper.CarregamentoHandle overlayCarregamento = DialogosHelper.mostrarCarregamento(
                     obterJanela(),
                     quantidade == 1 ? "A gerar o horário para o período selecionado..." : "A gerar " + quantidade + " alternativas de horário...");
 
@@ -1067,7 +1224,8 @@ public class GeracaoHorariosController {
                         MesOption mes = obterMesSelecionado();
                         List<PropostaResultado> resultados = geracaoHorariosBLL.gerarPropostas(
                                 utilizadorLogado.getId(), spAno.getValue(), mes.numero(),
-                                quantidade, idsColaboradoresSelecionados);
+                                quantidade, idsColaboradoresSelecionados,
+                                overlayCarregamento::atualizarMensagem);
                         PropostaResultado melhorResultado = resultados.stream()
                                 .min(Comparator.comparingInt(r -> r.metricas().pontuacao()))
                                 .orElse(resultados.getFirst());
@@ -1076,7 +1234,7 @@ public class GeracaoHorariosController {
                         return new GeracaoAlternativasDados(propostas, melhorResultado, resultados.size());
                     },
                     dados -> {
-                        overlayCarregamento.close();
+                        overlayCarregamento.fechar();
                         aplicarListaPropostas(dados.propostas(), dados.melhorResultado().idProposta());
                         preencherResultado(dados.melhorResultado());
                         selecionarPropostaNaTabela(dados.melhorResultado().idProposta());
@@ -1093,9 +1251,13 @@ public class GeracaoHorariosController {
                                 : dados.totalGeradas() + " alternativas geradas. A melhor pontuação ficou selecionada para análise.");
                     },
                     erro -> {
-                        overlayCarregamento.close();
+                        overlayCarregamento.fechar();
                         String mensagem = resolverMensagemErro(erro, "Não foi possível gerar alternativas para o período selecionado.");
                         String mensagemCurta = mensagem.length() > 220 ? mensagem.substring(0, 217) + "..." : mensagem;
+                        String acaoSugerida = extrairSugestaoPrincipal(erro);
+                        if (!acaoSugerida.isBlank()) {
+                            mensagemCurta += "\n\nO que podes fazer: " + acaoSugerida;
+                        }
                         DialogosHelper.mostrarNotificacaoGeracao(obterJanela(), false, "Não foi possível gerar o horário", mensagemCurta);
                         stepperPanel.irParaPasso(0);
                         if (tentarCarregarPlaneamentoExistente()) {
@@ -1152,6 +1314,7 @@ public class GeracaoHorariosController {
         cbMes.setDisable(!contextoCarregado || emProcessamento);
         spAno.setDisable(!contextoCarregado || emProcessamento);
         btnVerProposta.setDisable(!contextoCarregado || emProcessamento);
+        if (btnVerCriterios != null) btnVerCriterios.setDisable(!contextoCarregado || emProcessamento);
         btnGerarProposta.setDisable(!podeGerar || emProcessamento);
         btnGerarAlternativas.setDisable(!podeGerar || emProcessamento);
         spQuantidadeAlternativas.setDisable(!podeGerar || emProcessamento);
@@ -1176,6 +1339,7 @@ public class GeracaoHorariosController {
                 || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty();
         if (btnExportarCsvHorario != null) btnExportarCsvHorario.setDisable(semDados);
         if (btnExportarPdfHorario != null) btnExportarPdfHorario.setDisable(semDados);
+        if (btnVerificarHorario != null) btnVerificarHorario.setDisable(semDados);
 
         boolean temPropostasLista = tabelaPropostas.getItems() != null && !tabelaPropostas.getItems().isEmpty();
         boolean temPropostaSelecionada = propostaAtual != null;
@@ -1235,6 +1399,23 @@ public class GeracaoHorariosController {
 
     private String resolverMensagemErro(Throwable erro, String fallback) {
         return MensagemErroFormatter.resolver(erro, fallback);
+    }
+
+    /**
+     * Primeira sugestão acionável de uma falha de geração, para incluir na notificação
+     * de erro — o gestor fica logo a saber o passo seguinte sem procurar o painel
+     * de diagnóstico.
+     */
+    private String extrairSugestaoPrincipal(Throwable erro) {
+        Throwable atual = erro;
+        while (atual != null && atual.getCause() != null && atual.getCause() != atual) {
+            atual = atual.getCause();
+        }
+        if (atual instanceof com.example.projeto2.API.Services.geracao.FalhaGeracaoHorarioException falha
+                && falha.sugestoes() != null && !falha.sugestoes().isEmpty()) {
+            return falha.sugestoes().getFirst().texto();
+        }
+        return "";
     }
 
     private Window obterJanela() {
