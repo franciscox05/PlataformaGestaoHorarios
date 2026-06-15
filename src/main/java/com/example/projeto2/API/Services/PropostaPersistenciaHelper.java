@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static com.example.projeto2.API.Services.geracao.HorarioFormatters.limparTexto;
 import static com.example.projeto2.API.Services.geracao.HorarioFormatters.normalizarTexto;
@@ -33,19 +34,27 @@ public class PropostaPersistenciaHelper {
     private static final String ESTADO_APROVADO  = "aprovado";
     private static final String ESTADO_REJEITADO = "rejeitado";
 
+    private static final String[] MESES_PT = {
+        "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    };
+
     private final PropostaResultadoBuilder resultadoBuilder;
     private final HorarioRepository horarioRepository;
     private final PropostaHorarioMensalRepository propostaHorarioMensalRepository;
     private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
+    private final NotificacaoService notificacaoService;
 
     public PropostaPersistenciaHelper(PropostaResultadoBuilder resultadoBuilder,
                                       HorarioRepository horarioRepository,
                                       PropostaHorarioMensalRepository propostaHorarioMensalRepository,
-                                      HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository) {
+                                      HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository,
+                                      NotificacaoService notificacaoService) {
         this.resultadoBuilder = resultadoBuilder;
         this.horarioRepository = horarioRepository;
         this.propostaHorarioMensalRepository = propostaHorarioMensalRepository;
         this.historicoHorarioEstadoRepository = historicoHorarioEstadoRepository;
+        this.notificacaoService = notificacaoService;
     }
 
     public PropostaHorarioMensal persistirProposta(Lojautilizador ligacaoAtiva,
@@ -67,6 +76,23 @@ public class PropostaPersistenciaHelper {
         for (Horario horario : planeamento.horarios()) {
             horario.setIdPropostaHorario(proposta);
             horario.setEstado(EstadoHorario.pendente);
+
+            if (horario.getIdLojautilizador() != null
+                    && horario.getIdLojautilizador().getIdUtilizador() != null
+                    && horario.getIdTurno() != null
+                    && horario.getDataTurno() != null) {
+                Integer idUtilizador = horario.getIdLojautilizador().getIdUtilizador().getId();
+                long sobreposicoes = horarioRepository.countGlobalOverlappingShifts(
+                        idUtilizador,
+                        horario.getDataTurno(),
+                        horario.getIdTurno().getHoraInicio(),
+                        horario.getIdTurno().getHoraFim());
+                if (sobreposicoes > 0) {
+                    throw new IllegalArgumentException(
+                            "O colaborador já possui um turno atribuído noutra loja que se sobrepõe a este horário.");
+                }
+            }
+
             Horario guardado = horarioRepository.save(horario);
 
             HistoricoHorarioEstado historico = new HistoricoHorarioEstado();
@@ -129,6 +155,7 @@ public class PropostaPersistenciaHelper {
         historicoHorarioEstadoRepository.saveAll(historicos);
         if (ESTADO_APROVADO.equals(normalizarTexto(novoEstado))) {
             rejeitarPropostasPendentesConcorrentes(proposta, ligacaoAtiva.getIdUtilizador());
+            notificarPublicacaoHorario(proposta, horarios);
         }
 
         return resultadoBuilder.construirResultado(proposta, horarios);
@@ -197,6 +224,27 @@ public class PropostaPersistenciaHelper {
         propostaHorarioMensalRepository.saveAll(paraRejeitar);
         horarioRepository.saveAll(horariosParaAtualizar);
         historicoHorarioEstadoRepository.saveAll(historicos);
+    }
+
+    private void notificarPublicacaoHorario(PropostaHorarioMensal proposta, List<Horario> horarios) {
+        String nomeMes = proposta.getMes() != null && proposta.getMes() >= 1 && proposta.getMes() <= 12
+                ? MESES_PT[proposta.getMes()] : "?";
+        String mensagem = "O horário oficial para " + nomeMes + " de " + proposta.getAno()
+                + " já se encontra publicado! Consulta o teu calendário.";
+
+        Integer idLoja = horarios.stream()
+                .filter(h -> h.getIdLojautilizador() != null && h.getIdLojautilizador().getIdLoja() != null)
+                .map(h -> h.getIdLojautilizador().getIdLoja().getId())
+                .findFirst()
+                .orElse(null);
+
+        horarios.stream()
+                .filter(h -> h.getIdLojautilizador() != null
+                        && h.getIdLojautilizador().getIdUtilizador() != null
+                        && h.getIdLojautilizador().getIdUtilizador().getId() != null)
+                .map(h -> h.getIdLojautilizador().getIdUtilizador().getId())
+                .collect(Collectors.toSet())
+                .forEach(idUtilizador -> notificacaoService.criarNotificacao(idUtilizador, mensagem, idLoja));
     }
 
     private String criarObservacaoHistoricoDecisao(PropostaHorarioMensal proposta, String novoEstado) {

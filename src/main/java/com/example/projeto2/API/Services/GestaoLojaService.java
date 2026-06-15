@@ -63,10 +63,14 @@ public class GestaoLojaService {
 
     @Transactional(readOnly = true)
     public boolean utilizadorPodeGerirLoja(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            return false;
-        }
+        if (idUtilizador == null) return false;
         return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.GESTAO);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean utilizadorPodeGerirLoja(Integer idUtilizador, Integer idLoja) {
+        if (idUtilizador == null) return false;
+        return lojautilizadorHelper.temCargo(idUtilizador, idLoja, LojautilizadorHelper.GESTAO);
     }
 
     @Transactional(readOnly = true)

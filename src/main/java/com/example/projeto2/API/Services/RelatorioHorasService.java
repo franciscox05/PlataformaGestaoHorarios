@@ -46,6 +46,11 @@ public class RelatorioHorasService {
     }
 
     @Transactional(readOnly = true)
+    public boolean utilizadorPodeConsultarRelatorios(Integer idUtilizador, Integer idLoja) {
+        return lojautilizadorHelper.temCargo(idUtilizador, idLoja, LojautilizadorHelper.GESTAO);
+    }
+
+    @Transactional(readOnly = true)
     public RelatorioContexto obterContexto(Integer idUtilizador) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
 

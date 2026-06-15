@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Selecionar Loja — Levi\'s Staff Portal')}"></head>
+<body class="min-h-screen flex items-center justify-center px-4 py-12" style="background:#080000">
+
+<!-- ── Fundo decorativo ─────────────────────────────────────────────── -->
+<div class="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+    <div class="absolute" style="top:-10%;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(circle,rgba(192,0,31,.08),transparent 65%);border-radius:50%"></div>
+    <div class="absolute" style="bottom:-5%;right:10%;width:400px;height:400px;background:radial-gradient(circle,rgba(120,0,20,.06),transparent 70%);border-radius:50%"></div>
+    <div class="absolute inset-0 opacity-[.015]"
+         style="background-image:linear-gradient(rgba(255,255,255,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.15) 1px,transparent 1px);background-size:60px 60px"></div>
+</div>
+
+<!-- ── Loading overlay ──────────────────────────────────────────────── -->
+<div id="loadingOverlay"
+     class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5"
+     style="background:rgba(8,0,0,.75);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s ease"
+     aria-hidden="true">
+    <!-- Spinner -->
+    <div style="width:52px;height:52px;position:relative">
+        <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(192,0,31,.15)"></div>
+        <div id="spinnerRing" style="position:absolute;inset:0;border-radius:50%;border:2px solid transparent;border-top-color:#c0001f;border-right-color:rgba(192,0,31,.4);animation:spinLoader .75s linear infinite"></div>
+        <div style="position:absolute;inset:8px;border-radius:50%;background:rgba(192,0,31,.08)"></div>
+    </div>
+    <p class="font-body" style="font-size:13px;color:rgba(255,255,255,.55);letter-spacing:.03em">A estabelecer contexto da loja...</p>
+</div>
+
+<style>
+@keyframes fadeUp    { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+@keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+@keyframes cardSlide { from{opacity:0;transform:translateY(14px) scale(.985)} to{opacity:1;transform:none} }
+@keyframes spinLoader{ to{transform:rotate(360deg)} }
+
+.store-card {
+    position:relative; border:1px solid rgba(255,255,255,.07); border-radius:16px;
+    padding:18px 22px; cursor:pointer; overflow:hidden; user-select:none;
+    transition:border-color .18s, background .18s, box-shadow .18s, transform .12s;
+    background:rgba(255,255,255,.035);
+}
+.store-card::before {
+    content:''; position:absolute; inset:0; border-radius:16px;
+    background:linear-gradient(135deg,rgba(192,0,31,.12),transparent 60%);
+    opacity:0; transition:opacity .18s; pointer-events:none;
+}
+.store-card:hover            { border-color:rgba(192,0,31,.38); background:rgba(192,0,31,.055); box-shadow:0 4px 24px rgba(192,0,31,.14); transform:translateY(-2px); }
+.store-card:hover::before    { opacity:1; }
+.store-card:active           { transform:translateY(0) !important; }
+.store-card.selected         { border-color:#c0001f !important; background:rgba(192,0,31,.1) !important; box-shadow:0 0 0 2px rgba(192,0,31,.3),0 4px 24px rgba(192,0,31,.18) !important; }
+.store-card.selected::before { opacity:1; }
+.store-card.selected:hover   { transform:none; }
+
+.btn-entrar {
+    background:linear-gradient(135deg,#c0001f,#7a0014);
+    box-shadow:0 4px 18px rgba(192,0,31,.35);
+    transition:box-shadow .18s, transform .12s, opacity .18s;
+}
+.btn-entrar:hover:not(:disabled) { box-shadow:0 6px 28px rgba(192,0,31,.5); transform:translateY(-1px); }
+.btn-entrar:active:not(:disabled){ transform:translateY(0); }
+.btn-entrar:disabled             { opacity:.38; cursor:not-allowed; box-shadow:none; }
+</style>
+
+<!-- ── Conteúdo principal ────────────────────────────────────────────── -->
+<div class="relative z-10 w-full max-w-md" style="animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both">
+
+    <!-- Logo -->
+    <div class="flex items-center justify-center gap-2.5 mb-10" style="animation:fadeIn .4s ease both">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center"
+             style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 12px rgba(192,0,31,.4)">
+            <span class="font-display font-black text-white" style="font-size:14px">L</span>
+        </div>
+        <span class="font-display font-bold" style="color:rgba(255,255,255,.5);font-size:15px">Levi Strauss &amp; Co.</span>
+    </div>
+
+    <!-- Card principal -->
+    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:32px;backdrop-filter:blur(12px)">
+
+        <!-- Cabeçalho -->
+        <div class="mb-7">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="h-px w-7" style="background:linear-gradient(90deg,#c0001f,transparent)"></div>
+                <p class="font-body font-bold uppercase" style="font-size:10px;letter-spacing:.2em;color:rgba(255,255,255,.35)">Contexto de trabalho</p>
+            </div>
+            <h1 class="font-display font-black" style="font-size:26px;color:white;line-height:1.15;letter-spacing:-.02em;margin-bottom:6px">
+                Seleciona a tua loja
+            </h1>
+            <p class="font-body" style="font-size:13px;color:rgba(255,255,255,.4);line-height:1.5">
+                Olá<span th:if="${nomeUtilizador}" th:text="', ' + ${nomeUtilizador} + '!'">!</span><span th:unless="${nomeUtilizador}">!</span>
+                Tens acesso a múltiplas lojas. Escolhe onde vais trabalhar hoje.
+            </p>
+        </div>
+
+        <!-- Erro flash -->
+        <div th:if="${erro}"
+             class="flex items-center gap-2.5 mb-5 px-4 py-3 rounded-xl font-body"
+             style="background:rgba(192,0,31,.15);border:1px solid rgba(192,0,31,.3);animation:fadeIn .3s ease both">
+            <span class="material-symbols-outlined" style="font-size:17px;color:#ff6b6b">error_outline</span>
+            <span th:text="${erro}" style="font-size:13px;color:#ff9999"></span>
+        </div>
+
+        <!-- Form -->
+        <form id="formLoja" method="post" action="/web/selecionar-loja/escolher">
+            <!-- Hidden radio group — values submitted via JS selection -->
+            <div class="flex flex-col gap-3" id="listaLojas">
+                <label th:each="loja, stat : ${lojas}"
+                       class="store-card"
+                       th:for="'radio-' + ${loja.id}"
+                       th:attr="data-loja-id=${loja.id}"
+                       th:style="'animation:cardSlide .35s cubic-bezier(.16,1,.3,1) ' + (${stat.index} * 70) + 'ms both'">
+                    <input type="radio"
+                           name="idLoja"
+                           th:value="${loja.id}"
+                           th:id="'radio-' + ${loja.id}"
+                           style="position:absolute;opacity:0;width:0;height:0">
+                    <div class="flex items-center gap-4">
+                        <!-- Ícone -->
+                        <div class="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                             style="background:linear-gradient(135deg,rgba(192,0,31,.25),rgba(120,0,20,.15));border:1px solid rgba(192,0,31,.2)">
+                            <span class="material-symbols-outlined" style="font-size:20px;color:rgba(192,0,31,.9)">store</span>
+                        </div>
+                        <!-- Texto -->
+                        <div class="flex-1 min-w-0">
+                            <p class="font-display font-bold truncate" style="font-size:14px;color:white;margin-bottom:2px"
+                               th:text="${loja.nome}">Nome da Loja</p>
+                            <p class="font-body truncate" style="font-size:11px;color:rgba(255,255,255,.35)"
+                               th:text="${loja.localizacao != null and !#strings.isEmpty(loja.localizacao) ? loja.localizacao : 'Loja #' + loja.id}">Localização</p>
+                        </div>
+                        <!-- Setas / check -->
+                        <div class="shrink-0 js-check-icon" style="display:none">
+                            <div class="w-6 h-6 rounded-full flex items-center justify-center"
+                                 style="background:#c0001f;box-shadow:0 2px 8px rgba(192,0,31,.45)">
+                                <span class="material-symbols-outlined icon-fill" style="font-size:14px;color:white">check</span>
+                            </div>
+                        </div>
+                        <div class="shrink-0 js-arrow-icon">
+                            <span class="material-symbols-outlined" style="font-size:18px;color:rgba(255,255,255,.2)">chevron_right</span>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <button type="submit"
+                    id="btnEntrar"
+                    class="btn-entrar w-full mt-6 py-3.5 rounded-xl text-white font-body font-bold flex items-center justify-center gap-2"
+                    style="font-size:14px"
+                    disabled>
+                <span class="material-symbols-outlined" style="font-size:18px">login</span>
+                Entrar na loja
+            </button>
+        </form>
+
+        <div class="flex items-center gap-3 mt-6">
+            <div class="flex-1 h-px" style="background:rgba(255,255,255,.06)"></div>
+            <span class="font-body" style="font-size:10px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.12em">Staff Portal</span>
+            <div class="flex-1 h-px" style="background:rgba(255,255,255,.06)"></div>
+        </div>
+
+        <!-- Logout / back link -->
+        <form method="post" action="/web/logout" class="mt-5 text-center">
+            <button type="submit"
+                    class="font-body"
+                    style="background:none;border:none;padding:0;cursor:pointer;font-size:12px;color:rgba(255,255,255,.25);text-decoration:underline;text-underline-offset:3px;transition:color .15s"
+                    onmouseover="this.style.color='rgba(255,255,255,.5)'"
+                    onmouseout="this.style.color='rgba(255,255,255,.25)'">
+                Voltar para o Login
+            </button>
+        </form>
+    </div>
+
+    <p class="font-body text-center mt-6" style="font-size:11px;color:rgba(255,255,255,.18)">
+        © 2026 Levi Strauss &amp; Co. · Acesso exclusivo a pessoal autorizado.
+    </p>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var form    = document.getElementById('formLoja');
+    var btn     = document.getElementById('btnEntrar');
+    var overlay = document.getElementById('loadingOverlay');
+    var cards   = document.querySelectorAll('.store-card');
+
+    function selectCard(card) {
+        // Deselect all
+        cards.forEach(function (c) {
+            c.classList.remove('selected');
+            var ci = c.querySelector('.js-check-icon');
+            var ai = c.querySelector('.js-arrow-icon');
+            if (ci) ci.style.display = 'none';
+            if (ai) ai.style.display = '';
+        });
+
+        // Select this card
+        card.classList.add('selected');
+        var ci = card.querySelector('.js-check-icon');
+        var ai = card.querySelector('.js-arrow-icon');
+        if (ci) ci.style.display = '';
+        if (ai) ai.style.display = 'none';
+
+        // Check the hidden radio inside
+        var lojaId = card.getAttribute('data-loja-id');
+        var radio  = document.getElementById('radio-' + lojaId);
+        if (radio) radio.checked = true;
+
+        // Unlock submit
+        if (btn) btn.disabled = false;
+    }
+
+    function showOverlay() {
+        if (!overlay) return;
+        overlay.style.pointerEvents = 'all';
+        overlay.style.opacity = '1';
+        overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    // Card click (using label's native behaviour + explicit radio check)
+    cards.forEach(function (card) {
+        card.addEventListener('click', function (e) {
+            // Prevent double-firing from label→input click chain
+            if (e.target.tagName === 'INPUT') return;
+            selectCard(card);
+        });
+
+        // Double-click submits immediately
+        card.addEventListener('dblclick', function () {
+            selectCard(card);
+            if (btn && !btn.disabled) {
+                showOverlay();
+                form.submit();
+            }
+        });
+    });
+
+    // Form submit — show overlay before navigation
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            var anyChecked = document.querySelector('input[name="idLoja"]:checked');
+            if (!anyChecked) {
+                e.preventDefault();
+                return;
+            }
+            showOverlay();
+            // Allow form to submit naturally after overlay renders
+        });
+    }
+
+    // bfcache guard — hide the overlay when the browser restores the page from Back/Forward cache
+    // without a full network round-trip (event.persisted = true) or via history navigation.
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+            if (overlay) {
+                overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
+                overlay.setAttribute('aria-hidden', 'true');
+            }
+        }
+    });
+})();
+</script>
+</body>
+</html>

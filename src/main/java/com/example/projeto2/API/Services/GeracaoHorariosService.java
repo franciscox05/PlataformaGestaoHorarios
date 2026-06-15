@@ -96,6 +96,7 @@ public class GeracaoHorariosService {
     private final HorarioValidatorService validator;
     private final HorarioGeneratorEngine engine;
     private final PedidoGeracaoMontador pedidoMontador;
+    private final NotificacaoService notificacaoService;
 
     public GeracaoHorariosService(LojautilizadorRepository lojautilizadorRepository,
                               LojautilizadorHelper lojautilizadorHelper,
@@ -113,7 +114,8 @@ public class GeracaoHorariosService {
                               HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository,
                               HorarioValidatorService validator,
                               HorarioGeneratorEngine engine,
-                              PedidoGeracaoMontador pedidoMontador) {
+                              PedidoGeracaoMontador pedidoMontador,
+                              NotificacaoService notificacaoService) {
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
@@ -131,6 +133,7 @@ public class GeracaoHorariosService {
         this.validator = validator;
         this.engine = engine;
         this.pedidoMontador = pedidoMontador;
+        this.notificacaoService = notificacaoService;
     }
 
     @Transactional(readOnly = true)
@@ -139,8 +142,18 @@ public class GeracaoHorariosService {
     }
 
     @Transactional(readOnly = true)
+    public boolean utilizadorPodeGerarHorarios(Integer idUtilizador, Integer idLoja) {
+        return lojautilizadorHelper.temCargo(idUtilizador, idLoja, LojautilizadorHelper.GESTAO);
+    }
+
+    @Transactional(readOnly = true)
     public boolean utilizadorPodeValidarHorarios(Integer idUtilizador) {
         return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.VALIDACAO);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean utilizadorPodeValidarHorarios(Integer idUtilizador, Integer idLoja) {
+        return lojautilizadorHelper.temCargo(idUtilizador, idLoja, LojautilizadorHelper.VALIDACAO);
     }
 
     @Transactional(readOnly = true)
@@ -205,11 +218,20 @@ public class GeracaoHorariosService {
 
     @Transactional(readOnly = true)
     public List<Horario> obterMeusHorarios(Integer idUtilizador, Integer ano, Integer mes) {
+        return obterMeusHorarios(idUtilizador, null, ano, mes);
+    }
+
+    /** Store-scoped variant — filters shifts by active store to prevent cross-store merge. */
+    @Transactional(readOnly = true)
+    public List<Horario> obterMeusHorarios(Integer idUtilizador, Integer idLoja, Integer ano, Integer mes) {
         int anoNorm = normalizarAno(ano);
         int mesNorm = normalizarMes(mes);
         LocalDate inicio = LocalDate.of(anoNorm, mesNorm, 1);
         LocalDate fim = inicio.withDayOfMonth(inicio.lengthOfMonth());
-        return horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(idUtilizador, inicio, fim);
+        if (idLoja == null) {
+            return horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(idUtilizador, inicio, fim);
+        }
+        return horarioRepository.findHorariosPublicadosPorUtilizadorELojaEntreDatas(idUtilizador, idLoja, inicio, fim);
     }
 
     @Transactional
@@ -255,6 +277,7 @@ public class GeracaoHorariosService {
         }
 
         List<PropostaResultado> resultados = new ArrayList<>();
+        Set<String> mesesNotificados = new java.util.LinkedHashSet<>();
         for (Integer idProposta : idsNormalizados) {
             PropostaHorarioMensal proposta = propostaHorarioMensalRepository.findByIdAndIdLojaId(
                             idProposta,
@@ -273,9 +296,25 @@ public class GeracaoHorariosService {
             if (ESTADO_RASCUNHO.equals(estadoAtual)) {
                 proposta.setEstado(ESTADO_PENDENTE);
                 proposta = propostaHorarioMensalRepository.save(proposta);
+                mesesNotificados.add(proposta.getMes() + "/" + proposta.getAno());
             }
             resultados.add(resultadoBuilder.construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId())));
         }
+
+        // Notify supervisors for each month that had at least one proposal newly sent
+        if (!mesesNotificados.isEmpty()) {
+            String nomeGerente = ligacaoAtiva.getIdUtilizador() != null
+                    && ligacaoAtiva.getIdUtilizador().getNome() != null
+                    ? ligacaoAtiva.getIdUtilizador().getNome() : "O gerente";
+            Integer idLoja = ligacaoAtiva.getIdLoja().getId();
+            for (String mesPeriodo : mesesNotificados) {
+                String mensagem = nomeGerente + " enviou uma nova proposta de horário para o mês de "
+                        + mesPeriodo + " para validação.";
+                lojautilizadorHelper.listarIdsComCargoPorLoja(idLoja, LojautilizadorHelper.VALIDACAO)
+                        .forEach(idSupervisor -> notificacaoService.criarNotificacao(idSupervisor, mensagem, idLoja));
+            }
+        }
+
         return resultados;
     }
 

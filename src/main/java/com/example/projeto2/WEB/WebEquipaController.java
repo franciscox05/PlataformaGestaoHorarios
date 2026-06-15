@@ -72,15 +72,16 @@ public class WebEquipaController {
                          Model model,
                          RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         webAppService.preencherModeloBase(model, session, "equipa");
 
-        if (!podeGerir(idGestor)) {
+        if (!podeGerir(idGestor, idLoja)) {
             return webAppService.redirecionarComErro(redirectAttributes,
                     "Este modulo esta disponivel apenas para perfis de gestao.");
         }
 
-        boolean podeCriarColaboradores = podeCriar(idGestor);
-        List<UtilizadorResumo> utilizadores = listarUtilizadoresComContextoDaLoja(idGestor, pesquisa);
+        boolean podeCriarColaboradores = podeCriar(idGestor, idLoja);
+        List<UtilizadorResumo> utilizadores = listarUtilizadoresComContextoDaLoja(idGestor, idLoja, pesquisa);
 
         if (podeCriarColaboradores) {
             try {
@@ -107,14 +108,15 @@ public class WebEquipaController {
                                   Model model,
                                   RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         webAppService.preencherModeloBase(model, session, "equipa");
 
-        if (!podeCriar(idGestor)) {
+        if (!podeCriar(idGestor, idLoja)) {
             return webAppService.redirecionarComErro(redirectAttributes,
                     "Apenas gerentes e subgerentes podem criar novos colaboradores.");
         }
 
-        List<UtilizadorResumo> utilizadores = listarUtilizadoresComContextoDaLoja(idGestor, pesquisa);
+        List<UtilizadorResumo> utilizadores = listarUtilizadoresComContextoDaLoja(idGestor, idLoja, pesquisa);
         GestaoFuncionariosService.GestaoFuncionariosResumo resumoGestao = gestaoFuncionariosBLL.obterResumo(idGestor);
 
         model.addAttribute("utilizadores", utilizadores);
@@ -137,15 +139,16 @@ public class WebEquipaController {
                                     Model model,
                                     RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         webAppService.preencherModeloBase(model, session, "equipa");
 
-        if (!podeGerir(idGestor)) {
+        if (!podeGerir(idGestor, idLoja)) {
             return webAppService.redirecionarComErro(redirectAttributes,
                     "Este modulo esta disponivel apenas para perfis de gestao.");
         }
 
-        boolean podeCriarColaboradores = podeCriar(idGestor);
-        List<UtilizadorResumo> utilizadores = listarUtilizadoresComContextoDaLoja(idGestor, pesquisa);
+        boolean podeCriarColaboradores = podeCriar(idGestor, idLoja);
+        List<UtilizadorResumo> utilizadores = listarUtilizadoresComContextoDaLoja(idGestor, idLoja, pesquisa);
 
         Utilizador utilizador = utilizadorRepository.findById(idUtilizador).orElse(null);
         if (utilizador == null) {
@@ -183,23 +186,25 @@ public class WebEquipaController {
                 .limit(12).toList();
 
         List<DayOff> pendentesFolga = podeAprovarItens
-                ? dayOffBLL.listarPedidosPendentesParaAprovacao(idGestor).stream()
+                ? dayOffBLL.listarPedidosPendentesParaAprovacao(idGestor, idLoja).stream()
                         .filter(item -> idUtilizador.equals(item.getIdUtilizador().getId())).toList()
                 : List.of();
         List<Preferencia> pendentesPreferencia = podeAprovarItens
-                ? preferenciaBLL.listarPreferenciasPendentesParaAprovacao(idGestor).stream()
+                ? preferenciaBLL.listarPreferenciasPendentesParaAprovacao(idGestor, idLoja).stream()
                         .filter(item -> item.getIdUtilizador() != null
                                 && idUtilizador.equals(item.getIdUtilizador().getId())).toList()
                 : List.of();
         List<Permuta> pendentesPermuta = podeAprovarItens
-                ? permutaBLL.listarPedidosPendentesParaAprovacao(idGestor).stream()
+                ? permutaBLL.listarPedidosPendentesParaAprovacao(idGestor, idLoja).stream()
                         .filter(item -> item.getIdHorarioOrigem() != null
                                 && item.getIdHorarioOrigem().getIdLojautilizador() != null
                                 && item.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador() != null
                                 && idUtilizador.equals(item.getIdHorarioOrigem().getIdLojautilizador().getIdUtilizador().getId())).toList()
                 : List.of();
 
-        Optional<Lojautilizador> ligacaoAtiva = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
+        Optional<Lojautilizador> ligacaoAtiva = (idLoja != null)
+                ? lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(idUtilizador, idLoja)
+                : lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
 
         if (podeEditarColaborador) {
             try {
@@ -291,8 +296,9 @@ public class WebEquipaController {
                                @PathVariable("idDayOff") Integer idDayOff,
                                HttpSession session, RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         try {
-            dayOffBLL.aprovarPedidoFolga(idDayOff, idGestor);
+            dayOffBLL.aprovarPedidoFolga(idDayOff, idGestor, idLoja);
             redirectAttributes.addFlashAttribute("sucesso", "Pedido de folga aprovado com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
@@ -305,8 +311,9 @@ public class WebEquipaController {
                                 @PathVariable("idDayOff") Integer idDayOff,
                                 HttpSession session, RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         try {
-            dayOffBLL.rejeitarPedidoFolga(idDayOff, idGestor);
+            dayOffBLL.rejeitarPedidoFolga(idDayOff, idGestor, idLoja);
             redirectAttributes.addFlashAttribute("sucesso", "Pedido de folga rejeitado com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
@@ -320,8 +327,9 @@ public class WebEquipaController {
                                      @RequestParam(value = "decisao", required = false) String decisao,
                                      HttpSession session, RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         try {
-            preferenciaBLL.aprovarPreferencia(idPreferencia, idGestor, decisao);
+            preferenciaBLL.aprovarPreferencia(idPreferencia, idGestor, decisao, idLoja);
             redirectAttributes.addFlashAttribute("sucesso", "Preferencia aprovada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
@@ -335,8 +343,9 @@ public class WebEquipaController {
                                       @RequestParam(value = "decisao", required = false) String decisao,
                                       HttpSession session, RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         try {
-            preferenciaBLL.rejeitarPreferencia(idPreferencia, idGestor, decisao);
+            preferenciaBLL.rejeitarPreferencia(idPreferencia, idGestor, decisao, idLoja);
             redirectAttributes.addFlashAttribute("sucesso", "Preferencia rejeitada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
@@ -349,8 +358,9 @@ public class WebEquipaController {
                                  @PathVariable("idPermuta") Integer idPermuta,
                                  HttpSession session, RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         try {
-            permutaBLL.aprovarPedidoPermuta(idPermuta, idGestor);
+            permutaBLL.aprovarPedidoPermuta(idPermuta, idGestor, idLoja);
             redirectAttributes.addFlashAttribute("sucesso", "Permuta aprovada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
@@ -363,8 +373,9 @@ public class WebEquipaController {
                                   @PathVariable("idPermuta") Integer idPermuta,
                                   HttpSession session, RedirectAttributes redirectAttributes) {
         Integer idGestor = webAppService.obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         try {
-            permutaBLL.rejeitarPedidoPermuta(idPermuta, idGestor);
+            permutaBLL.rejeitarPedidoPermuta(idPermuta, idGestor, idLoja);
             redirectAttributes.addFlashAttribute("sucesso", "Permuta rejeitada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
@@ -390,31 +401,39 @@ public class WebEquipaController {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-    private boolean podeGerir(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .map(item -> item.getIdCargo() != null ? item.getIdCargo().getTipo() : null)
+    private boolean podeGerir(Integer idUtilizador, Integer idLoja) {
+        var repo = (idLoja != null)
+                ? lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(idUtilizador, idLoja)
+                : lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
+        return repo.map(item -> item.getIdCargo() != null ? item.getIdCargo().getTipo() : null)
                 .map(tipo -> tipo != null && CARGOS_GESTAO.contains(tipo.toLowerCase(Locale.ROOT)))
                 .orElse(false);
     }
 
-    private boolean podeCriar(Integer idUtilizador) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .map(item -> item.getIdCargo() != null ? item.getIdCargo().getTipo() : null)
+    private boolean podeCriar(Integer idUtilizador, Integer idLoja) {
+        var repo = (idLoja != null)
+                ? lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(idUtilizador, idLoja)
+                : lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
+        return repo.map(item -> item.getIdCargo() != null ? item.getIdCargo().getTipo() : null)
                 .map(tipo -> tipo != null && CARGOS_PODE_CRIAR.contains(tipo.toLowerCase(Locale.ROOT)))
                 .orElse(false);
     }
 
-    private List<UtilizadorResumo> listarUtilizadoresComContextoDaLoja(Integer idGestor, String pesquisa) {
-        Integer idLojaGestor = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idGestor)
-                .map(item -> item.getIdLoja() != null ? item.getIdLoja().getId() : null)
-                .orElse(null);
+    private List<UtilizadorResumo> listarUtilizadoresComContextoDaLoja(Integer idGestor, Integer idLoja,
+                                                                        String pesquisa) {
+        Integer idLojaGestor = (idLoja != null) ? idLoja
+                : lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idGestor)
+                        .map(item -> item.getIdLoja() != null ? item.getIdLoja().getId() : null)
+                        .orElse(null);
 
         String filtro = pesquisa == null ? "" : pesquisa.trim().toLowerCase(Locale.ROOT);
 
         return utilizadorRepository.findAll().stream()
                 .filter(item -> correspondePesquisa(item, filtro))
                 .map(item -> {
-                    Optional<Lojautilizador> ligacao = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(item.getId());
+                    Optional<Lojautilizador> ligacao = (idLojaGestor != null)
+                            ? lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(item.getId(), idLojaGestor)
+                            : lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(item.getId());
                     boolean daMinhaLoja = ligacao
                             .map(value -> value.getIdLoja() != null && value.getIdLoja().getId() != null
                                     && value.getIdLoja().getId().equals(idLojaGestor))

@@ -42,7 +42,22 @@ public interface LojautilizadorRepository extends JpaRepository<Lojautilizador, 
     Optional<Lojautilizador> findLigacaoAtivaByIdUtilizadorAndIdLoja(@Param("idUtilizador") Integer idUtilizador,
                                                                      @Param("idLoja") Integer idLoja);
 
+    // All active store-links for a user — supports multi-store context resolution
+    @Query("SELECT lu FROM Lojautilizador lu " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "WHERE lu.idUtilizador.id = :idUtilizador AND lu.dataFim IS NULL " +
+            "ORDER BY l.nome ASC, lu.dataInicio DESC")
+    List<Lojautilizador> findLigacoesAtivasByIdUtilizador(@Param("idUtilizador") Integer idUtilizador);
+
     long countByIdUtilizadorIdAndDataFimIsNull(Integer idUtilizador);
 
     long countByIdLojaIdAndIdCargoTipoInAndDataFimIsNull(Integer idLoja, Collection<String> tiposCargo);
+
+    @Query("SELECT lu FROM Lojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "WHERE lu.idLoja.id = :idLoja AND lu.dataFim IS NULL AND c.tipo IN :tipos")
+    List<Lojautilizador> findLigacoesAtivasByIdLojaAndCargos(@Param("idLoja") Integer idLoja,
+                                                               @Param("tipos") Collection<String> tipos);
 }

@@ -63,6 +63,11 @@ public class PermutaService {
     }
 
     @Transactional(readOnly = true)
+    public boolean utilizadorPodeAprovarPermutas(Integer idUtilizador, Integer idLoja) {
+        return lojautilizadorHelper.temCargo(idUtilizador, idLoja, LojautilizadorHelper.APROVACAO);
+    }
+
+    @Transactional(readOnly = true)
     public List<Permuta> listarPedidosPendentesParaAprovacao(Integer idUtilizadorAprovador) {
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
@@ -72,6 +77,16 @@ public class PermutaService {
                 ligacaoAtiva.getIdLoja().getId(),
                 idUtilizadorAprovador
         );
+    }
+
+    /** Store-scoped variant — uses the explicit idLoja from the session. */
+    @Transactional(readOnly = true)
+    public List<Permuta> listarPedidosPendentesParaAprovacao(Integer idUtilizadorAprovador, Integer idLoja) {
+        if (idLoja == null) return listarPedidosPendentesParaAprovacao(idUtilizadorAprovador);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para aprovar permutas.");
+        return permutaRepository.findPedidosPendentesDaLoja(ligacaoAtiva.getIdLoja().getId(), idUtilizadorAprovador);
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +99,13 @@ public class PermutaService {
 
     @Transactional
     public Permuta aprovarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador) {
-        Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador);
+        return aprovarPedidoPermuta(idPermuta, idUtilizadorAprovador, null);
+    }
+
+    /** Store-scoped approval — permission validated strictly within the given store. */
+    @Transactional
+    public Permuta aprovarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador, Integer idLoja) {
+        Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador, idLoja);
 
         Horario horarioOrigem = pedido.getIdHorarioOrigem();
         Horario horarioDestino = pedido.getIdHorarioDestino();
@@ -105,6 +126,35 @@ public class PermutaService {
         horarioOrigem.setIdTurno(horarioDestino.getIdTurno());
         horarioDestino.setIdTurno(turnoOrigem);
 
+        // Cross-store double-booking guard — turno swap is already in-memory; DB still has old values.
+        // Excluding the record being overwritten prevents self-counting of the old turno.
+        var novoTurnoFunc1 = horarioOrigem.getIdTurno();
+        if (novoTurnoFunc1 != null && novoTurnoFunc1.getHoraInicio() != null && novoTurnoFunc1.getHoraFim() != null) {
+            long sobreposicoes = horarioRepository.countGlobalOverlappingShiftsExcluding(
+                    horarioOrigem.getIdLojautilizador().getIdUtilizador().getId(),
+                    horarioOrigem.getDataTurno(),
+                    novoTurnoFunc1.getHoraInicio(), novoTurnoFunc1.getHoraFim(),
+                    horarioOrigem.getId());
+            if (sobreposicoes > 0) {
+                throw new IllegalArgumentException(
+                        "A permuta criaria uma sobreposição de horários entre lojas para "
+                                + horarioOrigem.getIdLojautilizador().getIdUtilizador().getNome() + ".");
+            }
+        }
+        var novoTurnoFunc2 = horarioDestino.getIdTurno();
+        if (novoTurnoFunc2 != null && novoTurnoFunc2.getHoraInicio() != null && novoTurnoFunc2.getHoraFim() != null) {
+            long sobreposicoes = horarioRepository.countGlobalOverlappingShiftsExcluding(
+                    horarioDestino.getIdLojautilizador().getIdUtilizador().getId(),
+                    horarioDestino.getDataTurno(),
+                    novoTurnoFunc2.getHoraInicio(), novoTurnoFunc2.getHoraFim(),
+                    horarioDestino.getId());
+            if (sobreposicoes > 0) {
+                throw new IllegalArgumentException(
+                        "A permuta criaria uma sobreposição de horários entre lojas para "
+                                + horarioDestino.getIdLojautilizador().getIdUtilizador().getNome() + ".");
+            }
+        }
+
         horarioRepository.save(horarioOrigem);
         horarioRepository.save(horarioDestino);
 
@@ -123,7 +173,13 @@ public class PermutaService {
 
     @Transactional
     public Permuta rejeitarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador) {
-        Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador);
+        return rejeitarPedidoPermuta(idPermuta, idUtilizadorAprovador, null);
+    }
+
+    /** Store-scoped rejection — permission validated strictly within the given store. */
+    @Transactional
+    public Permuta rejeitarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador, Integer idLoja) {
+        Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador, idLoja);
         pedido.setEstado(EstadoPermuta.rejeitado);
         return permutaRepository.save(pedido);
     }
@@ -283,13 +339,13 @@ public class PermutaService {
         return LocalDateTime.of(horario.getDataTurno(), horario.getIdTurno().getHoraInicio());
     }
 
-    private Permuta obterPedidoPendenteGerivel(Integer idPermuta, Integer idUtilizadorAprovador) {
+    private Permuta obterPedidoPendenteGerivel(Integer idPermuta, Integer idUtilizadorAprovador, Integer idLoja) {
         if (idPermuta == null) {
             throw new IllegalArgumentException("O pedido de permuta selecionado e obrigatorio.");
         }
 
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
                 "Este utilizador nao tem permissao para aprovar permutas.");
 
         Permuta pedido = permutaRepository.findDetalhadaById(idPermuta)

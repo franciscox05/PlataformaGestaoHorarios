@@ -47,6 +47,7 @@ public class WebHorariosApiController {
                                         HttpSession session) {
         try {
             Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+            Integer idLoja = webAppService.obterLojaAtual(session); // null until Step 5 login wiring
 
             LocalDate data;
             try {
@@ -57,19 +58,23 @@ public class WebHorariosApiController {
             }
 
             List<HorarioService.ColaboradorNoDia> equipa =
-                    horarioBLL.listarColegasNoDia(utilizadorId, data);
+                    horarioBLL.listarColegasNoDia(utilizadorId, data, idLoja);
 
             List<DayOffService.FolgaResumida> folgas =
-                    dayOffBLL.listarFolgasAprovadasNaLojaNoDia(utilizadorId, data);
+                    dayOffBLL.listarFolgasAprovadasNaLojaNoDia(utilizadorId, data, idLoja);
 
             List<Map<String, Object>> equipaJson = equipa.stream()
-                    .map(c -> Map.<String, Object>of(
-                            "nome",      c.nome(),
-                            "cargo",     c.cargo(),
-                            "tipoTurno", c.tipoTurno(),
-                            "inicio",    c.inicio(),
-                            "fim",       c.fim()
-                    ))
+                    .map(c -> {
+                        Map<String, Object> m = new java.util.LinkedHashMap<>();
+                        m.put("nome",      c.nome());
+                        m.put("cargo",     c.cargo());
+                        m.put("tipoTurno", c.tipoTurno());
+                        m.put("inicio",    c.inicio());
+                        m.put("fim",       c.fim());
+                        m.put("meuTurno",  c.meuTurno());
+                        if (c.horarioId() != null) m.put("horarioId", c.horarioId());
+                        return m;
+                    })
                     .toList();
 
             List<Map<String, String>> folgasJson = folgas.stream()

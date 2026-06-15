@@ -29,15 +29,18 @@ public class PreferenciaService {
     private final UtilizadorRepository utilizadorRepository;
     private final LojautilizadorRepository lojautilizadorRepository;
     private final LojautilizadorHelper lojautilizadorHelper;
+    private final NotificacaoService notificacaoService;
 
     public PreferenciaService(PreferenciaRepository preferenciaRepository,
                           UtilizadorRepository utilizadorRepository,
                           LojautilizadorRepository lojautilizadorRepository,
-                          LojautilizadorHelper lojautilizadorHelper) {
+                          LojautilizadorHelper lojautilizadorHelper,
+                          NotificacaoService notificacaoService) {
         this.preferenciaRepository = preferenciaRepository;
         this.utilizadorRepository = utilizadorRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
+        this.notificacaoService = notificacaoService;
     }
 
     @Transactional(readOnly = true)
@@ -64,6 +67,11 @@ public class PreferenciaService {
     }
 
     @Transactional(readOnly = true)
+    public boolean utilizadorPodeAprovarPreferencias(Integer idUtilizador, Integer idLoja) {
+        return lojautilizadorHelper.temCargo(idUtilizador, idLoja, LojautilizadorHelper.GESTAO);
+    }
+
+    @Transactional(readOnly = true)
     public List<Preferencia> listarPreferenciasPendentesParaAprovacao(Integer idUtilizadorAprovador) {
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, LojautilizadorHelper.GESTAO,
@@ -73,6 +81,18 @@ public class PreferenciaService {
                 ligacaoAtiva.getIdLoja().getId(),
                 idUtilizadorAprovador
         );
+    }
+
+    /** Store-scoped variant — uses the explicit idLoja from the session. */
+    @Transactional(readOnly = true)
+    public List<Preferencia> listarPreferenciasPendentesParaAprovacao(Integer idUtilizadorAprovador,
+                                                                       Integer idLoja) {
+        if (idLoja == null) return listarPreferenciasPendentesParaAprovacao(idUtilizadorAprovador);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para aprovar preferencias.");
+        return preferenciaRepository.findPreferenciasPendentesDaLoja(ligacaoAtiva.getIdLoja().getId(),
+                idUtilizadorAprovador);
     }
 
     @Transactional(readOnly = true)
@@ -92,11 +112,22 @@ public class PreferenciaService {
         return preferenciaRepository.findHistoricoDecisoesDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
+    /** Backward-compatible 1-arg overload — delegates with null store context. */
     @Transactional(readOnly = true)
     public List<String> listarColegasDaLoja(Integer idUtilizador) {
-        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtiva(idUtilizador);
+        return listarColegasDaLoja(idUtilizador, null);
+    }
 
-        return lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(ligacaoAtiva.getIdLoja().getId()).stream()
+    /** Store-scoped variant — uses idLoja directly to avoid NonUniqueResultException for multi-store users. */
+    @Transactional(readOnly = true)
+    public List<String> listarColegasDaLoja(Integer idUtilizador, Integer idLoja) {
+        Integer lojaId = idLoja;
+        if (lojaId == null) {
+            Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtiva(idUtilizador);
+            lojaId = ligacaoAtiva.getIdLoja().getId();
+        }
+        final Integer lojaIdFinal = lojaId;
+        return lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(lojaIdFinal).stream()
                 .filter(ligacao -> ligacao.getIdUtilizador() != null && ligacao.getIdUtilizador().getId() != null)
                 .filter(ligacao -> !Objects.equals(ligacao.getIdUtilizador().getId(), idUtilizador))
                 .filter(ligacao -> ligacao.getDataFim() == null)
@@ -166,7 +197,24 @@ public class PreferenciaService {
         preferenciaPersistida.setIdDecisor(null);
         preferenciaPersistida.setDataDecisao(null);
 
-        return preferenciaRepository.save(preferenciaPersistida);
+        Preferencia preferenciaGuardada = preferenciaRepository.save(preferenciaPersistida);
+
+        // Notify store managers — wrapped so any failure never rolls back the save above
+        try {
+            lojautilizadorHelper.findLigacaoAtiva(idUtilizador).ifPresent(ligacao -> {
+                String nomeColaborador = utilizador.getNome() != null ? utilizador.getNome() : "Um colaborador";
+                String mensagem = "O funcionário " + nomeColaborador
+                        + " submeteu uma nova preferência de horário que aguarda a tua revisão.";
+                lojautilizadorHelper.listarIdsComCargoPorLoja(
+                                ligacao.getIdLoja().getId(), LojautilizadorHelper.GESTAO)
+                        .forEach(idGerente -> notificacaoService.criarNotificacao(idGerente, mensagem, ligacao.getIdLoja().getId()));
+            });
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(PreferenciaService.class)
+                    .warn("Notificação de preferência não enviada para id={}: {}", idUtilizador, e.getMessage());
+        }
+
+        return preferenciaGuardada;
     }
 
     @Transactional
@@ -182,12 +230,26 @@ public class PreferenciaService {
 
     @Transactional
     public Preferencia aprovarPreferencia(Integer idPreferencia, Integer idUtilizadorAprovador, String decisao) {
-        return decidirPreferencia(idPreferencia, idUtilizadorAprovador, "aprovado", decisao);
+        return decidirPreferencia(idPreferencia, idUtilizadorAprovador, null, "aprovado", decisao);
     }
 
     @Transactional
     public Preferencia rejeitarPreferencia(Integer idPreferencia, Integer idUtilizadorAprovador, String decisao) {
-        return decidirPreferencia(idPreferencia, idUtilizadorAprovador, "rejeitado", decisao);
+        return decidirPreferencia(idPreferencia, idUtilizadorAprovador, null, "rejeitado", decisao);
+    }
+
+    /** Store-scoped approval — permission validated strictly within the given store. */
+    @Transactional
+    public Preferencia aprovarPreferencia(Integer idPreferencia, Integer idUtilizadorAprovador,
+                                          String decisao, Integer idLoja) {
+        return decidirPreferencia(idPreferencia, idUtilizadorAprovador, idLoja, "aprovado", decisao);
+    }
+
+    /** Store-scoped rejection — permission validated strictly within the given store. */
+    @Transactional
+    public Preferencia rejeitarPreferencia(Integer idPreferencia, Integer idUtilizadorAprovador,
+                                           String decisao, Integer idLoja) {
+        return decidirPreferencia(idPreferencia, idUtilizadorAprovador, idLoja, "rejeitado", decisao);
     }
 
     @Transactional(readOnly = true)
@@ -213,6 +275,7 @@ public class PreferenciaService {
 
     private Preferencia decidirPreferencia(Integer idPreferencia,
                                            Integer idUtilizadorAprovador,
+                                           Integer idLoja,
                                            String novoEstado,
                                            String decisaoRecebida) {
         if (idPreferencia == null) {
@@ -220,7 +283,7 @@ public class PreferenciaService {
         }
 
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizadorAprovador, LojautilizadorHelper.GESTAO,
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.GESTAO,
                 "Nao tens permissao para aprovar preferencias.");
 
         Preferencia preferencia = preferenciaRepository.findPreferenciaDaLoja(idPreferencia, ligacaoAtiva.getIdLoja().getId())
@@ -243,7 +306,20 @@ public class PreferenciaService {
         preferencia.setIdDecisor(ligacaoAtiva.getIdUtilizador());
         preferencia.setDataDecisao(LocalDateTime.now());
 
-        return preferenciaRepository.save(preferencia);
+        Preferencia preferenciaGuardada = preferenciaRepository.save(preferencia);
+
+        Integer idFuncionario = preferenciaGuardada.getIdUtilizador() != null
+                ? preferenciaGuardada.getIdUtilizador().getId() : null;
+        if (idFuncionario != null) {
+            String tipoFormatado = preferenciaGuardada.getTipo() != null
+                    ? preferenciaGuardada.getTipo().replace("_", " ") : "horário";
+            String decisaoLabel = "aprovado".equalsIgnoreCase(novoEstado) ? "Aprovada" : "Rejeitada";
+            notificacaoService.criarNotificacao(idFuncionario,
+                    "A tua preferência de horário (" + tipoFormatado + ") foi " + decisaoLabel + " pela gerência.",
+                    idLoja);
+        }
+
+        return preferenciaGuardada;
     }
 
     private String normalizarTipo(String tipo) {

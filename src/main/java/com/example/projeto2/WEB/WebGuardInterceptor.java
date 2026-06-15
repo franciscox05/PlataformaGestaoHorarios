@@ -29,21 +29,26 @@ public class WebGuardInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        if (!podeAcederAoModulo(path, idUtilizador)) {
+        Integer idLoja = webAppService.obterLojaAtual(session);
+        if (!podeAcederAoModulo(path, idUtilizador, idLoja)) {
             response.sendRedirect("/web/painel?acessoNegado=true");
             return false;
         }
 
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+
         return true;
     }
 
-    private boolean podeAcederAoModulo(String path, Integer idUtilizador) {
+    private boolean podeAcederAoModulo(String path, Integer idUtilizador, Integer idLoja) {
         if (path.startsWith("/web/gestao-loja")) {
-            return webAppService.obterPermissoes(idUtilizador).podeGerirLoja();
+            return webAppService.obterPermissoes(idUtilizador, idLoja).podeGerirLoja();
         }
 
         if (path.startsWith("/web/relatorios")) {
-            return webAppService.obterPermissoes(idUtilizador).podeVerRelatorios();
+            return webAppService.obterPermissoes(idUtilizador, idLoja).podeVerRelatorios();
         }
 
         return true;

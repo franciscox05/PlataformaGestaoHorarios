@@ -38,7 +38,7 @@
     <div class="grid lg:grid-cols-3 gap-5">
 
         <!-- Pedir folga -->
-        <section class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+        <section id="seccao-folga" class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
                 <span class="w-8 h-8 rounded-xl bg-primary-container/10 flex items-center justify-center">
@@ -75,7 +75,7 @@
         </section>
 
         <!-- Nova preferência -->
-        <section class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+        <section id="seccao-preferencia" class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
                 <span class="w-8 h-8 rounded-xl bg-primary-container/10 flex items-center justify-center">
@@ -177,7 +177,7 @@
         </section>
 
         <!-- Permuta — formulário premium dinâmico -->
-        <section class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
+        <section id="seccao-permuta" class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 flex flex-col overflow-hidden"
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="px-5 py-4 border-b border-outline-variant/25 flex items-center gap-2.5">
                 <span class="w-8 h-8 rounded-xl bg-primary-container/10 flex items-center justify-center">
@@ -395,7 +395,14 @@
                     <tr th:if="${#lists.isEmpty(minhasFolgas)}">
                         <td colspan="4" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem pedidos registados.</td>
                     </tr>
-                    <tr th:each="item : ${minhasFolgas}" class="hover:bg-surface-container-low/50 transition-colors">
+                    <tr th:each="item : ${minhasFolgas}"
+                        class="cursor-pointer hover:bg-surface-container-low/50 transition-colors"
+                        onclick="openRequestDetailModal(this)"
+                        data-tipo="Pedido de Folga / Ausência"
+                        th:attr="data-subtipo=${item.tipo},
+                                 data-data=${item.dataAusencia},
+                                 data-estado=${item.estado},
+                                 data-motivo=${item.motivo != null ? item.motivo : ''}">
                         <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.dataAusencia}"></td>
                         <td class="px-6 py-3.5">
                             <span class="badge-neu inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${item.tipo}"></span>
@@ -427,25 +434,43 @@
                     <tr th:if="${#lists.isEmpty(minhasPreferencias)}">
                         <td colspan="5" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem preferências registadas.</td>
                     </tr>
-                    <tr th:each="item : ${minhasPreferencias}" class="hover:bg-surface-container-low/50 transition-colors">
+                    <tr th:each="item : ${minhasPreferencias}"
+                        class="cursor-pointer hover:bg-surface-container-low/50 transition-colors"
+                        onclick="openRequestDetailModal(this)"
+                        data-tipo="Preferência de Horário"
+                        th:attr="data-subtipo=${item.tipo},
+                                 data-data=${(item.dataInicio != null ? item.dataInicio : '–') + ' → ' + (item.dataFim != null ? item.dataFim : '–')},
+                                 data-estado=${item.estado},
+                                 data-motivo=${item.descricao != null ? item.descricao : ''},
+                                 data-decisao=${item.decisao != null ? item.decisao : ''}">
                         <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.tipo}"></td>
                         <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant" th:text="${(item.dataInicio != null ? item.dataInicio : '–') + ' → ' + (item.dataFim != null ? item.dataFim : '–')}"></td>
                         <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.prioridade}"></td>
                         <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant max-w-[200px] truncate" th:text="${item.descricao}"></td>
                         <td class="px-6 py-3.5">
-                            <div class="flex items-center gap-2">
-                                <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                      th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('APROV')} ? 'badge-ok' : (${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'badge-err' : 'badge-warn')"
-                                      th:text="${item.estado}"></span>
-                                <form th:if="${item.estado == null or item.estado.toString().toUpperCase().contains('PENDENTE')}"
-                                      method="post"
-                                      th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/remover'}"
-                                      onsubmit="return confirm('Remover esta preferência?')">
-                                    <button type="submit"
-                                            class="inline-flex items-center gap-1 font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-error/10 text-error hover:bg-error/20 transition-colors">
-                                        ✕ Remover
-                                    </button>
-                                </form>
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
+                                          th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('APROV')} ? 'badge-ok' : (${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'badge-err' : 'badge-warn')"
+                                          th:text="${item.estado}"></span>
+                                    <form th:if="${item.estado == null or item.estado.toString().toUpperCase().contains('PENDENTE')}"
+                                          method="post"
+                                          th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/remover'}"
+                                          onclick="event.stopPropagation()"
+                                          onsubmit="return confirm('Remover esta preferência?')">
+                                        <button type="submit"
+                                                class="inline-flex items-center gap-1 font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-error/10 text-error hover:bg-error/20 transition-colors">
+                                            ✕ Remover
+                                        </button>
+                                    </form>
+                                </div>
+                                <!-- Manager decision note — only shown when a justification was recorded -->
+                                <p th:if="${item.decisao != null and !#strings.isEmpty(item.decisao)}"
+                                   class="flex items-start gap-1 font-body text-[11px] italic leading-snug"
+                                   th:classappend="${item.estado != null and item.estado.toString().toUpperCase().contains('REJEIT')} ? 'text-error/70' : 'text-on-surface-variant'">
+                                    <span class="material-symbols-outlined text-[12px] mt-0.5 shrink-0 not-italic">comment</span>
+                                    <span th:text="${item.decisao}"></span>
+                                </p>
                             </div>
                         </td>
                     </tr>
@@ -543,191 +568,86 @@
         </div>
     </section>
 
-    <!-- ── Pendentes para aprovação (gerente) ── -->
-    <section th:if="${webPermissoes != null && webPermissoes.podeAprovarAlgumComplementar()}"
-             class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
-             style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
-        <div class="px-6 py-4 border-b border-outline-variant/25 flex items-center gap-2">
-            <span class="material-symbols-outlined icon-fill text-primary-container text-[20px]">pending_actions</span>
-            <h2 class="font-display font-bold text-[17px] text-on-surface">Pendentes para aprovação</h2>
-        </div>
-
-        <!-- Folgas pendentes -->
-        <div th:if="${webPermissoes.podeAprovarFolgas()}" class="border-b border-outline-variant/25">
-            <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
-                <span class="material-symbols-outlined text-[14px] text-on-surface-variant">beach_access</span>
-                <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Folgas</p>
-            </div>
-            <table class="w-full">
-                <thead class="bg-surface-container-low/50">
-                    <tr>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colaborador</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
-                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-outline-variant/25">
-                    <tr th:if="${#lists.isEmpty(folgasPendentes)}">
-                        <td colspan="4" class="px-6 py-6 text-center font-body text-[13px] text-on-surface-variant">Sem folgas pendentes.</td>
-                    </tr>
-                    <tr th:each="item : ${folgasPendentes}" class="hover:bg-surface-container-low/50 transition-colors">
-                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${nomesFolgasPendentes[item.idUtilizador]}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.dataAusencia}"></td>
-                        <td class="px-6 py-3.5">
-                            <span class="badge-warn inline-flex font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" th:text="${item.tipo}"></span>
-                        </td>
-                        <td class="px-6 py-3.5">
-                            <div class="flex items-center justify-end gap-2">
-                                <form method="post" th:action="@{'/web/complementares/folgas/' + ${item.idDayoff} + '/aprovar'}">
-                                    <button type="submit" class="flex items-center gap-1.5 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
-                                        <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
-                                    </button>
-                                </form>
-                                <form method="post" th:action="@{'/web/complementares/folgas/' + ${item.idDayoff} + '/rejeitar'}">
-                                    <button type="submit" class="flex items-center gap-1.5 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
-                                        <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Preferências pendentes -->
-        <div th:if="${webPermissoes.podeAprovarPreferencias()}" class="border-b border-outline-variant/25">
-            <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
-                <span class="material-symbols-outlined text-[14px] text-on-surface-variant">tune</span>
-                <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Preferências</p>
-            </div>
-            <table class="w-full">
-                <thead class="bg-surface-container-low/50">
-                    <tr>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colaborador</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</th>
-                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Decisão</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-outline-variant/25">
-                    <tr th:if="${#lists.isEmpty(preferenciasPendentes)}">
-                        <td colspan="4" class="px-6 py-6 text-center font-body text-[13px] text-on-surface-variant">Sem preferências pendentes.</td>
-                    </tr>
-                    <tr th:each="item : ${preferenciasPendentes}" class="hover:bg-surface-container-low/50 transition-colors">
-                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${nomesPreferencias[item.idUtilizador.id]}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.tipo}"></td>
-                        <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant max-w-[180px] truncate" th:text="${item.descricao}"></td>
-                        <td class="px-6 py-3.5">
-                            <div class="flex flex-col items-end gap-2">
-                                <form method="post" th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/aprovar'}" class="flex items-center gap-1.5">
-                                    <input type="text" name="decisao" placeholder="Nota" class="bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1.5 font-body text-[12px] text-on-surface w-28" style="outline:none">
-                                    <button type="submit" class="flex items-center gap-1 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors whitespace-nowrap">
-                                        <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
-                                    </button>
-                                </form>
-                                <form method="post" th:action="@{'/web/complementares/preferencias/' + ${item.id} + '/rejeitar'}" class="flex items-center gap-1.5">
-                                    <input type="text" name="decisao" placeholder="Nota" class="bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1.5 font-body text-[12px] text-on-surface w-28" style="outline:none">
-                                    <button type="submit" class="flex items-center gap-1 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors whitespace-nowrap">
-                                        <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Permutas de Folga pendentes -->
-        <div th:if="${webPermissoes.podeAprovarPermutas() and !#lists.isEmpty(permutasFolgaPendentes)}"
-             class="border-b border-outline-variant/25">
-            <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
-                <span class="material-symbols-outlined text-[14px] text-on-surface-variant">event_available</span>
-                <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Permutas de Folga</p>
-            </div>
-            <table class="w-full">
-                <thead class="bg-surface-container-low/50">
-                    <tr>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Solicitante</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Cede (dia D)</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Compensação (dia Y)</th>
-                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-outline-variant/25">
-                    <tr th:each="item : ${permutasFolgaPendentes}" class="hover:bg-surface-container-low/50 transition-colors">
-                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface"
-                            th:text="${item.idHorarioD.idLojautilizador.idUtilizador.nome}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
-                            th:text="${item.idHorarioD.dataTurno} + ' | ' + ${item.idHorarioD.idTurno.horaInicio} + ' – ' + ${item.idHorarioD.idTurno.horaFim}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
-                            th:text="${item.idHorarioY.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioY.dataTurno} + ' ' + ${item.idHorarioY.idTurno.horaInicio} + ' – ' + ${item.idHorarioY.idTurno.horaFim}"></td>
-                        <td class="px-6 py-3.5">
-                            <div class="flex items-center justify-end gap-2">
-                                <form method="post" th:action="@{'/web/complementares/permutas-folga/' + ${item.id} + '/aprovar'}">
-                                    <button type="submit" class="flex items-center gap-1.5 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
-                                        <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
-                                    </button>
-                                </form>
-                                <form method="post" th:action="@{'/web/complementares/permutas-folga/' + ${item.id} + '/rejeitar'}">
-                                    <button type="submit" class="flex items-center gap-1.5 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
-                                        <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Permutas pendentes -->
-        <div th:if="${webPermissoes.podeAprovarPermutas()}">
-            <div class="px-6 py-2.5 bg-surface-container-low flex items-center gap-2">
-                <span class="material-symbols-outlined text-[14px] text-on-surface-variant">swap_horiz</span>
-                <p class="font-body font-bold text-[11px] uppercase tracking-wider text-on-surface-variant">Permutas</p>
-            </div>
-            <table class="w-full">
-                <thead class="bg-surface-container-low/50">
-                    <tr>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Solicitante</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Origem</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Destino</th>
-                        <th class="text-right px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-outline-variant/25">
-                    <tr th:if="${#lists.isEmpty(permutasPendentes)}">
-                        <td colspan="4" class="px-6 py-6 text-center font-body text-[13px] text-on-surface-variant">Sem permutas pendentes.</td>
-                    </tr>
-                    <tr th:each="item : ${permutasPendentes}" class="hover:bg-surface-container-low/50 transition-colors">
-                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface" th:text="${item.idHorarioOrigem.idLojautilizador.idUtilizador.nome}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.idHorarioOrigem.dataTurno} + ' | ' + ${item.idHorarioOrigem.idTurno.horaInicio} + ' – ' + ${item.idHorarioOrigem.idTurno.horaFim}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant" th:text="${item.idHorarioDestino.idLojautilizador.idUtilizador.nome} + ' | ' + ${item.idHorarioDestino.idTurno.horaInicio} + ' – ' + ${item.idHorarioDestino.idTurno.horaFim}"></td>
-                        <td class="px-6 py-3.5">
-                            <div class="flex items-center justify-end gap-2">
-                                <form method="post" th:action="@{'/web/complementares/permutas/' + ${item.id} + '/aprovar'}">
-                                    <button type="submit" class="flex items-center gap-1.5 bg-[#059669] text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#047857] transition-colors">
-                                        <span class="material-symbols-outlined text-[13px]">check</span>Aprovar
-                                    </button>
-                                </form>
-                                <form method="post" th:action="@{'/web/complementares/permutas/' + ${item.id} + '/rejeitar'}">
-                                    <button type="submit" class="flex items-center gap-1.5 bg-error text-white font-body font-bold text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#991b1b] transition-colors">
-                                        <span class="material-symbols-outlined text-[13px]">close</span>Rejeitar
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
 
 </div>
 </main>
+
+<!-- ═══════════════════ REQUEST DETAIL MODAL ═══════════════════ -->
+<!-- Backdrop -->
+<div id="detail-modal-backdrop"
+     style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:8000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)"
+     onclick="closeRequestDetailModal()"></div>
+
+<!-- Box — independently fixed, immune to page-scroll and ancestor transforms -->
+<div id="detail-modal-box"
+     class="rounded-2xl overflow-hidden"
+     style="display:none;position:fixed;top:50vh;left:50vw;z-index:8001;width:calc(100% - 2rem);max-width:520px;transform:translate(-50%,-50%) scale(.96);opacity:0;transition:transform .22s cubic-bezier(.16,1,.3,1),opacity .22s ease;background:#fff;box-shadow:0 24px 64px rgba(0,0,0,.15)">
+
+    <!-- Red accent bar -->
+    <div class="h-1 w-full" style="background:linear-gradient(90deg,#c0001f,#7a0014)"></div>
+
+    <!-- Header -->
+    <div class="px-6 pt-5 pb-4 border-b border-outline-variant/25 flex items-start gap-4">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+             style="background:rgba(192,0,31,.08)">
+            <span class="material-symbols-outlined text-[20px]" style="color:#c0001f">assignment</span>
+        </div>
+        <div class="flex-1 min-w-0">
+            <p id="dm-tipo" class="font-display font-bold text-[16px] text-on-surface leading-tight"></p>
+            <p id="dm-subtipo" class="font-body text-[11px] text-on-surface-variant mt-0.5 uppercase tracking-widest font-semibold"></p>
+        </div>
+        <button onclick="closeRequestDetailModal()"
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container transition-colors shrink-0 text-on-surface-variant hover:text-on-surface">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+    </div>
+
+    <!-- Body -->
+    <div class="px-6 py-5 flex flex-col gap-5">
+
+        <!-- Data + Estado grid -->
+        <div class="grid grid-cols-2 gap-5">
+            <div class="flex flex-col gap-1.5">
+                <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data / Período</p>
+                <p id="dm-data" class="font-body font-bold text-[14px] text-on-surface"></p>
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</p>
+                <span id="dm-estado-badge" class="inline-flex self-start font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full badge-warn"></span>
+            </div>
+        </div>
+
+        <!-- Motivo / Descrição -->
+        <div class="flex flex-col gap-1.5">
+            <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Motivo / Descrição</p>
+            <div class="bg-surface-container-low rounded-xl px-4 py-3 min-h-[3rem]">
+                <p id="dm-motivo" class="font-body text-[13px] text-on-surface leading-relaxed"></p>
+            </div>
+        </div>
+
+        <!-- Nota do gestor (hidden when empty) -->
+        <div id="dm-decisao-row" class="flex flex-col gap-1.5" style="display:none">
+            <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[13px]">comment</span>
+                Nota do gestor
+            </p>
+            <div class="rounded-xl px-4 py-3 flex items-start gap-2.5"
+                 style="background:rgba(192,0,31,.04);border:1px solid rgba(192,0,31,.12)">
+                <span class="material-symbols-outlined text-[15px] mt-0.5 shrink-0" style="color:#c0001f">manage_accounts</span>
+                <p id="dm-decisao" class="font-body text-[13px] text-on-surface leading-relaxed italic"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 pb-5 flex justify-end border-t border-outline-variant/15 pt-4">
+        <button onclick="closeRequestDetailModal()"
+                class="font-body font-semibold text-[13px] px-5 py-2.5 rounded-xl text-white transition-all"
+                style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 8px rgba(192,0,31,.3)">
+            Fechar
+        </button>
+    </div>
+</div>
 
 <script>
 function showTab(id) {
@@ -745,6 +665,13 @@ function showTab(id) {
     activeBtn.classList.add('border-primary-container','text-primary-container');
     activeBtn.classList.remove('border-transparent','text-on-surface-variant');
 }
+
+// Auto-activate tab from URL ?tab=xxx (e.g. ?tab=permutas)
+(function () {
+    var p = new URLSearchParams(window.location.search);
+    var t = p.get('tab');
+    if (t && document.getElementById('tab-' + t)) { showTab('tab-' + t); }
+})();
 
 // ── Permutas – lógica dinâmica via API REST ────────────────────────────────
 (function () {
@@ -789,9 +716,18 @@ function showTab(id) {
         try {
             const res = await fetch('/api/permutas/meus-turnos');
             if (!res.ok) throw new Error('Sessão inválida.');
-            meusTurnos = await res.json();
+            const todos = await res.json();
+            // Keep only strictly future shifts (date > today at local midnight)
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            meusTurnos = todos.filter(t => {
+                if (!t.data || t.data === '-') return false;
+                const parts = t.data.split('/'); // dd/MM/yyyy
+                if (parts.length !== 3) return false;
+                const d = new Date(parts[2] + '-' + parts[1] + '-' + parts[0] + 'T00:00:00');
+                return d > hoje;
+            });
             selOrigem.innerHTML = meusTurnos.length === 0
-                ? '<option value="">Sem turnos disponíveis para permuta</option>'
+                ? '<option value="">Sem turnos futuros disponíveis para permuta</option>'
                 : '<option value="">Seleciona o teu turno…</option>' +
                   meusTurnos.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
         } catch (e) {
@@ -892,8 +828,22 @@ function showTab(id) {
         }
     };
 
-    // Inicializar
-    carregarMeusTurnos();
+    // Inicializar — carrega turnos e depois aplica deep-link de URL se presente
+    carregarMeusTurnos().then(function () {
+        var params = new URLSearchParams(window.location.search);
+        var origemId = params.get('origemPermuta');
+        if (origemId) {
+            showTab('tab-permutas');
+            // Scroll suave até ao formulário de permuta
+            var formSection = document.getElementById('seccao-permuta');
+            if (formSection) { formSection.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            // Seleciona o turno origem e dispara o evento change para carregar turnos elegíveis
+            selOrigem.value = origemId;
+            if (selOrigem.value === origemId) {
+                selOrigem.dispatchEvent(new Event('change'));
+            }
+        }
+    });
 })();
 
 // ── Permuta de Folga – lógica dinâmica via API REST ───────────────────────
@@ -992,6 +942,69 @@ function showTab(id) {
     carregarTurnosD();
 })();
 
+// ── Request Detail Modal ──────────────────────────────────────────────────
+function _estadoBadgeClass(estado) {
+    var e = (estado || '').toString().toUpperCase();
+    if (e.includes('APROV')) return 'badge-ok';
+    if (e.includes('REJEIT') || e.includes('CANCEL')) return 'badge-err';
+    return 'badge-warn';
+}
+
+function openRequestDetailModal(row) {
+    var tipo     = row.getAttribute('data-tipo')    || '';
+    var subtipo  = row.getAttribute('data-subtipo') || '';
+    var data     = row.getAttribute('data-data')    || '–';
+    var estado   = row.getAttribute('data-estado')  || '–';
+    var motivo   = row.getAttribute('data-motivo')  || '';
+    var decisao  = row.getAttribute('data-decisao') || '';
+
+    document.getElementById('dm-tipo').textContent = tipo;
+    document.getElementById('dm-subtipo').textContent = subtipo;
+    document.getElementById('dm-data').textContent = data;
+    document.getElementById('dm-motivo').textContent = motivo || '(sem motivo indicado)';
+
+    var badge = document.getElementById('dm-estado-badge');
+    badge.textContent = estado;
+    badge.className = 'inline-flex self-start font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full ' + _estadoBadgeClass(estado);
+
+    var decisaoRow = document.getElementById('dm-decisao-row');
+    if (decisao && decisao.trim() !== '') {
+        document.getElementById('dm-decisao').textContent = decisao;
+        decisaoRow.style.display = '';
+    } else {
+        decisaoRow.style.display = 'none';
+    }
+
+    var backdrop = document.getElementById('detail-modal-backdrop');
+    var box      = document.getElementById('detail-modal-box');
+    backdrop.style.display = 'block';
+    box.style.display      = 'block';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            box.style.opacity   = '1';
+            box.style.transform = 'translate(-50%,-50%) scale(1)';
+        });
+    });
+}
+
+function closeRequestDetailModal() {
+    var box = document.getElementById('detail-modal-box');
+    box.style.opacity   = '0';
+    box.style.transform = 'translate(-50%,-50%) scale(.96)';
+    setTimeout(function () {
+        document.getElementById('detail-modal-backdrop').style.display = 'none';
+        box.style.display = 'none';
+        document.body.style.overflow = '';
+    }, 220);
+}
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.getElementById('detail-modal-box').style.display !== 'none') {
+        closeRequestDetailModal();
+    }
+});
+
 // ── Preferências de colegas (UC-F01c) – toggle dinâmico ──────────────────
 (function () {
     const tipoSel    = document.getElementById('pref-tipo');
@@ -1052,5 +1065,6 @@ function showTab(id) {
     });
 })();
 </script>
+<th:block th:replace="~{web/fragments :: scripts}"></th:block>
 </body>
 </html>
