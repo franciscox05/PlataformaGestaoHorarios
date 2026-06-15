@@ -79,6 +79,15 @@ public final class PolisherHorario {
      */
     private static final double PESO_COLEGA_NAO_ALINHADO = 8.0;
 
+    /**
+     * Penalização por rotação ergonómica invertida: colaborador passa de um turno de
+     * período mais tardio num dia para um período mais cedo no dia seguinte (ex.: noite→manhã,
+     * tarde→manhã). Comprime o descanso real mesmo quando as 11h legais são cumpridas.
+     * Mantida moderada (6 pts/nível) para não sobrepor as preferências de turno; o avaliador
+     * greedy usa 45 pts/nível — aqui o polisher só corrige o que o greedy não conseguiu evitar.
+     */
+    private static final double PESO_ROTACAO_INVERTIDA = 6.0;
+
     private final HorarioValidatorService validator;
     private final MetricasPlaneamentoCalculator metricas = new MetricasPlaneamentoCalculator();
     private final AvaliadorAtribuicao avaliador;
@@ -306,7 +315,37 @@ public final class PolisherHorario {
     private double custo(List<Horario> plano, PedidoGeracao pedido) {
         Map<Integer, CargaColaborador> cargas = construirCargas(plano, pedido);
         MetricasPlaneamento m = metricas.calcular(plano, cargas, pedido.politica());
-        return m.pontuacao() + penalizacaoPreferencias(plano, pedido);
+        return m.pontuacao() + penalizacaoPreferencias(plano, pedido) + penalizacaoRotacao(plano);
+    }
+
+    /**
+     * Penaliza rotações ergonómicas invertidas no plano: para cada par de dias consecutivos
+     * em que o mesmo colaborador passa de um período mais tardio para um mais cedo
+     * (ex.: tarde→manhã, noite→tarde, noite→manhã), adiciona uma penalização proporcional
+     * à diferença de posição no dia. Permite ao polisher trocar turnos para reduzir
+     * inversões que o greedy não evitou.
+     */
+    private double penalizacaoRotacao(List<Horario> plano) {
+        Map<Integer, Map<LocalDate, Integer>> ordemPorDia = new HashMap<>();
+        for (Horario h : plano) {
+            Integer id = idColab(h);
+            if (id == null || h.getDataTurno() == null || h.getIdTurno() == null) continue;
+            int ordem = TurnoClassifier.ordemPeriodo(h.getIdTurno());
+            if (ordem >= 0) {
+                ordemPorDia.computeIfAbsent(id, k -> new HashMap<>())
+                           .put(h.getDataTurno(), ordem);
+            }
+        }
+        double total = 0;
+        for (Map<LocalDate, Integer> diasColab : ordemPorDia.values()) {
+            for (Map.Entry<LocalDate, Integer> e : diasColab.entrySet()) {
+                Integer ordemAmanha = diasColab.get(e.getKey().plusDays(1));
+                if (ordemAmanha != null && ordemAmanha < e.getValue()) {
+                    total += PESO_ROTACAO_INVERTIDA * (e.getValue() - ordemAmanha);
+                }
+            }
+        }
+        return total;
     }
 
     /** Carga por colaborador (inclui quem não tem turnos, para contar subutilização/idle). */
