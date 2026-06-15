@@ -20,9 +20,12 @@ import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.example.projeto2.DESKTOP.support.ClassificadorRegra;
+
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,6 +110,9 @@ public class GestaoLojaController {
 
     private final GestaoLojaService gestaoLojaBLL;
     private final Map<Integer, TextField> camposValor = new LinkedHashMap<>();
+    private final Map<Integer, CheckBox> camposBooleanos = new LinkedHashMap<>();
+    /** Toggle "Ativa nesta loja" para regras numéricas EDITAVEL. */
+    private final Map<Integer, CheckBox> camposAtivos = new LinkedHashMap<>();
     private final Map<Integer, TextArea> camposObservacoes = new LinkedHashMap<>();
     private Utilizador utilizadorLogado;
     private Integer idHorarioEspecialEmEdicao;
@@ -152,15 +158,26 @@ public class GestaoLojaController {
             LocalTime horaAbertura = parseHora(txtHoraAbertura.getText(), "abertura");
             LocalTime horaFecho = parseHora(txtHoraFecho.getText(), "fecho");
 
-            List<GestaoLojaService.ConfiguracaoRegraRequest> regras = camposValor.entrySet().stream()
-                    .map(entry -> {
-                        Integer idRegra = entry.getKey();
-                        Integer valorEspecifico = parseInteiroOpcional(entry.getValue().getText(), idRegra);
-                        TextArea campoObservacoes = camposObservacoes.get(idRegra);
-                        String observacoes = campoObservacoes != null ? campoObservacoes.getText() : null;
-                        return new GestaoLojaService.ConfiguracaoRegraRequest(idRegra, valorEspecifico, observacoes);
-                    })
-                    .toList();
+            List<GestaoLojaService.ConfiguracaoRegraRequest> regras = new ArrayList<>();
+            for (Map.Entry<Integer, TextField> entry : camposValor.entrySet()) {
+                Integer idRegra = entry.getKey();
+                CheckBox chkAtiva = camposAtivos.get(idRegra);
+                Integer valorEspecifico;
+                if (chkAtiva != null && !chkAtiva.isSelected()) {
+                    // Toggle OFF → remove o override desta loja; motor usa o valor base global.
+                    valorEspecifico = null;
+                } else {
+                    valorEspecifico = parseInteiroOpcional(entry.getValue().getText(), idRegra);
+                }
+                regras.add(new GestaoLojaService.ConfiguracaoRegraRequest(
+                        idRegra, valorEspecifico, observacoesDe(idRegra)));
+            }
+            // Regras liga/desliga (ex.: chefia ao sábado): 1 = ativa, 0 = inativa.
+            for (Map.Entry<Integer, CheckBox> entry : camposBooleanos.entrySet()) {
+                Integer idRegra = entry.getKey();
+                regras.add(new GestaoLojaService.ConfiguracaoRegraRequest(
+                        idRegra, entry.getValue().isSelected() ? 1 : 0, observacoesDe(idRegra)));
+            }
 
             gestaoLojaBLL.guardarConfiguracao(
                     utilizadorLogado.getId(),
@@ -295,6 +312,8 @@ public class GestaoLojaController {
     private void preencherRegras(List<GestaoLojaService.RegraLojaResumo> regras) {
         regrasContainer.getChildren().clear();
         camposValor.clear();
+        camposBooleanos.clear();
+        camposAtivos.clear();
         camposObservacoes.clear();
 
         if (regras == null || regras.isEmpty()) {
@@ -304,12 +323,49 @@ public class GestaoLojaController {
             return;
         }
 
+        // Separa as regras fixas por lei (apresentadas bloqueadas) das personalizáveis.
+        List<GestaoLojaService.RegraLojaResumo> fixas = new ArrayList<>();
+        List<GestaoLojaService.RegraLojaResumo> personalizaveis = new ArrayList<>();
         for (GestaoLojaService.RegraLojaResumo regra : regras) {
+            if (ClassificadorRegra.ehFixaLegal(regra.descricao(), regra.tipo())) {
+                fixas.add(regra);
+            } else {
+                personalizaveis.add(regra);
+            }
+        }
+
+        if (!fixas.isEmpty()) {
+            regrasContainer.getChildren().add(cabecalhoSeccao("Fixas por lei",
+                    "Mínimos legais obrigatórios. Apresentadas para referência — não podem ser reduzidas."));
+            for (GestaoLojaService.RegraLojaResumo regra : fixas) {
+                regrasContainer.getChildren().add(criarCardRegra(regra));
+            }
+        }
+
+        regrasContainer.getChildren().add(cabecalhoSeccao("Regras da loja",
+                "Personaliza por loja. Deixa o valor em branco para usar o valor base; "
+                        + "usa o interruptor para ligar/desligar as regras opcionais."));
+        for (GestaoLojaService.RegraLojaResumo regra : personalizaveis) {
             regrasContainer.getChildren().add(criarCardRegra(regra));
         }
     }
 
+    /** Cabeçalho de uma secção de regras (título + nota explicativa). */
+    private VBox cabecalhoSeccao(String titulo, String nota) {
+        Label lblTitulo = new Label(titulo);
+        lblTitulo.getStyleClass().add("card-titulo");
+        Label lblNota = new Label(nota);
+        lblNota.getStyleClass().add("subtitulo");
+        lblNota.setWrapText(true);
+        VBox box = new VBox(4, lblTitulo, lblNota);
+        box.setPadding(new Insets(8, 0, 0, 0));
+        return box;
+    }
+
     private VBox criarCardRegra(GestaoLojaService.RegraLojaResumo regra) {
+        ClassificadorRegra.Categoria categoria =
+                ClassificadorRegra.categoria(regra.descricao(), regra.tipo());
+
         VBox card = new VBox(16);
         card.getStyleClass().add("bento-card");
         card.setPadding(new Insets(28));
@@ -323,16 +379,95 @@ public class GestaoLojaController {
         lblDetalhe.getStyleClass().addAll("subtitulo", "config-card-desc");
         lblDetalhe.setWrapText(true);
 
+        card.getChildren().addAll(lblTitulo, lblDetalhe);
+
+        switch (categoria) {
+            case FIXA_LEGAL -> preencherCardFixaLegal(card, regra);
+            case BOOLEANA -> preencherCardBooleana(card, regra);
+            case EDITAVEL -> preencherCardEditavel(card, regra);
+        }
+
+        adicionarObservacoes(card, regra);
+        return card;
+    }
+
+    /** Regra legal: valor bloqueado (nunca abaixo do mínimo legal) + selo explicativo. */
+    private void preencherCardFixaLegal(VBox card, GestaoLojaService.RegraLojaResumo regra) {
+        Label badge = new Label("FIXO POR LEI");
+        badge.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #991b1b; -fx-font-weight: 700; "
+                + "-fx-font-size: 10px; -fx-padding: 2 8 2 8; -fx-background-radius: 6;");
+
+        Integer legalMinimo = ClassificadorRegra.valorLegalMinimo(regra.descricao(), regra.tipo());
+        int atual = regra.valorEspecifico() != null ? regra.valorEspecifico()
+                : (regra.valorPadrao() != null ? regra.valorPadrao() : 0);
+        int valorMostrado = legalMinimo != null ? Math.max(atual, legalMinimo) : atual;
+
+        Label lblValor = new Label("Valor aplicado");
+        lblValor.getStyleClass().add("campo-titulo");
+        TextField txtValor = new TextField(String.valueOf(valorMostrado));
+        txtValor.getStyleClass().add("campo-input");
+        txtValor.setEditable(false);
+        txtValor.setDisable(true);
+
+        Label lblNota = new Label(ClassificadorRegra.notaLegal(regra.descricao(), regra.tipo()));
+        lblNota.getStyleClass().add("subtitulo");
+        lblNota.setWrapText(true);
+
+        HBox linhaValor = new HBox(12, lblValor, txtValor);
+        HBox.setHgrow(txtValor, Priority.ALWAYS);
+        card.getChildren().addAll(badge, linhaValor, lblNota);
+
+        // Grava o valor legal (≥ mínimo) — garante que o que fica na BD nunca é ilegal.
+        camposValor.put(regra.idRegra(), txtValor);
+    }
+
+    /** Regra opcional liga/desliga (ex.: chefia ao sábado). */
+    private void preencherCardBooleana(VBox card, GestaoLojaService.RegraLojaResumo regra) {
+        boolean ativa = regra.valorEspecifico() != null
+                ? regra.valorEspecifico() > 0
+                : (regra.valorPadrao() != null && regra.valorPadrao() > 0);
+        CheckBox chk = new CheckBox("Ativa nesta loja");
+        chk.setSelected(ativa);
+        card.getChildren().add(chk);
+        camposBooleanos.put(regra.idRegra(), chk);
+    }
+
+    /** Regra numérica personalizável — com toggle "Ativa nesta loja". */
+    private void preencherCardEditavel(VBox card, GestaoLojaService.RegraLojaResumo regra) {
+        // Toggle ON se não houver override (usa valor base global) ou se o override for positivo.
+        // Toggle OFF só quando o override é explicitamente 0 (override antigo de desativação).
+        boolean ativa = regra.valorEspecifico() == null || regra.valorEspecifico() > 0;
+        CheckBox chkAtiva = new CheckBox("Ativa nesta loja");
+        chkAtiva.setSelected(ativa);
+
         Label lblValor = new Label("Valor específico da loja");
         lblValor.getStyleClass().add("campo-titulo");
 
         TextField txtValor = new TextField();
         txtValor.getStyleClass().add("campo-input");
-        txtValor.setPromptText("Usar valor base");
-        if (regra.valorEspecifico() != null) {
+        if (regra.valorPadrao() != null) {
+            txtValor.setPromptText("Base: " + regra.valorPadrao());
+        } else {
+            txtValor.setPromptText("Usar valor base");
+        }
+        // Mostra o valor específico se existir e for positivo (0 = desativada).
+        if (regra.valorEspecifico() != null && regra.valorEspecifico() > 0) {
             txtValor.setText(String.valueOf(regra.valorEspecifico()));
         }
+        txtValor.setDisable(!ativa);
 
+        chkAtiva.selectedProperty().addListener((obs, antigo, agora) -> txtValor.setDisable(!agora));
+
+        HBox linhaValor = new HBox(12, lblValor, txtValor);
+        linhaValor.setFillHeight(true);
+        HBox.setHgrow(txtValor, Priority.ALWAYS);
+        card.getChildren().addAll(chkAtiva, linhaValor);
+
+        camposAtivos.put(regra.idRegra(), chkAtiva);
+        camposValor.put(regra.idRegra(), txtValor);
+    }
+
+    private void adicionarObservacoes(VBox card, GestaoLojaService.RegraLojaResumo regra) {
         Label lblObs = new Label("Observações");
         lblObs.getStyleClass().add("campo-titulo");
 
@@ -345,16 +480,13 @@ public class GestaoLojaController {
             txtObs.setText(regra.observacoes());
         }
 
-        HBox linhaValor = new HBox(12, lblValor, txtValor);
-        linhaValor.setFillHeight(true);
-        HBox.setHgrow(txtValor, Priority.ALWAYS);
-
-        card.getChildren().addAll(lblTitulo, lblDetalhe, linhaValor, lblObs, txtObs);
-
-        camposValor.put(regra.idRegra(), txtValor);
+        card.getChildren().addAll(lblObs, txtObs);
         camposObservacoes.put(regra.idRegra(), txtObs);
+    }
 
-        return card;
+    private String observacoesDe(Integer idRegra) {
+        TextArea campo = camposObservacoes.get(idRegra);
+        return campo != null ? campo.getText() : null;
     }
 
     private void preencherHorariosEspeciais(List<GestaoLojaService.HorarioEspecialResumo> horariosEspeciais) {

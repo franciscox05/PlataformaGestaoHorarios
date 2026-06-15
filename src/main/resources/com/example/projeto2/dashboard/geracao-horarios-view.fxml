@@ -154,6 +154,20 @@
                                             </VBox>
                                         </HBox>
 
+                                        <!-- Como gerar: objetivo + densidade de cobertura -->
+                                        <HBox spacing="12.0">
+                                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                                                <Label styleClass="campo-titulo" text="O que priorizar"/>
+                                                <ComboBox fx:id="cbObjetivoGeracao" maxWidth="Infinity"
+                                                          styleClass="campo-combo"/>
+                                            </VBox>
+                                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                                                <Label styleClass="campo-titulo" text="Pessoas por turno"/>
+                                                <ComboBox fx:id="cbAlvoPorTurno" maxWidth="Infinity"
+                                                          styleClass="campo-combo"/>
+                                            </VBox>
+                                        </HBox>
+
                                         <HBox alignment="CENTER_LEFT" spacing="16.0">
                                             <Button fx:id="btnGerarProposta" onAction="#onGerarPropostaClick"
                                                     styleClass="btn-gerar-primario" text="&#9889;  Gerar hor&#225;rio"/>
@@ -732,29 +746,34 @@
                                                            styleClass="bento-card-titulo"
                                                            text="&#8212;"/>
                                                 </VBox>
+                                                <Button fx:id="btnExportarVerificacaoPdf"
+                                                        onAction="#onExportarVerificacaoPdfClick"
+                                                        styleClass="botao-secundario"
+                                                        text="&#128196;  Exportar relat&#243;rio (PDF)"/>
                                             </HBox>
                                         </VBox>
 
-                                        <!-- Conteúdo: grelha + resultados lado a lado -->
-                                        <HBox spacing="16.0" alignment="TOP_LEFT">
-
-                                            <!-- Esquerda: grelha compacta -->
-                                            <VBox styleClass="bento-card" spacing="8.0"
-                                                  HBox.hgrow="ALWAYS">
+                                        <!-- Grelha compacta do mês (largura total) -->
+                                        <VBox styleClass="bento-card" spacing="8.0">
+                                            <HBox alignment="CENTER_LEFT" spacing="8.0">
                                                 <Label styleClass="stat-kicker"
                                                        text="HOR&#193;RIO DO M&#202;S"/>
+                                                <Region HBox.hgrow="ALWAYS"/>
                                                 <Label styleClass="bento-card-subtitulo"
-                                                       text="Clica num dia para o detalhe."
-                                                       wrapText="true"/>
-                                                <VBox fx:id="vbVerificacaoGrelha"/>
-                                            </VBox>
+                                                       text="Clica num dia para ver o detalhe e ajustar turnos (trocar ou marcar folga)."/>
+                                            </HBox>
+                                            <ScrollPane fitToHeight="true"
+                                                        hbarPolicy="AS_NEEDED"
+                                                        vbarPolicy="NEVER"
+                                                        style="-fx-background-color:transparent;-fx-background:transparent;-fx-border-color:transparent;">
+                                                <content>
+                                                    <VBox fx:id="vbVerificacaoGrelha"/>
+                                                </content>
+                                            </ScrollPane>
+                                        </VBox>
 
-                                            <!-- Direita: resultados de compliance -->
-                                            <VBox fx:id="vbVerificacaoResultados"
-                                                  spacing="6.0"
-                                                  minWidth="340.0" prefWidth="380.0" maxWidth="420.0"/>
-
-                                        </HBox>
+                                        <!-- Painel de conformidade (largura total, sem corte) -->
+                                        <VBox fx:id="vbVerificacaoResultados" spacing="6.0"/>
                                     </VBox>
                                     <!-- ── FIM PAINEL VERIFICAÇÃO ── -->
 

@@ -40,6 +40,9 @@ import java.util.Set;
  * @param folgasPreferidasPorColaborador  soft — id-colaborador → datas de folga preferida (1/semana)
  * @param paresPreferisPorColaborador soft — id-colaborador → ids de colegas preferidos
  * @param semente                     semente de diversificação (desempate determinístico)
+ * @param alvoPorTurno                soft — nº alvo de pessoas por tipo de turno por dia
+ *                                    aberto no preenchimento de capacidade; {@code null} =
+ *                                    automático (enche até à capacidade disponível)
  */
 public record PedidoGeracao(
         List<Lojautilizador>            colaboradores,
@@ -62,6 +65,41 @@ public record PedidoGeracao(
         PoliticaOtimizacao              politica,
         Map<Integer, Set<LocalDate>>    folgasPreferidasPorColaborador,
         Map<Integer, Set<Integer>>      paresPreferisPorColaborador,
-        long                            semente
+        long                            semente,
+        Integer                         alvoPorTurno
 ) {
+
+    /**
+     * Construtor de compatibilidade sem {@code alvoPorTurno} (assume automático).
+     * Mantém intactos os chamadores anteriores à introdução do alvo de cobertura.
+     */
+    public PedidoGeracao(
+            List<Lojautilizador>            colaboradores,
+            List<Turno>                     turnos,
+            LocalDate                       dataInicio,
+            LocalDate                       dataFim,
+            Map<Integer, Integer>           minimosPorTurno,
+            int                             maxDiasConsecutivos,
+            int                             descansoMinimoHoras,
+            int                             descansoSemanalMinimoDias,
+            int                             janelaRotacaoFimDeSemana,
+            boolean                         exigirChefiaAoSabado,
+            Set<Integer>                    chefiasSabadoIds,
+            Map<Integer, Long>              cargaMaximaPorColaborador,
+            Map<Integer, Set<LocalDate>>    bloqueiosPorColaborador,
+            Map<Integer, List<Preferencia>> preferenciasTurnos,
+            Map<LocalDate, ConfiguracaoDia> configuracoesPorData,
+            List<Horario>                   historicoHorarios,
+            Instant                         prazoLimite,
+            PoliticaOtimizacao              politica,
+            Map<Integer, Set<LocalDate>>    folgasPreferidasPorColaborador,
+            Map<Integer, Set<Integer>>      paresPreferisPorColaborador,
+            long                            semente) {
+        this(colaboradores, turnos, dataInicio, dataFim, minimosPorTurno, maxDiasConsecutivos,
+                descansoMinimoHoras, descansoSemanalMinimoDias, janelaRotacaoFimDeSemana,
+                exigirChefiaAoSabado, chefiasSabadoIds, cargaMaximaPorColaborador,
+                bloqueiosPorColaborador, preferenciasTurnos, configuracoesPorData,
+                historicoHorarios, prazoLimite, politica, folgasPreferidasPorColaborador,
+                paresPreferisPorColaborador, semente, null);
+    }
 }

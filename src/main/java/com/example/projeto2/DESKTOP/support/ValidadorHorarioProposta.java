@@ -20,9 +20,8 @@ import java.util.stream.Collectors;
 /** Valida uma lista de linhas de horário face às regras configuradas. */
 public final class ValidadorHorarioProposta {
 
-    private static final DateTimeFormatter HORA_FMT = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter DATA_FMT  =
-            DateTimeFormatter.ofPattern("d 'de' MMM", Locale.forLanguageTag("pt-PT"));
+    private static final DateTimeFormatter HORA_FMT    = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATA_FMT    = DateTimeFormatter.ofPattern("d 'de' MMM", Locale.forLanguageTag("pt-PT"));
 
     private ValidadorHorarioProposta() {}
 
@@ -40,10 +39,12 @@ public final class ValidadorHorarioProposta {
         categorias.add(validarDescansoMinimo(porColaborador, regras.descansoMinimoHoras()));
         categorias.add(validarDiasConsecutivos(porColaborador, regras.maxDiasConsecutivos()));
         categorias.add(validarFolgasSemanais(porColaborador, regras.descansoSemanalMinimoDias()));
-        categorias.add(validarRotacaoFDS(porColaborador, regras.janelaRotacaoFimDeSemana()));
+        categorias.add(validarFinsDeSemanaLivres(porColaborador));
         if (regras.exigirChefiaAoSabado()) {
             categorias.add(validarChefiaAoSabado(linhas));
         }
+        // Nota: as folgas preferidas e demais preferências (turno, colegas, carga horária)
+        // são analisadas por AnaliseCumprimentoHorario — aqui ficam só as regras obrigatórias.
 
         boolean hasViolacoes = categorias.stream()
                 .anyMatch(c -> !c.semViolacoes());
@@ -145,40 +146,60 @@ public final class ValidadorHorarioProposta {
                 resumo, violacoes);
     }
 
-    private static ValidacaoHorarioResultado.CategoriaValidacao validarRotacaoFDS(
-            Map<Integer, List<HorarioLinha>> porColaborador, int janelaFDS) {
+    /**
+     * Fins de semana livres: cada colaborador deve ter <b>pelo menos um fim de semana
+     * livre</b> no mês. A regra de rotação da loja (ex.: 1 FDS livre a cada 7 semanas)
+     * só é verificável ao longo de vários meses; num horário mensal (4-5 fins de semana)
+     * o que se garante é que ninguém trabalha todos os fins de semana do mês.
+     *
+     * <p>Isenta gerência/subgerência e reforço parttime (este último é contratado
+     * precisamente para cobrir os fins de semana).
+     */
+    private static ValidacaoHorarioResultado.CategoriaValidacao validarFinsDeSemanaLivres(
+            Map<Integer, List<HorarioLinha>> porColaborador) {
+
+        // Fins de semana (âncora = sábado) existentes no período.
+        java.util.Set<LocalDate> todosFds = porColaborador.values().stream()
+                .flatMap(List::stream)
+                .filter(l -> l.data().getDayOfWeek() == DayOfWeek.SATURDAY
+                        || l.data().getDayOfWeek() == DayOfWeek.SUNDAY)
+                .map(l -> l.data().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY)))
+                .collect(Collectors.toCollection(java.util.TreeSet::new));
+        int totalFds = todosFds.size();
+
         List<String> violacoes = new ArrayList<>();
-        for (List<HorarioLinha> turnos : porColaborador.values()) {
-            String nome = turnos.isEmpty() ? "?" : turnos.getFirst().colaborador();
-            String cargo = turnos.isEmpty() ? "" : turnos.getFirst().cargo();
-            if (cargo != null && (cargo.toLowerCase(Locale.ROOT).contains("gerente")
-                    || cargo.toLowerCase(Locale.ROOT).contains("subgerente")
-                    || cargo.toLowerCase(Locale.ROOT).contains("reforco_parttime")
-                    || cargo.toLowerCase(Locale.ROOT).contains("reforço_parttime"))) {
-                continue;
-            }
-            List<LocalDate> sabadosTrabalhados = turnos.stream()
-                    .filter(l -> l.data().getDayOfWeek() == DayOfWeek.SATURDAY
-                            || l.data().getDayOfWeek() == DayOfWeek.SUNDAY)
-                    .map(l -> l.data().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY)))
-                    .distinct()
-                    .sorted()
-                    .toList();
-            for (int i = 1; i < sabadosTrabalhados.size(); i++) {
-                LocalDate anterior = sabadosTrabalhados.get(i - 1);
-                LocalDate atual    = sabadosTrabalhados.get(i);
-                long semanasEntre  = (atual.toEpochDay() - anterior.toEpochDay()) / 7;
-                if (semanasEntre > 0 && semanasEntre < janelaFDS) {
-                    violacoes.add(String.format("%s: FDS consecutivos — %s e %s (janela: %d sem.)",
-                            nome, DATA_FMT.format(anterior), DATA_FMT.format(atual), janelaFDS));
+        if (totalFds >= 2) {
+            for (List<HorarioLinha> turnos : porColaborador.values()) {
+                if (turnos.isEmpty()) continue;
+                String nome = turnos.getFirst().colaborador();
+                String cargo = turnos.getFirst().cargo();
+                if (cargo != null && (cargo.toLowerCase(Locale.ROOT).contains("gerente")
+                        || cargo.toLowerCase(Locale.ROOT).contains("subgerente")
+                        || cargo.toLowerCase(Locale.ROOT).contains("reforco_parttime")
+                        || cargo.toLowerCase(Locale.ROOT).contains("reforço_parttime")
+                        || cargo.toLowerCase(Locale.ROOT).contains("reforço")
+                        || cargo.toLowerCase(Locale.ROOT).contains("reforco"))) {
+                    continue;
+                }
+                long fdsTrabalhados = turnos.stream()
+                        .filter(l -> l.data().getDayOfWeek() == DayOfWeek.SATURDAY
+                                || l.data().getDayOfWeek() == DayOfWeek.SUNDAY)
+                        .map(l -> l.data().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY)))
+                        .distinct().count();
+                if (fdsTrabalhados >= totalFds) {
+                    violacoes.add(String.format("%s: trabalhou os %d fins de semana do mês — sem fim de semana livre",
+                            nome, totalFds));
                 }
             }
         }
-        String resumo = violacoes.isEmpty()
-                ? "Rotação de fins de semana respeitada (janela " + janelaFDS + " semanas)"
-                : violacoes.size() + " colaborador(es) com fins de semana demasiado próximos";
+
+        String resumo = totalFds < 2
+                ? "Período com menos de 2 fins de semana — sem rotação a verificar"
+                : (violacoes.isEmpty()
+                    ? "Todos os colaboradores têm pelo menos um fim de semana livre no mês"
+                    : violacoes.size() + " colaborador(es) sem nenhum fim de semana livre");
         return new ValidacaoHorarioResultado.CategoriaValidacao(
-                "Rotação de fins de semana (" + janelaFDS + " sem.)",
+                "Fins de semana livres",
                 violacoes.isEmpty() ? ValidacaoHorarioResultado.Estado.OK : ValidacaoHorarioResultado.Estado.VIOLACAO,
                 resumo, violacoes);
     }

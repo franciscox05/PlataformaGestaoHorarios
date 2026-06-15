@@ -38,7 +38,8 @@ public class PedidoGeracaoMontador {
     public PedidoGeracao montar(DadosGeracao dados,
                                 PoliticaOtimizacao politica,
                                 Instant prazoLimiteGeracao,
-                                long sementeDiversificacao) {
+                                long sementeDiversificacao,
+                                Integer alvoPorTurno) {
         return new PedidoGeracao(
                 dados.colaboradoresAtivos(),
                 dados.turnos(),
@@ -61,7 +62,8 @@ public class PedidoGeracaoMontador {
                 dados.diasFolgaPreferidos(),
                 PreferenciasGeracaoBuilder.construirParesPreferidos(
                         dados.preferenciasColegas(), dados.colaboradoresAtivos()),
-                sementeDiversificacao
+                sementeDiversificacao,
+                alvoPorTurno
         );
     }
 

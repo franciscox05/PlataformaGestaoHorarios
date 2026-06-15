@@ -41,7 +41,15 @@ public final class TurnoClassifier {
      * (ex.: noite num dia → manhã no seguinte), que comprimem o descanso real.
      */
     public static int ordemPeriodo(Turno turno) {
-        return switch (tipoNormalizado(turno)) {
+        return ordemPorTipoNormalizado(tipoNormalizado(turno));
+    }
+
+    /**
+     * Posição do período a partir do tipo normalizado (string). Permite usar o índice
+     * dia→tipo→ids do {@code ContextoAvaliacao} sem reconstruir objetos Turno.
+     */
+    public static int ordemPorTipoNormalizado(String tipo) {
+        return switch (tipo) {
             case "manha"      -> 0;
             case "intermedio" -> 1;
             case "tarde"      -> 2;

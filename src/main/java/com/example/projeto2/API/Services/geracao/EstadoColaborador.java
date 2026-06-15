@@ -144,6 +144,20 @@ public final class EstadoColaborador {
     public int totalFimDeSemanaTrabalhados() { return totalFimDeSemanaTrabalhados; }
 
     /**
+     * Número de fins de semana <b>distintos</b> trabalhados (ao contrário de
+     * {@link #totalFimDeSemanaTrabalhados()}, que conta dias — sábado e domingo
+     * separados). Usado pela guarda de "fim de semana livre" para não contar a dobrar
+     * quem trabalha os dois dias do mesmo fim de semana.
+     */
+    public int fimsDeSemanaDistintosTrabalhados() { return ultimoFimDeSemana.size(); }
+
+    /** O fim de semana a que {@code data} pertence já tem (pelo menos) um dia trabalhado. */
+    public boolean fimDeSemanaJaTrabalhado(LocalDate data) {
+        return data != null && validator.ehFimDeSemana(data)
+                && ultimoFimDeSemana.containsKey(validator.inicioFimDeSemana(data));
+    }
+
+    /**
      * Indica se o colaborador está atrasado face ao ritmo contratual: ao fim de
      * {@code diasDecorridos} de {@code diasTotais}, espera-se que tenha
      * aproximadamente {@code carga × diasDecorridos / diasTotais} minutos atribuídos.
@@ -369,13 +383,13 @@ public final class EstadoColaborador {
     /**
      * Dias de inatividade consecutivos antes de {@code data}: distância em dias desde
      * o último turno atribuído (incluindo histórico do mês anterior). Devolve 0 se nunca
-     * houve atribuição — nesse caso o equilíbrio de carga já trata de priorizar este
-     * colaborador. Usado pelo avaliador para penalizar longas ausências.
+     * houve atribuição — o equilíbrio de carga já trata de priorizar estes colaboradores;
+     * adicionar um bónus idle artificial causaria clustering indesejado no top-up.
+     * A janela de procura limita-se a 14 dias: o bónus de idle satura aos 5, pelo que
+     * além disso não há diferença prática.
      */
     public int diasDesdeUltimoTurno(LocalDate data) {
         if (atribuicoesConhecidas.isEmpty()) return 0;
-        // Independente da ordem: distância ao dia trabalhado mais próximo ANTES de `data`.
-        // Limita a procura a 14 dias — o bónus de idle satura aos 5, pelo que basta.
         for (int gap = 1; gap <= 14; gap++) {
             if (atribuicoesConhecidas.containsKey(data.minusDays(gap))) {
                 return gap;
@@ -396,6 +410,24 @@ public final class EstadoColaborador {
         }
         LocalDate fimDeSemanaAtual = validator.inicioFimDeSemana(data);
         return ultimoFimDeSemana.containsKey(fimDeSemanaAtual.minusWeeks(1));
+    }
+
+    /**
+     * Número de semanas desde o fim de semana trabalhado mais recente anterior a {@code data}.
+     * Devolve {@link Integer#MAX_VALUE} se nunca trabalhou um FDS antes desta data.
+     * Só é relevante quando {@code data} é um fim de semana.
+     */
+    public int semanasDesdeUltimoFimDeSemana(LocalDate data) {
+        if (!validator.ehFimDeSemana(data) || ultimoFimDeSemana.isEmpty()) return Integer.MAX_VALUE;
+        LocalDate fdsAtual = validator.inicioFimDeSemana(data);
+        int minSemanas = Integer.MAX_VALUE;
+        for (LocalDate fds : ultimoFimDeSemana.keySet()) {
+            if (fds.isBefore(fdsAtual)) {
+                int semanas = (int) ((fdsAtual.toEpochDay() - fds.toEpochDay()) / 7);
+                if (semanas < minSemanas) minSemanas = semanas;
+            }
+        }
+        return minSemanas;
     }
 
     private LocalDate ultimoFimDeSemanaInicio() {

@@ -400,6 +400,14 @@ public final class DialogosHelper {
             }
         });
 
+        // Fechar ao clicar no fundo (fora do cartão)
+        overlay.setOnMouseClicked(event -> {
+            if (event.getTarget() == overlay) {
+                stage.close();
+                event.consume();
+            }
+        });
+
         return stage;
     }
 

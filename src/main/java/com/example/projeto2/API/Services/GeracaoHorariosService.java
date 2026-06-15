@@ -313,6 +313,22 @@ public class GeracaoHorariosService {
                                                   Integer quantidade,
                                                   Collection<Integer> idsColaboradoresSelecionados,
                                                   Consumer<String> onProgresso) {
+        return gerarPropostas(idUtilizador, ano, mes, quantidade, idsColaboradoresSelecionados,
+                onProgresso, com.example.projeto2.API.Services.geracao.dto.ConfiguracaoGeracao.padrao());
+    }
+
+    @Transactional
+    public List<PropostaResultado> gerarPropostas(Integer idUtilizador,
+                                                  Integer ano,
+                                                  Integer mes,
+                                                  Integer quantidade,
+                                                  Collection<Integer> idsColaboradoresSelecionados,
+                                                  Consumer<String> onProgresso,
+                                                  com.example.projeto2.API.Services.geracao.dto.ConfiguracaoGeracao configuracao) {
+        com.example.projeto2.API.Services.geracao.dto.ConfiguracaoGeracao config =
+                configuracao != null ? configuracao
+                        : com.example.projeto2.API.Services.geracao.dto.ConfiguracaoGeracao.padrao();
+        PoliticaOtimizacao politicaFixa = config.objetivo().paraPolitica();
         DadosGeracao dados = prepararDadosGeracao(idUtilizador, ano, mes, idsColaboradoresSelecionados);
         int quantidadeNormalizada = normalizarQuantidadeAlternativas(quantidade);
         int alternativasExistentes = Math.toIntExact(Math.min(
@@ -339,7 +355,11 @@ public class GeracaoHorariosService {
             if (onProgresso != null && quantidadeNormalizada > 1) {
                 onProgresso.accept("A gerar alternativa " + (indice + 1) + " de " + quantidadeNormalizada + "...");
             }
-            PoliticaOtimizacao politica = PoliticaOtimizacao.porIndice(alternativasExistentes + indice);
+            // Com objetivo escolhido pelo gestor, todas as alternativas usam essa política
+            // (a variedade vem da semente); em "Automático" percorrem-se as 5 políticas.
+            PoliticaOtimizacao politica = politicaFixa != null
+                    ? politicaFixa
+                    : PoliticaOtimizacao.porIndice(alternativasExistentes + indice);
             // Cada alternativa tem uma semente única: base × primo × índice
             long sementeAlternativa = sementeBase ^ ((long)(alternativasExistentes + indice + 1) * 0x9e3779b97f4a7c15L);
             Instant inicioGeracao = Instant.now();
@@ -347,7 +367,8 @@ public class GeracaoHorariosService {
                     dados,
                     politica,
                     inicioGeracao.plus(TEMPO_MAXIMO_GERACAO_ALTERNATIVA),
-                    sementeAlternativa
+                    sementeAlternativa,
+                    config.alvoPorTurno()
             );
 
             MetricasPlaneamento metricas = metricasCalculator.calcular(planeamento, politica);
@@ -590,7 +611,8 @@ public class GeracaoHorariosService {
                 detalheFolgasPreferidas,
                 detalhePrefTurno,
                 detalhePrefColegas,
-                detalheDiasEspeciais
+                detalheDiasEspeciais,
+                diasFolgaPreferidos
         );
     }
 
@@ -717,8 +739,9 @@ public class GeracaoHorariosService {
     private PlaneamentoGerado gerarPlaneamento(DadosGeracao dados,
                                                PoliticaOtimizacao politica,
                                                Instant prazoLimiteGeracao,
-                                               long sementeDiversificacao) {
-        var pedido = pedidoMontador.montar(dados, politica, prazoLimiteGeracao, sementeDiversificacao);
+                                               long sementeDiversificacao,
+                                               Integer alvoPorTurno) {
+        var pedido = pedidoMontador.montar(dados, politica, prazoLimiteGeracao, sementeDiversificacao, alvoPorTurno);
         List<Horario> horarios = engine.gerar(pedido);
 
         Set<LocalDate> diasCobertos = new LinkedHashSet<>();

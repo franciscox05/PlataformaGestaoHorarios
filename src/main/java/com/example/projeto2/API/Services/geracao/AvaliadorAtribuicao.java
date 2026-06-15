@@ -1,6 +1,7 @@
 package com.example.projeto2.API.Services.geracao;
 
 import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Services.HorarioValidatorService;
@@ -9,6 +10,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +58,13 @@ public final class AvaliadorAtribuicao {
     private static final double ESCALA_IDLE         = 18.0;
     private static final double ESCALA_JITTER       = 8.0;
 
+    // Penalização por excesso de um tipo de turno não-preferido face à média da equipa:
+    // quando um colaborador acumula significativamente mais turnos de um tipo que não
+    // prefere do que os colegas, o sistema prefere nomeá-lo menos para esse tipo.
+    // Mantida moderada (15 pts/desvio) — dá ao sistema espaço para respeitar a
+    // ergonomia (componente 7) sem bloquear cobertura obrigatória.
+    private static final double ESCALA_EQUIDADE_TIPO = 15.0;
+
     // Penalização-base de folga preferida — independente da política (atenção garantida)
     private static final double BASE_FOLGA_PREFERIDA = 60.0;
 
@@ -63,10 +72,12 @@ public final class AvaliadorAtribuicao {
     // de carga consigam sobrepor-se quando a chefia já está acima do ritmo esperado.
     private static final double NUDGE_CHEFIA_SABADO = 500.0;
 
-    // Nudge moderado para a chefia que NÃO é a designada deste fim de semana (lookahead
-    // ativo): mantém-na preferível a um regular (a cobertura de chefia é garantida pela
-    // restrição hard), mas sem a queimar — preserva-a para o fim de semana que lhe cabe.
-    private static final double NUDGE_CHEFIA_SABADO_SECUNDARIA = 150.0;
+    // Nudge mínimo para a chefia que NÃO é a designada deste fim de semana: deve ficar
+    // abaixo do bónus de designação de qualquer regular (mín. 1×ESCALA_FDS=55 pts), para
+    // que não ocupe um slot regular e queime a sua janela de rotação — ficando bloqueada
+    // no FDS que o plano lhe reservou. A cobertura de chefia obrigatória é garantida pela
+    // restrição hard; este nudge é só um desempate de último recurso.
+    private static final double NUDGE_CHEFIA_SABADO_SECUNDARIA = 30.0;
 
     // Desempate independente da política para preferência de turno aprovada: garante atenção
     // mínima mesmo nas políticas com pesoPreferencias=1 (EQUILIBRIO, FINS_DE_SEMANA).
@@ -93,6 +104,13 @@ public final class AvaliadorAtribuicao {
     // aplica ao reforço de fim de semana (trabalhar FDS seguidos é o propósito dele).
     private static final double PENALIZACAO_FDS_CONSECUTIVO = 250.0;
 
+    // Penalização proporcional para trabalhar dentro da janela de rotação de FDS
+    // (não consecutivos, mas ainda dentro da janela configurada). Decresce linearmente
+    // de PENALIZACAO_JANELA_FDS (2 semanas de intervalo) até 0 (janela exata).
+    // Só é activa quando a rotação é relaxada (fase 3 do backtracking) — em condições
+    // normais o hard-check podeReceber já bloqueia estes candidatos.
+    private static final double PENALIZACAO_JANELA_FDS = 180.0;
+
     private final HorarioValidatorService validator;
 
     public AvaliadorAtribuicao(HorarioValidatorService validator) {
@@ -100,20 +118,63 @@ public final class AvaliadorAtribuicao {
     }
 
     /**
-     * Pré-computa, uma vez por resolução de candidatos, o conjunto de colaboradores
-     * já escalados no histórico do mês — evitando varrer {@code horariosJaGerados} por
-     * cada candidato (antes era O(H) por candidato; passa a O(1)).
+     * Pré-computa, uma vez por resolução de candidatos, dois índices reutilizados
+     * por cada candidato, evitando varrer {@code horariosJaGerados} repetidamente.
+     *
+     * <ul>
+     *   <li>{@code colabsPorDiaTipo} — dia → (tipo → ids já confirmados nesse slot);
+     *       usado pelos componentes 5 (colegas) e 7b (lookahead de rotação).</li>
+     *   <li>{@code turnosPorTipoPorColab} — id-colaborador → (tipo → contagem acumulada);
+     *       usado pelo componente 11 (equidade por tipo de turno).</li>
+     * </ul>
      */
     public ContextoAvaliacao novoContexto(List<Horario> horariosJaGerados) {
-        Set<Integer> noMes = new LinkedHashSet<>();
+        Map<LocalDate, Map<String, Set<Integer>>> porDiaTipo = new HashMap<>();
+        Map<Integer, Map<String, Integer>> contagemPorColab = new HashMap<>();
         for (Horario h : horariosJaGerados) {
-            if (h.getIdLojautilizador() != null
-                    && h.getIdLojautilizador().getIdUtilizador() != null
-                    && h.getIdLojautilizador().getIdUtilizador().getId() != null) {
-                noMes.add(h.getIdLojautilizador().getIdUtilizador().getId());
+            if (h.getIdLojautilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador().getId() == null) {
+                continue;
+            }
+            Integer id = h.getIdLojautilizador().getIdUtilizador().getId();
+            if (h.getDataTurno() != null && h.getIdTurno() != null) {
+                String tipo = TurnoClassifier.tipoNormalizado(h.getIdTurno());
+                porDiaTipo.computeIfAbsent(h.getDataTurno(), k -> new HashMap<>())
+                          .computeIfAbsent(tipo, k -> new LinkedHashSet<>())
+                          .add(id);
+                contagemPorColab.computeIfAbsent(id, k -> new HashMap<>())
+                                .merge(tipo, 1, Integer::sum);
             }
         }
-        return new ContextoAvaliacao(noMes);
+        return new ContextoAvaliacao(porDiaTipo, contagemPorColab);
+    }
+
+    /**
+     * Variante sem equidade por tipo: constrói apenas {@code colabsPorDiaTipo}
+     * (necessário para co-presença e lookahead de rotação), mas devolve
+     * {@code turnosPorTipoPorColab} vazio. Usar no greedy primário quando
+     * {@code alvoPorTurno} está definido e em {@code preencherAteAlvoUniforme}:
+     * o componente (11) no greedy primário com alvo altera quais colaboradores caem
+     * em cada dia, o que perturba a uniformidade de cobertura no "levanta o piso".
+     */
+    public ContextoAvaliacao novoContextoSemEquidade(List<Horario> horariosJaGerados) {
+        Map<LocalDate, Map<String, Set<Integer>>> porDiaTipo = new HashMap<>();
+        for (Horario h : horariosJaGerados) {
+            if (h.getIdLojautilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador().getId() == null) {
+                continue;
+            }
+            Integer id = h.getIdLojautilizador().getIdUtilizador().getId();
+            if (h.getDataTurno() != null && h.getIdTurno() != null) {
+                String tipo = TurnoClassifier.tipoNormalizado(h.getIdTurno());
+                porDiaTipo.computeIfAbsent(h.getDataTurno(), k -> new HashMap<>())
+                          .computeIfAbsent(tipo, k -> new LinkedHashSet<>())
+                          .add(id);
+            }
+        }
+        return new ContextoAvaliacao(porDiaTipo, Map.of());
     }
 
     /** Pontua uma atribuição candidata. Menor = melhor. */
@@ -160,11 +221,33 @@ public final class AvaliadorAtribuicao {
         // do perfil, pelo que penalizá-lo só empurrava os FDS para a equipa regular.
         if (!estado.ehApenasFimDeSemana()) {
             double componenteFds = Math.min(estado.totalFimDeSemanaTrabalhados(), 5) / 5.0;
-            if (fimDeSemana && estado.trabalhouFimDeSemanaAnterior(data)) {
-                componenteFds += 1.0;
-                // Penalização base, independente da política: quando a rotação é relaxada
-                // para cobrir o FDS, quem descansou no FDS anterior tem prioridade clara.
-                pontuacao += PENALIZACAO_FDS_CONSECUTIVO;
+            if (fimDeSemana) {
+                // Guarda "fim de semana livre": se esta atribuição deixar o colaborador
+                // sem nenhum FDS livre no período, penalização quasi-hard (3 500 pts).
+                // Só activo quando o período tem > 1 FDS (se só há 1, alguém tem de o cobrir).
+                // Conta fins de semana DISTINTOS — quem já trabalhou este FDS (o outro dia)
+                // não consome um FDS livre adicional ao receber o segundo dia.
+                int totalFdsNoPeriodo = contarSabadosNoPeriodo(pedido.dataInicio(), pedido.dataFim());
+                int fdsDistintosApos = estado.fimsDeSemanaDistintosTrabalhados()
+                        + (estado.fimDeSemanaJaTrabalhado(data) ? 0 : 1);
+                if (totalFdsNoPeriodo > 1 && fdsDistintosApos >= totalFdsNoPeriodo) {
+                    pontuacao += 3500.0;
+                }
+
+                int semanasSinceFds = estado.semanasDesdeUltimoFimDeSemana(data);
+                if (semanasSinceFds == 1) {
+                    // FDS consecutivos: penalização máxima independente da política.
+                    componenteFds += 1.0;
+                    pontuacao += PENALIZACAO_FDS_CONSECUTIVO;
+                } else if (semanasSinceFds > 1) {
+                    int janela = pedido.janelaRotacaoFimDeSemana();
+                    if (janela > 1 && semanasSinceFds < janela) {
+                        // Dentro da janela mas não consecutivos: penalização proporcional
+                        // ao quão próximo está do limite (máximo em 2 semanas, 0 na janela).
+                        double frac = (double)(janela - semanasSinceFds) / (janela - 1);
+                        pontuacao += PENALIZACAO_JANELA_FDS * frac;
+                    }
+                }
             }
             pontuacao += politica.pesoFinsDeSemana() * componenteFds * ESCALA_FDS;
 
@@ -183,6 +266,10 @@ public final class AvaliadorAtribuicao {
         }
 
         // (5) Preferências aprovadas (turno + colegas)
+        // A verificação de colega usa o índice (dia, tipo-de-turno) do contexto para garantir
+        // que o bónus só dispara quando o colega preferido já está confirmado no MESMO slot
+        // (mesmo dia e mesmo tipo de turno). Verificar apenas "trabalhou este mês" (abordagem
+        // anterior) tornava o bónus quase constante a partir do 3.º dia, sem sinal real.
         double componentePref = 0;
         boolean temPrefTurno = temPreferenciaTurnoFavoravel(
                 estado.idUtilizador(), turno, data, pedido.preferenciasTurnos());
@@ -191,8 +278,14 @@ public final class AvaliadorAtribuicao {
         }
         Set<Integer> colegasPref = pedido.paresPreferisPorColaborador()
                 .getOrDefault(estado.idUtilizador(), Set.of());
-        if (!colegasPref.isEmpty() && !Collections.disjoint(colegasPref, contexto.colaboradoresNoMes())) {
-            componentePref -= 0.45;
+        if (!colegasPref.isEmpty()) {
+            String tipoTurno = TurnoClassifier.tipoNormalizado(turno);
+            Set<Integer> colabsJaNesseSlot = contexto.colabsPorDiaTipo()
+                    .getOrDefault(data, Map.of())
+                    .getOrDefault(tipoTurno, Set.of());
+            if (!Collections.disjoint(colegasPref, colabsJaNesseSlot)) {
+                componentePref -= 0.45;
+            }
         }
         pontuacao += politica.pesoPreferencias() * componentePref * ESCALA_PREFERENCIAS;
         // Tie-break: base mínima garantida independentemente da política ativa. O valor é
@@ -226,6 +319,23 @@ public final class AvaliadorAtribuicao {
             }
         }
 
+        // (7b) Lookahead de turno: se o colaborador já tem turno atribuído AMANHÃ
+        // (fase 1 já correu para esse dia), verificar se o turno de hoje cria uma
+        // rotação invertida futura (ex.: noite hoje → manhã amanhã). Peso reduzido
+        // a 40% vs a verificação retrospetiva: a restrição é ergonómica, não hard,
+        // e o futuro imediato é menos certo do que o passado verificado.
+        Map<String, Set<Integer>> tiposAmanha = contexto.colabsPorDiaTipo()
+                .getOrDefault(data.plusDays(1), Map.of());
+        for (Map.Entry<String, Set<Integer>> e : tiposAmanha.entrySet()) {
+            if (!e.getValue().contains(estado.idUtilizador())) continue;
+            int ordemHoje = TurnoClassifier.ordemPeriodo(turno);
+            int ordemAmanha = TurnoClassifier.ordemPorTipoNormalizado(e.getKey());
+            if (ordemHoje >= 0 && ordemAmanha >= 0 && ordemAmanha < ordemHoje) {
+                pontuacao += PENALIZACAO_ROTACAO_INVERTIDA * 0.4 * (ordemHoje - ordemAmanha);
+            }
+            break; // um turno por dia
+        }
+
         // (8) Idle streak — bónus para colaboradores que não trabalham há 2+ dias.
         // Só se aplica quando o colaborador NÃO está acima do ritmo esperado: se já está
         // adiantado no contrato, não precisa de incentivo extra — o pace guard (2b) trata
@@ -240,6 +350,39 @@ public final class AvaliadorAtribuicao {
         // (9) Diversificação — jitter determinístico de desempate (base garantida + reforço)
         double jitter = jitter(pedido.semente(), estado.idUtilizador());
         pontuacao += jitter * (1 + politica.pesoDiversificacao());
+
+        // (11) Equidade por tipo de turno — quando um colaborador que NÃO prefere um tipo
+        // de turno acumula mais turnos desse tipo do que a média da equipa (+1 de tolerância),
+        // o sistema penaliza-o progressivamente para que o "turno impopular" se distribua.
+        // Sem este componente, o bónus de consistência (7) tende a prender quem calhou
+        // fazer o primeiro turno impopular, tornando-o o escalado permanente para esse tipo.
+        // A penalização não se aplica a quem PREFERE este tipo — nesses, o consenso greedy
+        // já favorece a concentração (é o desejo deles) e a ergonomia não é problema.
+        boolean prefereTipoTurno = temPreferenciaTurnoFavoravel(
+                estado.idUtilizador(), turno, data, pedido.preferenciasTurnos());
+        if (!prefereTipoTurno) {
+            String tipoTurnoNorm = TurnoClassifier.tipoNormalizado(turno);
+            int contagemDoColab = contexto.turnosPorTipoPorColab()
+                    .getOrDefault(estado.idUtilizador(), Map.of())
+                    .getOrDefault(tipoTurnoNorm, 0);
+            // Média da equipa para este tipo de turno (colaboradores do pedido)
+            double totalEquipa = 0;
+            int nEquipa = 0;
+            for (Lojautilizador lig : pedido.colaboradores()) {
+                Integer idColab = lig.getIdUtilizador() != null ? lig.getIdUtilizador().getId() : null;
+                if (idColab == null) continue;
+                totalEquipa += contexto.turnosPorTipoPorColab()
+                        .getOrDefault(idColab, Map.of())
+                        .getOrDefault(tipoTurnoNorm, 0);
+                nEquipa++;
+            }
+            double mediaEquipa = nEquipa > 0 ? totalEquipa / nEquipa : 0;
+            // Tolera até 1 turno acima da média; depois penaliza linearmente.
+            double excesso = contagemDoColab - mediaEquipa - 1.0;
+            if (excesso > 0) {
+                pontuacao += politica.pesoEquilibrioCarga() * excesso * ESCALA_EQUIDADE_TIPO;
+            }
+        }
 
         // (10) Proteção da chefia para o sábado — em dia útil, uma chefia com sábado(s)
         // designado(s) pelo plano não deve ser escalada quando isso a deixaria sem margem
@@ -315,7 +458,29 @@ public final class AvaliadorAtribuicao {
         return false;
     }
 
-    /** Contexto pré-computado, partilhado por todos os candidatos de uma resolução. */
-    public record ContextoAvaliacao(Set<Integer> colaboradoresNoMes) {
+    /** Conta os sábados entre {@code inicio} e {@code fim} (inclusive). */
+    private static int contarSabadosNoPeriodo(LocalDate inicio, LocalDate fim) {
+        int count = 0;
+        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {
+            if (d.getDayOfWeek() == DayOfWeek.SATURDAY) count++;
+        }
+        return count;
+    }
+
+    /**
+     * Contexto pré-computado, partilhado por todos os candidatos de uma resolução.
+     *
+     * @param colabsPorDiaTipo      dia → (tipo-turno → ids já confirmados nesse slot);
+     *                              usado pela verificação de co-presença com colegas preferidos
+     *                              e pelo lookahead de rotação de turno (componente 7b)
+     * @param turnosPorTipoPorColab id-colaborador → (tipo → contagem acumulada no mês);
+     *                              usado pela equidade por tipo de turno (componente 11);
+     *                              vazio quando o contexto é criado via
+     *                              {@link AvaliadorAtribuicao#novoContextoSemEquidade} (greedy
+     *                              primário com alvo definido e preencherAteAlvoUniforme)
+     */
+    public record ContextoAvaliacao(
+            Map<LocalDate, Map<String, Set<Integer>>> colabsPorDiaTipo,
+            Map<Integer, Map<String, Integer>> turnosPorTipoPorColab) {
     }
 }

@@ -1,6 +1,9 @@
 package com.example.projeto2.API.Services.geracao.dto;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Resumo legível de tudo o que o motor de geração tem em conta para um período:
@@ -25,6 +28,7 @@ import java.util.List;
  * @param detalhePreferenciasTurno   uma por preferência: nome — descrição (período)
  * @param detalhePreferenciasColegas uma por preferência: nome — descrição
  * @param detalheDiasEspeciais       um por dia: data — encerrado/horário especial
+ * @param folgasPreferidasPorColaborador id-colaborador → datas de folga preferida no período (para validação)
  */
 public record CriteriosGeracao(
         int descansoMinimoHoras,
@@ -41,7 +45,8 @@ public record CriteriosGeracao(
         List<String> detalheFolgasPreferidas,
         List<String> detalhePreferenciasTurno,
         List<String> detalhePreferenciasColegas,
-        List<String> detalheDiasEspeciais
+        List<String> detalheDiasEspeciais,
+        Map<Integer, Set<LocalDate>> folgasPreferidasPorColaborador
 ) {
 
     /** A capacidade contratual da equipa chega para a cobertura mínima do período. */

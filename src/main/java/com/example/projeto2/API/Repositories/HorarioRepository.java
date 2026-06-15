@@ -269,4 +269,7 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
                                            @Param("idExcluir") Integer idExcluir);
 
     void deleteByIdPropostaHorarioId(Integer idPropostaHorario);
+
+    boolean existsByIdLojautilizadorIdAndDataTurnoAndIdPropostaHorarioId(
+            Integer idLojautilizador, LocalDate dataTurno, Integer idPropostaHorario);
 }

@@ -74,6 +74,8 @@ public class GeracaoHorariosController {
     @FXML private Button btnGerarProposta;
     @FXML private Button btnGerarAlternativas;
     @FXML private Spinner<Integer> spQuantidadeAlternativas;
+    @FXML private ComboBox<ObjetivoGeracao> cbObjetivoGeracao;
+    @FXML private ComboBox<String> cbAlvoPorTurno;
     @FXML private VBox painelSelecaoColaboradores;
     @FXML private VBox boxColaboradoresGeracao;
     @FXML private Label lblResumoColaboradoresGeracao;
@@ -156,6 +158,7 @@ public class GeracaoHorariosController {
     @FXML private Button btnExpandirGrelha;
     @FXML private VBox painelVerificacaoHorario;
     @FXML private Label lblVerificacaoTitulo;
+    @FXML private Button btnExportarVerificacaoPdf;
     @FXML private VBox vbVerificacaoGrelha;
     @FXML private VBox vbVerificacaoResultados;
     @FXML private VBox painelVistaCalendario;
@@ -303,6 +306,18 @@ public class GeracaoHorariosController {
             mostrarErro("Carrega primeiro uma proposta de horário para verificar.");
             return;
         }
+        if (renderizarVerificacao()) {
+            mostrarPainelVerificacao(true);
+        }
+    }
+
+    /**
+     * Recalcula e re-desenha a verificação a partir da proposta atual. Devolve
+     * {@code false} se houver erro (já notificado). Reutilizado após cada ajuste manual
+     * para o gestor ver o impacto imediato.
+     */
+    private boolean renderizarVerificacao() {
+        if (propostaAtual == null || propostaAtual.linhas() == null) return false;
         try {
             validarUtilizadorAutenticado();
             MesOption mes = obterMesSelecionado();
@@ -335,18 +350,41 @@ public class GeracaoHorariosController {
                         .renderizar(vbVerificacaoResultados, resultado, criterios,
                                 propostaAtual.linhas(), spAno.getValue());
             }
-
-            mostrarPainelVerificacao(true);
+            return true;
         } catch (IllegalArgumentException e) {
             mostrarErro(e.getMessage());
+            return false;
         } catch (Exception e) {
             mostrarErro("Não foi possível verificar o horário.");
+            return false;
         }
     }
 
     @FXML
     public void onVoltarAoHorarioClick() {
         mostrarPainelVerificacao(false);
+    }
+
+    @FXML
+    public void onExportarVerificacaoPdfClick() {
+        if (propostaAtual == null || propostaAtual.linhas() == null || propostaAtual.linhas().isEmpty()) {
+            mostrarErro("Gera ou carrega primeiro uma proposta para exportar o relatório.");
+            return;
+        }
+        try {
+            validarUtilizadorAutenticado();
+            MesOption mes = obterMesSelecionado();
+            var criterios = geracaoHorariosBLL.obterCriteriosGeracao(
+                    utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+            com.example.projeto2.DESKTOP.support.ExportadorVerificacaoPdf.exportar(
+                    propostaAtual.linhas(), criterios, mes.numero(), spAno.getValue(),
+                    lblLoja.getText(), mes + " " + spAno.getValue(), obterJanela(),
+                    this::mostrarSucesso, this::mostrarErro);
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+        } catch (Exception e) {
+            mostrarErro("Não foi possível exportar o relatório de verificação.");
+        }
     }
 
     @FXML
@@ -361,27 +399,73 @@ public class GeracaoHorariosController {
                     com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender
                             .construirLinhasGrelha(propostaAtual.linhas(), ym.atDay(1), ym.atEndOfMonth());
 
-            javafx.scene.layout.VBox conteudo = new javafx.scene.layout.VBox();
+            // ── Cabeçalho da janela ──────────────────────────────────────────
+            javafx.scene.layout.VBox root = new javafx.scene.layout.VBox(0);
+            root.setStyle("-fx-background-color: white;");
+
+            javafx.scene.layout.HBox header = new javafx.scene.layout.HBox(12);
+            header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            header.setPadding(new javafx.geometry.Insets(16, 24, 14, 24));
+            header.setStyle("-fx-background-color: #7f1d1d; -fx-border-color: transparent;");
+
+            javafx.scene.control.Label lblTitulo = new javafx.scene.control.Label(
+                    "Horário — " + mes + " " + spAno.getValue()
+                    + (propostaAtual.idProposta() != null ? "  •  Proposta #" + propostaAtual.idProposta() : ""));
+            lblTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: white;");
+
+            javafx.scene.layout.Region esp = new javafx.scene.layout.Region();
+            javafx.scene.layout.HBox.setHgrow(esp, javafx.scene.layout.Priority.ALWAYS);
+
+            // Legenda de cores — chip colorido + nome completo para cada tipo de turno
+            javafx.scene.layout.HBox legenda = new javafx.scene.layout.HBox(16);
+            legenda.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            for (String[] par : new String[][]{
+                    {"M", "#3b82f6", "Manhã"},
+                    {"N", "#8b5cf6", "Noite"},
+                    {"I", "#f59e0b", "Intermédio"},
+                    {"—", "#94a3b8", "Folga"}}) {
+                javafx.scene.layout.HBox item = new javafx.scene.layout.HBox(5);
+                item.setAlignment(javafx.geometry.Pos.CENTER);
+                javafx.scene.control.Label chip = new javafx.scene.control.Label(par[0]);
+                chip.setStyle("-fx-background-color: " + par[1] + "; -fx-text-fill: white"
+                        + "; -fx-font-weight: 700; -fx-font-size: 11px; "
+                        + "-fx-padding: 2 7 2 7; -fx-background-radius: 5;");
+                javafx.scene.control.Label txt = new javafx.scene.control.Label(par[2]);
+                txt.setStyle("-fx-font-size: 11px; -fx-text-fill: #fca5a5;");
+                item.getChildren().addAll(chip, txt);
+                legenda.getChildren().add(item);
+            }
+            header.getChildren().addAll(lblTitulo, esp, legenda);
+
+            // ── Grelha detalhada (chip colorido + horas, coluna fixa) ────────
+            javafx.scene.layout.VBox grelha = new javafx.scene.layout.VBox();
+            grelha.setStyle("-fx-background-color: white;");
+            // null: sem callback de clique — evita abrir painéis na app de fundo
             com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
-                    .renderizar(conteudo, dias, linhasGrelha, LocalDate.now(), null);
+                    .renderizarDetalhado(grelha, dias, linhasGrelha, LocalDate.now(), null);
 
-            javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(conteudo);
+            javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(grelha);
             sp.setFitToWidth(true);
-            sp.setFitToHeight(false);
-            sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
-            sp.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+            sp.setFitToHeight(true);   // grelha estica para preencher toda a altura
+            sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+            sp.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
             sp.setStyle("-fx-background-color: white; -fx-background: white;");
+            javafx.scene.layout.VBox.setVgrow(sp, javafx.scene.layout.Priority.ALWAYS);
 
-            javafx.scene.Scene cena = new javafx.scene.Scene(sp, 1300, 680);
+            root.getChildren().addAll(header, sp);
+
+            javafx.scene.Scene cena = new javafx.scene.Scene(root, 1400, 800);
             if (obterJanela() != null && obterJanela().getScene() != null) {
                 cena.getStylesheets().addAll(obterJanela().getScene().getStylesheets());
             }
             javafx.stage.Stage janela = new javafx.stage.Stage();
-            janela.setTitle("Horário em detalhe  —  " + mes + " " + spAno.getValue());
+            janela.setTitle("Horário — " + mes + " " + spAno.getValue());
             janela.setScene(cena);
             janela.initModality(javafx.stage.Modality.NONE);
             if (obterJanela() != null) janela.initOwner(obterJanela());
             janela.show();
+            // setMaximized depois de show() garante que funciona no Windows/JavaFX
+            javafx.application.Platform.runLater(() -> janela.setMaximized(true));
         } catch (Exception e) {
             mostrarErro("Não foi possível abrir a vista em detalhe.");
         }
@@ -558,6 +642,8 @@ public class GeracaoHorariosController {
         spQuantidadeAlternativas.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 3));
         spQuantidadeAlternativas.setEditable(true);
 
+        configurarPreferenciasGeracao();
+
         cbMes.valueProperty().addListener((obs, ant, novo) -> onPeriodoAlterado());
         spAno.valueProperty().addListener((obs, ant, novo) -> onPeriodoAlterado());
 
@@ -568,6 +654,41 @@ public class GeracaoHorariosController {
             atualizarCalendarioMensal();
         });
         reposicionarSemanaPlaneamentoParaMesSelecionado();
+    }
+
+    private static final String ALVO_AUTOMATICO = "Automático (encher capacidade)";
+
+    private void configurarPreferenciasGeracao() {
+        if (cbObjetivoGeracao != null) {
+            cbObjetivoGeracao.setItems(FXCollections.observableArrayList(ObjetivoGeracao.values()));
+            cbObjetivoGeracao.setConverter(new javafx.util.StringConverter<>() {
+                @Override public String toString(ObjetivoGeracao o) { return o == null ? "" : o.rotulo(); }
+                @Override public ObjetivoGeracao fromString(String s) { return null; }
+            });
+            cbObjetivoGeracao.setValue(ObjetivoGeracao.AUTOMATICO);
+            cbObjetivoGeracao.setTooltip(new Tooltip(
+                    "O que o motor prioriza ao distribuir os turnos. 'Automático' varia a estratégia entre alternativas."));
+        }
+        if (cbAlvoPorTurno != null) {
+            cbAlvoPorTurno.setItems(FXCollections.observableArrayList(
+                    ALVO_AUTOMATICO, "1 por turno", "2 por turno", "3 por turno", "4 por turno"));
+            cbAlvoPorTurno.setValue(ALVO_AUTOMATICO);
+            cbAlvoPorTurno.setTooltip(new Tooltip(
+                    "Nº alvo de pessoas por turno em cada dia. 'Automático' usa toda a capacidade "
+                            + "contratual disponível. Nunca desce abaixo do mínimo das regras."));
+        }
+    }
+
+    private ConfiguracaoGeracao obterConfiguracaoGeracao() {
+        ObjetivoGeracao objetivo = (cbObjetivoGeracao != null && cbObjetivoGeracao.getValue() != null)
+                ? cbObjetivoGeracao.getValue() : ObjetivoGeracao.AUTOMATICO;
+        Integer alvo = null;
+        String alvoSel = cbAlvoPorTurno != null ? cbAlvoPorTurno.getValue() : null;
+        if (alvoSel != null && !ALVO_AUTOMATICO.equals(alvoSel) && !alvoSel.isBlank()
+                && Character.isDigit(alvoSel.charAt(0))) {
+            alvo = alvoSel.charAt(0) - '0';
+        }
+        return new ConfiguracaoGeracao(objetivo, alvo);
     }
 
     private void onPeriodoAlterado() {
@@ -704,8 +825,78 @@ public class GeracaoHorariosController {
                 propostaAtual != null ? propostaAtual.linhas() : null,
                 obterJanela(),
                 podeGerar,
-                (turno, janelaBotao) -> abrirEdicaoTurno(turno, janelaBotao != null ? janelaBotao : obterJanela())
+                (turno, janelaBotao) -> abrirEdicaoTurno(turno, janelaBotao != null ? janelaBotao : obterJanela()),
+                (template, janelaBotao) -> abrirAdicionarTurno(template, data, janelaBotao != null ? janelaBotao : obterJanela())
         );
+    }
+
+    private void abrirAdicionarTurno(HorarioLinha template, LocalDate data, Window owner) {
+        if (propostaAtual == null || propostaAtual.idProposta() == null) {
+            mostrarErro("Proposta não encontrada — não é possível adicionar o turno.");
+            return;
+        }
+        try {
+            java.util.List<com.example.projeto2.API.Modules.Turno> turnos = horarioBLL.listarTodosOsTurnos();
+            if (turnos.isEmpty()) {
+                mostrarErro("Sem turnos disponíveis para atribuir.");
+                return;
+            }
+            javafx.scene.control.ChoiceDialog<com.example.projeto2.API.Modules.Turno> dialogo =
+                    new javafx.scene.control.ChoiceDialog<>(turnos.getFirst(), turnos);
+            dialogo.setTitle("Adicionar turno");
+            dialogo.setHeaderText("Colaborador: " + (template.colaborador() != null ? template.colaborador() : "-")
+                    + "\nDia: " + data);
+            dialogo.setContentText("Turno a atribuir:");
+            javafx.util.StringConverter<com.example.projeto2.API.Modules.Turno> conv =
+                    new javafx.util.StringConverter<>() {
+                        @Override public String toString(com.example.projeto2.API.Modules.Turno t) {
+                            if (t == null) return "-";
+                            return (t.getTipo() != null ? t.getTipo() + " " : "")
+                                    + t.getHoraInicio() + " — " + t.getHoraFim();
+                        }
+                        @Override public com.example.projeto2.API.Modules.Turno fromString(String s) { return null; }
+                    };
+            if (dialogo.getDialogPane().lookupAll(".combo-box").stream().findFirst().orElse(null)
+                    instanceof javafx.scene.control.ComboBox<?> combo) {
+                @SuppressWarnings("unchecked")
+                javafx.scene.control.ComboBox<com.example.projeto2.API.Modules.Turno> cb =
+                        (javafx.scene.control.ComboBox<com.example.projeto2.API.Modules.Turno>) combo;
+                cb.setConverter(conv);
+                cb.setButtonCell(new javafx.scene.control.ListCell<>() {
+                    @Override protected void updateItem(com.example.projeto2.API.Modules.Turno t, boolean empty) {
+                        super.updateItem(t, empty); setText(empty || t == null ? "-" : conv.toString(t));
+                    }
+                });
+                cb.setCellFactory(lv -> new javafx.scene.control.ListCell<>() {
+                    @Override protected void updateItem(com.example.projeto2.API.Modules.Turno t, boolean empty) {
+                        super.updateItem(t, empty); setText(empty || t == null ? "-" : conv.toString(t));
+                    }
+                });
+            }
+            if (owner != null) dialogo.initOwner(owner);
+            dialogo.showAndWait().ifPresent(turnoSelecionado -> {
+                try {
+                    horarioBLL.adicionarTurno(
+                            propostaAtual.idProposta(),
+                            template.idLojautilizador(),
+                            data,
+                            turnoSelecionado.getId(),
+                            utilizadorLogado != null ? utilizadorLogado.getId() : null);
+                    if (owner instanceof javafx.stage.Stage s) s.close();
+                    mostrarSucesso("Turno " + conv.toString(turnoSelecionado) + " adicionado a "
+                            + (template.colaborador() != null ? template.colaborador() : "-") + ".");
+                    if (propostaAtual.idProposta() != null) {
+                        carregarPropostaPorIdEmSegundoPlano(propostaAtual.idProposta(), false);
+                    }
+                } catch (IllegalArgumentException ex) {
+                    mostrarErro(ex.getMessage());
+                } catch (Exception ex) {
+                    mostrarErro("Não foi possível adicionar o turno.");
+                }
+            });
+        } catch (Exception e) {
+            mostrarErro("Não foi possível abrir o seletor de turno.");
+        }
     }
 
     private void mostrarHorarioIndividual(ResumoColaborador colaborador) {
@@ -885,6 +1076,12 @@ public class GeracaoHorariosController {
         }
         if (painelVistaGrelha != null && painelVistaGrelha.isVisible()) {
             construirVistaGrelha();
+        }
+
+        // Se a verificação está aberta (ex.: após um ajuste manual de turno),
+        // recalcula e re-desenha para o gestor ver o impacto imediato.
+        if (verificacaoAtiva) {
+            renderizarVerificacao();
         }
     }
 
@@ -1206,6 +1403,7 @@ public class GeracaoHorariosController {
             if (idsColaboradoresSelecionados.isEmpty()) {
                 throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horário.");
             }
+            final ConfiguracaoGeracao configuracaoGeracao = obterConfiguracaoGeracao();
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     quantidade == 1 ? "Gerar alternativa" : "Gerar alternativas",
@@ -1225,7 +1423,7 @@ public class GeracaoHorariosController {
                         List<PropostaResultado> resultados = geracaoHorariosBLL.gerarPropostas(
                                 utilizadorLogado.getId(), spAno.getValue(), mes.numero(),
                                 quantidade, idsColaboradoresSelecionados,
-                                overlayCarregamento::atualizarMensagem);
+                                overlayCarregamento::atualizarMensagem, configuracaoGeracao);
                         PropostaResultado melhorResultado = resultados.stream()
                                 .min(Comparator.comparingInt(r -> r.metricas().pontuacao()))
                                 .orElse(resultados.getFirst());

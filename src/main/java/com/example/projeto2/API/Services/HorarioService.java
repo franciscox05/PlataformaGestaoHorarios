@@ -4,10 +4,12 @@ import com.example.projeto2.API.Enums.EstadoHorario;
 import com.example.projeto2.API.Modules.HistoricoHorarioEstado;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Lojautilizador;
+import com.example.projeto2.API.Modules.PropostaHorarioMensal;
 import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Repositories.HistoricoHorarioEstadoRepository;
 import com.example.projeto2.API.Repositories.HorarioRepository;
 import com.example.projeto2.API.Repositories.LojautilizadorRepository;
+import com.example.projeto2.API.Repositories.PropostaHorarioMensalRepository;
 import com.example.projeto2.API.Repositories.TurnoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,17 +30,20 @@ public class HorarioService {
     private final LojautilizadorHelper lojautilizadorHelper;
     private final TurnoRepository turnoRepository;
     private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
+    private final PropostaHorarioMensalRepository propostaRepository;
 
     public HorarioService(HorarioRepository horarioRepository,
                       LojautilizadorRepository lojautilizadorRepository,
                       LojautilizadorHelper lojautilizadorHelper,
                       TurnoRepository turnoRepository,
-                      HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository) {
+                      HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository,
+                      PropostaHorarioMensalRepository propostaRepository) {
         this.horarioRepository = horarioRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.turnoRepository = turnoRepository;
         this.historicoHorarioEstadoRepository = historicoHorarioEstadoRepository;
+        this.propostaRepository = propostaRepository;
     }
 
     @Transactional(readOnly = true)
@@ -255,6 +260,73 @@ public class HorarioService {
         // Aplicar alteração
         horario.setIdTurno(novoTurno);
         return horarioRepository.save(horario);
+    }
+
+    /**
+     * Adiciona um turno a um colaborador num dia específico de uma proposta.
+     * Útil quando o gerente removeu um turno e precisa de o restaurar, ou quando quer
+     * cobrir um dia que ficou sem nenhum colaborador atribuído.
+     */
+    @Transactional
+    public Horario adicionarTurno(Integer idProposta, Integer idLojautilizador,
+                                  LocalDate data, Integer idTurno, Integer idAprovador) {
+        if (idProposta == null || idLojautilizador == null || data == null
+                || idTurno == null || idAprovador == null) {
+            throw new IllegalArgumentException("Todos os campos são obrigatórios.");
+        }
+        lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idAprovador, LojautilizadorHelper.APROVACAO,
+                "Não tens permissão para editar horários.");
+
+        PropostaHorarioMensal proposta = propostaRepository.findById(idProposta)
+                .orElseThrow(() -> new IllegalArgumentException("Proposta não encontrada."));
+
+        Lojautilizador lojautilizador = lojautilizadorRepository.findById(idLojautilizador)
+                .orElseThrow(() -> new IllegalArgumentException("Colaborador não encontrado."));
+
+        if (horarioRepository.existsByIdLojautilizadorIdAndDataTurnoAndIdPropostaHorarioId(
+                idLojautilizador, data, idProposta)) {
+            throw new IllegalArgumentException("Este colaborador já tem um turno atribuído nesse dia.");
+        }
+
+        Turno turno = turnoRepository.findById(idTurno)
+                .orElseThrow(() -> new IllegalArgumentException("Turno não encontrado."));
+
+        Horario novo = new Horario();
+        novo.setIdLojautilizador(lojautilizador);
+        novo.setIdTurno(turno);
+        novo.setIdPropostaHorario(proposta);
+        novo.setDataTurno(data);
+        try {
+            novo.setEstado(EstadoHorario.valueOf(proposta.getEstado()));
+        } catch (Exception e) {
+            novo.setEstado(EstadoHorario.pendente);
+        }
+        return horarioRepository.save(novo);
+    }
+
+    /**
+     * Remove um turno do horário — o colaborador fica de folga nesse dia. Usado pelo
+     * gestor para ajustar manualmente uma proposta/horário (ex.: libertar um fim de
+     * semana). Apaga primeiro o histórico associado (FK) e depois o próprio turno.
+     *
+     * @param idHorario  ID do registo Horario a remover
+     * @param idAprovador ID do utilizador (deve ter permissão de gestão da loja)
+     */
+    @Transactional
+    public void removerTurno(Integer idHorario, Integer idAprovador) {
+        if (idHorario == null || idAprovador == null) {
+            throw new IllegalArgumentException("ID do horário e do aprovador são obrigatórios.");
+        }
+        lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idAprovador, LojautilizadorHelper.APROVACAO,
+                "Não tens permissão para editar horários.");
+
+        Horario horario = horarioRepository.findById(idHorario)
+                .orElseThrow(() -> new IllegalArgumentException("Horário não encontrado."));
+
+        historicoHorarioEstadoRepository.deleteByIdHorario(horario);
+        horarioRepository.delete(horario);
     }
 
     public record ColaboradorLoja(Integer idUtilizador, String nome, String cargo) {

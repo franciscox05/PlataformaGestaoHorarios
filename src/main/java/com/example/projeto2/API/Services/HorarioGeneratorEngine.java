@@ -11,6 +11,7 @@ import com.example.projeto2.API.Services.geracao.PedidoGeracao;
 import com.example.projeto2.API.Services.geracao.PlaneadorFinsDeSemana;
 import com.example.projeto2.API.Services.geracao.PlaneadorFolgasPreferidas;
 import com.example.projeto2.API.Services.geracao.PlanoFinsDeSemana;
+import com.example.projeto2.API.Services.geracao.PolisherHorario;
 import com.example.projeto2.API.Services.geracao.RefinadorPlaneamento;
 import com.example.projeto2.API.Services.geracao.SugestaoFalhaGeracao;
 import com.example.projeto2.API.Services.geracao.TurnoClassifier;
@@ -23,7 +24,6 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -80,9 +81,20 @@ public class HorarioGeneratorEngine {
     private static final int LIMITE_NOS_PESQUISA_ALARGADO = 24_000;
     private static final int LIMITE_NOS_PESQUISA_EXCECAO  = 40_000;
 
+    // Multi-start: desvio-padrão do ruído gaussiano adicionado aos scores do greedy
+    // para explorar soluções alternativas. Pequeno o suficiente para não anular
+    // preferências fortes (diferença típica > 10 pts), mas suficiente para criar
+    // diversidade via desempate estocástico.
+    private static final double SIGMA_RUIDO_GREEDY = 3.0;
+
+    // RNG de ruído por thread — null no greedy base (sem ruído), instanciado nas
+    // tentativas adicionais. ThreadLocal garante thread-safety num serviço singleton.
+    private static final ThreadLocal<Random> GREEDY_NOISE_RND = new ThreadLocal<>();
+
     private final HorarioValidatorService validator;
     private final AvaliadorAtribuicao avaliador;
     private final RefinadorPlaneamento refinador;
+    private final PolisherHorario polisher;
     private final PlaneadorFolgasPreferidas planeadorFolgas;
     private final PlaneadorFinsDeSemana planeadorFins;
 
@@ -90,6 +102,7 @@ public class HorarioGeneratorEngine {
         this.validator = validator;
         this.avaliador = new AvaliadorAtribuicao(validator);
         this.refinador = new RefinadorPlaneamento(validator);
+        this.polisher = new PolisherHorario(validator);
         this.planeadorFolgas = new PlaneadorFolgasPreferidas(validator);
         this.planeadorFins = new PlaneadorFinsDeSemana(validator);
     }
@@ -101,13 +114,68 @@ public class HorarioGeneratorEngine {
     /**
      * Ponto de entrada principal.
      *
+     * <p>Executa o pipeline de geração até 3 vezes com ruído controlado no greedy
+     * (multi-start estocástico), mantendo o melhor resultado por custo global.
+     * A primeira tentativa é o baseline sem ruído — determinístico e reproduzível.
+     * As tentativas adicionais só correm em produção (prazoLimite != null) quando
+     * há tempo suficiente; se esgotarem o prazo, o melhor resultado anterior é mantido.
+     *
      * @param pedido inputs imutáveis da geração.
      * @return lista de {@link Horario} gerados (sem ID — ainda não persistidos).
      * @throws IllegalArgumentException se não for possível satisfazer todas as restrições.
      */
     public List<Horario> gerar(PedidoGeracao pedido) {
+        validarEntradasBasicas(pedido);
         validarCapacidadeGlobal(pedido);
 
+        // Tentativa 0: baseline sem ruído (determinístico — semente para o jitter do avaliador)
+        List<Horario> melhor = executarUmaGeracao(pedido, 0L);
+
+        // Tentativas adicionais com ruído para explorar soluções alternativas.
+        // Só em produção (prazoLimite definido) e apenas se há ≥ 4 s de margem.
+        if (pedido.prazoLimite() != null) {
+            long[] sementesExtras = {
+                pedido.semente() ^ 0x9e3779b97f4a7c15L,
+                pedido.semente() ^ 0x6c62272e07bb0142L
+            };
+            double melhorCusto = polisher.avaliarCusto(pedido, melhor);
+            for (long sementeExtra : sementesExtras) {
+                if (prazoProximo(pedido)) break;
+                try {
+                    List<Horario> resultado = executarUmaGeracao(pedido, sementeExtra);
+                    double custo = polisher.avaliarCusto(pedido, resultado);
+                    if (custo < melhorCusto) {
+                        melhor = resultado;
+                        melhorCusto = custo;
+                        LOGGER.debug("Multi-start: custo melhorado para {}.", Math.round(custo));
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Prazo esgotado na tentativa extra — mantém o melhor resultado até agora.
+                    break;
+                }
+            }
+        }
+        return melhor;
+    }
+
+    /**
+     * Executa uma passagem completa do pipeline de geração (greedy → top-up → refinamento
+     * → polimento). Quando {@code sementeGreedy != 0}, ativa um ruído gaussiano controlado
+     * no avaliador de candidatos para explorar regiões do espaço de soluções diferentes
+     * do baseline determinístico.
+     */
+    private List<Horario> executarUmaGeracao(PedidoGeracao pedido, long sementeGreedy) {
+        if (sementeGreedy != 0L) {
+            GREEDY_NOISE_RND.set(new Random(sementeGreedy));
+        }
+        try {
+            return executarPipeline(pedido, sementeGreedy);
+        } finally {
+            GREEDY_NOISE_RND.remove();
+        }
+    }
+
+    private List<Horario> executarPipeline(PedidoGeracao pedido, long sementeGreedy) {
         Map<Integer, EstadoColaborador> estadoPorColaborador = inicializarEstados(pedido);
         inicializarHistorico(estadoPorColaborador, pedido.historicoHorarios());
 
@@ -123,7 +191,9 @@ public class HorarioGeneratorEngine {
 
         // Lookahead de fins de semana: designação global (consultiva) de quem trabalha
         // cada FDS, para o avaliador planear a rotação em vez de a resolver reativamente.
-        PlanoFinsDeSemana planoFins = planeadorFins.planear(pedido);
+        // A sementeGreedy (≠0 nas tentativas extra do multi-start) baralha a ordem de
+        // designação dos FDS, criando designações alternativas para explorar.
+        PlanoFinsDeSemana planoFins = planeadorFins.planear(pedido, sementeGreedy);
         if (planoFins.ativo()) {
             estadoPorColaborador.forEach((id, estado) ->
                     estado.designarFinsDeSemana(planoFins.designados(id), planoFins.chefiaEm(id)));
@@ -161,21 +231,63 @@ public class HorarioGeneratorEngine {
         }
 
         // ── FASE 2 — Preenchimento de capacidade (top-up) ─────────────────────
-        // Com todos os mínimos garantidos, distribui a capacidade contratual ainda
-        // por consumir pelos dias do mês, sem nunca ultrapassar o teto contratual de
-        // cada colaborador. Dias com configuração especial cumprem exatamente o mínimo.
-        for (LocalDate data = pedido.dataInicio(); !data.isAfter(pedido.dataFim()); data = data.plusDays(1)) {
-            ConfiguracaoDia configDia = pedido.configuracoesPorData().get(data);
-            if (configDia != null) {
-                continue;
+        // Com todos os mínimos garantidos, distribui a capacidade contratual ainda por
+        // consumir. Dois modos:
+        //  • COM alvo de pessoas por turno (gestor escolheu): "levanta o piso" —
+        //    leva TODOS os dias a 2/turno antes de qualquer dia ir a 3, e assim por diante
+        //    até ao alvo. Cobertura uniforme em vez de amontoada em certos dias da semana.
+        //  • SEM alvo: enche até à capacidade com orçamento diário acumulado (ver abaixo).
+        if (pedido.alvoPorTurno() != null) {
+            preencherAteAlvoUniforme(pedido, horarios, estadoPorColaborador.values(),
+                    sabadosComChefia, pedido.alvoPorTurno());
+        } else {
+            // Orçamento ACUMULADO a uma taxa diária constante: a folga de capacidade que
+            // sobrou da fase 1 reparte-se por igual pelos dias do mês. Sem a acumulação, um
+            // orçamento diário menor que a duração de um turno (equipas pequenas) nunca
+            // chegava para um turno extra cedo no mês — empurrando o reforço todo para o fim.
+            // O teto contratual de cada colaborador (podeReceber) garante que o total nunca
+            // excede a capacidade real da equipa.
+            long capacidadeReforco = estadoPorColaborador.values().stream()
+                    .mapToLong(EstadoColaborador::capacidadeRestanteMinutos)
+                    .sum();
+            long diasTopUp = 0;
+            for (LocalDate data = pedido.dataInicio(); !data.isAfter(pedido.dataFim()); data = data.plusDays(1)) {
+                if (pedido.configuracoesPorData().get(data) == null) {
+                    diasTopUp++;
+                }
             }
-            List<AtribuicaoDia> extras = reforcarCoberturaDoDia(
-                    data, pedido.turnos(), estadoPorColaborador.values(), horarios, pedido);
-            registarAtribuicoes(data, extras, horarios, sabadosComChefia);
+            double taxaDiariaReforco = diasTopUp > 0 ? capacidadeReforco / (double) diasTopUp : 0;
+            double orcamentoAcumulado = 0;
+
+            for (LocalDate data = pedido.dataInicio(); !data.isAfter(pedido.dataFim()); data = data.plusDays(1)) {
+                ConfiguracaoDia configDia = pedido.configuracoesPorData().get(data);
+                if (configDia != null) {
+                    continue;
+                }
+                orcamentoAcumulado += taxaDiariaReforco;
+                List<AtribuicaoDia> extras = reforcarCoberturaDoDia(
+                        data, pedido.turnos(), estadoPorColaborador.values(), horarios, pedido, orcamentoAcumulado);
+                for (AtribuicaoDia extra : extras) {
+                    orcamentoAcumulado -= extra.minutosTurno();
+                }
+                registarAtribuicoes(data, extras, horarios, sabadosComChefia);
+            }
         }
 
-        // Fase final: refinamento por pesquisa local (folgas preferidas + equilíbrio de carga)
-        return refinador.refinar(pedido, horarios);
+        // Fase final A: refinamento por pesquisa local (folgas preferidas + equilíbrio de carga)
+        List<Horario> refinado = refinador.refinar(pedido, horarios);
+
+        // Fase final B: polimento por hill-climbing (trocas entre colaboradores que reduzam
+        // o custo global — equilíbrio, rotação de FDS e preferências não honradas). Preserva
+        // a cobertura por construção (só muda quem cobre cada turno) e valida cada troca
+        // contra todas as regras hard. Determinístico via semente de diversificação.
+        return polisher.polir(pedido, refinado);
+    }
+
+    /** True se o prazo está a menos de 4 s de distância — sinal para não iniciar nova tentativa. */
+    private boolean prazoProximo(PedidoGeracao pedido) {
+        return pedido.prazoLimite() != null
+                && Instant.now().isAfter(pedido.prazoLimite().minusSeconds(4));
     }
 
     private void registarAtribuicoes(LocalDate data,
@@ -193,6 +305,43 @@ public class HorarioGeneratorEngine {
             if (data.getDayOfWeek() == DayOfWeek.SATURDAY && a.estado().ehChefiaAoSabado()) {
                 sabadosComChefia.add(data);
             }
+        }
+    }
+
+    // =========================================================================
+    // Pré-flight de entradas degeneradas
+    // =========================================================================
+
+    /**
+     * Casos degenerados falham imediatamente com a causa real: sem este guard,
+     * uma equipa vazia caía na mensagem de capacidade ("a equipa só tem 0h") e
+     * uma loja sem turnos base caía em "turnos compatíveis com a exceção" num
+     * dia sem exceção nenhuma.
+     */
+    private void validarEntradasBasicas(PedidoGeracao pedido) {
+        if (pedido.colaboradores().isEmpty()) {
+            throw new FalhaGeracaoHorarioException(
+                    "Não foi possível gerar o horário: não foi selecionado nenhum colaborador para a geração.",
+                    "-",
+                    DATA_FORMATTER.format(pedido.dataInicio()),
+                    0,
+                    "A geração arrancou sem colaboradores elegíveis.",
+                    List.of(),
+                    List.of(new SugestaoFalhaGeracao("equipa_vazia",
+                            "Seleciona pelo menos um colaborador ativo com vínculo válido na loja.",
+                            null)));
+        }
+        if (pedido.turnos().isEmpty()) {
+            throw new FalhaGeracaoHorarioException(
+                    "Não foi possível gerar o horário: a loja não tem turnos base configurados.",
+                    "-",
+                    DATA_FORMATTER.format(pedido.dataInicio()),
+                    pedido.colaboradores().size(),
+                    "Sem turnos base não há slots de trabalho para atribuir.",
+                    List.of(),
+                    List.of(new SugestaoFalhaGeracao("sem_turnos",
+                            "Configura pelo menos um turno (hora de início e fim) nas definições da loja.",
+                            null)));
         }
     }
 
@@ -283,9 +432,10 @@ public class HorarioGeneratorEngine {
      * <ul>
      *   <li><b>Capacidade restante:</b> só recebe turno extra quem ainda tem carga
      *       contratual por consumir; nunca ultrapassa o teto (via {@code podeReceber}).</li>
-     *   <li><b>Orçamento diário:</b> a folga total é distribuída uniformemente pelos
-     *       dias que faltam ({@code capacidadeRestante / diasRestantes}), para o reforço
-     *       ser equilibrado ao longo do mês em vez de se concentrar nos primeiros dias.</li>
+     *   <li><b>Orçamento acumulado:</b> recebe o orçamento de reforço disponível até hoje
+     *       ({@code orcamentoHoje}), acumulado a uma taxa diária constante pela fase 2, para
+     *       o reforço ser repartido por igual ao longo do mês em vez de se concentrar nos
+     *       últimos dias.</li>
      *   <li><b>Regras hard intactas:</b> cada turno extra passa por
      *       {@link EstadoColaborador#podeReceber} sem qualquer relaxação.</li>
      *   <li><b>Folgas preferidas respeitadas:</b> um turno extra nunca cai num dia de
@@ -299,7 +449,8 @@ public class HorarioGeneratorEngine {
                                                        List<Turno> turnosDoDia,
                                                        Collection<EstadoColaborador> estados,
                                                        List<Horario> horariosJaGerados,
-                                                       PedidoGeracao pedido) {
+                                                       PedidoGeracao pedido,
+                                                       double orcamentoHoje) {
         if (pedido.prazoLimite() != null && Instant.now().isAfter(pedido.prazoLimite())) {
             return List.of();
         }
@@ -313,19 +464,18 @@ public class HorarioGeneratorEngine {
             return List.of();
         }
 
-        // Orçamento de hoje: distribui a folga de capacidade restante uniformemente
-        // pelos dias que ainda faltam. Como todos os mínimos já estão colocados, esta
-        // folga é puro excedente — não há cobertura futura para reservar.
-        long diasRestantes = ChronoUnit.DAYS.between(data, pedido.dataFim()) + 1;
-        long capacidadeRestante = estados.stream()
-                .mapToLong(EstadoColaborador::capacidadeRestanteMinutos)
-                .sum();
-        long orcamentoHoje = diasRestantes > 0 ? capacidadeRestante / diasRestantes : capacidadeRestante;
+        // Orçamento de hoje: folga de capacidade acumulada até hoje (taxa diária constante,
+        // calculada pela fase 2 a partir da capacidade que sobrou dos mínimos). Como todos
+        // os mínimos já estão colocados, esta folga é puro excedente.
         if (orcamentoHoje <= 0) {
             return List.of();
         }
 
         AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horariosJaGerados);
+
+        // Melhor turno por colaborador, limite inverso ao mínimo por tipo — enche até à
+        // capacidade disponível. Usado quando o gestor NÃO definiu alvo de pessoas/turno
+        // (com alvo, o preenchimento é feito por preencherAteAlvoUniforme, que levanta o piso).
         List<CandidatoPontuado> candidatos = new ArrayList<>();
         for (EstadoColaborador estado : estados) {
             if (estado.capacidadeRestanteMinutos() <= 0) continue;
@@ -348,7 +498,7 @@ public class HorarioGeneratorEngine {
         }
 
         // Limita o top-up inversamente ao mínimo por tipo. Garante sempre pelo menos 1
-        // (fix: a divisão inteira podia produzir 0 quando minimoMaxGlobal > numTipos).
+        // (a divisão inteira podia produzir 0 quando minimoMaxGlobal > numTipos).
         int minimoMaxGlobal = pedido.minimosPorTurno().values().stream()
                 .mapToInt(Integer::intValue)
                 .max()
@@ -360,7 +510,7 @@ public class HorarioGeneratorEngine {
         long limiteTopUp = Math.max(1L, numTiposDistintos / Math.max(1, minimoMaxGlobal));
 
         List<AtribuicaoDia> selecionados = new ArrayList<>();
-        long gastoHoje = 0;
+        double gastoHoje = 0;
         for (CandidatoPontuado candidato : candidatos.stream()
                 .sorted(Comparator.comparingDouble(CandidatoPontuado::score))
                 .toList()) {
@@ -375,6 +525,116 @@ public class HorarioGeneratorEngine {
             selecionados.add(candidato.atribuicao());
         }
         return selecionados;
+    }
+
+    /**
+     * Preenchimento com <b>alvo de pessoas por turno</b> "levantando o piso": leva todos os
+     * dias abertos a 2 pessoas por tipo de turno antes de qualquer dia ir a 3, e assim por
+     * diante até ao alvo. Em cada passo escolhe o par (dia, tipo) com MENOR cobertura atual
+     * ainda abaixo do alvo e atribui-lhe o melhor candidato (pontuação do avaliador, que com
+     * a política "Preferências" valoriza turnos/colegas preferidos). Para quando a capacidade
+     * contratual da equipa se esgota — pelo que, se o alvo for inalcançável (equipa pequena),
+     * a cobertura sobe o mais uniformemente possível em vez de se amontoar em alguns dias.
+     *
+     * <p>Respeita todas as regras hard ({@link EstadoColaborador#podeReceber}), folgas
+     * preferidas, e ao fim de semana só reforça colaboradores designados pelo plano de FDS.
+     * Dias com configuração especial cumprem apenas o mínimo (não recebem reforço).
+     */
+    private void preencherAteAlvoUniforme(PedidoGeracao pedido,
+                                          List<Horario> horarios,
+                                          Collection<EstadoColaborador> estados,
+                                          Set<LocalDate> sabadosComChefia,
+                                          int alvo) {
+        boolean planoFinsDeSemanaAtivo = estados.stream()
+                .anyMatch(EstadoColaborador::temPlanoFinsDeSemana);
+
+        List<LocalDate> diasAbertos = new ArrayList<>();
+        for (LocalDate d = pedido.dataInicio(); !d.isAfter(pedido.dataFim()); d = d.plusDays(1)) {
+            if (pedido.configuracoesPorData().get(d) == null) diasAbertos.add(d);
+        }
+        List<String> tipos = pedido.turnos().stream()
+                .map(TurnoClassifier::tipoNormalizado).distinct().toList();
+        Map<String, List<Turno>> turnosPorTipo = new LinkedHashMap<>();
+        for (String tipo : tipos) {
+            turnosPorTipo.put(tipo, pedido.turnos().stream()
+                    .filter(t -> TurnoClassifier.tipoNormalizado(t).equals(tipo)).toList());
+        }
+
+        // Levanta o piso: repete enquanto houver um slot (dia, tipo) abaixo do alvo com
+        // candidato válido, escolhendo sempre o de menor cobertura atual (desempate por score).
+        while (true) {
+            if (pedido.prazoLimite() != null && Instant.now().isAfter(pedido.prazoLimite())) break;
+
+            Map<LocalDate, Map<String, Integer>> contagem = new HashMap<>();
+            Map<LocalDate, Set<Integer>> usadosPorDia = new HashMap<>();
+            for (Horario h : horarios) {
+                LocalDate d = h.getDataTurno();
+                if (d == null || h.getIdTurno() == null) continue;
+                contagem.computeIfAbsent(d, k -> new HashMap<>())
+                        .merge(TurnoClassifier.tipoNormalizado(h.getIdTurno()), 1, Integer::sum);
+                Integer id = h.getIdLojautilizador() != null
+                        && h.getIdLojautilizador().getIdUtilizador() != null
+                        ? h.getIdLojautilizador().getIdUtilizador().getId() : null;
+                if (id != null) usadosPorDia.computeIfAbsent(d, k -> new LinkedHashSet<>()).add(id);
+            }
+
+            AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContextoSemEquidade(horarios);
+            LocalDate melhorData = null;
+            CandidatoPontuado melhorCand = null;
+            int melhorCobertura = Integer.MAX_VALUE;
+
+            for (LocalDate dia : diasAbertos) {
+                boolean fimDeSemana = validator.ehFimDeSemana(dia);
+                if (fimDeSemana && !planoFinsDeSemanaAtivo) continue;
+                Set<Integer> usados = usadosPorDia.getOrDefault(dia, Set.of());
+                Map<String, Integer> contDia = contagem.getOrDefault(dia, Map.of());
+                for (String tipo : tipos) {
+                    int cobertura = contDia.getOrDefault(tipo, 0);
+                    if (cobertura >= alvo) continue;
+                    // Só interessa um slot que possa igualar/baixar o piso já encontrado.
+                    if (cobertura > melhorCobertura) continue;
+                    CandidatoPontuado cand = melhorCandidatoSlot(
+                            dia, turnosPorTipo.get(tipo), estados, usados, pedido, contexto, fimDeSemana);
+                    if (cand == null) continue;
+                    if (melhorCand == null || cobertura < melhorCobertura
+                            || (cobertura == melhorCobertura && cand.score() < melhorCand.score())) {
+                        melhorCobertura = cobertura;
+                        melhorCand = cand;
+                        melhorData = dia;
+                    }
+                }
+            }
+
+            if (melhorCand == null) break; // capacidade/regras esgotadas — nada mais a preencher
+            registarAtribuicoes(melhorData, List.of(melhorCand.atribuicao()), horarios, sabadosComChefia);
+        }
+    }
+
+    /** Melhor candidato (menor pontuação) para um turno de um dado tipo num dia, ou null. */
+    private CandidatoPontuado melhorCandidatoSlot(LocalDate dia,
+                                                  List<Turno> turnosDoTipo,
+                                                  Collection<EstadoColaborador> estados,
+                                                  Set<Integer> usadosNoDia,
+                                                  PedidoGeracao pedido,
+                                                  AvaliadorAtribuicao.ContextoAvaliacao contexto,
+                                                  boolean fimDeSemana) {
+        CandidatoPontuado melhor = null;
+        for (EstadoColaborador estado : estados) {
+            if (usadosNoDia.contains(estado.idUtilizador())) continue;
+            if (estado.capacidadeRestanteMinutos() <= 0) continue;
+            if (pedido.folgasPreferidasPorColaborador()
+                    .getOrDefault(estado.idUtilizador(), Set.of()).contains(dia)) continue;
+            if (fimDeSemana && !estado.designadoParaFimDeSemana(dia)) continue;
+            for (Turno turno : turnosDoTipo) {
+                long minutos = validator.calcularDuracaoEmMinutos(turno);
+                if (!estado.podeReceber(dia, turno, minutos, pedido, false, false)) continue;
+                double score = avaliador.pontuar(estado, turno, minutos, dia, pedido, contexto);
+                if (melhor == null || score < melhor.score()) {
+                    melhor = new CandidatoPontuado(new AtribuicaoDia(estado, turno, minutos), score);
+                }
+            }
+        }
+        return melhor;
     }
 
     // =========================================================================
@@ -687,9 +947,17 @@ public class HorarioGeneratorEngine {
                                                             PedidoGeracao pedido,
                                                             boolean ignorarRotacaoFDS,
                                                             boolean ignorarDescansoSemanal) {
-        AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horariosJaGerados);
+        // Com alvo por turno, o componente 11 (equidade por tipo) no greedy primário
+        // altera quais colaboradores ficam em cada dia, perturbando a uniformidade de
+        // cobertura em preencherAteAlvoUniforme. Usa contexto sem equidade nesse caso.
+        AvaliadorAtribuicao.ContextoAvaliacao contexto = pedido.alvoPorTurno() != null
+                ? avaliador.novoContextoSemEquidade(horariosJaGerados)
+                : avaliador.novoContexto(horariosJaGerados);
 
         // Melhor turno (menor pontuação) por colaborador — score calculado uma única vez.
+        // Nas tentativas adicionais do multi-start, aplica ruído gaussiano controlado para
+        // explorar soluções diferentes por desempate estocástico (GREEDY_NOISE_RND != null).
+        Random noiseRnd = GREEDY_NOISE_RND.get();
         Map<Integer, CandidatoPontuado> melhorPorColaborador = new LinkedHashMap<>();
         for (Turno turno : turnosCompativeis) {
             long minutos = validator.calcularDuracaoEmMinutos(turno);
@@ -698,6 +966,9 @@ public class HorarioGeneratorEngine {
                         ignorarRotacaoFDS, ignorarDescansoSemanal)) continue;
 
                 double score = avaliador.pontuar(estado, turno, minutos, data, pedido, contexto);
+                if (noiseRnd != null) {
+                    score += noiseRnd.nextGaussian() * SIGMA_RUIDO_GREEDY;
+                }
                 CandidatoPontuado candidato = new CandidatoPontuado(
                         new AtribuicaoDia(estado, turno, minutos), score);
                 melhorPorColaborador.merge(estado.idUtilizador(), candidato,

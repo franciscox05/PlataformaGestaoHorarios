@@ -53,6 +53,9 @@ public final class RefinadorPlaneamento {
     /** Diferença de utilização (0..1) entre extremos a partir da qual vale a pena equilibrar. */
     private static final double GAP_UTILIZACAO_ALVO = 0.10;
 
+    /** Máximo de rotações invertidas a tentar corrigir (guarda anti-loop). */
+    private static final int MAX_CORRECOES_ROTACAO = 40;
+
     private final HorarioValidatorService validator;
 
     public RefinadorPlaneamento(HorarioValidatorService validator) {
@@ -69,11 +72,13 @@ public final class RefinadorPlaneamento {
         }
         try {
             int folgasRecuperadas = honrarFolgasPreferidas(pedido, horarios);
+            int rotacoesCorrigidas = corrigirRotacoesInvertidas(pedido, horarios);
             int movimentosEquilibrio = equilibrarCarga(pedido, horarios);
-            if (folgasRecuperadas > 0 || movimentosEquilibrio > 0) {
+            if (folgasRecuperadas > 0 || rotacoesCorrigidas > 0 || movimentosEquilibrio > 0) {
                 LOGGER.info("Refinamento do planeamento: {} folga(s) preferida(s) recuperada(s), "
+                                + "{} rotação(ões) invertida(s) corrigida(s), "
                                 + "{} movimento(s) de equilíbrio de carga.",
-                        folgasRecuperadas, movimentosEquilibrio);
+                        folgasRecuperadas, rotacoesCorrigidas, movimentosEquilibrio);
             }
             return horarios;
         } catch (Exception e) {
@@ -112,10 +117,52 @@ public final class RefinadorPlaneamento {
     }
 
     // =========================================================================
-    // Fase 2 — equilíbrio de carga contratual
+    // Fase 2 — correção de rotações ergonómicas invertidas
     // =========================================================================
 
-    private int equilibrarCarga(PedidoGeracao pedido, List<Horario> plano) {
+    /**
+     * Para cada par (hoje, amanhã) em que o mesmo colaborador passa de um período mais
+     * tardio para um mais cedo (ex.: tarde→manhã, noite→tarde), tenta mover o turno de
+     * hoje para outro colaborador via {@link #tentarReatribuir}. Mantém o turno de amanhã
+     * no mesmo colaborador — apenas desfaz a causa da inversão. O polisher depois afina
+     * via trocas. Limite {@code MAX_CORRECOES_ROTACAO} como guarda anti-loop.
+     */
+    private int corrigirRotacoesInvertidas(PedidoGeracao pedido, List<Horario> plano) {
+        int corrigidas = 0;
+        int tentativas = 0;
+        for (Horario h : List.copyOf(plano)) {
+            if (prazoEsgotado(pedido) || tentativas >= MAX_CORRECOES_ROTACAO) break;
+            Integer idColab = idColaborador(h);
+            if (idColab == null || h.getDataTurno() == null || h.getIdTurno() == null) continue;
+            int ordemHoje = TurnoClassifier.ordemPeriodo(h.getIdTurno());
+            if (ordemHoje < 0) continue;
+            LocalDate amanha = h.getDataTurno().plusDays(1);
+            // Encontrar turno do mesmo colaborador no dia seguinte
+            Turno turnoAmanha = null;
+            for (Horario hA : plano) {
+                if (idColab.equals(idColaborador(hA)) && amanha.equals(hA.getDataTurno())
+                        && hA.getIdTurno() != null) {
+                    turnoAmanha = hA.getIdTurno();
+                    break;
+                }
+            }
+            if (turnoAmanha == null) continue;
+            int ordemAmanha = TurnoClassifier.ordemPeriodo(turnoAmanha);
+            if (ordemAmanha < 0 || ordemAmanha >= ordemHoje) continue;
+            // Inversão detetada: tentar mover o turno de hoje para outro colaborador
+            tentativas++;
+            if (tentarReatribuir(pedido, plano, h, true)) {
+                corrigidas++;
+            }
+        }
+        return corrigidas;
+    }
+
+    // =========================================================================
+    // Fase 3 — equilíbrio de carga contratual
+    // =========================================================================
+
+    private int equilibrarCarga(PedidoGeracao pedido, List<Horario> plano) {  // fase 3
         int movimentos = 0;
         for (int i = 0; i < MAX_MOVIMENTOS_EQUILIBRIO; i++) {
             if (prazoEsgotado(pedido)) {
