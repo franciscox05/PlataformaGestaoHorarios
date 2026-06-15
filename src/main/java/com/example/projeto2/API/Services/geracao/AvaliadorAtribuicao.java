@@ -280,6 +280,23 @@ public final class AvaliadorAtribuicao {
             }
         }
 
+        // (7b) Lookahead de turno: se o colaborador já tem turno atribuído AMANHÃ
+        // (fase 1 já correu para esse dia), verificar se o turno de hoje cria uma
+        // rotação invertida futura (ex.: noite hoje → manhã amanhã). Peso reduzido
+        // a 40% vs a verificação retrospetiva: a restrição é ergonómica, não hard,
+        // e o futuro imediato é menos certo do que o passado verificado.
+        Map<String, Set<Integer>> tiposAmanha = contexto.colabsPorDiaTipo()
+                .getOrDefault(data.plusDays(1), Map.of());
+        for (Map.Entry<String, Set<Integer>> e : tiposAmanha.entrySet()) {
+            if (!e.getValue().contains(estado.idUtilizador())) continue;
+            int ordemHoje = TurnoClassifier.ordemPeriodo(turno);
+            int ordemAmanha = TurnoClassifier.ordemPorTipoNormalizado(e.getKey());
+            if (ordemHoje >= 0 && ordemAmanha >= 0 && ordemAmanha < ordemHoje) {
+                pontuacao += PENALIZACAO_ROTACAO_INVERTIDA * 0.4 * (ordemHoje - ordemAmanha);
+            }
+            break; // um turno por dia
+        }
+
         // (8) Idle streak — bónus para colaboradores que não trabalham há 2+ dias.
         // Só se aplica quando o colaborador NÃO está acima do ritmo esperado: se já está
         // adiantado no contrato, não precisa de incentivo extra — o pace guard (2b) trata
