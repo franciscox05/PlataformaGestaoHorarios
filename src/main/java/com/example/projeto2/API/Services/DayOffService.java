@@ -13,6 +13,8 @@ import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,25 +28,30 @@ import java.util.stream.Collectors;
 @Service
 public class DayOffService {
 
+    private static final DateTimeFormatter FMT_DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private final DayOffRepository dayOffRepository;
     private final LojautilizadorHelper lojautilizadorHelper;
     private final UtilizadorRepository utilizadorRepository;
     private final HorarioRepository horarioRepository;
     private final PermutaRepository permutaRepository;
     private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
+    private final NotificacaoService notificacaoService;
 
     public DayOffService(DayOffRepository dayOffRepository,
                      LojautilizadorHelper lojautilizadorHelper,
                      UtilizadorRepository utilizadorRepository,
                      HorarioRepository horarioRepository,
                      PermutaRepository permutaRepository,
-                     HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository) {
+                     HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository,
+                     NotificacaoService notificacaoService) {
         this.dayOffRepository = dayOffRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.utilizadorRepository = utilizadorRepository;
         this.horarioRepository = horarioRepository;
         this.permutaRepository = permutaRepository;
         this.historicoHorarioEstadoRepository = historicoHorarioEstadoRepository;
+        this.notificacaoService = notificacaoService;
     }
 
     @Transactional
@@ -92,7 +99,26 @@ public class DayOffService {
 
         pedido.setEstado("pendente");
 
-        return dayOffRepository.save(pedido);
+        DayOff pedidoSalvo = dayOffRepository.save(pedido);
+
+        // Notify store managers — wrapped so any failure never rolls back the save above
+        try {
+            Integer idFuncionario = pedidoSalvo.getIdUtilizador().getId();
+            lojautilizadorHelper.findLigacaoAtiva(idFuncionario).ifPresent(ligacao -> {
+                String nomeColaborador = utilizadorRepository.findById(idFuncionario)
+                        .map(Utilizador::getNome).orElse("Um colaborador");
+                String mensagem = "O funcionário " + nomeColaborador
+                        + " submeteu um novo pedido de folga que aguarda a tua aprovação.";
+                lojautilizadorHelper.listarIdsComCargoPorLoja(
+                                ligacao.getIdLoja().getId(), LojautilizadorHelper.GESTAO)
+                        .forEach(idGerente -> notificacaoService.criarNotificacao(idGerente, mensagem, ligacao.getIdLoja().getId()));
+            });
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(DayOffService.class)
+                    .warn("Notificação de folga não enviada para id={}: {}", pedidoSalvo.getIdUtilizador().getId(), e.getMessage());
+        }
+
+        return pedidoSalvo;
     }
 
     @Transactional(readOnly = true)
@@ -114,6 +140,11 @@ public class DayOffService {
     }
 
     @Transactional(readOnly = true)
+    public boolean utilizadorPodeAprovarFolgas(Integer idUtilizador, Integer idLoja) {
+        return lojautilizadorHelper.temCargo(idUtilizador, idLoja, LojautilizadorHelper.APROVACAO);
+    }
+
+    @Transactional(readOnly = true)
     public List<DayOff> listarPedidosPendentesParaAprovacao(Integer idUtilizadorAprovador) {
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
@@ -123,6 +154,16 @@ public class DayOffService {
                 ligacaoAtiva.getIdLoja().getId(),
                 idUtilizadorAprovador
         );
+    }
+
+    /** Store-scoped variant — uses the explicit idLoja from the session. */
+    @Transactional(readOnly = true)
+    public List<DayOff> listarPedidosPendentesParaAprovacao(Integer idUtilizadorAprovador, Integer idLoja) {
+        if (idLoja == null) return listarPedidosPendentesParaAprovacao(idUtilizadorAprovador);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para aprovar folgas.");
+        return dayOffRepository.findPedidosPendentesDaLoja(ligacaoAtiva.getIdLoja().getId(), idUtilizadorAprovador);
     }
 
     @Transactional(readOnly = true)
@@ -169,21 +210,34 @@ public class DayOffService {
 
     @Transactional
     public DayOff aprovarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador) {
-        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, "aprovado");
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, null, "aprovado");
     }
 
     @Transactional
     public DayOff rejeitarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador) {
-        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, "rejeitado");
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, null, "rejeitado");
     }
 
-    private DayOff atualizarEstadoPedido(Integer idDayOff, Integer idUtilizadorAprovador, String novoEstado) {
+    /** Store-scoped approval — permission validated strictly within the given store. */
+    @Transactional
+    public DayOff aprovarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador, Integer idLoja) {
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, idLoja, "aprovado");
+    }
+
+    /** Store-scoped rejection — permission validated strictly within the given store. */
+    @Transactional
+    public DayOff rejeitarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador, Integer idLoja) {
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, idLoja, "rejeitado");
+    }
+
+    private DayOff atualizarEstadoPedido(Integer idDayOff, Integer idUtilizadorAprovador,
+                                          Integer idLoja, String novoEstado) {
         if (idDayOff == null) {
             throw new IllegalArgumentException("O pedido selecionado e obrigatorio.");
         }
 
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
                 "Este utilizador nao tem permissao para aprovar folgas.");
 
         DayOff pedido = dayOffRepository.findById(idDayOff)
@@ -208,6 +262,16 @@ public class DayOffService {
 
         if ("aprovado".equalsIgnoreCase(novoEstado)) {
             retirarTurnosDoColaboradorNoDia(pedidoAtualizado, ligacaoAtiva);
+        }
+
+        Integer idFuncionario = pedidoAtualizado.getIdUtilizador() != null
+                ? pedidoAtualizado.getIdUtilizador().getId() : null;
+        if (idFuncionario != null && pedidoAtualizado.getDataAusencia() != null) {
+            String dataFormatada = pedidoAtualizado.getDataAusencia().format(FMT_DATA);
+            String decisaoLabel = "aprovado".equalsIgnoreCase(novoEstado) ? "Aprovado" : "Rejeitado";
+            notificacaoService.criarNotificacao(idFuncionario,
+                    "O teu pedido de folga para o dia " + dataFormatada + " foi " + decisaoLabel + ".",
+                    ligacaoAtiva.getIdLoja().getId());
         }
 
         return pedidoAtualizado;
@@ -293,6 +357,18 @@ public class DayOffService {
                                 d.getTipo()))
                         .toList())
                 .orElse(List.of());
+    }
+
+    /** Store-scoped variant — uses explicit idLoja from the session instead of resolving internally. */
+    @Transactional(readOnly = true)
+    public List<FolgaResumida> listarFolgasAprovadasNaLojaNoDia(Integer idUtilizadorLogado, LocalDate data,
+                                                                 Integer idLoja) {
+        if (idUtilizadorLogado == null || data == null) return List.of();
+        if (idLoja == null) return listarFolgasAprovadasNaLojaNoDia(idUtilizadorLogado, data);
+        return dayOffRepository.findFolgasAprovadasDaLojaNoDia(idLoja, data).stream()
+                .filter(d -> d.getIdUtilizador() != null)
+                .map(d -> new FolgaResumida(d.getIdUtilizador().getNome(), d.getTipo()))
+                .toList();
     }
 
     /**

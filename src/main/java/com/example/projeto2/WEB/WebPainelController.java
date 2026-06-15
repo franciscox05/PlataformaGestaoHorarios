@@ -63,7 +63,8 @@ public class WebPainelController {
         long preferenciasPendentes = preferencias.stream().filter(item -> estadoEquals(item.getEstado(), "pendente")).count();
         long permutasPendentes = permutas.stream().filter(item -> estadoEqualsEnum(item.getEstado(), "pendente")).count();
 
-        WebAppService.WebPermissoes permissoes = webAppService.obterPermissoes(utilizadorId);
+        Integer idLoja = webAppService.obterLojaAtual(session);
+        WebAppService.WebPermissoes permissoes = webAppService.obterPermissoes(utilizadorId, idLoja);
         long folgasParaAprovar = permissoes.podeAprovarFolgas()
                 ? dayOffBLL.contarPendentesParaAprovacao(utilizadorId)
                 : 0;

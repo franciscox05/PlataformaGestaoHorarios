@@ -257,6 +257,18 @@ public class HorarioService {
         historico.setObservacoes(observacao);
         historicoHorarioEstadoRepository.save(historico);
 
+        // Cross-store overlap guard — excludes the current record to avoid counting its own old turno
+        if (idColaborador != null && novoTurno.getHoraInicio() != null && novoTurno.getHoraFim() != null) {
+            long sobreposicoes = horarioRepository.countGlobalOverlappingShiftsExcluding(
+                    idColaborador, horario.getDataTurno(),
+                    novoTurno.getHoraInicio(), novoTurno.getHoraFim(),
+                    idHorario);
+            if (sobreposicoes > 0) {
+                throw new IllegalArgumentException(
+                        "O novo turno sobrepõe-se a um turno já atribuído ao colaborador noutra loja.");
+            }
+        }
+
         // Aplicar alteração
         horario.setIdTurno(novoTurno);
         return horarioRepository.save(horario);
@@ -291,6 +303,17 @@ public class HorarioService {
 
         Turno turno = turnoRepository.findById(idTurno)
                 .orElseThrow(() -> new IllegalArgumentException("Turno não encontrado."));
+
+        if (lojautilizador.getIdUtilizador() != null
+                && turno.getHoraInicio() != null && turno.getHoraFim() != null) {
+            long sobreposicoes = horarioRepository.countGlobalOverlappingShifts(
+                    lojautilizador.getIdUtilizador().getId(), data,
+                    turno.getHoraInicio(), turno.getHoraFim());
+            if (sobreposicoes > 0) {
+                throw new IllegalArgumentException(
+                        "O colaborador já possui um turno atribuído noutra loja que se sobrepõe a este horário.");
+            }
+        }
 
         Horario novo = new Horario();
         novo.setIdLojautilizador(lojautilizador);
@@ -340,26 +363,58 @@ public class HorarioService {
 
     /** Projection used by the employee "team on a day" endpoint. */
     public record ColaboradorNoDia(String nome, String cargo, String tipoTurno,
-                                   String inicio, String fim) {}
+                                   String inicio, String fim, Integer horarioId, boolean meuTurno) {}
 
     @Transactional(readOnly = true)
     public List<ColaboradorNoDia> listarColegasNoDia(Integer idUtilizadorLogado, LocalDate data) {
         if (idUtilizadorLogado == null || data == null) return List.of();
-        DateTimeFormatter hhmm = DateTimeFormatter.ofPattern("HH:mm");
         return lojautilizadorHelper.findLigacaoAtiva(idUtilizadorLogado)
-                .map(lu -> horarioRepository
-                        .findColeaguesDaLojaNoDia(lu.getIdLoja().getId(), data, idUtilizadorLogado)
-                        .stream()
-                        .map(h -> new ColaboradorNoDia(
-                                h.getIdLojautilizador().getIdUtilizador().getNome(),
-                                h.getIdLojautilizador().getIdCargo() != null
-                                        ? h.getIdLojautilizador().getIdCargo().getNome() : "-",
-                                h.getIdTurno().getTipo() != null ? h.getIdTurno().getTipo() : "-",
-                                h.getIdTurno().getHoraInicio() != null
-                                        ? h.getIdTurno().getHoraInicio().format(hhmm) : "--:--",
-                                h.getIdTurno().getHoraFim() != null
-                                        ? h.getIdTurno().getHoraFim().format(hhmm) : "--:--"))
-                        .toList())
+                .map(lu -> colegasNoDiaInterno(idUtilizadorLogado, data, lu.getIdLoja().getId()))
                 .orElse(List.of());
+    }
+
+    /** Store-scoped variant — uses the explicit idLoja from the session instead of resolving it internally. */
+    @Transactional(readOnly = true)
+    public List<ColaboradorNoDia> listarColegasNoDia(Integer idUtilizadorLogado, LocalDate data, Integer idLoja) {
+        if (idUtilizadorLogado == null || data == null || idLoja == null)
+            return listarColegasNoDia(idUtilizadorLogado, data);
+        return lojautilizadorHelper.findLigacaoAtiva(idUtilizadorLogado, idLoja)
+                .map(lu -> colegasNoDiaInterno(idUtilizadorLogado, data, idLoja))
+                .orElse(List.of());
+    }
+
+    private List<ColaboradorNoDia> colegasNoDiaInterno(Integer idUtilizadorLogado, LocalDate data, Integer idLoja) {
+        DateTimeFormatter hhmm = DateTimeFormatter.ofPattern("HH:mm");
+        List<ColaboradorNoDia> proprios = horarioRepository
+                .findMeusTurnosNoDia(idLoja, data, idUtilizadorLogado)
+                .stream()
+                .map(h -> new ColaboradorNoDia(
+                        h.getIdLojautilizador().getIdUtilizador().getNome(),
+                        h.getIdLojautilizador().getIdCargo() != null
+                                ? h.getIdLojautilizador().getIdCargo().getNome() : "-",
+                        h.getIdTurno().getTipo() != null ? h.getIdTurno().getTipo() : "-",
+                        h.getIdTurno().getHoraInicio() != null
+                                ? h.getIdTurno().getHoraInicio().format(hhmm) : "--:--",
+                        h.getIdTurno().getHoraFim() != null
+                                ? h.getIdTurno().getHoraFim().format(hhmm) : "--:--",
+                        h.getId(), true))
+                .toList();
+        List<ColaboradorNoDia> colegas = horarioRepository
+                .findColeaguesDaLojaNoDia(idLoja, data, idUtilizadorLogado)
+                .stream()
+                .map(h -> new ColaboradorNoDia(
+                        h.getIdLojautilizador().getIdUtilizador().getNome(),
+                        h.getIdLojautilizador().getIdCargo() != null
+                                ? h.getIdLojautilizador().getIdCargo().getNome() : "-",
+                        h.getIdTurno().getTipo() != null ? h.getIdTurno().getTipo() : "-",
+                        h.getIdTurno().getHoraInicio() != null
+                                ? h.getIdTurno().getHoraInicio().format(hhmm) : "--:--",
+                        h.getIdTurno().getHoraFim() != null
+                                ? h.getIdTurno().getHoraFim().format(hhmm) : "--:--",
+                        null, false))
+                .toList();
+        var merged = new java.util.ArrayList<>(proprios);
+        merged.addAll(colegas);
+        return java.util.Collections.unmodifiableList(merged);
     }
 }

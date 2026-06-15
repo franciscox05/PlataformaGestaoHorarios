@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{web/fragments :: head('Notificações — Levi\'s Staff Portal')}"></head>
+<body class="bg-background text-on-background antialiased">
+<aside th:replace="~{web/fragments :: shellSidebar}"></aside>
+<header th:replace="~{web/fragments :: shellHeader}"></header>
+<main class="md:ml-sidebar pt-topbar min-h-screen">
+<div class="max-w-[86rem] mx-auto px-5 md:px-8 py-8 flex flex-col gap-6">
+
+    <!-- Page header -->
+    <div class="fade-up">
+        <div class="flex items-center gap-3 mb-1">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                 style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 8px rgba(192,0,31,.3)">
+                <span class="material-symbols-outlined text-white icon-fill text-[18px]">notifications</span>
+            </div>
+            <h1 class="font-display font-bold text-[28px] md:text-[32px] text-on-surface tracking-tight">Notificações</h1>
+        </div>
+        <p class="font-body text-[14px] text-on-surface-variant mt-1 ml-12">
+            Acompanha os alertas e novidades sobre os teus horários e pedidos.
+        </p>
+    </div>
+
+    <!-- Empty state -->
+    <section th:if="${notificacoes == null or #lists.isEmpty(notificacoes)}"
+             class="fade-up fade-up-1 flex flex-col items-center justify-center text-center py-16 px-8
+                    bg-surface-container-lowest rounded-2xl border border-outline-variant/25"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+             style="background:rgba(192,0,31,.07)">
+            <span class="material-symbols-outlined text-[32px]" style="color:#c0001f">notifications_off</span>
+        </div>
+        <p class="font-display font-bold text-[18px] text-on-surface mb-1">Tudo limpo por aqui!</p>
+        <p class="font-body text-[13px] text-on-surface-variant max-w-xs">
+            Ainda não recebeste nenhuma notificação. Quando algo importante acontecer, vai aparecer aqui.
+        </p>
+    </section>
+
+    <!-- Notification feed -->
+    <section th:if="${notificacoes != null and !#lists.isEmpty(notificacoes)}"
+             class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
+             style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
+
+        <!-- Section label -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/15">
+            <p class="font-body font-semibold text-[12px] uppercase tracking-wider text-on-surface-variant">
+                Histórico de notificações
+            </p>
+            <span th:if="${totalNaoLidas > 0}"
+                  class="inline-flex items-center gap-1 font-body font-bold text-[11px] px-2.5 py-1 rounded-full"
+                  style="background:rgba(192,0,31,.1);color:#c0001f"
+                  th:text="${totalNaoLidas} + ' nova' + (${totalNaoLidas} == 1 ? '' : 's')">
+                0 novas
+            </span>
+            <span th:if="${totalNaoLidas == 0}"
+                  class="inline-flex items-center gap-1 font-body font-semibold text-[11px] px-2.5 py-1 rounded-full text-on-surface-variant"
+                  style="background:rgba(0,0,0,.04)">
+                Tudo lido
+            </span>
+        </div>
+
+        <!-- List -->
+        <ul id="notif-list" class="divide-y divide-outline-variant/10">
+            <li th:each="notif : ${notificacoes}"
+                th:classappend="${notif.lida} ? 'opacity-60' : ''"
+                class="flex items-start gap-4 px-6 py-4 hover:bg-surface-container/40 transition-colors">
+
+                <!-- Icon circle: red for unread, neutral for read -->
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                     th:style="${notif.lida} ? 'background:rgba(0,0,0,.05)' : 'background:rgba(192,0,31,.08)'">
+                    <span class="material-symbols-outlined text-[17px] icon-fill"
+                          th:style="${notif.lida} ? 'color:var(--md-sys-color-on-surface-variant)' : 'color:#c0001f'">notifications</span>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                    <p class="font-body text-[13.5px] leading-snug"
+                       th:classappend="${notif.lida} ? 'font-medium text-on-surface-variant' : 'font-semibold text-on-surface'"
+                       th:text="${notif.mensagem}">–</p>
+                    <p class="font-body text-[11px] text-on-surface-variant mt-1 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[12px]">schedule</span>
+                        <span th:text="${'Enviado em ' + #temporals.format(notif.dataEnvio, 'dd/MM/yyyy') + ' às ' + #temporals.format(notif.dataEnvio, 'HH:mm')}">–</span>
+                    </p>
+
+                    <!-- Quick action: rejected preference → go submit a new one -->
+                    <div th:if="${#strings.contains(notif.mensagem, 'preferência de horário') and #strings.contains(notif.mensagem, 'Rejeitada')}"
+                         class="mt-2.5">
+                        <a href="/web/complementares?tab=pref"
+                           class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] px-3 py-1.5 rounded-lg transition-colors"
+                           style="color:#c0001f;border:1px solid rgba(192,0,31,.25);background:rgba(192,0,31,.05)">
+                            <span class="material-symbols-outlined text-[13px]">add_circle</span>
+                            Submeter Nova
+                        </a>
+                    </div>
+
+                    <!-- Quick action: rejected day-off → go pick a new date -->
+                    <div th:if="${#strings.contains(notif.mensagem, 'pedido de folga') and #strings.contains(notif.mensagem, 'Rejeitado')}"
+                         class="mt-2.5">
+                        <a href="/web/complementares?tab=folgas#seccao-folga"
+                           class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] px-3 py-1.5 rounded-lg transition-colors"
+                           style="color:#c0001f;border:1px solid rgba(192,0,31,.25);background:rgba(192,0,31,.05)">
+                            <span class="material-symbols-outlined text-[13px]">event</span>
+                            Agendar Nova Data
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right column: Nova pill + Archive button -->
+                <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span th:if="${!notif.lida}"
+                          class="inline-flex items-center font-body font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
+                          style="background:rgba(192,0,31,.12);color:#c0001f;border:1px solid rgba(192,0,31,.2)">
+                        Nova
+                    </span>
+                    <button type="button"
+                            onclick="arquivarNotificacao(this)"
+                            title="Arquivar notificação"
+                            class="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors">
+                        <span class="material-symbols-outlined text-[15px]">archive</span>
+                    </button>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+</div>
+</main>
+<th:block th:replace="~{web/fragments :: scripts}"></th:block>
+<script>
+function arquivarNotificacao(btn) {
+    var li = btn.closest('li');
+    if (!li) return;
+    var h = li.offsetHeight;
+    li.style.overflow = 'hidden';
+    li.style.maxHeight = h + 'px';
+    li.style.transition = 'opacity .2s ease, max-height .28s ease, padding .28s ease, margin .28s ease';
+    requestAnimationFrame(function () {
+        li.style.opacity = '0';
+        li.style.maxHeight = '0';
+        li.style.paddingTop = '0';
+        li.style.paddingBottom = '0';
+    });
+    setTimeout(function () { li.remove(); }, 300);
+}
+</script>
+</body>
+</html>

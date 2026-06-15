@@ -3,6 +3,7 @@ package com.example.projeto2.WEB;
 import com.example.projeto2.API.Services.DayOffService;
 import com.example.projeto2.API.Services.GeracaoHorariosService;
 import com.example.projeto2.API.Services.GestaoLojaService;
+import com.example.projeto2.API.Services.NotificacaoService;
 import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.API.Services.RelatorioHorasService;
@@ -28,6 +29,8 @@ public class WebAppService {
     private final DayOffService dayOffBLL;
     private final PreferenciaService preferenciaBLL;
     private final PermutaService permutaBLL;
+    private final NotificacaoService notificacaoBLL;
+
     public WebAppService(UtilizadorRepository utilizadorRepository,
                          LojautilizadorRepository lojautilizadorRepository,
                          GeracaoHorariosService geracaoHorariosBLL,
@@ -35,7 +38,8 @@ public class WebAppService {
                          RelatorioHorasService relatorioHorasBLL,
                          DayOffService dayOffBLL,
                          PreferenciaService preferenciaBLL,
-                         PermutaService permutaBLL) {
+                         PermutaService permutaBLL,
+                         NotificacaoService notificacaoBLL) {
         this.utilizadorRepository = utilizadorRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.geracaoHorariosBLL = geracaoHorariosBLL;
@@ -44,6 +48,7 @@ public class WebAppService {
         this.dayOffBLL = dayOffBLL;
         this.preferenciaBLL = preferenciaBLL;
         this.permutaBLL = permutaBLL;
+        this.notificacaoBLL = notificacaoBLL;
     }
 
     public Integer obterUtilizadorId(HttpSession session) {
@@ -83,22 +88,43 @@ public class WebAppService {
         session.setAttribute(WebSession.UTILIZADOR_EMAIL, utilizador.getEmail());
     }
 
-    public WebPermissoes obterPermissoes(Integer idUtilizador) {
-        if (idUtilizador == null) {
-            return WebPermissoes.semAcesso();
-        }
+    /** Devolve o ID da loja actualmente activa na sessão, ou {@code null} se não estiver definido. */
+    public Integer obterLojaAtual(HttpSession session) {
+        if (session == null) return null;
+        return (Integer) session.getAttribute(WebSession.LOJA_ID);
+    }
 
+    /**
+     * Devolve o ID da loja activa na sessão. Lança {@link IllegalStateException} se não estiver
+     * definido — útil como guarda em controllers que exigem contexto de loja explícito.
+     */
+    public Integer obterLojaAtualObrigatoria(HttpSession session) {
+        Integer idLoja = obterLojaAtual(session);
+        if (idLoja == null) {
+            throw new IllegalStateException("Contexto de loja não definido na sessão.");
+        }
+        return idLoja;
+    }
+
+    /** Store-scoped — eliminates NonUniqueResultException for multi-store users. */
+    public WebPermissoes obterPermissoes(Integer idUtilizador, Integer idLoja) {
+        if (idUtilizador == null) return WebPermissoes.semAcesso();
         return new WebPermissoes(
                 true,
-                gestaoLojaBLL.utilizadorPodeGerirLoja(idUtilizador),
-                relatorioHorasBLL.utilizadorPodeConsultarRelatorios(idUtilizador),
+                gestaoLojaBLL.utilizadorPodeGerirLoja(idUtilizador, idLoja),
+                relatorioHorasBLL.utilizadorPodeConsultarRelatorios(idUtilizador, idLoja),
                 true,
-                dayOffBLL.utilizadorPodeAprovarFolgas(idUtilizador),
-                preferenciaBLL.utilizadorPodeAprovarPreferencias(idUtilizador),
-                permutaBLL.utilizadorPodeAprovarPermutas(idUtilizador),
-                geracaoHorariosBLL.utilizadorPodeValidarHorarios(idUtilizador),
-                geracaoHorariosBLL.utilizadorPodeGerarHorarios(idUtilizador)
+                dayOffBLL.utilizadorPodeAprovarFolgas(idUtilizador, idLoja),
+                preferenciaBLL.utilizadorPodeAprovarPreferencias(idUtilizador, idLoja),
+                permutaBLL.utilizadorPodeAprovarPermutas(idUtilizador, idLoja),
+                geracaoHorariosBLL.utilizadorPodeValidarHorarios(idUtilizador, idLoja),
+                geracaoHorariosBLL.utilizadorPodeGerarHorarios(idUtilizador, idLoja)
         );
+    }
+
+    /** Backward-compatible 1-arg overload (Desktop / no-store-context callers). */
+    public WebPermissoes obterPermissoes(Integer idUtilizador) {
+        return obterPermissoes(idUtilizador, null);
     }
 
     public String obterCargoAtual(Integer idUtilizador) {
@@ -111,19 +137,36 @@ public class WebAppService {
         return nomeCargo == null || nomeCargo.isBlank() ? "-" : nomeCargo;
     }
 
+    /** Store-scoped variant — resolves the role displayed in the sidebar for the active store. */
+    public String obterCargoAtual(Integer idUtilizador, Integer idLoja) {
+        if (idLoja == null) return obterCargoAtual(idUtilizador);
+        Optional<Lojautilizador> ligacaoAtiva =
+                lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(idUtilizador, idLoja);
+        if (ligacaoAtiva.isEmpty() || ligacaoAtiva.get().getIdCargo() == null) {
+            return "-";
+        }
+        String nomeCargo = ligacaoAtiva.get().getIdCargo().getNome();
+        return nomeCargo == null || nomeCargo.isBlank() ? "-" : nomeCargo;
+    }
+
     public void preencherModeloBase(Model model, HttpSession session, String moduloAtivo) {
         Integer idUtilizador = obterUtilizadorIdObrigatorio(session);
+        Integer idLoja = obterLojaAtual(session);
         Utilizador utilizador = obterUtilizadorAutenticado(idUtilizador);
-        WebPermissoes permissoes = obterPermissoes(idUtilizador);
+        WebPermissoes permissoes = obterPermissoes(idUtilizador, idLoja);
 
+        long contagemLojas = lojautilizadorRepository.countByIdUtilizadorIdAndDataFimIsNull(idUtilizador);
         model.addAttribute("webUtilizador", utilizador);
-        model.addAttribute("webCargoAtual", obterCargoAtual(idUtilizador));
+        model.addAttribute("webCargoAtual", obterCargoAtual(idUtilizador, idLoja));
         model.addAttribute("webPermissoes", permissoes);
         model.addAttribute("webModuloAtivo", moduloAtivo);
+        model.addAttribute("podeAlternarLoja", contagemLojas >= 2);
         model.addAttribute("totalFolgasPendentes", 0);
         model.addAttribute("totalPreferenciasPendentes", 0);
         model.addAttribute("totalPermutasPendentes", 0);
         model.addAttribute("totalPendenciasComplementares", 0);
+        model.addAttribute("totalNotificacoesPendentes",
+                notificacaoBLL.contarNotificacoesPendentes(idUtilizador, idLoja));
     }
 
     public String redirecionarComErro(RedirectAttributes redirectAttributes, String mensagem) {

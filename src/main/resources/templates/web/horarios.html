@@ -14,7 +14,7 @@
         <div>
             <h1 class="font-display font-bold text-[26px] md:text-[30px] text-on-surface tracking-tight">O meu horário</h1>
             <p class="font-body text-[14px] text-on-surface-variant mt-1"
-               th:text="${webPermissoes.podeGerarHorarios()} ? 'Consulta os teus turnos, gera e envia propostas mensais.' : 'Consulta os teus turnos publicados.'">
+               th:text="'Consulta os teus turnos publicados.'">
                 Consulta os teus turnos publicados.</p>
         </div>
     </div>
@@ -47,140 +47,6 @@
             </div>
         </form>
     </section>
-
-    <!-- ── Secção de gestão de propostas (apenas gerentes/subgerentes) ── -->
-    <th:block th:if="${webPermissoes.podeGerarHorarios()}">
-
-        <!-- Gerar nova proposta -->
-        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
-                 style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
-            <div class="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/25">
-                <span class="material-symbols-outlined text-[20px] text-primary">auto_awesome</span>
-                <div>
-                    <h2 class="font-display font-bold text-[17px] text-on-surface">Gerar proposta mensal</h2>
-                    <p class="font-body text-[12px] text-on-surface-variant mt-0.5">O algoritmo IO gera automaticamente uma nova alternativa de horário para o período selecionado.</p>
-                </div>
-            </div>
-            <div class="px-6 py-5">
-                <form method="post" th:action="@{/web/horarios/gerar}"
-                      onsubmit="return confirm('Gerar uma nova proposta de horário para ' + document.querySelector('[name=mes] option:checked').text + ' de ' + document.querySelector('[name=ano]').value + '?');"
-                      class="flex flex-wrap items-end gap-3">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="gerar-ano">Ano</label>
-                        <select id="gerar-ano" name="ano"
-                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[90px]">
-                            <option th:each="anoItem : ${anos}" th:value="${anoItem}" th:text="${anoItem}" th:selected="${anoItem == ano}"></option>
-                        </select>
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant" for="gerar-mes">Mês</label>
-                        <select id="gerar-mes" name="mes"
-                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface min-w-[140px]">
-                            <option th:each="mesItem : ${meses}" th:value="${mesItem.valor()}" th:text="${mesItem.nome()}" th:selected="${mesItem.valor() == mes}"></option>
-                        </select>
-                    </div>
-                    <button type="submit"
-                            class="flex items-center gap-2 bg-primary text-on-primary font-body font-bold text-[13px] px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity">
-                        <span class="material-symbols-outlined text-[16px]">bolt</span>
-                        Gerar proposta
-                    </button>
-                </form>
-            </div>
-        </section>
-
-        <!-- Lista de propostas existentes -->
-        <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
-                 style="box-shadow:0 4px 20px rgba(28,27,27,.06)">
-
-            <div class="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/25">
-                <span class="material-symbols-outlined text-[20px] text-primary">list_alt</span>
-                <h2 class="font-display font-bold text-[17px] text-on-surface"
-                    th:text="${'Propostas de ' + mes + '/' + ano}">Propostas</h2>
-                <span th:if="${propostas != null && !#lists.isEmpty(propostas)}"
-                      class="ml-auto inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full badge-neu"
-                      th:text="${#lists.size(propostas)} + ' proposta(s)'">0 propostas</span>
-            </div>
-
-            <!-- sem propostas -->
-            <div th:if="${propostas == null || #lists.isEmpty(propostas)}"
-                 class="flex flex-col items-center gap-4 px-6 py-10 text-center">
-                <div class="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center">
-                    <span class="material-symbols-outlined text-[28px] text-outline/40">description</span>
-                </div>
-                <p class="font-display font-bold text-[16px] text-on-surface">Nenhuma proposta gerada</p>
-                <p class="font-body text-[13px] text-on-surface-variant max-w-sm">
-                    Usa o formulário acima para gerar a primeira proposta de horário para este período.
-                </p>
-            </div>
-
-            <!-- tabela de propostas -->
-            <div th:if="${propostas != null && !#lists.isEmpty(propostas)}" class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-surface-container-low">
-                        <tr>
-                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Proposta</th>
-                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
-                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Qualidade</th>
-                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Score</th>
-                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Gerado em</th>
-                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Colaboradores</th>
-                            <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/20">
-                        <tr th:each="p : ${propostas}" class="hover:bg-surface-container-low/60 transition-colors">
-                            <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface"
-                                th:text="${p.rotulo()}">Proposta #1</td>
-                            <td class="px-6 py-3.5">
-                                <span class="inline-flex items-center font-body font-semibold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                      th:classappend="${#strings.toLowerCase(p.estado()).contains('aprovado')} ? 'badge-ok' : (${#strings.toLowerCase(p.estado()).contains('rejeit')} ? 'badge-err' : (${#strings.toLowerCase(p.estado()).contains('pendente')} ? 'badge-warn' : 'badge-neu'))"
-                                      th:text="${p.estado()}">rascunho</span>
-                            </td>
-                            <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
-                                th:text="${p.qualidade()}">Boa</td>
-                            <td class="px-6 py-3.5 font-body font-semibold text-[13px] text-on-surface"
-                                th:text="${p.pontuacao()}">0</td>
-                            <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
-                                th:text="${p.dataGeracao()}">-</td>
-                            <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant"
-                                th:text="${p.colaboradores()} + ' colab.'">-</td>
-                            <td class="px-6 py-3.5">
-                                <!-- Só mostrar botão Enviar se estado = rascunho -->
-                                <form th:if="${#strings.toLowerCase(p.estado()).contains('rascunho')}"
-                                      method="post"
-                                      th:action="@{'/web/horarios/propostas/' + ${p.idProposta()} + '/enviar'}"
-                                      onsubmit="return confirm('Enviar esta proposta para validação pelo supervisor?')">
-                                    <input type="hidden" name="ano" th:value="${ano}" />
-                                    <input type="hidden" name="mes" th:value="${mes}" />
-                                    <button type="submit"
-                                            class="inline-flex items-center gap-1 font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                                        <span class="material-symbols-outlined text-[13px]">send</span>
-                                        Enviar ao supervisor
-                                    </button>
-                                </form>
-                                <span th:if="${#strings.toLowerCase(p.estado()).contains('pendente')}"
-                                      class="inline-flex items-center gap-1 font-body text-[11px] text-on-surface-variant">
-                                    <span class="material-symbols-outlined text-[13px]">schedule</span>
-                                    A aguardar validação
-                                </span>
-                                <span th:if="${#strings.toLowerCase(p.estado()).contains('aprovado')}"
-                                      class="inline-flex items-center gap-1 font-body text-[11px] text-green-700">
-                                    <span class="material-symbols-outlined text-[13px]">check_circle</span>
-                                    Aprovada
-                                </span>
-                                <span th:if="${#strings.toLowerCase(p.estado()).contains('rejeit')}"
-                                      class="inline-flex items-center gap-1 font-body text-[11px] text-error">
-                                    <span class="material-symbols-outlined text-[13px]">cancel</span>
-                                    Rejeitada
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-    </th:block>
 
     <!-- ── Lista de turnos ── -->
     <section class="fade-up bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
@@ -461,23 +327,24 @@
         error.style.display   = 'none';
 
         overlay.style.display = 'block';
+        document.body.style.overflow = 'hidden';
         var box = document.getElementById('day-modal-box');
         if (box) {
-            var scrollContainer = document.querySelector('main') || document.querySelector('.overflow-y-auto') || document.documentElement;
-            var currentScroll = window.pageYOffset || scrollContainer.scrollTop || document.documentElement.scrollTop || document.body.scrollTop;
-            var viewportHeight = window.innerHeight;
-            var actualBoxHeight = box.offsetHeight || 450;
-            var calculatedTop = currentScroll + (viewportHeight / 2) - (actualBoxHeight / 2);
-            if (calculatedTop < currentScroll + 20) { calculatedTop = currentScroll + 20; }
-            box.style.top = calculatedTop + 'px';
+            box.style.transform = 'translate(-50%,-50%) scale(.96)';
+            box.style.opacity = '0';
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    box.style.transform = 'translate(-50%,-50%) scale(1)';
+                    box.style.opacity = '1';
+                });
+            });
         }
-        document.body.style.overflow = 'hidden';
 
         fetch('/api/horarios/detalhe-dia?data=' + dateStr)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.erro) { throw new Error(data.erro); }
-                renderDayDetail(data);
+                renderDayDetail(data, dateStr);
             })
             .catch(function (err) {
                 loading.style.display = 'none';
@@ -487,7 +354,11 @@
             });
     };
 
-    function renderDayDetail(data) {
+    function renderDayDetail(data, dateStr) {
+        // Only offer shift-swap for strictly future dates
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var shiftDate = dateStr ? new Date(dateStr + 'T00:00:00') : today;
+        var shiftIsFuture = shiftDate > today;
         var loading     = document.getElementById('day-detail-loading');
         var content     = document.getElementById('day-detail-content');
         var sub         = document.getElementById('day-detail-subtitle');
@@ -506,7 +377,7 @@
             equipaEmpty.style.display = 'none';
             data.equipa.forEach(function (c) {
                 var row   = document.createElement('div');
-                row.className = 'flex items-center justify-between gap-2 bg-surface-container-low rounded-xl px-3 py-2.5';
+                row.className = 'flex items-center justify-between gap-2 px-3 py-2.5';
                 var left  = document.createElement('div');
                 left.className = 'flex flex-col min-w-0';
                 var nome  = document.createElement('span');
@@ -529,7 +400,20 @@
                 right.appendChild(horas);
                 row.appendChild(left);
                 row.appendChild(right);
-                equipaDiv.appendChild(row);
+
+                var card = document.createElement('div');
+                card.className = 'bg-surface-container-low rounded-xl overflow-hidden';
+                card.appendChild(row);
+
+                if (c.meuTurno && c.horarioId && shiftIsFuture) {
+                    var permBar = document.createElement('a');
+                    permBar.href = '/web/complementares?tab=permutas&origemPermuta=' + c.horarioId + '#seccao-permuta';
+                    permBar.className = 'flex items-center justify-center gap-1.5 px-3 py-1.5 border-t border-outline-variant/20 bg-primary-container/5 hover:bg-primary-container/15 transition-colors font-body text-[11px] font-semibold text-primary-container';
+                    permBar.innerHTML = '<span class="material-symbols-outlined text-[13px]">swap_horiz</span>Solicitar Permuta';
+                    card.appendChild(permBar);
+                }
+
+                equipaDiv.appendChild(card);
             });
         }
 
@@ -556,22 +440,19 @@
 
         loading.style.display = 'none';
         content.style.display = '';
-
-        /* Recentre after content expands the box */
-        var box2 = document.getElementById('day-modal-box');
-        if (box2) {
-            var sc2 = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
-            var vh2 = window.innerHeight;
-            var h2  = box2.offsetHeight || 450;
-            var top2 = sc2 + (vh2 / 2) - (h2 / 2);
-            if (top2 < sc2 + 20) { top2 = sc2 + 20; }
-            box2.style.top = top2 + 'px';
-        }
     }
 
     window.closeDayDetail = function () {
-        document.getElementById('day-detail-overlay').style.display = 'none';
-        document.body.style.overflow = '';
+        var overlay = document.getElementById('day-detail-overlay');
+        var box = document.getElementById('day-modal-box');
+        if (box) {
+            box.style.transform = 'translate(-50%,-50%) scale(.96)';
+            box.style.opacity = '0';
+        }
+        setTimeout(function () {
+            overlay.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 220);
     };
 
 })(); /* /IIFE */
@@ -581,10 +462,10 @@
 
 <!-- ── Modal: Equipa no dia ── (direct child of body — outside any stacking context) -->
 <div id="day-detail-overlay"
-     style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:9999;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);padding:16px;"
+     style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:8000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);"
      onclick="if(event.target===this)closeDayDetail()">
-    <div id="day-modal-box" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-6 w-full max-w-md"
-         style="position:absolute;left:50%;transform:translateX(-50%);box-shadow:0 8px 40px rgba(0,0,0,.22);z-index:10000;">
+    <div id="day-modal-box" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-6 overflow-y-auto"
+         style="position:fixed;top:50vh;left:50vw;transform:translate(-50%,-50%) scale(.96);opacity:0;transition:transform .22s cubic-bezier(.16,1,.3,1),opacity .22s ease;z-index:8001;width:calc(100% - 2rem);max-width:460px;max-height:calc(100vh - 3rem);box-shadow:0 8px 40px rgba(0,0,0,.28);">
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h3 id="day-detail-title" class="font-display font-bold text-[18px] text-on-surface">Equipa do dia</h3>
@@ -628,5 +509,6 @@
     </div>
 </div>
 
+<th:block th:replace="~{web/fragments :: scripts}"></th:block>
 </body>
 </html>

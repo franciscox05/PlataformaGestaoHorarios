@@ -25,9 +25,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/web/complementares")
@@ -68,38 +66,7 @@ public class WebComplementaresController {
         List<DayOff> minhasFolgas = dayOffBLL.listarPedidosPorUtilizador(utilizadorId);
         List<Preferencia> minhasPreferencias = preferenciaBLL.listarPreferenciasPorUtilizador(utilizadorId);
         List<Permuta> minhasPermutas = permutaBLL.listarPedidosEnviados(utilizadorId);
-
-        WebAppService.WebPermissoes permissoes = webAppService.obterPermissoes(utilizadorId);
-        List<DayOff> folgasPendentes = permissoes.podeAprovarFolgas()
-                ? dayOffBLL.listarPedidosPendentesParaAprovacao(utilizadorId)
-                : List.of();
-        List<Preferencia> preferenciasPendentes = permissoes.podeAprovarPreferencias()
-                ? preferenciaBLL.listarPreferenciasPendentesParaAprovacao(utilizadorId)
-                : List.of();
-        List<Permuta> permutasPendentes = permissoes.podeAprovarPermutas()
-                ? permutaBLL.listarPedidosPendentesParaAprovacao(utilizadorId)
-                : List.of();
-        List<PermutaFolga> permutasFolgaPendentes = permissoes.podeAprovarPermutas()
-                ? permutaFolgaBLL.listarPendentesParaAprovacao(utilizadorId)
-                : List.of();
-
-        Map<Integer, String> nomesFolgasPendentes = dayOffBLL.listarNomesUtilizadores(
-                folgasPendentes.stream().map(d -> d.getIdUtilizador().getId()).collect(Collectors.toSet())
-        );
-
-        Set<Integer> idsPreferencias = preferenciasPendentes.stream()
-                .map(Preferencia::getIdUtilizador)
-                .filter(item -> item != null && item.getId() != null)
-                .map(Utilizador::getId)
-                .collect(Collectors.toSet());
-        if (permissoes.podeAprovarPreferencias()) {
-            idsPreferencias.addAll(preferenciaBLL.listarHistoricoDecisoesDaLoja(utilizadorId).stream()
-                    .map(Preferencia::getIdUtilizador)
-                    .filter(item -> item != null && item.getId() != null)
-                    .map(Utilizador::getId)
-                    .collect(Collectors.toSet()));
-        }
-        Map<Integer, String> nomesPreferencias = dayOffBLL.listarNomesUtilizadores(idsPreferencias);
+        List<PermutaFolga> minhasPermutasFolga = permutaFolgaBLL.listarPedidosPorUtilizador(utilizadorId);
 
         List<Horario> meusTurnosPermutaveis = horarioBLL.listarMeusTurnosDisponiveisParaPermuta(utilizadorId);
         List<Horario> turnosElegiveis = idHorarioOrigem != null
@@ -109,27 +76,12 @@ public class WebComplementaresController {
         model.addAttribute("minhasFolgas", minhasFolgas);
         model.addAttribute("minhasPreferencias", minhasPreferencias);
         model.addAttribute("minhasPermutas", minhasPermutas);
-
-        model.addAttribute("folgasPendentes", folgasPendentes);
-        model.addAttribute("preferenciasPendentes", preferenciasPendentes);
-        model.addAttribute("permutasPendentes", permutasPendentes);
-        model.addAttribute("totalFolgasPendentes", folgasPendentes.size());
-        model.addAttribute("totalPreferenciasPendentes", preferenciasPendentes.size());
-        model.addAttribute("totalPermutasPendentes", permutasPendentes.size());
-        model.addAttribute("totalPendenciasComplementares",
-                folgasPendentes.size() + preferenciasPendentes.size()
-                + permutasPendentes.size() + permutasFolgaPendentes.size());
-        model.addAttribute("nomesFolgasPendentes", nomesFolgasPendentes);
-        model.addAttribute("nomesPreferencias", nomesPreferencias);
-
-        List<PermutaFolga> minhasPermutasFolga = permutaFolgaBLL.listarPedidosPorUtilizador(utilizadorId);
         model.addAttribute("minhasPermutasFolga", minhasPermutasFolga);
-        model.addAttribute("permutasFolgaPendentes", permutasFolgaPendentes);
-        model.addAttribute("totalPermutasFolgaPendentes", permutasFolgaPendentes.size());
 
         model.addAttribute("tiposPreferencia", TIPOS_PREFERENCIA);
+        Integer idLoja = webAppService.obterLojaAtual(session);
         try {
-            model.addAttribute("colegasDaLoja", preferenciaBLL.listarColegasDaLoja(utilizadorId));
+            model.addAttribute("colegasDaLoja", preferenciaBLL.listarColegasDaLoja(utilizadorId, idLoja));
         } catch (IllegalArgumentException ex) {
             model.addAttribute("colegasDaLoja", List.of());
         }
@@ -169,34 +121,6 @@ public class WebComplementaresController {
         return "redirect:/web/complementares";
     }
 
-    @PostMapping("/folgas/{idDayOff}/aprovar")
-    public String aprovarFolga(@PathVariable("idDayOff") Integer idDayOff,
-                               HttpSession session,
-                               RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            dayOffBLL.aprovarPedidoFolga(idDayOff, utilizadorId);
-            redirectAttributes.addFlashAttribute("sucesso", "Pedido de folga aprovado com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/complementares";
-    }
-
-    @PostMapping("/folgas/{idDayOff}/rejeitar")
-    public String rejeitarFolga(@PathVariable("idDayOff") Integer idDayOff,
-                                HttpSession session,
-                                RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            dayOffBLL.rejeitarPedidoFolga(idDayOff, utilizadorId);
-            redirectAttributes.addFlashAttribute("sucesso", "Pedido de folga rejeitado com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/complementares";
-    }
-
     @PostMapping("/preferencias")
     public String registarPreferencia(@RequestParam(value = "tipo", required = false) String tipo,
                                       @RequestParam(value = "dataInicio", required = false) String dataInicio,
@@ -205,9 +129,8 @@ public class WebComplementaresController {
                                       @RequestParam(value = "descricao", required = false) String descricao,
                                       HttpSession session,
                                       RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-
         try {
+            Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
             Integer prioridadeParsed = null;
             if (prioridade != null && !prioridade.isBlank()) {
                 try {
@@ -226,36 +149,10 @@ public class WebComplementaresController {
             redirectAttributes.addFlashAttribute("sucesso", "Preferencia guardada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/complementares";
-    }
-
-    @PostMapping("/preferencias/{idPreferencia}/aprovar")
-    public String aprovarPreferencia(@PathVariable("idPreferencia") Integer idPreferencia,
-                                     @RequestParam(value = "decisao", required = false) String decisao,
-                                     HttpSession session,
-                                     RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            preferenciaBLL.aprovarPreferencia(idPreferencia, utilizadorId, decisao);
-            redirectAttributes.addFlashAttribute("sucesso", "Preferencia aprovada com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/complementares";
-    }
-
-    @PostMapping("/preferencias/{idPreferencia}/rejeitar")
-    public String rejeitarPreferencia(@PathVariable("idPreferencia") Integer idPreferencia,
-                                      @RequestParam(value = "decisao", required = false) String decisao,
-                                      HttpSession session,
-                                      RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            preferenciaBLL.rejeitarPreferencia(idPreferencia, utilizadorId, decisao);
-            redirectAttributes.addFlashAttribute("sucesso", "Preferencia rejeitada com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(WebComplementaresController.class)
+                    .error("Erro inesperado ao guardar preferencia", ex);
+            redirectAttributes.addFlashAttribute("erro", "Ocorreu um erro inesperado. Tenta novamente.");
         }
         return "redirect:/web/complementares";
     }
@@ -289,62 +186,6 @@ public class WebComplementaresController {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
         return "redirect:/web/complementares" + (idHorarioOrigem != null ? "?origemPermuta=" + idHorarioOrigem : "");
-    }
-
-    @PostMapping("/permutas/{idPermuta}/aprovar")
-    public String aprovarPermuta(@PathVariable("idPermuta") Integer idPermuta,
-                                 HttpSession session,
-                                 RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            permutaBLL.aprovarPedidoPermuta(idPermuta, utilizadorId);
-            redirectAttributes.addFlashAttribute("sucesso", "Permuta aprovada com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/complementares";
-    }
-
-    @PostMapping("/permutas/{idPermuta}/rejeitar")
-    public String rejeitarPermuta(@PathVariable("idPermuta") Integer idPermuta,
-                                  HttpSession session,
-                                  RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            permutaBLL.rejeitarPedidoPermuta(idPermuta, utilizadorId);
-            redirectAttributes.addFlashAttribute("sucesso", "Permuta rejeitada com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/complementares";
-    }
-
-    @PostMapping("/permutas-folga/{idPermutaFolga}/aprovar")
-    public String aprovarPermutaFolga(@PathVariable("idPermutaFolga") Integer idPermutaFolga,
-                                      HttpSession session,
-                                      RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            permutaFolgaBLL.aprovar(idPermutaFolga, utilizadorId);
-            redirectAttributes.addFlashAttribute("sucesso", "Permuta de folga aprovada com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/complementares";
-    }
-
-    @PostMapping("/permutas-folga/{idPermutaFolga}/rejeitar")
-    public String rejeitarPermutaFolga(@PathVariable("idPermutaFolga") Integer idPermutaFolga,
-                                       HttpSession session,
-                                       RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            permutaFolgaBLL.rejeitar(idPermutaFolga, utilizadorId);
-            redirectAttributes.addFlashAttribute("sucesso", "Permuta de folga rejeitada com sucesso.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/complementares";
     }
 
     @PostMapping("/preferencias/{idPreferencia}/remover")

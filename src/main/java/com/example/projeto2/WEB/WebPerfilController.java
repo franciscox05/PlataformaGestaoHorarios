@@ -30,8 +30,9 @@ public class WebPerfilController {
         webAppService.preencherModeloBase(model, session, "perfil");
 
         try {
+            Integer idLoja = webAppService.obterLojaAtual(session);
             Utilizador utilizador = perfilBLL.obterUtilizadorPorId(utilizadorId);
-            PerfilService.PerfilResumo resumo = perfilBLL.obterResumoPerfil(utilizador);
+            PerfilService.PerfilResumo resumo = perfilBLL.obterResumoPerfil(utilizador, idLoja);
             model.addAttribute("resumo", resumo);
         } catch (IllegalArgumentException ex) {
             model.addAttribute("erro", ex.getMessage());

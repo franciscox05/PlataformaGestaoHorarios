@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 public interface HorarioRepository extends JpaRepository<Horario, Integer> {
@@ -49,6 +50,24 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
     List<Horario> findHorariosPublicadosPorUtilizadorEntreDatas(@Param("idUtilizador") Integer idUtilizador,
                                                                 @Param("dataInicio") LocalDate dataInicio,
                                                                 @Param("dataFim") LocalDate dataFim);
+
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
+            "WHERE u.id = :idUtilizador " +
+            "AND l.id = :idLoja " +
+            "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
+            "AND (h.estado IS NULL OR LOWER(CAST(h.estado AS string)) = 'aprovado') " +
+            "ORDER BY h.dataTurno ASC, t.horaInicio ASC")
+    List<Horario> findHorariosPublicadosPorUtilizadorELojaEntreDatas(@Param("idUtilizador") Integer idUtilizador,
+                                                                      @Param("idLoja") Integer idLoja,
+                                                                      @Param("dataInicio") LocalDate dataInicio,
+                                                                      @Param("dataFim") LocalDate dataFim);
 
     @Query("SELECT h FROM Horario h " +
             "JOIN FETCH h.idLojautilizador lu " +
@@ -267,6 +286,49 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
     List<Horario> findColeaguesDaLojaNoDia(@Param("idLoja") Integer idLoja,
                                            @Param("data") LocalDate data,
                                            @Param("idExcluir") Integer idExcluir);
+
+    // Employee "my own shifts on a given day" — same store, only self
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
+            "WHERE l.id = :idLoja " +
+            "AND h.dataTurno = :data " +
+            "AND u.id = :idUtilizador " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
+            "AND (h.estado IS NULL OR LOWER(CAST(h.estado AS string)) = 'aprovado') " +
+            "AND lu.dataFim IS NULL " +
+            "ORDER BY t.horaInicio ASC")
+    List<Horario> findMeusTurnosNoDia(@Param("idLoja") Integer idLoja,
+                                      @Param("data") LocalDate data,
+                                      @Param("idUtilizador") Integer idUtilizador);
+
+    /** Cross-store overlap guard — intentionally omits store filter so it detects double-booking across all stores. */
+    @Query("SELECT COUNT(h) FROM Horario h " +
+            "WHERE h.idLojautilizador.idUtilizador.id = :idUtilizador " +
+            "AND h.dataTurno = :data " +
+            "AND :horaInicio < h.idTurno.horaFim " +
+            "AND :horaFim > h.idTurno.horaInicio")
+    long countGlobalOverlappingShifts(@Param("idUtilizador") Integer idUtilizador,
+                                      @Param("data") LocalDate data,
+                                      @Param("horaInicio") LocalTime horaInicio,
+                                      @Param("horaFim") LocalTime horaFim);
+
+    /** Same as above but excludes a specific Horario row — used when editing an existing record to avoid self-counting. */
+    @Query("SELECT COUNT(h) FROM Horario h " +
+            "WHERE h.idLojautilizador.idUtilizador.id = :idUtilizador " +
+            "AND h.dataTurno = :data " +
+            "AND h.id <> :idHorarioExcluir " +
+            "AND :horaInicio < h.idTurno.horaFim " +
+            "AND :horaFim > h.idTurno.horaInicio")
+    long countGlobalOverlappingShiftsExcluding(@Param("idUtilizador") Integer idUtilizador,
+                                               @Param("data") LocalDate data,
+                                               @Param("horaInicio") LocalTime horaInicio,
+                                               @Param("horaFim") LocalTime horaFim,
+                                               @Param("idHorarioExcluir") Integer idHorarioExcluir);
 
     void deleteByIdPropostaHorarioId(Integer idPropostaHorario);
 

@@ -1,9 +1,6 @@
 package com.example.projeto2.WEB;
 
-import com.example.projeto2.API.Services.geracao.dto.PropostaResultado;
-import com.example.projeto2.API.Services.geracao.dto.PropostaResumo;
 import com.example.projeto2.API.Services.GeracaoHorariosService;
-import com.example.projeto2.API.Services.geracao.FalhaGeracaoHorarioException;
 import com.example.projeto2.API.Modules.Horario;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
@@ -12,8 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -59,10 +54,10 @@ public class WebHorariosController {
         model.addAttribute("anos", WebMesOption.anosProximos(hoje.getYear(), 2));
 
         try {
-            List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, anoConsulta, mesConsulta);
+            Integer idLoja = webAppService.obterLojaAtual(session);
+            List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, idLoja, anoConsulta, mesConsulta);
             model.addAttribute("turnos", turnos);
 
-            // Pre-formatted data for the calendar JS view — avoids complex inline expressions
             DateTimeFormatter hhmm = DateTimeFormatter.ofPattern("HH:mm");
             List<Map<String, Object>> turnosCalendario = turnos.stream()
                 .filter(t -> t.getDataTurno() != null && t.getIdTurno() != null)
@@ -84,43 +79,9 @@ public class WebHorariosController {
             model.addAttribute("turnosCalendario", List.of());
         }
 
-        // Carrega propostas mensais para gerentes/subgerentes
-        if (geracaoHorariosBLL.utilizadorPodeGerarHorarios(utilizadorId)) {
-            try {
-                List<PropostaResumo> propostas =
-                        geracaoHorariosBLL.listarPropostas(utilizadorId, anoConsulta, mesConsulta);
-                model.addAttribute("propostas", propostas);
-            } catch (IllegalArgumentException ex) {
-                model.addAttribute("propostas", List.of());
-            }
-        }
-
         return "web/horarios";
     }
 
-    /** W2 — Gerar nova proposta de horário mensal */
-    @PostMapping("/gerar")
-    public String gerarHorario(@RequestParam("ano") Integer ano,
-                               @RequestParam("mes") Integer mes,
-                               HttpSession session,
-                               RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            PropostaResultado resultado =
-                    geracaoHorariosBLL.gerarProposta(utilizadorId, ano, mes);
-            redirectAttributes.addFlashAttribute("sucesso",
-                    "Proposta gerada com sucesso (" + resultado.metricas().qualidade()
-                    + ", score " + resultado.metricas().pontuacao() + ").");
-        } catch (FalhaGeracaoHorarioException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage()
-                    + (ex.motivoPrincipal() != null ? " — " + ex.motivoPrincipal() : ""));
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        return "redirect:/web/horarios?ano=" + ano + "&mes=" + mes;
-    }
-
-    /** W7 — Exportar horário mensal como PDF */
     @GetMapping(value = "/exportar.pdf", produces = "application/pdf")
     public Object exportarPdf(@RequestParam("ano") Integer ano,
                               @RequestParam("mes") Integer mes,
@@ -128,7 +89,8 @@ public class WebHorariosController {
                               RedirectAttributes redirectAttributes) {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
         try {
-            List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, ano, mes);
+            Integer idLoja = webAppService.obterLojaAtual(session);
+            List<Horario> turnos = geracaoHorariosBLL.obterMeusHorarios(utilizadorId, idLoja, ano, mes);
             String nomeUtilizador = (String) session.getAttribute(WebSession.UTILIZADOR_NOME);
             byte[] conteudo = webPdfService.gerarHorarioMensalPdf(
                     turnos, ano, mes, nomeUtilizador != null ? nomeUtilizador : "");
@@ -141,26 +103,5 @@ public class WebHorariosController {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
             return "redirect:/web/horarios?ano=" + ano + "&mes=" + mes;
         }
-    }
-
-    /** W1 — Enviar proposta para validação pelo supervisor */
-    @PostMapping("/propostas/{idProposta}/enviar")
-    public String enviarParaSupervisor(@PathVariable("idProposta") Integer idProposta,
-                                       @RequestParam(value = "ano", required = false) Integer ano,
-                                       @RequestParam(value = "mes", required = false) Integer mes,
-                                       HttpSession session,
-                                       RedirectAttributes redirectAttributes) {
-        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-        try {
-            geracaoHorariosBLL.enviarPropostasParaValidacao(utilizadorId, List.of(idProposta));
-            redirectAttributes.addFlashAttribute("sucesso", "Proposta enviada ao supervisor para validação.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
-        }
-        String redirect = "/web/horarios";
-        if (ano != null && mes != null) {
-            redirect += "?ano=" + ano + "&mes=" + mes;
-        }
-        return "redirect:" + redirect;
     }
 }

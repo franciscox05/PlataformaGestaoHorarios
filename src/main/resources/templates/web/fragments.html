@@ -105,9 +105,9 @@
         /* Topbar glass */
         .topbar-glass { background:rgba(253,248,248,.88); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5); }
 
-        /* Page load */
+        /* Page load — opacity only; no transform to avoid breaking position:fixed on sidebar */
         body { animation:pageLoad .25s ease both; }
-        @keyframes pageLoad { from{opacity:.6;transform:translateY(3px)} to{opacity:1;transform:none} }
+        @keyframes pageLoad { from{opacity:.6} to{opacity:1} }
 
         /* Card hover lift */
         .card-lift { transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s cubic-bezier(.16,1,.3,1); }
@@ -157,121 +157,117 @@
 
 <!-- ═══════════════════════════ SIDEBAR ═══════════════════════════ -->
 <aside id="sidebar"
-       class="fixed inset-y-0 left-0 w-sidebar bg-inverse-surface flex flex-col z-50 -translate-x-full md:translate-x-0"
-       style="box-shadow:6px 0 32px rgba(0,0,0,.25)"
+       class="fixed top-0 left-0 h-screen w-sidebar z-50 flex flex-col -translate-x-full md:translate-x-0"
+       style="position:fixed;top:0;left:0;background-color:#1e1a19;box-shadow:6px 0 32px rgba(0,0,0,.25)"
        th:fragment="shellSidebar">
 
-    <!-- Brand -->
-    <div class="px-5 pt-6 pb-5 flex items-center gap-3 border-b border-white/5 shrink-0">
-        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-             style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 8px rgba(192,0,31,.4)">
-            <span class="font-display font-black text-white text-[14px]">L</span>
-        </div>
-        <div>
-            <p class="font-display font-bold text-[17px] text-white leading-none">Levi's</p>
-            <p class="font-body text-[9px] uppercase tracking-[.15em] text-white/30 mt-0.5">Staff Portal</p>
-        </div>
-    </div>
-
-    <!-- User pill -->
-    <div class="px-4 py-3 border-b border-white/5 shrink-0" th:if="${webUtilizador != null}">
-        <div class="flex items-center gap-3 rounded-xl px-3 py-2.5" style="background:rgba(255,255,255,.05)">
-            <div class="relative shrink-0">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-sm"
-                     style="background:linear-gradient(135deg,#c0001f,#7a0014)"
-                     th:text="${webUtilizador.nome != null && !webUtilizador.nome.isEmpty() ? webUtilizador.nome.substring(0,1).toUpperCase() : 'U'}">U</div>
-                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 status-online shrink-0"
-                      style="background:#4ade80;border-color:#1e1a19"></span>
+        <!-- Brand -->
+        <div class="px-5 pt-6 pb-5 flex items-center gap-3 border-b border-white/5 shrink-0">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                 style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 8px rgba(192,0,31,.4)">
+                <span class="font-display font-black text-white text-[14px]">L</span>
             </div>
-            <div class="min-w-0 flex-1">
-                <p class="font-body font-bold text-[13px] text-white/90 leading-tight truncate"
-                   th:text="${webUtilizador.nome != null ? webUtilizador.nome.split(' ')[0] : 'Utilizador'}">Nome</p>
-                <p class="font-body text-[10px] text-white/35 uppercase tracking-wider"
-                   th:text="${webCargoAtual}">Cargo</p>
+            <div>
+                <p class="font-display font-bold text-[17px] text-white leading-none">Levi's</p>
+                <p class="font-body text-[9px] uppercase tracking-[.15em] text-white/30 mt-0.5">Staff Portal</p>
             </div>
         </div>
-    </div>
 
-    <!-- Nav -->
-    <nav class="flex-1 overflow-y-auto px-2.5 py-4 flex flex-col gap-0.5">
-        <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20 px-3 mb-1.5">Principal</p>
+        <!-- User pill — links to /web/perfil -->
+        <div class="px-4 py-3 border-b border-white/5 shrink-0" th:if="${webUtilizador != null}">
+            <a href="/web/perfil"
+               class="flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all active:scale-[0.98] hover:bg-white/10 block"
+               style="background:rgba(255,255,255,.05)">
+                <div class="relative shrink-0">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-sm"
+                         style="background:linear-gradient(135deg,#c0001f,#7a0014)"
+                         th:text="${webUtilizador.nome != null && !webUtilizador.nome.isEmpty() ? webUtilizador.nome.substring(0,1).toUpperCase() : 'U'}">U</div>
+                    <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 status-online shrink-0"
+                          style="background:#4ade80;border-color:#1e1a19"></span>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="font-body font-bold text-[13px] text-white/90 leading-tight truncate"
+                       th:text="${webUtilizador.nome != null ? webUtilizador.nome.split(' ')[0] : 'Utilizador'}">Nome</p>
+                    <p class="font-body text-[10px] text-white/35 uppercase tracking-wider"
+                       th:text="${webCargoAtual}">Cargo</p>
+                </div>
+                <span class="material-symbols-outlined text-[14px] text-white/20 shrink-0">chevron_right</span>
+            </a>
+        </div>
 
-        <a href="/web/horarios"
-           th:classappend="${webModuloAtivo == 'horarios'} ? 'nav-active' : 'text-white/40'"
-           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
-            <span class="material-symbols-outlined text-[19px]"
-                  th:classappend="${webModuloAtivo == 'horarios'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">calendar_month</span>
-            O meu horário
-            <span th:if="${webModuloAtivo == 'horarios'}"
-                  class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
-        </a>
-        <a href="/web/complementares"
-           th:classappend="${webModuloAtivo == 'complementares'} ? 'nav-active' : 'text-white/40'"
-           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
-            <span class="material-symbols-outlined text-[19px]"
-                  th:classappend="${webModuloAtivo == 'complementares'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">pending_actions</span>
-            Pedidos e Preferências
-            <span th:if="${webModuloAtivo == 'complementares'}"
-                  class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
-        </a>
-        <a href="/web/relatorios"
-           th:if="${webPermissoes != null && webPermissoes.podeVerRelatorios()}"
-           th:classappend="${webModuloAtivo == 'relatorios'} ? 'nav-active' : 'text-white/40'"
-           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
-            <span class="material-symbols-outlined text-[19px]"
-                  th:classappend="${webModuloAtivo == 'relatorios'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">bar_chart</span>
-            Relatórios
-            <span th:if="${webModuloAtivo == 'relatorios'}"
-                  class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
-        </a>
+        <!-- Nav — grows to fill available height; scrolls internally if content overflows -->
+        <nav class="flex-1 overflow-y-auto px-2.5 py-4 flex flex-col gap-0.5">
+            <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20 px-3 mb-1.5">Principal</p>
 
-        <div th:if="${webPermissoes != null && webPermissoes.podeGerirLoja()}">
+            <a href="/web/horarios"
+               th:classappend="${webModuloAtivo == 'horarios'} ? 'nav-active' : 'text-white/40'"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
+                <span class="material-symbols-outlined text-[19px]"
+                      th:classappend="${webModuloAtivo == 'horarios'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">calendar_month</span>
+                O meu horário
+                <span th:if="${webModuloAtivo == 'horarios'}"
+                      class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
+            </a>
+            <a href="/web/complementares"
+               th:classappend="${webModuloAtivo == 'complementares'} ? 'nav-active' : 'text-white/40'"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
+                <span class="material-symbols-outlined text-[19px]"
+                      th:classappend="${webModuloAtivo == 'complementares'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">pending_actions</span>
+                Pedidos e Preferências
+                <span th:if="${webModuloAtivo == 'complementares'}"
+                      class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
+            </a>
+
+            <!-- Notification bell — badge appears only when unread notifications exist -->
+            <a href="/web/notificacoes"
+               th:classappend="${webModuloAtivo == 'notificacoes'} ? 'nav-active' : 'text-white/40'"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
+                <span class="relative shrink-0 flex items-center">
+                    <span class="material-symbols-outlined text-[19px]"
+                          th:classappend="${webModuloAtivo == 'notificacoes'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">notifications</span>
+                    <span th:if="${totalNotificacoesPendentes != null and totalNotificacoesPendentes > 0}"
+                          class="absolute -top-1 -right-1.5 min-w-[16px] h-4 rounded-full flex items-center justify-center font-body font-bold text-white"
+                          style="background:#c0001f;font-size:9px;padding:0 3px;line-height:1"
+                          th:text="${totalNotificacoesPendentes > 99 ? '99+' : totalNotificacoesPendentes}">0</span>
+                </span>
+                Notificações
+                <span th:if="${webModuloAtivo == 'notificacoes'}"
+                      class="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style="background:#ffb3af"></span>
+            </a>
+
             <div class="flex items-center gap-2 px-3 mt-5 mb-1.5">
                 <div class="h-px flex-1" style="background:rgba(255,255,255,.06)"></div>
-                <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20">Gestão</p>
+                <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20">Conta</p>
                 <div class="h-px flex-1" style="background:rgba(255,255,255,.06)"></div>
             </div>
-            <a href="/web/gestao-loja"
-               th:classappend="${webModuloAtivo == 'gestao-loja'} ? 'nav-active' : 'text-white/40'"
+            <a href="/web/perfil"
+               th:classappend="${webModuloAtivo == 'perfil'} ? 'nav-active' : 'text-white/40'"
                class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
                 <span class="material-symbols-outlined text-[19px]"
-                      th:classappend="${webModuloAtivo == 'gestao-loja'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">store</span>
-                Loja e Regras
+                      th:classappend="${webModuloAtivo == 'perfil'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">person</span>
+                Perfil
             </a>
-            <a href="/web/equipa"
-               th:classappend="${webModuloAtivo == 'equipa'} ? 'nav-active' : 'text-white/40'"
+            <a th:if="${podeAlternarLoja}"
+               href="/web/selecionar-loja"
+               th:classappend="${webModuloAtivo == 'selecionar-loja'} ? 'nav-active' : 'text-white/40'"
                class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
                 <span class="material-symbols-outlined text-[19px]"
-                      th:classappend="${webModuloAtivo == 'equipa'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">groups</span>
-                Funcionários
+                      th:classappend="${webModuloAtivo == 'selecionar-loja'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">swap_horiz</span>
+                Alternar Loja
             </a>
-        </div>
+        </nav>
 
-        <div class="flex items-center gap-2 px-3 mt-5 mb-1.5">
-            <div class="h-px flex-1" style="background:rgba(255,255,255,.06)"></div>
-            <p class="font-body text-[9px] uppercase tracking-[.18em] text-white/20">Conta</p>
-            <div class="h-px flex-1" style="background:rgba(255,255,255,.06)"></div>
-        </div>
-        <a href="/web/perfil"
-           th:classappend="${webModuloAtivo == 'perfil'} ? 'nav-active' : 'text-white/40'"
-           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
-            <span class="material-symbols-outlined text-[19px]"
-                  th:classappend="${webModuloAtivo == 'perfil'} ? 'icon-fill text-primary-fixed-dim' : 'text-white/35'">person</span>
-            Perfil
-        </a>
-    </nav>
-
-    <!-- Logout -->
-    <div class="p-3 border-t border-white/5 shrink-0">
-        <form method="post" action="/web/logout">
-            <button type="submit"
+        <!-- Logout — shrink-0 locks this to the bottom of the sidebar column -->
+        <div class="shrink-0 p-3 border-t border-white/5">
+            <button type="button" onclick="showLogoutModal()"
                     class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/30 hover:text-white/70 hover:bg-white/5 transition-all font-body font-semibold text-[13px] group">
                 <span class="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform duration-200">logout</span>
                 Terminar sessão
             </button>
-        </form>
-    </div>
+        </div>
 </aside>
+
+<th:block th:fragment="scripts">
 
 <!-- Overlay mobile -->
 <div id="sidebar-overlay"
@@ -335,14 +331,12 @@
         <div class="hidden sm:block w-px h-5 bg-outline-variant/40 mx-1"></div>
 
         <!-- Sair -->
-        <form method="post" action="/web/logout">
-            <button type="submit"
-                    class="hidden sm:flex items-center gap-1.5 font-body font-semibold text-[12px] text-on-surface-variant
-                           hover:text-primary px-2.5 py-1.5 rounded-lg hover:bg-surface-container transition-all">
-                <span class="material-symbols-outlined text-[15px]">logout</span>
-                Sair
-            </button>
-        </form>
+        <button type="button" onclick="showLogoutModal()"
+                class="hidden sm:flex items-center gap-1.5 font-body font-semibold text-[12px] text-on-surface-variant
+                       hover:text-primary px-2.5 py-1.5 rounded-lg hover:bg-surface-container transition-all">
+            <span class="material-symbols-outlined text-[15px]">logout</span>
+            Sair
+        </button>
     </div>
 </header>
 
@@ -393,9 +387,8 @@ document.addEventListener('DOMContentLoaded', function(){
             if(!href || href === window.location.pathname) return;
             if(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
             e.preventDefault();
-            document.body.style.transition='opacity .18s ease,transform .18s ease';
+            document.body.style.transition='opacity .18s ease';
             document.body.style.opacity='0';
-            document.body.style.transform='translateY(-4px)';
             setTimeout(function(){ window.location.href = href; }, 185);
         });
     });
@@ -448,5 +441,89 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 <style>@keyframes ripple{to{transform:scale(2.5);opacity:0}}</style>
+
+<!-- ═══════════════════════════ LOGOUT MODAL ═══════════════════════════ -->
+<!-- Overlay backdrop only — no flex centering (body transform would trap fixed children) -->
+<div id="logout-modal"
+     style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)"
+     onclick="if(event.target===this)closeLogoutModal()">
+</div>
+
+<!-- Box independently positioned via its own fixed + translate — immune to ancestor transforms -->
+<div id="logout-modal-box"
+     class="rounded-2xl overflow-hidden"
+     style="display:none;position:fixed;top:50vh;left:50vw;z-index:9001;width:calc(100% - 2rem);max-width:448px;transform:translate(-50%,-50%) scale(.95);opacity:0;transition:transform .22s cubic-bezier(.16,1,.3,1),opacity .22s ease;background:#fff;box-shadow:0 24px 64px rgba(0,0,0,.18)">
+
+        <!-- Red accent bar -->
+        <div class="h-1 w-full" style="background:linear-gradient(90deg,#c0001f,#7a0014)"></div>
+
+        <div class="p-6">
+            <!-- Icon + heading -->
+            <div class="flex items-start gap-4 mb-4">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                     style="background:#fee2e2">
+                    <span class="material-symbols-outlined text-[20px]" style="color:#c0001f">logout</span>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-[16px] text-on-surface leading-tight">Terminar sessão?</h3>
+                    <p class="font-body text-[13px] text-on-surface-variant mt-1 leading-snug">
+                        Vai sair do portal. Precisará de iniciar sessão novamente para aceder.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-2.5 justify-end mt-5">
+                <button type="button" onclick="closeLogoutModal()"
+                        class="font-body font-semibold text-[13px] px-4 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmLogout()"
+                        class="font-body font-semibold text-[13px] px-5 py-2 rounded-lg text-white transition-all"
+                        style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 8px rgba(192,0,31,.35)">
+                    <span class="material-symbols-outlined text-[14px] align-middle mr-1">logout</span>
+                    Sair
+                </button>
+            </div>
+        </div>
+</div>
+
+<!-- Hidden real logout form — submitted only after confirmation -->
+<form id="logout-form" method="post" action="/web/logout" style="display:none"></form>
+
+<script>
+function showLogoutModal() {
+    var modal = document.getElementById('logout-modal');
+    var box   = document.getElementById('logout-modal-box');
+    modal.style.display = 'block';
+    box.style.display   = 'block';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            box.style.transform = 'translate(-50%,-50%) scale(1)';
+            box.style.opacity   = '1';
+        });
+    });
+}
+function closeLogoutModal() {
+    var modal = document.getElementById('logout-modal');
+    var box   = document.getElementById('logout-modal-box');
+    box.style.transform = 'translate(-50%,-50%) scale(.95)';
+    box.style.opacity   = '0';
+    setTimeout(function() {
+        modal.style.display = 'none';
+        box.style.display   = 'none';
+        document.body.style.overflow = '';
+    }, 200);
+}
+function confirmLogout() {
+    document.getElementById('logout-form').submit();
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLogoutModal();
+});
+</script>
+
+</th:block>
 </body>
 </html>

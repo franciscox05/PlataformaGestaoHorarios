@@ -48,14 +48,24 @@ public class PerfilService {
         this.sessaoBLL = sessaoBLL;
     }
 
+    /** Backward-compatible 1-arg overload — delegates with null store context. */
     @Transactional(readOnly = true)
     public PerfilResumo obterResumoPerfil(Utilizador utilizador) {
+        return obterResumoPerfil(utilizador, null);
+    }
+
+    /** Store-scoped variant — uses idLoja to avoid NonUniqueResultException for multi-store users. */
+    @Transactional(readOnly = true)
+    public PerfilResumo obterResumoPerfil(Utilizador utilizador, Integer idLoja) {
         if (utilizador == null || utilizador.getId() == null) {
             throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
         }
 
-        Lojautilizador ligacaoAtiva = lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(utilizador.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador."));
+        Lojautilizador ligacaoAtiva = (idLoja != null)
+                ? lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(utilizador.getId(), idLoja)
+                        .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador."))
+                : lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(utilizador.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador."));
 
         List<Horario> turnos = horarioRepository.findTurnosPorUtilizador(utilizador.getId());
         List<DayOff> pedidosFolga = dayOffRepository.findByIdUtilizadorId(utilizador.getId());

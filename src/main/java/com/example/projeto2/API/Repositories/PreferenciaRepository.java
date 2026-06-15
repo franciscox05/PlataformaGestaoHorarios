@@ -97,15 +97,18 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
     long countPreferenciasPendentesDaLoja(@Param("idLoja") Integer idLoja,
                                           @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
 
-    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
-            "FROM Preferencia p " +
-            "WHERE p.idUtilizador.id = :idUtilizador " +
+    // IS NOT DISTINCT FROM is PostgreSQL's null-safe equality (NULL IS NOT DISTINCT FROM NULL = TRUE).
+    // Used here because Hibernate 6 cannot infer types for null JPQL named parameters in IS NULL tests.
+    @Query(value = "SELECT COUNT(*) > 0 " +
+            "FROM preferencias p " +
+            "WHERE p.id_utilizador = :idUtilizador " +
             "AND LOWER(p.tipo) = LOWER(:tipo) " +
             "AND LOWER(p.descricao) = LOWER(:descricao) " +
             "AND p.prioridade = :prioridade " +
-            "AND ((:dataInicio IS NULL AND p.dataInicio IS NULL) OR p.dataInicio = :dataInicio) " +
-            "AND ((:dataFim IS NULL AND p.dataFim IS NULL) OR p.dataFim = :dataFim) " +
-            "AND (:idIgnorado IS NULL OR p.id <> :idIgnorado)")
+            "AND p.data_inicio IS NOT DISTINCT FROM CAST(:dataInicio AS DATE) " +
+            "AND p.data_fim IS NOT DISTINCT FROM CAST(:dataFim AS DATE) " +
+            "AND (CAST(:idIgnorado AS INTEGER) IS NULL OR p.id_preferencia <> :idIgnorado)",
+            nativeQuery = true)
     boolean existsPreferenciaDuplicada(@Param("idUtilizador") Integer idUtilizador,
                                        @Param("tipo") String tipo,
                                        @Param("descricao") String descricao,
