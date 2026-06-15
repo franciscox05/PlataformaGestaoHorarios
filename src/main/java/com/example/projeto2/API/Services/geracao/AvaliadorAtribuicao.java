@@ -118,7 +118,6 @@ public final class AvaliadorAtribuicao {
      * trabalhado em qualquer dia do mês.
      */
     public ContextoAvaliacao novoContexto(List<Horario> horariosJaGerados) {
-        Set<Integer> noMes = new LinkedHashSet<>();
         Map<LocalDate, Map<String, Set<Integer>>> porDiaTipo = new HashMap<>();
         for (Horario h : horariosJaGerados) {
             if (h.getIdLojautilizador() == null
@@ -127,7 +126,6 @@ public final class AvaliadorAtribuicao {
                 continue;
             }
             Integer id = h.getIdLojautilizador().getIdUtilizador().getId();
-            noMes.add(id);
             if (h.getDataTurno() != null && h.getIdTurno() != null) {
                 String tipo = TurnoClassifier.tipoNormalizado(h.getIdTurno());
                 porDiaTipo.computeIfAbsent(h.getDataTurno(), k -> new HashMap<>())
@@ -135,7 +133,7 @@ public final class AvaliadorAtribuicao {
                           .add(id);
             }
         }
-        return new ContextoAvaliacao(noMes, porDiaTipo);
+        return new ContextoAvaliacao(porDiaTipo);
     }
 
     /** Pontua uma atribuição candidata. Menor = melhor. */
@@ -398,13 +396,11 @@ public final class AvaliadorAtribuicao {
     /**
      * Contexto pré-computado, partilhado por todos os candidatos de uma resolução.
      *
-     * @param colaboradoresNoMes  ids de todos os colaboradores que já têm pelo menos
-     *                            um turno no período gerado até agora (kept for compat)
-     * @param colabsPorDiaTipo    índice dia → (tipo-turno → ids já confirmados nesse slot);
-     *                            usado pela verificação de co-presença com colegas preferidos
+     * @param colabsPorDiaTipo  índice dia → (tipo-turno → ids já confirmados nesse slot);
+     *                          usado pela verificação de co-presença com colegas preferidos
+     *                          e pelo lookahead de rotação de turno (componente 7b)
      */
     public record ContextoAvaliacao(
-            Set<Integer> colaboradoresNoMes,
             Map<LocalDate, Map<String, Set<Integer>>> colabsPorDiaTipo) {
     }
 }

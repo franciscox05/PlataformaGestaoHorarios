@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -80,6 +81,16 @@ public class HorarioGeneratorEngine {
     private static final int LIMITE_NOS_PESQUISA_ALARGADO = 24_000;
     private static final int LIMITE_NOS_PESQUISA_EXCECAO  = 40_000;
 
+    // Multi-start: desvio-padrão do ruído gaussiano adicionado aos scores do greedy
+    // para explorar soluções alternativas. Pequeno o suficiente para não anular
+    // preferências fortes (diferença típica > 10 pts), mas suficiente para criar
+    // diversidade via desempate estocástico.
+    private static final double SIGMA_RUIDO_GREEDY = 3.0;
+
+    // RNG de ruído por thread — null no greedy base (sem ruído), instanciado nas
+    // tentativas adicionais. ThreadLocal garante thread-safety num serviço singleton.
+    private static final ThreadLocal<Random> GREEDY_NOISE_RND = new ThreadLocal<>();
+
     private final HorarioValidatorService validator;
     private final AvaliadorAtribuicao avaliador;
     private final RefinadorPlaneamento refinador;
@@ -103,6 +114,12 @@ public class HorarioGeneratorEngine {
     /**
      * Ponto de entrada principal.
      *
+     * <p>Executa o pipeline de geração até 3 vezes com ruído controlado no greedy
+     * (multi-start estocástico), mantendo o melhor resultado por custo global.
+     * A primeira tentativa é o baseline sem ruído — determinístico e reproduzível.
+     * As tentativas adicionais só correm em produção (prazoLimite != null) quando
+     * há tempo suficiente; se esgotarem o prazo, o melhor resultado anterior é mantido.
+     *
      * @param pedido inputs imutáveis da geração.
      * @return lista de {@link Horario} gerados (sem ID — ainda não persistidos).
      * @throws IllegalArgumentException se não for possível satisfazer todas as restrições.
@@ -111,6 +128,54 @@ public class HorarioGeneratorEngine {
         validarEntradasBasicas(pedido);
         validarCapacidadeGlobal(pedido);
 
+        // Tentativa 0: baseline sem ruído (determinístico — semente para o jitter do avaliador)
+        List<Horario> melhor = executarUmaGeracao(pedido, 0L);
+
+        // Tentativas adicionais com ruído para explorar soluções alternativas.
+        // Só em produção (prazoLimite definido) e apenas se há ≥ 4 s de margem.
+        if (pedido.prazoLimite() != null) {
+            long[] sementesExtras = {
+                pedido.semente() ^ 0x9e3779b97f4a7c15L,
+                pedido.semente() ^ 0x6c62272e07bb0142L
+            };
+            double melhorCusto = polisher.avaliarCusto(pedido, melhor);
+            for (long sementeExtra : sementesExtras) {
+                if (prazoProximo(pedido)) break;
+                try {
+                    List<Horario> resultado = executarUmaGeracao(pedido, sementeExtra);
+                    double custo = polisher.avaliarCusto(pedido, resultado);
+                    if (custo < melhorCusto) {
+                        melhor = resultado;
+                        melhorCusto = custo;
+                        LOGGER.debug("Multi-start: custo melhorado para {}.", Math.round(custo));
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Prazo esgotado na tentativa extra — mantém o melhor resultado até agora.
+                    break;
+                }
+            }
+        }
+        return melhor;
+    }
+
+    /**
+     * Executa uma passagem completa do pipeline de geração (greedy → top-up → refinamento
+     * → polimento). Quando {@code sementeGreedy != 0}, ativa um ruído gaussiano controlado
+     * no avaliador de candidatos para explorar regiões do espaço de soluções diferentes
+     * do baseline determinístico.
+     */
+    private List<Horario> executarUmaGeracao(PedidoGeracao pedido, long sementeGreedy) {
+        if (sementeGreedy != 0L) {
+            GREEDY_NOISE_RND.set(new Random(sementeGreedy));
+        }
+        try {
+            return executarPipeline(pedido);
+        } finally {
+            GREEDY_NOISE_RND.remove();
+        }
+    }
+
+    private List<Horario> executarPipeline(PedidoGeracao pedido) {
         Map<Integer, EstadoColaborador> estadoPorColaborador = inicializarEstados(pedido);
         inicializarHistorico(estadoPorColaborador, pedido.historicoHorarios());
 
@@ -215,6 +280,12 @@ public class HorarioGeneratorEngine {
         // a cobertura por construção (só muda quem cobre cada turno) e valida cada troca
         // contra todas as regras hard. Determinístico via semente de diversificação.
         return polisher.polir(pedido, refinado);
+    }
+
+    /** True se o prazo está a menos de 4 s de distância — sinal para não iniciar nova tentativa. */
+    private boolean prazoProximo(PedidoGeracao pedido) {
+        return pedido.prazoLimite() != null
+                && Instant.now().isAfter(pedido.prazoLimite().minusSeconds(4));
     }
 
     private void registarAtribuicoes(LocalDate data,
@@ -877,6 +948,9 @@ public class HorarioGeneratorEngine {
         AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horariosJaGerados);
 
         // Melhor turno (menor pontuação) por colaborador — score calculado uma única vez.
+        // Nas tentativas adicionais do multi-start, aplica ruído gaussiano controlado para
+        // explorar soluções diferentes por desempate estocástico (GREEDY_NOISE_RND != null).
+        Random noiseRnd = GREEDY_NOISE_RND.get();
         Map<Integer, CandidatoPontuado> melhorPorColaborador = new LinkedHashMap<>();
         for (Turno turno : turnosCompativeis) {
             long minutos = validator.calcularDuracaoEmMinutos(turno);
@@ -885,6 +959,9 @@ public class HorarioGeneratorEngine {
                         ignorarRotacaoFDS, ignorarDescansoSemanal)) continue;
 
                 double score = avaliador.pontuar(estado, turno, minutos, data, pedido, contexto);
+                if (noiseRnd != null) {
+                    score += noiseRnd.nextGaussian() * SIGMA_RUIDO_GREEDY;
+                }
                 CandidatoPontuado candidato = new CandidatoPontuado(
                         new AtribuicaoDia(estado, turno, minutos), score);
                 melhorPorColaborador.merge(estado.idUtilizador(), candidato,

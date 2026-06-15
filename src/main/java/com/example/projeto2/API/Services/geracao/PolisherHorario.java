@@ -298,6 +298,11 @@ public final class PolisherHorario {
     // Função-objetivo (menor = melhor)
     // =========================================================================
 
+    /** Avalia o custo global de um plano gerado. Menor = melhor. Usado pelo multi-start. */
+    public double avaliarCusto(PedidoGeracao pedido, List<Horario> plano) {
+        return custo(plano, pedido);
+    }
+
     private double custo(List<Horario> plano, PedidoGeracao pedido) {
         Map<Integer, CargaColaborador> cargas = construirCargas(plano, pedido);
         MetricasPlaneamento m = metricas.calcular(plano, cargas, pedido.politica());
