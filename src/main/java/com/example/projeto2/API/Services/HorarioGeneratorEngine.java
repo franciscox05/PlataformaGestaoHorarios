@@ -169,13 +169,13 @@ public class HorarioGeneratorEngine {
             GREEDY_NOISE_RND.set(new Random(sementeGreedy));
         }
         try {
-            return executarPipeline(pedido);
+            return executarPipeline(pedido, sementeGreedy);
         } finally {
             GREEDY_NOISE_RND.remove();
         }
     }
 
-    private List<Horario> executarPipeline(PedidoGeracao pedido) {
+    private List<Horario> executarPipeline(PedidoGeracao pedido, long sementeGreedy) {
         Map<Integer, EstadoColaborador> estadoPorColaborador = inicializarEstados(pedido);
         inicializarHistorico(estadoPorColaborador, pedido.historicoHorarios());
 
@@ -191,7 +191,9 @@ public class HorarioGeneratorEngine {
 
         // Lookahead de fins de semana: designação global (consultiva) de quem trabalha
         // cada FDS, para o avaliador planear a rotação em vez de a resolver reativamente.
-        PlanoFinsDeSemana planoFins = planeadorFins.planear(pedido);
+        // A sementeGreedy (≠0 nas tentativas extra do multi-start) baralha a ordem de
+        // designação dos FDS, criando designações alternativas para explorar.
+        PlanoFinsDeSemana planoFins = planeadorFins.planear(pedido, sementeGreedy);
         if (planoFins.ativo()) {
             estadoPorColaborador.forEach((id, estado) ->
                     estado.designarFinsDeSemana(planoFins.designados(id), planoFins.chefiaEm(id)));

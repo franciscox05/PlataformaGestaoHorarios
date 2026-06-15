@@ -6,6 +6,7 @@ import com.example.projeto2.API.Services.HorarioValidatorService;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -13,6 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -55,9 +57,21 @@ public final class PlaneadorFinsDeSemana {
     }
 
     public PlanoFinsDeSemana planear(PedidoGeracao pedido) {
-        List<LocalDate> fins = enumerarFinsDeSemana(pedido);
+        return planear(pedido, 0L);
+    }
+
+    /**
+     * Variante com semente extra para o multi-start: a ordem de designação dos fins de
+     * semana é baralhada de forma reproduzível, criando designações alternativas que o
+     * motor de geração pode explorar em tentativas diferentes.
+     */
+    public PlanoFinsDeSemana planear(PedidoGeracao pedido, long sementeExtra) {
+        List<LocalDate> fins = new ArrayList<>(enumerarFinsDeSemana(pedido));
         if (fins.isEmpty()) {
             return PlanoFinsDeSemana.vazio();
+        }
+        if (sementeExtra != 0L) {
+            Collections.shuffle(fins, new Random(sementeExtra));
         }
 
         int janela = Math.max(1, pedido.janelaRotacaoFimDeSemana());
