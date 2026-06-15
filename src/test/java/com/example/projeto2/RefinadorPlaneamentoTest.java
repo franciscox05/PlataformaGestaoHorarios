@@ -86,6 +86,60 @@ class RefinadorPlaneamentoTest {
     }
 
     @Test
+    void corrigeRotacaoInvertidaQuandoOutroColaboradorEstaLivre() {
+        Lojautilizador ana = colaborador(1, "Ana");
+        Lojautilizador bruno = colaborador(2, "Bruno");
+        Turno manha = turnoDia();   // tipo=manha, 09:00-17:00, ordem=0
+        Turno tarde = turnoTarde(); // tipo=tarde, 14:00-22:00, ordem=2
+
+        // Ana: tarde no dia 1, manhã no dia 2 → inversão tarde→manhã.
+        // Bruno está livre nos dois dias — pode absorver o turno de tarde.
+        List<Horario> plano = new ArrayList<>(List.of(
+                horario(ana, tarde, segunda),
+                horario(ana, manha, segunda.plusDays(1))));
+
+        PedidoGeracao pedido = pedido(
+                List.of(ana, bruno),
+                List.of(manha, tarde),
+                Map.of());
+
+        List<Horario> refinado = refinador.refinar(pedido, plano);
+
+        assertEquals(2, refinado.size(), "O refinamento nunca cria nem remove turnos.");
+        long turnosBruno = refinado.stream()
+                .filter(h -> h.getIdLojautilizador().getIdUtilizador().getId() == 2)
+                .count();
+        assertTrue(turnosBruno >= 1,
+                "A inversão tarde→manhã devia ter sido corrigida movendo o turno de tarde para o Bruno.");
+    }
+
+    @Test
+    void naoCorrigeRotacaoQuandoNaoHaCandidatoDisponivel() {
+        Lojautilizador ana = colaborador(1, "Ana");
+        Turno manha = turnoDia();
+        Turno tarde = turnoTarde();
+
+        // Apenas Ana existe — sem candidato para receber o turno de tarde.
+        List<Horario> plano = new ArrayList<>(List.of(
+                horario(ana, tarde, segunda),
+                horario(ana, manha, segunda.plusDays(1))));
+
+        PedidoGeracao pedido = pedido(
+                List.of(ana),
+                List.of(manha, tarde),
+                Map.of());
+
+        List<Horario> refinado = refinador.refinar(pedido, plano);
+
+        assertEquals(2, refinado.size());
+        // Com apenas um colaborador, a rotação permanece inalterada.
+        long turnosAna = refinado.stream()
+                .filter(h -> h.getIdLojautilizador().getIdUtilizador().getId() == 1)
+                .count();
+        assertEquals(2, turnosAna, "Sem candidato disponível, o plano fica inalterado.");
+    }
+
+    @Test
     void equilibraCargaMovendoTurnosDoMaisCarregadoParaOMenosCarregado() {
         Lojautilizador ana = colaborador(1, "Ana");
         Lojautilizador bruno = colaborador(2, "Bruno");
@@ -131,13 +185,23 @@ class RefinadorPlaneamentoTest {
         return ligacao;
     }
 
-    /** Turno de 8h (mínimo exigido a colaboradores fulltime). */
+    /** Turno de 8h da manhã. */
     private Turno turnoDia() {
         Turno turno = new Turno();
         turno.setId(1);
         turno.setTipo("manha");
         turno.setHoraInicio(LocalTime.of(9, 0));
         turno.setHoraFim(LocalTime.of(17, 0));
+        return turno;
+    }
+
+    /** Turno de 8h da tarde (14:00-22:00). */
+    private Turno turnoTarde() {
+        Turno turno = new Turno();
+        turno.setId(2);
+        turno.setTipo("tarde");
+        turno.setHoraInicio(LocalTime.of(14, 0));
+        turno.setHoraFim(LocalTime.of(22, 0));
         return turno;
     }
 
