@@ -64,10 +64,12 @@ public final class AvaliadorAtribuicao {
     // de carga consigam sobrepor-se quando a chefia já está acima do ritmo esperado.
     private static final double NUDGE_CHEFIA_SABADO = 500.0;
 
-    // Nudge moderado para a chefia que NÃO é a designada deste fim de semana (lookahead
-    // ativo): mantém-na preferível a um regular (a cobertura de chefia é garantida pela
-    // restrição hard), mas sem a queimar — preserva-a para o fim de semana que lhe cabe.
-    private static final double NUDGE_CHEFIA_SABADO_SECUNDARIA = 150.0;
+    // Nudge mínimo para a chefia que NÃO é a designada deste fim de semana: deve ficar
+    // abaixo do bónus de designação de qualquer regular (mín. 1×ESCALA_FDS=55 pts), para
+    // que não ocupe um slot regular e queime a sua janela de rotação — ficando bloqueada
+    // no FDS que o plano lhe reservou. A cobertura de chefia obrigatória é garantida pela
+    // restrição hard; este nudge é só um desempate de último recurso.
+    private static final double NUDGE_CHEFIA_SABADO_SECUNDARIA = 30.0;
 
     // Desempate independente da política para preferência de turno aprovada: garante atenção
     // mínima mesmo nas políticas com pesoPreferencias=1 (EQUILIBRIO, FINS_DE_SEMANA).
