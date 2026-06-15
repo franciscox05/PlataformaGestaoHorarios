@@ -578,7 +578,7 @@ public class HorarioGeneratorEngine {
                 if (id != null) usadosPorDia.computeIfAbsent(d, k -> new LinkedHashSet<>()).add(id);
             }
 
-            AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horarios);
+            AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContextoSemEquidade(horarios);
             LocalDate melhorData = null;
             CandidatoPontuado melhorCand = null;
             int melhorCobertura = Integer.MAX_VALUE;
@@ -947,7 +947,12 @@ public class HorarioGeneratorEngine {
                                                             PedidoGeracao pedido,
                                                             boolean ignorarRotacaoFDS,
                                                             boolean ignorarDescansoSemanal) {
-        AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContexto(horariosJaGerados);
+        // Com alvo por turno, o componente 11 (equidade por tipo) no greedy primário
+        // altera quais colaboradores ficam em cada dia, perturbando a uniformidade de
+        // cobertura em preencherAteAlvoUniforme. Usa contexto sem equidade nesse caso.
+        AvaliadorAtribuicao.ContextoAvaliacao contexto = pedido.alvoPorTurno() != null
+                ? avaliador.novoContextoSemEquidade(horariosJaGerados)
+                : avaliador.novoContexto(horariosJaGerados);
 
         // Melhor turno (menor pontuação) por colaborador — score calculado uma única vez.
         // Nas tentativas adicionais do multi-start, aplica ruído gaussiano controlado para

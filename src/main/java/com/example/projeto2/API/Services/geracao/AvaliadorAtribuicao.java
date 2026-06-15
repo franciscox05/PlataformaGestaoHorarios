@@ -1,6 +1,7 @@
 package com.example.projeto2.API.Services.geracao;
 
 import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Services.HorarioValidatorService;
@@ -57,6 +58,13 @@ public final class AvaliadorAtribuicao {
     private static final double ESCALA_IDLE         = 18.0;
     private static final double ESCALA_JITTER       = 8.0;
 
+    // Penalização por excesso de um tipo de turno não-preferido face à média da equipa:
+    // quando um colaborador acumula significativamente mais turnos de um tipo que não
+    // prefere do que os colegas, o sistema prefere nomeá-lo menos para esse tipo.
+    // Mantida moderada (15 pts/desvio) — dá ao sistema espaço para respeitar a
+    // ergonomia (componente 7) sem bloquear cobertura obrigatória.
+    private static final double ESCALA_EQUIDADE_TIPO = 15.0;
+
     // Penalização-base de folga preferida — independente da política (atenção garantida)
     private static final double BASE_FOLGA_PREFERIDA = 60.0;
 
@@ -110,16 +118,47 @@ public final class AvaliadorAtribuicao {
     }
 
     /**
-     * Pré-computa, uma vez por resolução de candidatos, o conjunto de colaboradores
-     * já escalados no histórico do mês e um índice por (dia, tipo-de-turno) — evitando
-     * varrer {@code horariosJaGerados} por cada candidato (O(H) → O(1) por avaliação).
+     * Pré-computa, uma vez por resolução de candidatos, dois índices reutilizados
+     * por cada candidato, evitando varrer {@code horariosJaGerados} repetidamente.
      *
-     * <p>O índice {@code colabsPorDiaTipo} é usado pela verificação de colegas preferidos
-     * (componente 5): só atribui o bónus quando o colega preferido está já confirmado
-     * no <em>mesmo dia e mesmo tipo de turno</em> que estamos a avaliar — não basta ter
-     * trabalhado em qualquer dia do mês.
+     * <ul>
+     *   <li>{@code colabsPorDiaTipo} — dia → (tipo → ids já confirmados nesse slot);
+     *       usado pelos componentes 5 (colegas) e 7b (lookahead de rotação).</li>
+     *   <li>{@code turnosPorTipoPorColab} — id-colaborador → (tipo → contagem acumulada);
+     *       usado pelo componente 11 (equidade por tipo de turno).</li>
+     * </ul>
      */
     public ContextoAvaliacao novoContexto(List<Horario> horariosJaGerados) {
+        Map<LocalDate, Map<String, Set<Integer>>> porDiaTipo = new HashMap<>();
+        Map<Integer, Map<String, Integer>> contagemPorColab = new HashMap<>();
+        for (Horario h : horariosJaGerados) {
+            if (h.getIdLojautilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador() == null
+                    || h.getIdLojautilizador().getIdUtilizador().getId() == null) {
+                continue;
+            }
+            Integer id = h.getIdLojautilizador().getIdUtilizador().getId();
+            if (h.getDataTurno() != null && h.getIdTurno() != null) {
+                String tipo = TurnoClassifier.tipoNormalizado(h.getIdTurno());
+                porDiaTipo.computeIfAbsent(h.getDataTurno(), k -> new HashMap<>())
+                          .computeIfAbsent(tipo, k -> new LinkedHashSet<>())
+                          .add(id);
+                contagemPorColab.computeIfAbsent(id, k -> new HashMap<>())
+                                .merge(tipo, 1, Integer::sum);
+            }
+        }
+        return new ContextoAvaliacao(porDiaTipo, contagemPorColab);
+    }
+
+    /**
+     * Variante sem equidade por tipo: constrói apenas {@code colabsPorDiaTipo}
+     * (necessário para co-presença e lookahead de rotação), mas devolve
+     * {@code turnosPorTipoPorColab} vazio. Usar no greedy primário quando
+     * {@code alvoPorTurno} está definido e em {@code preencherAteAlvoUniforme}:
+     * o componente (11) no greedy primário com alvo altera quais colaboradores caem
+     * em cada dia, o que perturba a uniformidade de cobertura no "levanta o piso".
+     */
+    public ContextoAvaliacao novoContextoSemEquidade(List<Horario> horariosJaGerados) {
         Map<LocalDate, Map<String, Set<Integer>>> porDiaTipo = new HashMap<>();
         for (Horario h : horariosJaGerados) {
             if (h.getIdLojautilizador() == null
@@ -135,7 +174,7 @@ public final class AvaliadorAtribuicao {
                           .add(id);
             }
         }
-        return new ContextoAvaliacao(porDiaTipo);
+        return new ContextoAvaliacao(porDiaTipo, Map.of());
     }
 
     /** Pontua uma atribuição candidata. Menor = melhor. */
@@ -312,6 +351,39 @@ public final class AvaliadorAtribuicao {
         double jitter = jitter(pedido.semente(), estado.idUtilizador());
         pontuacao += jitter * (1 + politica.pesoDiversificacao());
 
+        // (11) Equidade por tipo de turno — quando um colaborador que NÃO prefere um tipo
+        // de turno acumula mais turnos desse tipo do que a média da equipa (+1 de tolerância),
+        // o sistema penaliza-o progressivamente para que o "turno impopular" se distribua.
+        // Sem este componente, o bónus de consistência (7) tende a prender quem calhou
+        // fazer o primeiro turno impopular, tornando-o o escalado permanente para esse tipo.
+        // A penalização não se aplica a quem PREFERE este tipo — nesses, o consenso greedy
+        // já favorece a concentração (é o desejo deles) e a ergonomia não é problema.
+        boolean prefereTipoTurno = temPreferenciaTurnoFavoravel(
+                estado.idUtilizador(), turno, data, pedido.preferenciasTurnos());
+        if (!prefereTipoTurno) {
+            String tipoTurnoNorm = TurnoClassifier.tipoNormalizado(turno);
+            int contagemDoColab = contexto.turnosPorTipoPorColab()
+                    .getOrDefault(estado.idUtilizador(), Map.of())
+                    .getOrDefault(tipoTurnoNorm, 0);
+            // Média da equipa para este tipo de turno (colaboradores do pedido)
+            double totalEquipa = 0;
+            int nEquipa = 0;
+            for (Lojautilizador lig : pedido.colaboradores()) {
+                Integer idColab = lig.getIdUtilizador() != null ? lig.getIdUtilizador().getId() : null;
+                if (idColab == null) continue;
+                totalEquipa += contexto.turnosPorTipoPorColab()
+                        .getOrDefault(idColab, Map.of())
+                        .getOrDefault(tipoTurnoNorm, 0);
+                nEquipa++;
+            }
+            double mediaEquipa = nEquipa > 0 ? totalEquipa / nEquipa : 0;
+            // Tolera até 1 turno acima da média; depois penaliza linearmente.
+            double excesso = contagemDoColab - mediaEquipa - 1.0;
+            if (excesso > 0) {
+                pontuacao += politica.pesoEquilibrioCarga() * excesso * ESCALA_EQUIDADE_TIPO;
+            }
+        }
+
         // (10) Proteção da chefia para o sábado — em dia útil, uma chefia com sábado(s)
         // designado(s) pelo plano não deve ser escalada quando isso a deixaria sem margem
         // semanal (precisa de guardar um dia para o sábado) ou sem carga contratual para
@@ -398,11 +470,17 @@ public final class AvaliadorAtribuicao {
     /**
      * Contexto pré-computado, partilhado por todos os candidatos de uma resolução.
      *
-     * @param colabsPorDiaTipo  índice dia → (tipo-turno → ids já confirmados nesse slot);
-     *                          usado pela verificação de co-presença com colegas preferidos
-     *                          e pelo lookahead de rotação de turno (componente 7b)
+     * @param colabsPorDiaTipo      dia → (tipo-turno → ids já confirmados nesse slot);
+     *                              usado pela verificação de co-presença com colegas preferidos
+     *                              e pelo lookahead de rotação de turno (componente 7b)
+     * @param turnosPorTipoPorColab id-colaborador → (tipo → contagem acumulada no mês);
+     *                              usado pela equidade por tipo de turno (componente 11);
+     *                              vazio quando o contexto é criado via
+     *                              {@link AvaliadorAtribuicao#novoContextoSemEquidade} (greedy
+     *                              primário com alvo definido e preencherAteAlvoUniforme)
      */
     public record ContextoAvaliacao(
-            Map<LocalDate, Map<String, Set<Integer>>> colabsPorDiaTipo) {
+            Map<LocalDate, Map<String, Set<Integer>>> colabsPorDiaTipo,
+            Map<Integer, Map<String, Integer>> turnosPorTipoPorColab) {
     }
 }
