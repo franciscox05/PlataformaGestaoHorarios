@@ -177,6 +177,7 @@ CREATE INDEX IF NOT EXISTS idx_pf_estado    ON public.permutas_folga(estado);
 
 TRUNCATE TABLE
     public.eventos_auditoria,
+    public.notificacao,
     public.historico_horario_estados,
     public.permutas,
     public.permutas_folga,
@@ -221,11 +222,22 @@ INSERT INTO public.regras (id_regra, descricao, valor_padrao, tipo) VALUES
     (10, 'Presenca de gerente ou subgerente aos sabados', 1, 'operacional');
 
 INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifico, observacoes) VALUES
-    (1, 1, 1, 3, 'Loja principal da demonstracao com maior afluencia.'),
-    (2, 1, 2, 12, 'Horario mensal deve ser fechado antes da segunda semana.'),
-    (3, 1, 3, 8, 'Limite padrao para turnos longos.'),
-    (4, 2, 1, 2, 'Configuracao base para loja secundaria.'),
-    (5, 1, 10, 1, 'Garantir presenca de gerente ou subgerente aos sabados com loja aberta.');
+    -- Loja 1 (Braga Parque) — regras completas, loja principal da demo
+    (1,  1,  1, 3,   'Loja principal da demonstracao com maior afluencia.'),
+    (2,  1,  2, 12,  'Horario mensal deve ser fechado antes da segunda semana.'),
+    (3,  1,  3, 8,   'Limite padrao para turnos longos.'),
+    (4,  1,  4, 176, 'Carga mensal gerencia.'),
+    (5,  1,  5, 176, 'Carga mensal full-time.'),
+    (6,  1,  6, 96,  'Carga mensal part-time.'),
+    (7,  1,  7, 64,  'Carga mensal reforco FDS.'),
+    (8,  1,  8, 2,   'Dois dias de descanso por semana.'),
+    (9,  1,  9, 2,   'Rotacao de fins de semana a cada 2 semanas.'),
+    (10, 1, 10, 1,   'Garantir presenca de gerente ou subgerente aos sabados com loja aberta.'),
+    -- Loja 2 (NorteShopping) — configuracao base
+    (11, 2,  1, 2,   'Configuracao base para loja secundaria.'),
+    (12, 2,  8, 2,   'Descanso semanal minimo.'),
+    (13, 2,  9, 2,   'Rotacao de fins de semana.'),
+    (14, 2, 10, 1,   'Chefia obrigatoria ao sabado.');
 
 INSERT INTO public.turnos (id_turno, tipo, nome, hora_inicio, hora_fim) VALUES
     (1, 'manha', 'Manhã',  '10:00', '14:00'),
@@ -302,9 +314,18 @@ INSERT INTO public.preferencias (
     (3, 4, 'Preferencia para trabalhar com Afonso Barbosa no proximo periodo.', 'colegas', NULL, NULL, 2, 'rejeitado', 'Nao foi possivel acomodar esta preferencia sem comprometer a cobertura da loja.', 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
     (4, 5, 'Pedido de ferias para ponte familiar do proximo mes.', 'ferias', CURRENT_DATE + 25, CURRENT_DATE + 27, 4, 'pendente', NULL, NULL, NULL);
 
+INSERT INTO public.horarios_especiais_loja (id_horario_especial, id_loja, descricao, data_inicio, data_fim, loja_encerrada, observacoes) VALUES
+    (1, 1, 'Encerramento para inventario anual', CURRENT_DATE + 30, CURRENT_DATE + 30, TRUE, 'Encerramento total para contagem de stock.');
+
 INSERT INTO public.permutas (id_permuta, id_horario_origem, id_horario_destino, estado, data_pedido) VALUES
     (1, 15, 16, 'pendente', CURRENT_TIMESTAMP - INTERVAL '1 day'),
     (2, 17, 18, 'aprovada', CURRENT_TIMESTAMP - INTERVAL '3 days');
+
+INSERT INTO public.notificacao (id, id_utilizador, mensagem, lida, data_envio) VALUES
+    (1, 7, 'O teu pedido de folga para ' || (CURRENT_DATE + 10)::text || ' foi recebido e esta pendente de aprovacao.', false, CURRENT_TIMESTAMP - INTERVAL '2 hours'),
+    (2, 3, 'A tua preferencia de turno da manha foi aprovada pelo gestor.', true,  CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (3, 4, 'A tua preferencia de colega foi rejeitada. Motivo: incompatibilidade de cobertura.', false, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (4, 7, 'A permuta de turno com Henrique Siano esta pendente de aprovacao.', false, CURRENT_TIMESTAMP - INTERVAL '30 minutes');
 
 INSERT INTO public.eventos_auditoria (
     id_evento,
@@ -341,6 +362,7 @@ BEGIN
     PERFORM setval(pg_get_serial_sequence('public.permutas_folga', 'id_permuta_folga'), COALESCE((SELECT MAX(id_permuta_folga) FROM public.permutas_folga), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.propostas_horario_mensal', 'id_proposta_horario'), COALESCE((SELECT MAX(id_proposta_horario) FROM public.propostas_horario_mensal), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.eventos_auditoria', 'id_evento'), COALESCE((SELECT MAX(id_evento) FROM public.eventos_auditoria), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.notificacao', 'id'), COALESCE((SELECT MAX(id) FROM public.notificacao), 1), true);
 END $$;
 
 COMMIT;

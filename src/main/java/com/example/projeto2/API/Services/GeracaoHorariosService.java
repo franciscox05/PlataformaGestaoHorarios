@@ -637,14 +637,19 @@ public class GeracaoHorariosService {
         parametros.cargaMaximaMinutosPorPerfil().forEach((perfil, minutos) ->
                 cargasLegiveis.add(perfil.descricaoCurta() + " — " + (minutos / 60) + "h/mês"));
 
+        // nomesPorId usa só os colaboradores que o motor vai usar (selecionados ou todos).
+        // Isto garante que ausências, folgas e preferências nas secções do diálogo
+        // reflectem exactamente a equipa escolhida — não toda a equipa elegível.
         Map<Integer, String> nomesPorId = new LinkedHashMap<>();
-        for (Lojautilizador lig : elegiveis) {
+        for (Lojautilizador lig : colaboradoresParaCapacidade) {
             if (lig.getIdUtilizador() != null && lig.getIdUtilizador().getId() != null) {
                 nomesPorId.put(lig.getIdUtilizador().getId(), nomeDe(lig));
             }
         }
 
         List<String> detalheAusencias = dayOffsAprovados.stream()
+                .filter(d -> d.getIdUtilizador() != null
+                        && nomesPorId.containsKey(d.getIdUtilizador().getId()))
                 .map(d -> nomeDe(d.getIdUtilizador(), nomesPorId) + " — "
                         + (d.getDataAusencia() != null ? d.getDataAusencia().format(formatoDia) : "?")
                         + (d.getTipo() != null && !d.getTipo().isBlank() ? " (" + d.getTipo() + ")" : ""))
@@ -652,9 +657,11 @@ public class GeracaoHorariosService {
                 .toList();
 
         List<String> detalheFolgasPreferidas = new ArrayList<>();
-        diasFolgaPreferidos.forEach((id, dias) -> dias.stream().sorted().forEach(dia ->
-                detalheFolgasPreferidas.add(nomesPorId.getOrDefault(id, "Colaborador #" + id)
-                        + " — " + dia.format(formatoDia))));
+        diasFolgaPreferidos.forEach((id, dias) -> {
+            if (!nomesPorId.containsKey(id)) return;
+            dias.stream().sorted().forEach(dia ->
+                    detalheFolgasPreferidas.add(nomesPorId.get(id) + " — " + dia.format(formatoDia)));
+        });
         detalheFolgasPreferidas.sort(String::compareTo);
 
         List<String> detalhePrefTurno = descreverPreferencias(preferenciasTurnos, nomesPorId, formatoDia);
@@ -692,13 +699,14 @@ public class GeracaoHorariosService {
                                                DateTimeFormatter formatoDia) {
         List<String> linhas = new ArrayList<>();
         porColaborador.forEach((id, prefs) -> {
+            String nome = nomesPorId.get(id);
+            if (nome == null) return; // colaborador não está no conjunto selecionado
             for (Preferencia p : prefs) {
                 String periodo = p.getDataInicio() != null
                         ? p.getDataInicio().format(formatoDia)
                                 + (p.getDataFim() != null ? "–" + p.getDataFim().format(formatoDia) : " em diante")
                         : "";
-                linhas.add(nomesPorId.getOrDefault(id, "Colaborador #" + id)
-                        + " — " + valorOuTraco(p.getDescricao())
+                linhas.add(nome + " — " + valorOuTraco(p.getDescricao())
                         + (periodo.isBlank() ? "" : " (" + periodo + ")"));
             }
         });
