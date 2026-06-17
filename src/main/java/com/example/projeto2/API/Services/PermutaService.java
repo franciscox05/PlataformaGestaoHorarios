@@ -22,13 +22,16 @@ public class PermutaService {
     private final PermutaRepository permutaRepository;
     private final LojautilizadorHelper lojautilizadorHelper;
     private final HorarioRepository horarioRepository;
+    private final AuditoriaService auditoriaService;
 
     public PermutaService(PermutaRepository permutaRepository,
                       LojautilizadorHelper lojautilizadorHelper,
-                      HorarioRepository horarioRepository) {
+                      HorarioRepository horarioRepository,
+                      AuditoriaService auditoriaService) {
         this.permutaRepository = permutaRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -87,6 +90,14 @@ public class PermutaService {
                 idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
                 "Este utilizador nao tem permissao para aprovar permutas.");
         return permutaRepository.findPedidosPendentesDaLoja(ligacaoAtiva.getIdLoja().getId(), idUtilizadorAprovador);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Permuta> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador) {
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para ver o historico de permutas.");
+        return permutaRepository.findDecididosDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
     @Transactional(readOnly = true)
@@ -168,6 +179,10 @@ public class PermutaService {
         conflitos.forEach(conflicto -> conflicto.setEstado(EstadoPermuta.rejeitado));
         permutaRepository.saveAll(conflitos);
 
+        auditoriaService.registar("PERMUTA_APROVADA", idUtilizadorAprovador,
+                "Permuta #" + pedidoAprovado.getId()
+                        + " — troca de turno entre " + nomeColab(horarioOrigem)
+                        + " e " + nomeColab(horarioDestino));
         return pedidoAprovado;
     }
 
@@ -181,7 +196,10 @@ public class PermutaService {
     public Permuta rejeitarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador, Integer idLoja) {
         Permuta pedido = obterPedidoPendenteGerivel(idPermuta, idUtilizadorAprovador, idLoja);
         pedido.setEstado(EstadoPermuta.rejeitado);
-        return permutaRepository.save(pedido);
+        Permuta rejeitado = permutaRepository.save(pedido);
+        auditoriaService.registar("PERMUTA_REJEITADA", idUtilizadorAprovador,
+                "Permuta #" + rejeitado.getId());
+        return rejeitado;
     }
 
     @Transactional
@@ -337,6 +355,13 @@ public class PermutaService {
         }
 
         return LocalDateTime.of(horario.getDataTurno(), horario.getIdTurno().getHoraInicio());
+    }
+
+    private static String nomeColab(com.example.projeto2.API.Modules.Horario h) {
+        if (h == null || h.getIdLojautilizador() == null
+                || h.getIdLojautilizador().getIdUtilizador() == null) return "?";
+        String nome = h.getIdLojautilizador().getIdUtilizador().getNome();
+        return nome != null && !nome.isBlank() ? nome : "Colaborador";
     }
 
     private Permuta obterPedidoPendenteGerivel(Integer idPermuta, Integer idUtilizadorAprovador, Integer idLoja) {

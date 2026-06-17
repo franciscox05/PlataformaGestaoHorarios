@@ -10,7 +10,6 @@ import com.example.projeto2.API.Services.PermutaFolgaService;
 import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.PermutaFolgaHelper;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -60,15 +59,6 @@ public class PermutasController {
     @FXML private TableColumn<Permuta, String> colTurnoOrigem;
     @FXML private TableColumn<Permuta, String> colTurnoDestino;
     @FXML private TableColumn<Permuta, String> colEstadoPermuta;
-    @FXML private VBox                   painelAprovacao;
-    @FXML private TableView<Permuta>     tabelaPedidosPendentes;
-    @FXML private TableColumn<Permuta, String> colColaboradorPendente;
-    @FXML private TableColumn<Permuta, String> colPedidoPendente;
-    @FXML private TableColumn<Permuta, String> colOrigemPendente;
-    @FXML private TableColumn<Permuta, String> colDestinoPendente;
-    @FXML private Button                 btnAprovarPermuta;
-    @FXML private Button                 btnRejeitarPermuta;
-
     // ── FXML fields — permuta de folga ────────────────────────────────────────────
 
     @FXML private ComboBox<Horario>       cbMeuTurnoFolga;
@@ -80,13 +70,6 @@ public class PermutasController {
     @FXML private TableColumn<PermutaFolga, String> colPfDiaD;
     @FXML private TableColumn<PermutaFolga, String> colPfDiaY;
     @FXML private TableColumn<PermutaFolga, String> colPfEstado;
-    @FXML private VBox                    painelAprovacaoFolga;
-    @FXML private TableView<PermutaFolga> tabelaPendentesPermutaFolga;
-    @FXML private TableColumn<PermutaFolga, String> colPfPendSolicitante;
-    @FXML private TableColumn<PermutaFolga, String> colPfPendDiaD;
-    @FXML private TableColumn<PermutaFolga, String> colPfPendDiaY;
-    @FXML private Button                  btnAprovarPermutaFolga;
-    @FXML private Button                  btnRejeitarPermutaFolga;
 
     // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -110,7 +93,6 @@ public class PermutasController {
     public void initialize() {
         configurarCombos();
         configurarTabelaHistorico();
-        configurarTabelaPendentes();
 
         lblMensagem.setManaged(false);
         lblMensagem.setVisible(false);
@@ -135,36 +117,23 @@ public class PermutasController {
         emptyPermutas.getChildren().addAll(titulo, subtitulo, btnEmpty);
         tabelaPedidosPermuta.setPlaceholder(emptyPermutas);
 
-        tabelaPedidosPendentes.setPlaceholder(new Label("Não existem pedidos pendentes para aprovar."));
-
         btnSubmeterTroca.disableProperty().bind(
                 cbMeuTurno.getSelectionModel().selectedItemProperty().isNull()
                         .or(cbColegaElegivel.getSelectionModel().selectedItemProperty().isNull())
                         .or(cbTurnoColega.getSelectionModel().selectedItemProperty().isNull())
         );
-        btnAprovarPermuta.disableProperty().bind(
-                Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
-        btnRejeitarPermuta.disableProperty().bind(
-                Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
-
-        painelAprovacao.setManaged(false);
-        painelAprovacao.setVisible(false);
-
         permutaFolgaHelper = new PermutaFolgaHelper(
                 cbMeuTurnoFolga, cbCompensacaoFolga, btnSubmeterPermutaFolga, lblMensagemFolga,
                 tabelaPermutasFolga, colPfDataPedido, colPfDiaD, colPfDiaY, colPfEstado,
-                painelAprovacaoFolga, tabelaPendentesPermutaFolga, colPfPendSolicitante, colPfPendDiaD, colPfPendDiaY,
-                btnAprovarPermutaFolga, btnRejeitarPermutaFolga,
                 permutaFolgaBll, this::obterJanela);
         permutaFolgaHelper.configurar();
     }
 
     public void setUtilizadorLogado(Utilizador utilizador) {
         this.utilizadorLogado = utilizador;
-        carregarMeusTurnos();
-        carregarHistorico();
-        configurarPainelAprovacao();
-        permutaFolgaHelper.carregarDados(utilizador);
+        try { carregarMeusTurnos(); } catch (Exception e) { cbMeuTurno.setItems(FXCollections.observableArrayList()); }
+        try { carregarHistorico(); } catch (Exception e) { tabelaPedidosPermuta.setItems(FXCollections.observableArrayList()); }
+        try { permutaFolgaHelper.carregarDados(utilizador); } catch (Exception ignored) { }
     }
 
     // ── FXML event handlers — permuta de turno ────────────────────────────────────
@@ -193,7 +162,6 @@ public class PermutasController {
             limparFormulario();
             carregarMeusTurnos();
             carregarHistorico();
-            carregarPedidosPendentes();
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
@@ -201,14 +169,9 @@ public class PermutasController {
         }
     }
 
-    @FXML public void onAprovarPermutaClick()  { tratarPedidoSelecionado(true); }
-    @FXML public void onRejeitarPermutaClick() { tratarPedidoSelecionado(false); }
-
     // ── FXML event handlers — permuta de folga ────────────────────────────────────
 
     @FXML public void onSubmeterPermutaFolgaClick()  { permutaFolgaHelper.onSubmeter(); }
-    @FXML public void onAprovarPermutaFolgaClick()   { permutaFolgaHelper.onAprovar(); }
-    @FXML public void onRejeitarPermutaFolgaClick()  { permutaFolgaHelper.onRejeitar(); }
 
     // ── Combo configuration ───────────────────────────────────────────────────────
 
@@ -267,13 +230,6 @@ public class PermutasController {
                 setText(null);
             }
         });
-    }
-
-    private void configurarTabelaPendentes() {
-        colColaboradorPendente.setCellValueFactory(cd -> new SimpleStringProperty(obterNomeSolicitante(cd.getValue())));
-        colPedidoPendente.setCellValueFactory(cd -> new SimpleStringProperty(formatarDataPedido(cd.getValue())));
-        colOrigemPendente.setCellValueFactory(cd -> new SimpleStringProperty(formatarTurnoProprio(cd.getValue().getIdHorarioOrigem())));
-        colDestinoPendente.setCellValueFactory(cd -> new SimpleStringProperty(formatarTurnoColega(cd.getValue().getIdHorarioDestino())));
     }
 
     // ── Data loading ──────────────────────────────────────────────────────────────
@@ -338,68 +294,6 @@ public class PermutasController {
         if (utilizadorLogado == null) { tabelaPedidosPermuta.setItems(FXCollections.observableArrayList()); return; }
         List<Permuta> pedidos = permutaBll.listarPedidosEnviados(utilizadorLogado.getId());
         tabelaPedidosPermuta.setItems(FXCollections.observableArrayList(pedidos));
-    }
-
-    private void configurarPainelAprovacao() {
-        boolean podeAprovar = utilizadorLogado != null && permutaBll.utilizadorPodeAprovarPermutas(utilizadorLogado.getId());
-        painelAprovacao.setManaged(podeAprovar);
-        painelAprovacao.setVisible(podeAprovar);
-        if (podeAprovar) carregarPedidosPendentes();
-        else tabelaPedidosPendentes.setItems(FXCollections.observableArrayList());
-    }
-
-    private void carregarPedidosPendentes() {
-        if (utilizadorLogado == null || !permutaBll.utilizadorPodeAprovarPermutas(utilizadorLogado.getId())) {
-            tabelaPedidosPendentes.setItems(FXCollections.observableArrayList());
-            return;
-        }
-        List<Permuta> pedidos = permutaBll.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId());
-        tabelaPedidosPendentes.setItems(FXCollections.observableArrayList(pedidos));
-    }
-
-    // ── Decision handlers ─────────────────────────────────────────────────────────
-
-    private void tratarPedidoSelecionado(boolean aprovar) {
-        try {
-            if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
-            }
-            Permuta pedidoSelecionado = tabelaPedidosPendentes.getSelectionModel().getSelectedItem();
-            if (pedidoSelecionado == null) {
-                throw new IllegalArgumentException("Seleciona um pedido pendente primeiro.");
-            }
-            String nomeOrigem  = obterNomeSolicitante(pedidoSelecionado);
-            String turnoOrigem = formatarTurnoProprio(pedidoSelecionado.getIdHorarioOrigem());
-            String nomeDestino = pedidoSelecionado.getIdHorarioDestino() != null
-                    && pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador() != null
-                    && pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador().getIdUtilizador() != null
-                    ? pedidoSelecionado.getIdHorarioDestino().getIdLojautilizador().getIdUtilizador().getNome()
-                    : "Colega";
-            String turnoDestino = formatarTurnoProprio(pedidoSelecionado.getIdHorarioDestino());
-            String detalhes = String.format("%s  (%s)%n    ↔%n%s  (%s)", nomeOrigem, turnoOrigem, nomeDestino, turnoDestino);
-
-            if (!DialogosHelper.confirmarAcao(
-                    obterJanela(),
-                    aprovar ? "Aprovar permuta" : "Rejeitar permuta",
-                    aprovar ? "Confirmas a aprovação desta troca de turno?" : "Confirmas a rejeição desta troca de turno?",
-                    detalhes)) return;
-
-            if (aprovar) {
-                permutaBll.aprovarPedidoPermuta(pedidoSelecionado.getId(), utilizadorLogado.getId());
-                mostrarMensagem("Pedido de permuta aprovado com sucesso.", true);
-            } else {
-                permutaBll.rejeitarPedidoPermuta(pedidoSelecionado.getId(), utilizadorLogado.getId());
-                mostrarMensagem("Pedido de permuta rejeitado com sucesso.", true);
-            }
-            limparFormulario();
-            carregarMeusTurnos();
-            carregarHistorico();
-            carregarPedidosPendentes();
-        } catch (IllegalArgumentException e) {
-            mostrarMensagem(e.getMessage(), false);
-        } catch (Exception e) {
-            mostrarMensagem("Não foi possível atualizar o pedido de permuta.", false);
-        }
     }
 
     private void cancelarPermutaPropria(Permuta permuta) {

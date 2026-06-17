@@ -228,14 +228,23 @@ public class HorarioGeneratorEngine {
                     data, turnosDoDia, configDia, estadoPorColaborador,
                     horarios, sabadosComChefia.contains(data), pedido);
             registarAtribuicoes(data, atribuicoes, horarios, sabadosComChefia);
+            // Completa imediatamente o 2º turno consecutivo para FT: assim a capacidade
+            // é consumida em pares (8h/dia) e não em singles espalhados por muitos dias.
+            completarTurnosFullTimeDia(data, turnosDoDia, pedido, horarios,
+                    estadoPorColaborador, sabadosComChefia);
         }
+
+        // ── FASE 1.5 — Sweep final para FT com 1 turno ainda por completar ────
+        completarTurnosFullTime(pedido, horarios, estadoPorColaborador, sabadosComChefia);
 
         // ── FASE 2 — Preenchimento de capacidade (top-up) ─────────────────────
         // Com todos os mínimos garantidos, distribui a capacidade contratual ainda por
         // consumir. Dois modos:
-        //  • COM alvo de pessoas por turno (gestor escolheu): "levanta o piso" —
-        //    leva TODOS os dias a 2/turno antes de qualquer dia ir a 3, e assim por diante
-        //    até ao alvo. Cobertura uniforme em vez de amontoada em certos dias da semana.
+        //  • COM alvo de pessoas por turno (gestor escolheu): o alvo é tratado como MÍNIMO
+        //    RÍGIDO já na FASE 1 (ver PedidoGeracao#minimosEfetivosPorTurno) — todos os dias
+        //    abertos saem da FASE 1 já com o alvo cumprido, ou a geração falhou no pré-flight
+        //    de capacidade. Aqui, "levanta o piso" é só uma rede de segurança que não acrescenta
+        //    nada (cobertura == alvo em todo o lado), garantindo nunca exceder o alvo.
         //  • SEM alvo: enche até à capacidade com orçamento diário acumulado (ver abaixo).
         if (pedido.alvoPorTurno() != null) {
             preencherAteAlvoUniforme(pedido, horarios, estadoPorColaborador.values(),
@@ -273,6 +282,13 @@ public class HorarioGeneratorEngine {
                 registarAtribuicoes(data, extras, horarios, sabadosComChefia);
             }
         }
+
+        // ── FASE 2.5 — 2º turno para FT que receberam 1º turno via top-up ─────────
+        // O top-up (Fase 2) pode atribuir um 1º turno a um FT em dias que a Fase 1
+        // não cobriu — e a Fase 1.5 já correu antes, pelo que esses turnos ficavam
+        // como 4h simples. Este sweep apanha todos os FT que ainda têm exatamente
+        // 1 turno e tenta completar o par consecutivo com a capacidade restante.
+        completarTurnosFullTime(pedido, horarios, estadoPorColaborador, sabadosComChefia);
 
         // Fase final A: refinamento por pesquisa local (folgas preferidas + equilíbrio de carga)
         List<Horario> refinado = refinador.refinar(pedido, horarios);
@@ -411,7 +427,7 @@ public class HorarioGeneratorEngine {
             if (turnosDoDia.isEmpty()) {
                 continue;
             }
-            for (SlotDia slot : construirSlots(turnosDoDia, configDia, pedido.minimosPorTurno())) {
+            for (SlotDia slot : construirSlots(turnosDoDia, configDia, pedido.minimosEfetivosPorTurno())) {
                 total += validator.calcularDuracaoEmMinutos(slot.turno());
             }
         }
@@ -454,16 +470,6 @@ public class HorarioGeneratorEngine {
         if (pedido.prazoLimite() != null && Instant.now().isAfter(pedido.prazoLimite())) {
             return List.of();
         }
-        // Top-up ao fim de semana só para colaboradores DESIGNADOS pelo plano de FDS —
-        // os mínimos do FDS já estão garantidos (fase 1), mas reforçar não-designados
-        // gastaria carga de quem o plano reserva para outros fins de semana.
-        boolean fimDeSemana = validator.ehFimDeSemana(data);
-        boolean planoFinsDeSemanaAtivo = estados.stream()
-                .anyMatch(EstadoColaborador::temPlanoFinsDeSemana);
-        if (fimDeSemana && !planoFinsDeSemanaAtivo) {
-            return List.of();
-        }
-
         // Orçamento de hoje: folga de capacidade acumulada até hoje (taxa diária constante,
         // calculada pela fase 2 a partir da capacidade que sobrou dos mínimos). Como todos
         // os mínimos já estão colocados, esta folga é puro excedente.
@@ -476,17 +482,18 @@ public class HorarioGeneratorEngine {
         // Melhor turno por colaborador, limite inverso ao mínimo por tipo — enche até à
         // capacidade disponível. Usado quando o gestor NÃO definiu alvo de pessoas/turno
         // (com alvo, o preenchimento é feito por preencherAteAlvoUniforme, que levanta o piso).
+        // No top-up, fim de semana ignora a rotação de FDS para permitir cobertura adequada
+        boolean fimDeSemana = validator.ehFimDeSemana(data);
         List<CandidatoPontuado> candidatos = new ArrayList<>();
         for (EstadoColaborador estado : estados) {
             if (estado.capacidadeRestanteMinutos() <= 0) continue;
             if (pedido.folgasPreferidasPorColaborador()
                     .getOrDefault(estado.idUtilizador(), Set.of()).contains(data)) continue;
-            if (fimDeSemana && !estado.designadoParaFimDeSemana(data)) continue;
 
             CandidatoPontuado melhor = null;
             for (Turno turno : turnosDoDia) {
                 long minutos = validator.calcularDuracaoEmMinutos(turno);
-                if (!estado.podeReceber(data, turno, minutos, pedido, false, false)) continue;
+                if (!estado.podeReceber(data, turno, minutos, pedido, fimDeSemana, false)) continue;
                 double score = avaliador.pontuar(estado, turno, minutos, data, pedido, contexto);
                 if (melhor == null || score < melhor.score()) {
                     melhor = new CandidatoPontuado(new AtribuicaoDia(estado, turno, minutos), score);
@@ -528,6 +535,54 @@ public class HorarioGeneratorEngine {
     }
 
     /**
+     * Para cada FT (maxTurnosPorDia ≥ 2) com exatamente 1 turno em {@code data},
+     * tenta atribuir o turno consecutivo (Manhã→Tarde ou Tarde→Noite).
+     * Chamado dentro da Fase 1 imediatamente após cada dia — assim a capacidade
+     * é consumida em pares e não dispersa por muitos dias de 1 turno.
+     */
+    private void completarTurnosFullTimeDia(LocalDate data,
+                                             List<Turno> turnosDoDia,
+                                             PedidoGeracao pedido,
+                                             List<Horario> horarios,
+                                             Map<Integer, EstadoColaborador> estadoPorColaborador,
+                                             Set<LocalDate> sabadosComChefia) {
+        // Itera em ordem DESCENDENTE de hora de início (Noite→Tarde→Manhã).
+        // Assim, um FT que tem Tarde encontra Noite primeiro (→ T/N) em vez de
+        // recuar para Manhã (→ M/T), equilibrando a cobertura noturna.
+        boolean fimDeSemana = validator.ehFimDeSemana(data);
+        List<Turno> turnos = turnosDoDia.stream()
+                .sorted(Comparator.comparing(Turno::getHoraInicio, Comparator.reverseOrder()))
+                .toList();
+        for (EstadoColaborador estado : estadoPorColaborador.values()) {
+            if (estado.maxTurnosPorDia() < 2) continue;
+            if (estado.turnosDia(data) != 1) continue;
+            for (Turno turno : turnos) {
+                long minutos = validator.calcularDuracaoEmMinutos(turno);
+                // O 2º turno é no MESMO dia que o 1º — não acrescenta um dia à semana,
+                // por isso ignorarDescansoSemanal=true é sempre correto aqui.
+                // Em FDS, usa a mesma relaxação de rotação que a Fase 1 (tentativa 3/4).
+                if (!estado.podeReceber(data, turno, minutos, pedido, fimDeSemana, true)) continue;
+                registarAtribuicoes(data, List.of(new AtribuicaoDia(estado, turno, minutos)),
+                        horarios, sabadosComChefia);
+                break;
+            }
+        }
+    }
+
+    /** Sweep final de Fase 1.5: apanha FT que ainda têm 1 turno (casos onde o par falhou na fase 1). */
+    private void completarTurnosFullTime(PedidoGeracao pedido,
+                                          List<Horario> horarios,
+                                          Map<Integer, EstadoColaborador> estadoPorColaborador,
+                                          Set<LocalDate> sabadosComChefia) {
+        for (LocalDate data = pedido.dataInicio(); !data.isAfter(pedido.dataFim()); data = data.plusDays(1)) {
+            if (pedido.configuracoesPorData().get(data) != null) continue;
+            List<Turno> turnos = pedido.configuracoesPorData().get(data) != null
+                    ? List.of() : pedido.turnos();
+            completarTurnosFullTimeDia(data, turnos, pedido, horarios, estadoPorColaborador, sabadosComChefia);
+        }
+    }
+
+    /**
      * Preenchimento com <b>alvo de pessoas por turno</b> "levantando o piso": leva todos os
      * dias abertos a 2 pessoas por tipo de turno antes de qualquer dia ir a 3, e assim por
      * diante até ao alvo. Em cada passo escolhe o par (dia, tipo) com MENOR cobertura atual
@@ -545,9 +600,6 @@ public class HorarioGeneratorEngine {
                                           Collection<EstadoColaborador> estados,
                                           Set<LocalDate> sabadosComChefia,
                                           int alvo) {
-        boolean planoFinsDeSemanaAtivo = estados.stream()
-                .anyMatch(EstadoColaborador::temPlanoFinsDeSemana);
-
         List<LocalDate> diasAbertos = new ArrayList<>();
         for (LocalDate d = pedido.dataInicio(); !d.isAfter(pedido.dataFim()); d = d.plusDays(1)) {
             if (pedido.configuracoesPorData().get(d) == null) diasAbertos.add(d);
@@ -566,16 +618,11 @@ public class HorarioGeneratorEngine {
             if (pedido.prazoLimite() != null && Instant.now().isAfter(pedido.prazoLimite())) break;
 
             Map<LocalDate, Map<String, Integer>> contagem = new HashMap<>();
-            Map<LocalDate, Set<Integer>> usadosPorDia = new HashMap<>();
             for (Horario h : horarios) {
                 LocalDate d = h.getDataTurno();
                 if (d == null || h.getIdTurno() == null) continue;
                 contagem.computeIfAbsent(d, k -> new HashMap<>())
                         .merge(TurnoClassifier.tipoNormalizado(h.getIdTurno()), 1, Integer::sum);
-                Integer id = h.getIdLojautilizador() != null
-                        && h.getIdLojautilizador().getIdUtilizador() != null
-                        ? h.getIdLojautilizador().getIdUtilizador().getId() : null;
-                if (id != null) usadosPorDia.computeIfAbsent(d, k -> new LinkedHashSet<>()).add(id);
             }
 
             AvaliadorAtribuicao.ContextoAvaliacao contexto = avaliador.novoContextoSemEquidade(horarios);
@@ -584,9 +631,6 @@ public class HorarioGeneratorEngine {
             int melhorCobertura = Integer.MAX_VALUE;
 
             for (LocalDate dia : diasAbertos) {
-                boolean fimDeSemana = validator.ehFimDeSemana(dia);
-                if (fimDeSemana && !planoFinsDeSemanaAtivo) continue;
-                Set<Integer> usados = usadosPorDia.getOrDefault(dia, Set.of());
                 Map<String, Integer> contDia = contagem.getOrDefault(dia, Map.of());
                 for (String tipo : tipos) {
                     int cobertura = contDia.getOrDefault(tipo, 0);
@@ -594,7 +638,7 @@ public class HorarioGeneratorEngine {
                     // Só interessa um slot que possa igualar/baixar o piso já encontrado.
                     if (cobertura > melhorCobertura) continue;
                     CandidatoPontuado cand = melhorCandidatoSlot(
-                            dia, turnosPorTipo.get(tipo), estados, usados, pedido, contexto, fimDeSemana);
+                            dia, turnosPorTipo.get(tipo), estados, pedido, contexto);
                     if (cand == null) continue;
                     if (melhorCand == null || cobertura < melhorCobertura
                             || (cobertura == melhorCobertura && cand.score() < melhorCand.score())) {
@@ -614,20 +658,17 @@ public class HorarioGeneratorEngine {
     private CandidatoPontuado melhorCandidatoSlot(LocalDate dia,
                                                   List<Turno> turnosDoTipo,
                                                   Collection<EstadoColaborador> estados,
-                                                  Set<Integer> usadosNoDia,
                                                   PedidoGeracao pedido,
-                                                  AvaliadorAtribuicao.ContextoAvaliacao contexto,
-                                                  boolean fimDeSemana) {
+                                                  AvaliadorAtribuicao.ContextoAvaliacao contexto) {
+        boolean fimDeSemana = validator.ehFimDeSemana(dia);
         CandidatoPontuado melhor = null;
         for (EstadoColaborador estado : estados) {
-            if (usadosNoDia.contains(estado.idUtilizador())) continue;
             if (estado.capacidadeRestanteMinutos() <= 0) continue;
             if (pedido.folgasPreferidasPorColaborador()
                     .getOrDefault(estado.idUtilizador(), Set.of()).contains(dia)) continue;
-            if (fimDeSemana && !estado.designadoParaFimDeSemana(dia)) continue;
             for (Turno turno : turnosDoTipo) {
                 long minutos = validator.calcularDuracaoEmMinutos(turno);
-                if (!estado.podeReceber(dia, turno, minutos, pedido, false, false)) continue;
+                if (!estado.podeReceber(dia, turno, minutos, pedido, fimDeSemana, false)) continue;
                 double score = avaliador.pontuar(estado, turno, minutos, dia, pedido, contexto);
                 if (melhor == null || score < melhor.score()) {
                     melhor = new CandidatoPontuado(new AtribuicaoDia(estado, turno, minutos), score);
@@ -690,7 +731,7 @@ public class HorarioGeneratorEngine {
                                            boolean sabadoJaTemChefia,
                                            PedidoGeracao pedido) {
 
-        List<SlotDia> slots = construirSlots(turnosDoDia, configDia, pedido.minimosPorTurno());
+        List<SlotDia> slots = construirSlots(turnosDoDia, configDia, pedido.minimosEfetivosPorTurno());
 
         boolean precisaChefia = pedido.exigirChefiaAoSabado()
                 && data.getDayOfWeek() == DayOfWeek.SATURDAY
@@ -1134,7 +1175,8 @@ public class HorarioGeneratorEngine {
                 case "bloqueado"         -> "folga ou ausência aprovada neste dia";
                 case "rotacao_fim_semana"-> "rotação de fins de semana";
                 case "descanso_minimo"   -> "descanso mínimo entre turnos";
-                case "turno_curto"       -> "nenhum turno de 8h+ disponível para o perfil";
+                case "turno_nao_consecutivo" -> "segundo turno não consecutivo com o primeiro";
+                case "ja_escalado"       -> "já atingiu o máximo de turnos no dia";
                 default                   -> "indisponível";
             };
             if (!detalhe.isEmpty()) detalhe.append("; ");

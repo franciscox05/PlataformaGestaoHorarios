@@ -126,8 +126,18 @@ public final class SelecaoColaboradoresPainel {
     private CheckBox criarCheckBox(ColaboradorElegivel c,
                                     boolean preservar,
                                     Set<Integer> selecionadosAnteriores) {
-        CheckBox cb = new CheckBox(c.nome() + " | " + c.perfilContratual());
+        String etiqueta = c.nome() + " | " + c.perfilContratual();
+        if (c.temTurnosNoutraLoja()) {
+            etiqueta += "  ⚠ turnos noutras lojas";
+        }
+        CheckBox cb = new CheckBox(etiqueta);
         cb.getStyleClass().add("colaborador-check");
+        if (c.temTurnosNoutraLoja()) {
+            cb.getStyleClass().add("colaborador-check-aviso");
+            cb.setTooltip(new javafx.scene.control.Tooltip(
+                    c.nome() + " já tem turnos aprovados ou pendentes noutras lojas neste período. "
+                    + "Se os horários se sobrepuserem, a geração falhará ao gravar."));
+        }
         cb.setWrapText(true);
         cb.setSelected(preservar
                 ? selecionadosAnteriores.contains(c.idColaborador())

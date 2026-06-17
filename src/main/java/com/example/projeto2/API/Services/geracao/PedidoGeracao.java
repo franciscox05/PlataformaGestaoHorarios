@@ -7,6 +7,7 @@ import com.example.projeto2.API.Modules.Turno;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,5 +102,32 @@ public record PedidoGeracao(
                 bloqueiosPorColaborador, preferenciasTurnos, configuracoesPorData,
                 historicoHorarios, prazoLimite, politica, folgasPreferidasPorColaborador,
                 paresPreferisPorColaborador, semente, null);
+    }
+
+    /**
+     * Mínimos efetivos por turno aplicados pela cobertura obrigatória (FASE 1) do motor.
+     *
+     * <p>Quando o gestor define um alvo de pessoas por turno ({@link #alvoPorTurno()} != null),
+     * esse alvo passa a ser um <b>mínimo rígido</b>: cada tipo de turno é elevado a
+     * {@code max(mínimo da regra, alvo)}. Assim, "N pessoas por turno" é garantido em todos
+     * os dias abertos — ou a geração falha logo no pré-flight de capacidade
+     * ({@code validarCapacidadeGlobal}) com um diagnóstico do que ajustar — em vez de degradar
+     * silenciosamente para o mínimo nalguns dias (comportamento suave anterior).
+     *
+     * <p>Sem alvo ({@code null} = automático), devolve os mínimos das regras inalterados; o
+     * preenchimento de capacidade continua a ser o reforço suave até à capacidade disponível.
+     *
+     * <p>Nota: dias com exceção de calendário usam o seu próprio mínimo especial (não são
+     * elevados por este método) — o {@code HorarioGeneratorEngine} aplica este mapa apenas aos
+     * dias sem configuração especial.
+     */
+    public Map<Integer, Integer> minimosEfetivosPorTurno() {
+        if (alvoPorTurno == null) {
+            return minimosPorTurno;
+        }
+        Map<Integer, Integer> efetivos = new LinkedHashMap<>();
+        minimosPorTurno.forEach((idTurno, minimo) ->
+                efetivos.put(idTurno, Math.max(minimo != null ? minimo : 0, alvoPorTurno)));
+        return efetivos;
     }
 }

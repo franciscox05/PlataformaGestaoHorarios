@@ -97,23 +97,54 @@ public final class RefinadorPlaneamento {
             return 0;
         }
 
+        // Group by (collaborator, preferred-day): FT collaborators can have 2 turns on the same
+        // preferred day-off. Moving only one would leave the collaborator still working that day
+        // while degrading coverage (the optimal FT worker is replaced by someone less fit).
+        // We treat each group atomically: move all turns or none.
+        Map<String, List<Horario>> grupos = new LinkedHashMap<>();
+        for (Horario h : plano) {
+            Integer id = idColaborador(h);
+            if (id == null || h.getDataTurno() == null || h.getIdTurno() == null) continue;
+            if (!folgasPreferidas.getOrDefault(id, Set.of()).contains(h.getDataTurno())) continue;
+            grupos.computeIfAbsent(id + "_" + h.getDataTurno(), k -> new ArrayList<>()).add(h);
+        }
+
         int recuperadas = 0;
-        for (Horario h : List.copyOf(plano)) {
-            if (prazoEsgotado(pedido)) {
-                break;
-            }
-            Integer idAtual = idColaborador(h);
-            if (idAtual == null || h.getDataTurno() == null || h.getIdTurno() == null) {
-                continue;
-            }
-            if (!folgasPreferidas.getOrDefault(idAtual, Set.of()).contains(h.getDataTurno())) {
-                continue;
-            }
-            if (tentarReatribuir(pedido, plano, h, true)) {
+        for (List<Horario> grupo : grupos.values()) {
+            if (prazoEsgotado(pedido)) break;
+            if (tentarMoverGrupoAtomico(pedido, plano, grupo)) {
                 recuperadas++;
             }
         }
         return recuperadas;
+    }
+
+    /**
+     * Moves all turns in the group atomically: if any cannot be moved, reverts all successful
+     * moves in the group and returns false. For single-turn groups delegates to
+     * {@link #tentarReatribuir}.
+     */
+    private boolean tentarMoverGrupoAtomico(PedidoGeracao pedido, List<Horario> plano,
+                                             List<Horario> grupo) {
+        if (grupo.size() == 1) {
+            return tentarReatribuir(pedido, plano, grupo.get(0), true);
+        }
+        List<Lojautilizador> donosOriginais = grupo.stream()
+                .map(Horario::getIdLojautilizador)
+                .toList();
+        List<Boolean> resultados = new ArrayList<>(grupo.size());
+        for (Horario h : grupo) {
+            resultados.add(tentarReatribuir(pedido, plano, h, true));
+        }
+        if (resultados.stream().allMatch(b -> b)) {
+            return true;
+        }
+        for (int i = 0; i < grupo.size(); i++) {
+            if (resultados.get(i)) {
+                grupo.get(i).setIdLojautilizador(donosOriginais.get(i));
+            }
+        }
+        return false;
     }
 
     // =========================================================================

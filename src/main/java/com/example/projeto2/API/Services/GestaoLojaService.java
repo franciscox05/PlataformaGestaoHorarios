@@ -12,15 +12,19 @@ import static com.example.projeto2.API.Services.geracao.HorarioFormatters.valorO
 import com.example.projeto2.API.Repositories.RegraRepository;
 import com.example.projeto2.API.Repositories.RegrasLojaRepository;
 import com.example.projeto2.API.Repositories.TurnoRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -30,6 +34,9 @@ public class GestaoLojaService {
 
     private static final DateTimeFormatter HORA_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private final LojautilizadorHelper lojautilizadorHelper;
     private final LojaRepository lojaRepository;
@@ -86,12 +93,16 @@ public class GestaoLojaService {
             }
         }
 
-        List<RegraLojaResumo> regras = regraRepository.findAllByOrderByDescricaoAsc().stream()
+        List<RegraLojaResumo> regras = regraRepository.findGlobaisEPrivadasPorLoja(loja.getId()).stream()
                 .sorted(Comparator.comparing(
                         regra -> regra.getDescricao() != null ? regra.getDescricao() : "",
                         String.CASE_INSENSITIVE_ORDER
                 ))
                 .map(regra -> criarResumoRegra(regra, regrasEspecificas.get(regra.getId())))
+                .toList();
+
+        List<TurnoResumo> turnos = turnosBase.stream()
+                .map(this::criarResumoTurno)
                 .toList();
 
         List<HorarioEspecialResumo> horariosEspeciais = horarioEspecialLojaRepository.findByIdLojaOrderByPeriodo(loja.getId()).stream()
@@ -106,7 +117,8 @@ public class GestaoLojaService {
                 formatarHora(loja.getHoraFecho()),
                 ligacaoAtiva.getIdCargo() != null ? valorOuTraco(ligacaoAtiva.getIdCargo().getNome()) : "-",
                 regras,
-                horariosEspeciais
+                horariosEspeciais,
+                turnos
         );
     }
 
@@ -127,42 +139,260 @@ public class GestaoLojaService {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
         Loja loja = ligacaoAtiva.getIdLoja();
 
+        boolean horasAlteraram = !request.horaAbertura().equals(loja.getHoraAbertura())
+                || !request.horaFecho().equals(loja.getHoraFecho());
+
         loja.setHoraAbertura(request.horaAbertura());
         loja.setHoraFecho(request.horaFecho());
         lojaRepository.save(loja);
 
-        if (request.regras() == null) {
-            return;
+        if (request.regras() != null) {
+            for (ConfiguracaoRegraRequest regraRequest : request.regras()) {
+                if (regraRequest == null || regraRequest.idRegra() == null) {
+                    continue;
+                }
+
+                Regra regra = regraRepository.findById(regraRequest.idRegra())
+                        .orElseThrow(() -> new IllegalArgumentException("Foi encontrada uma regra invalida no formulario."));
+
+                Integer valorEspecifico = regraRequest.valorEspecifico();
+                if (valorEspecifico != null && valorEspecifico < 0) {
+                    throw new IllegalArgumentException("Os valores especificos das regras nao podem ser negativos.");
+                }
+
+                String observacoes = limparTexto(regraRequest.observacoes());
+                Optional<RegrasLoja> regraExistente = regrasLojaRepository.findByIdLojaIdAndIdRegraId(loja.getId(), regra.getId());
+
+                if (valorEspecifico == null && observacoes == null) {
+                    regraExistente.ifPresent(regrasLojaRepository::delete);
+                    continue;
+                }
+
+                RegrasLoja regraLoja = regraExistente.orElseGet(RegrasLoja::new);
+                regraLoja.setIdLoja(loja);
+                regraLoja.setIdRegra(regra);
+                regraLoja.setValorEspecifico(valorEspecifico);
+                regraLoja.setObservacoes(observacoes);
+                if (!Boolean.FALSE.equals(regraLoja.getAtivo())) {
+                    regraLoja.setAtivo(true);
+                }
+                regrasLojaRepository.save(regraLoja);
+            }
         }
 
-        for (ConfiguracaoRegraRequest regraRequest : request.regras()) {
-            if (regraRequest == null || regraRequest.idRegra() == null) {
-                continue;
-            }
+        if (horasAlteraram || turnoRepository.count() != 3) {
+            recriarTurnosELimparHorarios(loja);
+        }
+    }
 
-            Regra regra = regraRepository.findById(regraRequest.idRegra())
-                    .orElseThrow(() -> new IllegalArgumentException("Foi encontrada uma regra invalida no formulario."));
+    @Transactional
+    public void recriarTurnosPadrao(Integer idUtilizador) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        recriarTurnosELimparHorarios(ligacaoAtiva.getIdLoja());
+    }
 
-            Integer valorEspecifico = regraRequest.valorEspecifico();
-            if (valorEspecifico != null && valorEspecifico < 0) {
-                throw new IllegalArgumentException("Os valores especificos das regras nao podem ser negativos.");
-            }
+    private void recriarTurnosELimparHorarios(Loja loja) {
+        LocalTime abertura = loja.getHoraAbertura();
+        LocalTime fecho = loja.getHoraFecho();
+        Integer idLoja = loja.getId();
 
-            String observacoes = limparTexto(regraRequest.observacoes());
-            Optional<RegrasLoja> regraExistente = regrasLojaRepository.findByIdLojaIdAndIdRegraId(loja.getId(), regra.getId());
+        List<Integer> horarioIds = entityManager.createQuery(
+                "SELECT h.id FROM Horario h WHERE h.idLojautilizador.idLoja.id = :idLoja", Integer.class)
+                .setParameter("idLoja", idLoja).getResultList();
 
-            if (valorEspecifico == null && observacoes == null) {
-                regraExistente.ifPresent(regrasLojaRepository::delete);
-                continue;
-            }
+        if (!horarioIds.isEmpty()) {
+            entityManager.createQuery(
+                    "DELETE FROM HistoricoHorarioEstado hhe WHERE hhe.idHorario.id IN :ids")
+                    .setParameter("ids", horarioIds).executeUpdate();
 
-            RegrasLoja regraLoja = regraExistente.orElseGet(RegrasLoja::new);
+            entityManager.createQuery(
+                    "DELETE FROM PermutaFolga pf WHERE pf.idHorarioD.id IN :ids OR pf.idHorarioY.id IN :ids")
+                    .setParameter("ids", horarioIds).executeUpdate();
+
+            entityManager.createQuery(
+                    "DELETE FROM Permuta p WHERE p.idHorarioOrigem.id IN :ids OR p.idHorarioDestino.id IN :ids")
+                    .setParameter("ids", horarioIds).executeUpdate();
+
+            entityManager.createQuery(
+                    "DELETE FROM Horario h WHERE h.id IN :ids")
+                    .setParameter("ids", horarioIds).executeUpdate();
+        }
+
+        entityManager.createQuery("DELETE FROM Turno t").executeUpdate();
+        entityManager.clear();
+
+        criarTresTurnos(abertura, fecho);
+    }
+
+    private void criarTresTurnos(LocalTime abertura, LocalTime fecho) {
+        long abMin = abertura.toSecondOfDay() / 60;
+        long feMin = fecho.toSecondOfDay() / 60;
+        if (feMin <= abMin) feMin += 24 * 60;
+        long bloco = (feMin - abMin) / 3;
+
+        String[] nomes = {"Manhã", "Tarde", "Noite"};
+        String[] tipos = {"manha", "tarde", "noite"};
+
+        for (int i = 0; i < 3; i++) {
+            long iniMin = (abMin + (long) i * bloco) % (24 * 60);
+            long fimMin = (abMin + (long) (i + 1) * bloco) % (24 * 60);
+
+            Turno turno = new Turno();
+            turno.setNome(nomes[i]);
+            turno.setTipo(tipos[i]);
+            turno.setHoraInicio(LocalTime.ofSecondOfDay(iniMin * 60));
+            turno.setHoraFim(LocalTime.ofSecondOfDay(fimMin * 60));
+            turnoRepository.save(turno);
+        }
+    }
+
+    /**
+     * Desativa a regra própria da loja: mantém o override mas marca ativo=false.
+     * O motor de geração ignora overrides desativados e usa o valor base do sistema.
+     */
+    @Transactional
+    public void desativarRegraDaLoja(Integer idUtilizador, Integer idRegra) {
+        if (idRegra == null) {
+            throw new IllegalArgumentException("Seleciona uma regra antes de a desativar.");
+        }
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Loja loja = ligacaoAtiva.getIdLoja();
+        Regra regra = regraRepository.findById(idRegra)
+                .orElseThrow(() -> new IllegalArgumentException("Regra não encontrada."));
+        RegrasLoja regraLoja = regrasLojaRepository
+                .findByIdLojaIdAndIdRegraId(loja.getId(), idRegra)
+                .orElseGet(RegrasLoja::new);
+        if (regraLoja.getIdLoja() == null) {
             regraLoja.setIdLoja(loja);
             regraLoja.setIdRegra(regra);
-            regraLoja.setValorEspecifico(valorEspecifico);
-            regraLoja.setObservacoes(observacoes);
-            regrasLojaRepository.save(regraLoja);
         }
+        regraLoja.setAtivo(false);
+        regrasLojaRepository.save(regraLoja);
+    }
+
+    /**
+     * Reativa a regra própria da loja: define ativo=true.
+     * Se não havia override guardado (valorEspecifico=null), apaga a entrada
+     * para que a regra volte ao estado "disponível" sem override.
+     */
+    @Transactional
+    public void ativarRegraDaLoja(Integer idUtilizador, Integer idRegra) {
+        if (idRegra == null) {
+            throw new IllegalArgumentException("Seleciona uma regra antes de a ativar.");
+        }
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        regrasLojaRepository
+                .findByIdLojaIdAndIdRegraId(ligacaoAtiva.getIdLoja().getId(), idRegra)
+                .ifPresent(regraLoja -> {
+                    if (regraLoja.getValorEspecifico() == null && regraLoja.getObservacoes() == null) {
+                        regrasLojaRepository.delete(regraLoja);
+                    } else {
+                        regraLoja.setAtivo(true);
+                        regrasLojaRepository.save(regraLoja);
+                    }
+                });
+    }
+
+    /**
+     * Cria uma regra livre (nota) associada exclusivamente a esta loja.
+     * O motor de geração não a processa — serve de referência/lembrete para o gestor.
+     */
+    @Transactional
+    public void criarRegraLivre(Integer idUtilizador, String descricao, String observacoes) {
+        String desc = limparTexto(descricao);
+        if (desc == null) {
+            throw new IllegalArgumentException("Indica uma descrição para a regra.");
+        }
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Loja loja = ligacaoAtiva.getIdLoja();
+
+        Regra regra = new Regra();
+        regra.setDescricao(desc);
+        regra.setTipo("nota");
+        regra.setIdLojaPrivada(loja);
+        regraRepository.save(regra);
+
+        RegrasLoja regraLoja = new RegrasLoja();
+        regraLoja.setIdLoja(loja);
+        regraLoja.setIdRegra(regra);
+        regraLoja.setObservacoes(limparTexto(observacoes));
+        regraLoja.setAtivo(true);
+        regrasLojaRepository.save(regraLoja);
+    }
+
+    @Transactional
+    public void removerRegraLivre(Integer idUtilizador, Integer idRegra) {
+        if (idRegra == null) {
+            throw new IllegalArgumentException("Seleciona uma regra antes de a remover.");
+        }
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Regra regra = regraRepository.findById(idRegra)
+                .orElseThrow(() -> new IllegalArgumentException("Regra não encontrada."));
+        if (regra.getIdLojaPrivada() == null
+                || !regra.getIdLojaPrivada().getId().equals(ligacaoAtiva.getIdLoja().getId())) {
+            throw new IllegalArgumentException("Não tens permissão para remover esta regra.");
+        }
+        regrasLojaRepository.findByIdLojaIdAndIdRegraId(ligacaoAtiva.getIdLoja().getId(), idRegra)
+                .ifPresent(regrasLojaRepository::delete);
+        regraRepository.delete(regra);
+    }
+
+    /** Cria um novo turno. Valida sobreposição de horas com turnos existentes. */
+    @Transactional
+    public TurnoResumo criarTurno(Integer idUtilizador, String nome, LocalTime horaInicio, LocalTime horaFim) {
+        obterLigacaoAtivaComPermissao(idUtilizador);
+        String nomeLimpo = limparTexto(nome);
+        if (nomeLimpo == null) {
+            throw new IllegalArgumentException("Indica um nome para o turno.");
+        }
+        if (horaInicio == null || horaFim == null) {
+            throw new IllegalArgumentException("Indica a hora de início e de fim do turno.");
+        }
+        if (!horaFim.isAfter(horaInicio)) {
+            throw new IllegalArgumentException("A hora de fim deve ser posterior à hora de início.");
+        }
+        List<Turno> sobrepostos = turnoRepository.findSobrepostos(horaInicio, horaFim, null);
+        if (!sobrepostos.isEmpty()) {
+            String nomes = sobrepostos.stream()
+                    .map(t -> nomeDisplayTurno(t) + " (" + formatarHora(t.getHoraInicio()) + "-" + formatarHora(t.getHoraFim()) + ")")
+                    .reduce((a, b) -> a + ", " + b).orElse("outro turno");
+            throw new IllegalArgumentException("O horário do novo turno sobrepõe-se a: " + nomes + ".");
+        }
+        Turno turno = new Turno();
+        turno.setNome(nomeLimpo);
+        turno.setHoraInicio(horaInicio);
+        turno.setHoraFim(horaFim);
+        turno.setTipo(derivarTipo(horaInicio));
+        return criarResumoTurno(turnoRepository.save(turno));
+    }
+
+    /** Remove um turno. Falha se o turno tiver horários atribuídos. */
+    @Transactional
+    public void removerTurno(Integer idUtilizador, Integer idTurno) {
+        if (idTurno == null) {
+            throw new IllegalArgumentException("Seleciona um turno antes de o remover.");
+        }
+        obterLigacaoAtivaComPermissao(idUtilizador);
+        if (!turnoRepository.existsById(idTurno)) {
+            throw new IllegalArgumentException("Turno não encontrado.");
+        }
+        if (turnoRepository.existeEmHorarios(idTurno)) {
+            throw new IllegalArgumentException("Não é possível remover um turno com horários atribuídos.");
+        }
+        turnoRepository.deleteById(idTurno);
+    }
+
+    private String derivarTipo(LocalTime horaInicio) {
+        if (horaInicio == null) return "outro";
+        int h = horaInicio.getHour();
+        if (h < 12) return "manha";
+        if (h < 17) return "tarde";
+        return "noite";
+    }
+
+    private String nomeDisplayTurno(Turno t) {
+        if (t == null) return "-";
+        return t.getNome() != null ? t.getNome() : (t.getTipo() != null ? t.getTipo() : "-");
     }
 
     @Transactional
@@ -272,14 +502,36 @@ public class GestaoLojaService {
     }
 
     private RegraLojaResumo criarResumoRegra(Regra regra, RegrasLoja regraLoja) {
+        boolean ativo = regraLoja == null || Boolean.TRUE.equals(regraLoja.getAtivo());
+        boolean ehPrivada = regra.getIdLojaPrivada() != null;
         return new RegraLojaResumo(
                 regra.getId(),
                 valorOuTraco(regra.getDescricao()),
                 regra.getTipo(),
                 regra.getValorPadrao(),
                 regraLoja != null ? regraLoja.getValorEspecifico() : null,
-                regraLoja != null ? regraLoja.getObservacoes() : null
+                regraLoja != null ? regraLoja.getObservacoes() : null,
+                ativo,
+                ehPrivada
         );
+    }
+
+    private TurnoResumo criarResumoTurno(Turno turno) {
+        String nome = turno.getNome() != null ? turno.getNome() : capitalizar(turno.getTipo());
+        return new TurnoResumo(
+                turno.getId(),
+                nome,
+                turno.getTipo(),
+                formatarHora(turno.getHoraInicio()),
+                formatarHora(turno.getHoraFim())
+        );
+    }
+
+    private String capitalizar(String s) {
+        if (s == null || s.isBlank()) return "-";
+        String norm = Normalizer.normalize(s, Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return Character.toUpperCase(norm.charAt(0)) + norm.substring(1).toLowerCase(Locale.ROOT);
     }
 
     private HorarioEspecialResumo criarResumoHorarioEspecial(HorarioEspecialLoja horarioEspecial, Loja loja, List<Turno> turnosBase) {
@@ -430,7 +682,17 @@ public class GestaoLojaService {
             String horaFecho,
             String cargoGestor,
             List<RegraLojaResumo> regras,
-            List<HorarioEspecialResumo> horariosEspeciais
+            List<HorarioEspecialResumo> horariosEspeciais,
+            List<TurnoResumo> turnos
+    ) {
+    }
+
+    public record TurnoResumo(
+            Integer idTurno,
+            String nome,
+            String tipo,
+            String horaInicio,
+            String horaFim
     ) {
     }
 
@@ -440,7 +702,9 @@ public class GestaoLojaService {
             String tipo,
             Integer valorPadrao,
             Integer valorEspecifico,
-            String observacoes
+            String observacoes,
+            boolean ativo,
+            boolean privada
     ) {
     }
 

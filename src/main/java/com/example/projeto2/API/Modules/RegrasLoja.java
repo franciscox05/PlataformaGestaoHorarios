@@ -24,6 +24,9 @@ public class RegrasLoja {
     @Column(name = "observacoes", length = Integer.MAX_VALUE)
     private String observacoes;
 
+    @Column(name = "ativo", nullable = false)
+    private Boolean ativo = true;
+
     public Integer getId() {
         return id;
     }
@@ -62,6 +65,14 @@ public class RegrasLoja {
 
     public void setObservacoes(String observacoes) {
         this.observacoes = observacoes;
+    }
+
+    public Boolean getAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
     }
 
 }

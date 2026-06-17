@@ -36,13 +36,15 @@ public class LojautilizadorHelper {
 
     /**
      * Devolve a ligação activa do utilizador, ou {@link Optional#empty()} se idUtilizador for null
-     * ou se não houver ligação activa.
+     * ou se não houver ligação activa. Para utilizadores multi-loja, devolve a primeira ligação
+     * activa (ordenada por nome da loja ASC, dataInicio DESC).
      */
     public Optional<Lojautilizador> findLigacaoAtiva(Integer idUtilizador) {
         if (idUtilizador == null) {
             return Optional.empty();
         }
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador);
+        List<Lojautilizador> ligacoes = lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(idUtilizador);
+        return ligacoes.isEmpty() ? Optional.empty() : Optional.of(ligacoes.get(0));
     }
 
     /**
@@ -53,19 +55,22 @@ public class LojautilizadorHelper {
         if (idUtilizador == null) {
             throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
         }
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Nao foi encontrada uma ligacao ativa para este utilizador."));
+        List<Lojautilizador> ligacoes = lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(idUtilizador);
+        if (ligacoes.isEmpty()) {
+            throw new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador.");
+        }
+        return ligacoes.get(0);
     }
 
     /**
      * Devolve a ligação activa filtrada por cargo, ou {@link Optional#empty()} se o utilizador
-     * não tiver o cargo necessário. Útil para contagens condicionais.
+     * não tiver o cargo necessário em nenhuma loja activa. Seguro para utilizadores multi-loja.
      */
     public Optional<Lojautilizador> findLigacaoAtivaComCargo(Integer idUtilizador,
                                                               Set<String> cargosPermitidos) {
-        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizador(idUtilizador)
-                .filter(lu -> temCargo(lu, cargosPermitidos));
+        if (idUtilizador == null) return Optional.empty();
+        return lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(idUtilizador)
+                .stream().filter(lu -> temCargo(lu, cargosPermitidos)).findFirst();
     }
 
     /**

@@ -3586,6 +3586,18 @@
 .grelha-turno-card-vazio {
     /* célula vazia — sem card */
 }
+.grelha-turno-card-manha_tarde {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #dbeafe 50%, #ccfbf1 50%);
+    -fx-border-color: #bfdbfe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-tarde_noite {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #ccfbf1 50%, #ede9fe 50%);
+    -fx-border-color: #ddd6fe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
 
 /* ── Texto dentro dos cards ── */
 .grelha-turno-nome {
@@ -3599,6 +3611,8 @@
 .grelha-turno-nome-folga      { -fx-text-fill: #dc2626; }
 .grelha-turno-nome-intermedio { -fx-text-fill: #854d0e; }
 .grelha-turno-nome-outro      { -fx-text-fill: #374151; }
+.grelha-turno-nome-manha_tarde { -fx-text-fill: #1d4ed8; }
+.grelha-turno-nome-tarde_noite { -fx-text-fill: #0e7490; }
 
 .grelha-turno-hora {
     -fx-font-size: 10px;
@@ -3611,6 +3625,8 @@
 .grelha-turno-hora-folga      { -fx-text-fill: #f87171; }
 .grelha-turno-hora-intermedio { -fx-text-fill: #ca8a04; }
 .grelha-turno-hora-outro      { -fx-text-fill: #6b7280; }
+.grelha-turno-hora-manha_tarde { -fx-text-fill: #1d4ed8; }
+.grelha-turno-hora-tarde_noite { -fx-text-fill: #0e7490; }
 
 /* ── Célula de colaborador redimensionada ── */
 .grelha-employee-info {
@@ -3976,6 +3992,8 @@
 .grelha-compacta-pilula-folga      { -fx-background-color: transparent; }
 .grelha-compacta-pilula-intermedio { -fx-background-color: #fef9c3; }
 .grelha-compacta-pilula-outro      { -fx-background-color: #f3f4f6; }
+.grelha-compacta-pilula-manha_tarde { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #2563eb 50%, #0891b2 50%); }
+.grelha-compacta-pilula-tarde_noite { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #0891b2 50%, #7c3aed 50%); }
 
 /* Letra dentro da pílula */
 .grelha-compacta-tile-letra { -fx-font-size: 11px; -fx-font-weight: 800; }
@@ -3985,6 +4003,8 @@
 .grelha-compacta-tile-letra-folga      { -fx-text-fill: #d1d5db; }
 .grelha-compacta-tile-letra-intermedio { -fx-text-fill: #854d0e; }
 .grelha-compacta-tile-letra-outro      { -fx-text-fill: #374151; }
+.grelha-compacta-tile-letra-manha_tarde { -fx-text-fill: white; }
+.grelha-compacta-tile-letra-tarde_noite { -fx-text-fill: white; }
 
 /* ── Calendário mensal: dias sem eventos recuam (menos "caixas brancas") ── */
 .calendario-mes-dia-card-sem-eventos {

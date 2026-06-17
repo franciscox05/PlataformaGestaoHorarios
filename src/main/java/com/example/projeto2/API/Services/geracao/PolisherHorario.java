@@ -57,13 +57,10 @@ public final class PolisherHorario {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PolisherHorario.class);
 
-    /**
-     * Orçamento máximo de avaliações de pares por sessão de polimento. Com a enumeração
-     * sistemática (sem repetições), cobre todos os pares de um plano com até ~100
-     * atribuições (C(100,2)=4950) num único passe. Para planos maiores, cobre um subconjunto
-     * aleatório mas sem desperdiçar budget em duplicados.
-     */
-    private static final int MAX_ITERACOES = 5000;
+    // Sem orçamento fixo: o polisher corre até convergência real (passe completo
+    // sem melhoria → melhorou=false) ou até o prazoLimite expirar. Para uma equipa
+    // típica com ~330 atribuições (C(330,2)≈54k pares/passe), o limite anterior de
+    // 5000 terminava antes de completar 10% do primeiro passe.
 
     /** Penalização por folga preferida (soft) trabalhada — pesa como ~uma falha de regra leve. */
     private static final double PESO_FOLGA_PREFERIDA = 50.0;
@@ -119,9 +116,9 @@ public final class PolisherHorario {
             int totalIteracoes = 0;
             boolean melhorou = true;
 
-            // Enumeração sistemática: constrói todos os pares únicos por passe, baralha-os
-            // e itera até não haver mais melhorias ou o orçamento estar esgotado.
-            while (melhorou && totalIteracoes < MAX_ITERACOES) {
+            // Enumeração sistemática: constrói todos os pares únicos por passe, baralha-os,
+            // e itera até não haver mais melhorias (convergência real) ou o prazo expirar.
+            while (melhorou && !prazoEsgotado(pedido)) {
                 int n = trocaveis.size();
                 List<int[]> pares = new ArrayList<>(n * (n - 1) / 2);
                 for (int i = 0; i < n; i++) {
@@ -133,7 +130,7 @@ public final class PolisherHorario {
 
                 melhorou = false;
                 for (int[] par : pares) {
-                    if (++totalIteracoes > MAX_ITERACOES) break;
+                    totalIteracoes++;
                     if ((totalIteracoes & 63) == 0 && prazoEsgotado(pedido)) break;
                     Horario hA = trocaveis.get(par[0]);
                     Horario hB = trocaveis.get(par[1]);
@@ -388,6 +385,9 @@ public final class PolisherHorario {
         Map<Integer, Set<LocalDate>> folgas = pedido.folgasPreferidasPorColaborador();
         Map<Integer, List<Preferencia>> prefsTurno = pedido.preferenciasTurnos();
         double total = 0;
+        // Track (id, dia) pairs already penalized for folga-preferida to avoid double-counting
+        // FT collaborators who have 2 turns on the same preferred day-off.
+        Set<String> folgasPenalizadas = new HashSet<>();
         Map<Integer, Integer> turnosNaoHonradosPorColab = new HashMap<>();
         for (Horario h : plano) {
             Integer id = idColab(h);
@@ -396,7 +396,10 @@ public final class PolisherHorario {
             if (id == null || dia == null || turno == null) continue;
 
             if (folgas.getOrDefault(id, Set.of()).contains(dia)) {
-                total += PESO_FOLGA_PREFERIDA;
+                String chave = id + "_" + dia;
+                if (folgasPenalizadas.add(chave)) {
+                    total += PESO_FOLGA_PREFERIDA;
+                }
             }
             if (preferenciaTurnoAtiva(id, dia, prefsTurno)
                     && !avaliador.temPreferenciaTurnoFavoravel(id, turno, dia, prefsTurno)) {

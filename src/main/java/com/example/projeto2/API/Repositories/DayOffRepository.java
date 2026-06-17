@@ -21,7 +21,6 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
 
     @Query("SELECT d FROM DayOff d " +
             "WHERE LOWER(CAST(d.estado AS string)) = 'pendente' " +
-            "AND d.idUtilizador.id <> :idUtilizadorAprovador " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +
             "    WHERE lu.idUtilizador.id = d.idUtilizador.id " +
@@ -29,8 +28,7 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
             "    AND lu.dataFim IS NULL" +
             ") " +
             "ORDER BY d.dataAusencia ASC, d.idDayoff ASC")
-    List<DayOff> findPedidosPendentesDaLoja(@Param("idLoja") Integer idLoja,
-                                            @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
+    List<DayOff> findPedidosPendentesDaLoja(@Param("idLoja") Integer idLoja);
 
     @Query("SELECT d FROM DayOff d " +
             "WHERE LOWER(CAST(d.estado AS string)) = 'aprovado' " +
@@ -48,7 +46,6 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
 
     @Query("SELECT d FROM DayOff d " +
             "WHERE LOWER(CAST(d.estado AS string)) = 'pendente' " +
-            "AND d.idUtilizador.id <> :idUtilizadorAprovador " +
             "AND d.dataAusencia BETWEEN :dataInicio AND :dataFim " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +
@@ -58,21 +55,18 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
             ") " +
             "ORDER BY d.dataAusencia ASC, d.idDayoff ASC")
     List<DayOff> findPedidosPendentesDaLojaEntreDatas(@Param("idLoja") Integer idLoja,
-                                                      @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador,
                                                       @Param("dataInicio") LocalDate dataInicio,
                                                       @Param("dataFim") LocalDate dataFim);
 
     @Query("SELECT COUNT(d) FROM DayOff d " +
             "WHERE LOWER(CAST(d.estado AS string)) = 'pendente' " +
-            "AND d.idUtilizador.id <> :idUtilizadorAprovador " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +
             "    WHERE lu.idUtilizador.id = d.idUtilizador.id " +
             "    AND lu.idLoja.id = :idLoja " +
             "    AND lu.dataFim IS NULL" +
             ")")
-    long countPedidosPendentesDaLoja(@Param("idLoja") Integer idLoja,
-                                     @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
+    long countPedidosPendentesDaLoja(@Param("idLoja") Integer idLoja);
 
     @Query("SELECT d FROM DayOff d " +
             "WHERE d.idDayoff = :idDayOff " +
@@ -84,6 +78,17 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
             ")")
     Optional<DayOff> findPedidoDaLojaById(@Param("idLoja") Integer idLoja,
                                           @Param("idDayOff") Integer idDayOff);
+
+    @Query("SELECT d FROM DayOff d " +
+            "WHERE LOWER(CAST(d.estado AS string)) != 'pendente' " +
+            "AND EXISTS (" +
+            "    SELECT 1 FROM Lojautilizador lu " +
+            "    WHERE lu.idUtilizador.id = d.idUtilizador.id " +
+            "    AND lu.idLoja.id = :idLoja " +
+            "    AND lu.dataFim IS NULL" +
+            ") " +
+            "ORDER BY d.dataAusencia DESC, d.idDayoff DESC")
+    List<DayOff> findDecididosDaLoja(@Param("idLoja") Integer idLoja);
 
     // Employee "who is off today" view — JOIN FETCH loads nome eagerly to avoid LazyInitializationException
     @Query("SELECT d FROM DayOff d " +

@@ -110,9 +110,9 @@ public final class DiagnosticoCobertura {
     private static String descricao(String codigo) {
         return switch (codigo) {
             case "parttime_fim_semana" -> "Reforço de fim de semana — indisponível em dias úteis";
-            case "turno_curto"         -> "Perfil de tempo inteiro exige turno de pelo menos 8 horas";
+            case "turno_nao_consecutivo" -> "Já tem turno neste dia e o novo não é consecutivo (full-time exige 2 turnos seguidos)";
             case "bloqueado"           -> "Folga ou ausência aprovada nesta data";
-            case "ja_escalado"         -> "Já tem turno atribuído neste dia";
+            case "ja_escalado"         -> "Já atingiu o máximo de turnos neste dia";
             case "carga_esgotada"      -> "Carga contratual mensal esgotada";
             case "descanso_semanal"    -> "Atingiu o máximo de dias de trabalho na semana";
             case "rotacao_fim_semana"  -> "Rotação de fins de semana — já trabalhou um fim de semana recente";
@@ -129,9 +129,9 @@ public final class DiagnosticoCobertura {
                             + "no passo 1 para comparar a capacidade da equipa com a necessidade mínima; "
                             + "depois reduz os mínimos por turno ou reforça a equipa.",
                     "full-time");
-            case "turno_curto" -> new SugestaoFalhaGeracao(codigo,
-                    "Disponibiliza um turno mais curto para este dia ou reforça com part-time.",
-                    "part-time");
+            case "turno_nao_consecutivo" -> new SugestaoFalhaGeracao(codigo,
+                    "O segundo turno de full-time tem de ser consecutivo com o primeiro (ex.: Manhã+Tarde ou Tarde+Noite).",
+                    "full-time");
             case "parttime_fim_semana" -> new SugestaoFalhaGeracao(codigo,
                     "Este dia útil precisa de colaboradores de tempo inteiro ou part-time, não de reforço de fim de semana.",
                     "full-time");

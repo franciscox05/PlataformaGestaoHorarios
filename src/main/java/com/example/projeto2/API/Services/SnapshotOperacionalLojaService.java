@@ -68,9 +68,25 @@ public class SnapshotOperacionalLojaService {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizadorGestor);
         Integer idLoja = ligacaoAtiva.getIdLoja().getId();
 
-        List<Horario> horarios = intervalo.unicoDia()
+        List<Horario> horarios = carregarHorariosParaSnapshot(idLoja, intervalo, false);
+        return construirSnapshot(ligacaoAtiva, idUtilizadorGestor, intervalo, horarios);
+    }
+
+    private List<Horario> carregarHorariosParaSnapshot(Integer idLoja, IntervaloOperacional intervalo,
+                                                        boolean todosEstados) {
+        if (todosEstados) {
+            return intervalo.unicoDia()
+                    ? horarioRepository.findHorariosDeContextoLojaNoDia(idLoja, intervalo.dataInicio())
+                    : horarioRepository.findHorariosDeContextoLojaEntreDatas(idLoja, intervalo.dataInicio(), intervalo.dataFim());
+        }
+        return intervalo.unicoDia()
                 ? horarioRepository.findHorariosDaLojaNoDia(idLoja, intervalo.dataInicio())
                 : horarioRepository.findHorariosDaLojaEntreDatas(idLoja, intervalo.dataInicio(), intervalo.dataFim());
+    }
+
+    private SnapshotOperacionalLoja construirSnapshot(Lojautilizador ligacaoAtiva, Integer idUtilizadorGestor,
+                                                      IntervaloOperacional intervalo, List<Horario> horarios) {
+        Integer idLoja = ligacaoAtiva.getIdLoja().getId();
 
         List<DayOff> ausenciasAprovadas = dayOffRepository.findPedidosAprovadosDaLojaEntreDatas(
                 idLoja,
@@ -79,7 +95,6 @@ public class SnapshotOperacionalLojaService {
         );
         List<DayOff> folgasPendentes = dayOffRepository.findPedidosPendentesDaLojaEntreDatas(
                 idLoja,
-                idUtilizadorGestor,
                 intervalo.dataInicio(),
                 intervalo.dataFim()
         );
@@ -159,11 +174,9 @@ public class SnapshotOperacionalLojaService {
         Integer idLoja = ligacaoAtiva.getIdLoja().getId();
         PedidoContexto pedidoContexto = carregarPedidoContexto(idLoja, tipoPedido, idPedido);
 
-        SnapshotOperacionalLoja snapshotRelacionada = carregarSnapshot(
-                idUtilizadorGestor,
-                pedidoContexto.dataInicio(),
-                pedidoContexto.dataFim()
-        );
+        IntervaloOperacional intervalo = normalizarIntervalo(pedidoContexto.dataInicio(), pedidoContexto.dataFim());
+        List<Horario> horariosContexto = carregarHorariosParaSnapshot(idLoja, intervalo, true);
+        SnapshotOperacionalLoja snapshotRelacionada = construirSnapshot(ligacaoAtiva, idUtilizadorGestor, intervalo, horariosContexto);
 
         List<ColaboradorContexto> colaboradores = construirContextoColaboradores(
                 idLoja,
@@ -407,6 +420,7 @@ public class SnapshotOperacionalLojaService {
                 nome,
                 "Pedido de " + valorOuFallback(dayOff.getTipo(), "folga")
                         + " para " + formatarData(dayOff.getDataAusencia()),
+                valorOuTraco(dayOff.getMotivo()),
                 List.of(dayOff.getIdUtilizador().getId())
         );
     }
@@ -417,6 +431,11 @@ public class SnapshotOperacionalLojaService {
         Integer idSolicitante = horarioOrigem.getIdLojautilizador().getIdUtilizador().getId();
         Integer idColega = horarioDestino.getIdLojautilizador().getIdUtilizador().getId();
 
+        String motivoPermuta = valorOuFallback(horarioOrigem.getIdLojautilizador().getIdUtilizador().getNome(), "Solicitante")
+                + " cede turno " + formatarPeriodo(horarioOrigem)
+                + " em troca do turno " + formatarPeriodo(horarioDestino)
+                + " de " + valorOuFallback(horarioDestino.getIdLojautilizador().getIdUtilizador().getNome(), "colega");
+
         return new PedidoPendenteOperacional(
                 permuta.getId(),
                 TipoPedidoOperacional.PERMUTA,
@@ -425,6 +444,7 @@ public class SnapshotOperacionalLojaService {
                 valorOuFallback(horarioOrigem.getIdLojautilizador().getIdUtilizador().getNome(), "Solicitante"),
                 "Permuta com " + valorOuFallback(horarioDestino.getIdLojautilizador().getIdUtilizador().getNome(), "colega")
                         + " para " + formatarData(horarioOrigem.getDataTurno()),
+                motivoPermuta,
                 List.of(idSolicitante, idColega)
         );
     }
@@ -444,6 +464,7 @@ public class SnapshotOperacionalLojaService {
                         : "Colaborador",
                 "Preferencia de " + capitalizar(valorOuTraco(preferencia.getTipo()))
                         + " (prioridade " + preferencia.getPrioridade() + ")",
+                valorOuTraco(preferencia.getDescricao()),
                 idUtilizador == null ? List.of() : List.of(idUtilizador)
         );
     }
@@ -597,6 +618,7 @@ public class SnapshotOperacionalLojaService {
             LocalDate dataFim,
             String colaboradorPrincipal,
             String resumo,
+            String motivoCompleto,
             List<Integer> idsUtilizadoresEnvolvidos
     ) {
     }

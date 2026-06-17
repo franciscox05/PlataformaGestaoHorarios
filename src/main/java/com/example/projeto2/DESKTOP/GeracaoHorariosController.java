@@ -75,7 +75,6 @@ public class GeracaoHorariosController {
     @FXML private Button btnGerarAlternativas;
     @FXML private Spinner<Integer> spQuantidadeAlternativas;
     @FXML private ComboBox<ObjetivoGeracao> cbObjetivoGeracao;
-    @FXML private ComboBox<String> cbAlvoPorTurno;
     @FXML private VBox painelSelecaoColaboradores;
     @FXML private VBox boxColaboradoresGeracao;
     @FXML private Label lblResumoColaboradoresGeracao;
@@ -289,8 +288,11 @@ public class GeracaoHorariosController {
         try {
             validarUtilizadorAutenticado();
             MesOption mes = obterMesSelecionado();
+            // Passa os colaboradores selecionados para que o modal mostre a capacidade
+            // da equipa que vai ser usada na geração — não de todos os elegíveis.
             var criterios = geracaoHorariosBLL.obterCriteriosGeracao(
-                    utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+                    utilizadorLogado.getId(), spAno.getValue(), mes.numero(),
+                    obterIdsColaboradoresSelecionados());
             com.example.projeto2.DESKTOP.support.CriteriosGeracaoDialog.abrir(
                     criterios, mes + " " + spAno.getValue(), obterJanela());
         } catch (IllegalArgumentException e) {
@@ -656,8 +658,6 @@ public class GeracaoHorariosController {
         reposicionarSemanaPlaneamentoParaMesSelecionado();
     }
 
-    private static final String ALVO_AUTOMATICO = "Automático (encher capacidade)";
-
     private void configurarPreferenciasGeracao() {
         if (cbObjetivoGeracao != null) {
             cbObjetivoGeracao.setItems(FXCollections.observableArrayList(ObjetivoGeracao.values()));
@@ -669,26 +669,12 @@ public class GeracaoHorariosController {
             cbObjetivoGeracao.setTooltip(new Tooltip(
                     "O que o motor prioriza ao distribuir os turnos. 'Automático' varia a estratégia entre alternativas."));
         }
-        if (cbAlvoPorTurno != null) {
-            cbAlvoPorTurno.setItems(FXCollections.observableArrayList(
-                    ALVO_AUTOMATICO, "1 por turno", "2 por turno", "3 por turno", "4 por turno"));
-            cbAlvoPorTurno.setValue(ALVO_AUTOMATICO);
-            cbAlvoPorTurno.setTooltip(new Tooltip(
-                    "Nº alvo de pessoas por turno em cada dia. 'Automático' usa toda a capacidade "
-                            + "contratual disponível. Nunca desce abaixo do mínimo das regras."));
-        }
     }
 
     private ConfiguracaoGeracao obterConfiguracaoGeracao() {
         ObjetivoGeracao objetivo = (cbObjetivoGeracao != null && cbObjetivoGeracao.getValue() != null)
                 ? cbObjetivoGeracao.getValue() : ObjetivoGeracao.AUTOMATICO;
-        Integer alvo = null;
-        String alvoSel = cbAlvoPorTurno != null ? cbAlvoPorTurno.getValue() : null;
-        if (alvoSel != null && !ALVO_AUTOMATICO.equals(alvoSel) && !alvoSel.isBlank()
-                && Character.isDigit(alvoSel.charAt(0))) {
-            alvo = alvoSel.charAt(0) - '0';
-        }
-        return new ConfiguracaoGeracao(objetivo, alvo);
+        return new ConfiguracaoGeracao(objetivo, null);
     }
 
     private void onPeriodoAlterado() {

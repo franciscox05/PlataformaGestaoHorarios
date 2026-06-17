@@ -102,8 +102,12 @@ public final class VistaGrelhaHorarioRender {
             nomesColab.put(id, linha.colaborador() != null ? linha.colaborador() : "?");
             cargosColab.put(id, linha.cargo() != null ? linha.cargo() : "");
             String horas = (linha.periodo() != null && !"-".equals(linha.periodo())) ? linha.periodo() : null;
-            porColaborador.computeIfAbsent(id, k -> new LinkedHashMap<>())
-                    .put(linha.data(), new GrelhaHorarioRenderer.CelulaTurno(linha.turno(), horas));
+            Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno> diaMap =
+                    porColaborador.computeIfAbsent(id, k -> new LinkedHashMap<>());
+            GrelhaHorarioRenderer.CelulaTurno existente = diaMap.get(linha.data());
+            diaMap.put(linha.data(), existente != null
+                    ? mesclarCelulas(existente, linha.turno(), horas)
+                    : new GrelhaHorarioRenderer.CelulaTurno(linha.turno(), horas));
         }
 
         if (porColaborador.isEmpty()) {
@@ -151,8 +155,12 @@ public final class VistaGrelhaHorarioRender {
             nomesColab.put(id, linha.colaborador() != null ? linha.colaborador() : "?");
             cargosColab.put(id, linha.cargo() != null ? linha.cargo() : "");
             String horas = (linha.periodo() != null && !"-".equals(linha.periodo())) ? linha.periodo() : null;
-            porColab.computeIfAbsent(id, k -> new LinkedHashMap<>())
-                    .put(linha.data(), new GrelhaHorarioRenderer.CelulaTurno(linha.turno(), horas));
+            Map<LocalDate, GrelhaHorarioRenderer.CelulaTurno> diaMap =
+                    porColab.computeIfAbsent(id, k -> new LinkedHashMap<>());
+            GrelhaHorarioRenderer.CelulaTurno existente = diaMap.get(linha.data());
+            diaMap.put(linha.data(), existente != null
+                    ? mesclarCelulas(existente, linha.turno(), horas)
+                    : new GrelhaHorarioRenderer.CelulaTurno(linha.turno(), horas));
         }
         return construirLinhasGrelha(nomesColab, cargosColab, porColab);
     }
@@ -201,6 +209,18 @@ public final class VistaGrelhaHorarioRender {
             grelhaScrollPane.setVisible(temDados);
             grelhaScrollPane.setManaged(temDados);
         }
+    }
+
+    private static GrelhaHorarioRenderer.CelulaTurno mesclarCelulas(
+            GrelhaHorarioRenderer.CelulaTurno existente, String novoTipo, String novasHoras) {
+        String tipoE = existente.tipo() != null ? existente.tipo().toLowerCase() : "";
+        String tipoN = novoTipo != null ? novoTipo.toLowerCase() : "";
+        boolean temManha = "manha".equals(tipoE) || "manha".equals(tipoN);
+        boolean temTarde = "tarde".equals(tipoE) || "tarde".equals(tipoN);
+        boolean temNoite = "noite".equals(tipoE) || "noite".equals(tipoN);
+        if (temManha && temTarde) return new GrelhaHorarioRenderer.CelulaTurno("manha_tarde", "10:00 - 18:00");
+        if (temTarde && temNoite) return new GrelhaHorarioRenderer.CelulaTurno("tarde_noite", "14:00 - 22:00");
+        return new GrelhaHorarioRenderer.CelulaTurno(novoTipo, novasHoras);
     }
 
     private static String capitalizar(String texto) {

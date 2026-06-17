@@ -154,19 +154,12 @@
                                             </VBox>
                                         </HBox>
 
-                                        <!-- Como gerar: objetivo + densidade de cobertura -->
-                                        <HBox spacing="12.0">
-                                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                                <Label styleClass="campo-titulo" text="O que priorizar"/>
-                                                <ComboBox fx:id="cbObjetivoGeracao" maxWidth="Infinity"
-                                                          styleClass="campo-combo"/>
-                                            </VBox>
-                                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                                <Label styleClass="campo-titulo" text="Pessoas por turno"/>
-                                                <ComboBox fx:id="cbAlvoPorTurno" maxWidth="Infinity"
-                                                          styleClass="campo-combo"/>
-                                            </VBox>
-                                        </HBox>
+                                        <!-- Como gerar: objetivo de otimização -->
+                                        <VBox spacing="5.0">
+                                            <Label styleClass="campo-titulo" text="O que priorizar"/>
+                                            <ComboBox fx:id="cbObjetivoGeracao" maxWidth="Infinity"
+                                                      styleClass="campo-combo"/>
+                                        </VBox>
 
                                         <HBox alignment="CENTER_LEFT" spacing="16.0">
                                             <Button fx:id="btnGerarProposta" onAction="#onGerarPropostaClick"

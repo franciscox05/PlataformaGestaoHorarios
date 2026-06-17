@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -82,14 +83,45 @@ public class PropostaPersistenciaHelper {
                     && horario.getIdTurno() != null
                     && horario.getDataTurno() != null) {
                 Integer idUtilizador = horario.getIdLojautilizador().getIdUtilizador().getId();
-                long sobreposicoes = horarioRepository.countGlobalOverlappingShifts(
-                        idUtilizador,
-                        horario.getDataTurno(),
-                        horario.getIdTurno().getHoraInicio(),
-                        horario.getIdTurno().getHoraFim());
-                if (sobreposicoes > 0) {
+                Integer idLoja = ligacaoAtiva.getIdLoja().getId();
+                List<com.example.projeto2.API.Modules.Horario> conflitos =
+                        horarioRepository.findOverlappingShiftsInOtherStores(
+                                idUtilizador,
+                                idLoja,
+                                horario.getDataTurno(),
+                                horario.getIdTurno().getHoraInicio(),
+                                horario.getIdTurno().getHoraFim());
+                if (!conflitos.isEmpty()) {
+                    com.example.projeto2.API.Modules.Horario conflito = conflitos.getFirst();
+                    String nomeColaborador = horario.getIdLojautilizador().getIdUtilizador().getNome();
+                    if (nomeColaborador == null || nomeColaborador.isBlank()) nomeColaborador = "Um colaborador";
+                    String dataStr = horario.getDataTurno()
+                            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    String outraLoja = (conflito.getIdLojautilizador() != null
+                            && conflito.getIdLojautilizador().getIdLoja() != null
+                            && conflito.getIdLojautilizador().getIdLoja().getNome() != null)
+                            ? conflito.getIdLojautilizador().getIdLoja().getNome()
+                            : "outra loja";
+                    String hInicioConflito = conflito.getIdTurno() != null
+                            && conflito.getIdTurno().getHoraInicio() != null
+                            ? conflito.getIdTurno().getHoraInicio()
+                                    .format(DateTimeFormatter.ofPattern("HH:mm")) : "?";
+                    String hFimConflito = conflito.getIdTurno() != null
+                            && conflito.getIdTurno().getHoraFim() != null
+                            ? conflito.getIdTurno().getHoraFim()
+                                    .format(DateTimeFormatter.ofPattern("HH:mm")) : "?";
+                    String hInicioNovo = horario.getIdTurno().getHoraInicio() != null
+                            ? horario.getIdTurno().getHoraInicio()
+                                    .format(DateTimeFormatter.ofPattern("HH:mm")) : "?";
+                    String hFimNovo = horario.getIdTurno().getHoraFim() != null
+                            ? horario.getIdTurno().getHoraFim()
+                                    .format(DateTimeFormatter.ofPattern("HH:mm")) : "?";
                     throw new IllegalArgumentException(
-                            "O colaborador já possui um turno atribuído noutra loja que se sobrepõe a este horário.");
+                            nomeColaborador + " já tem turno em \"" + outraLoja + "\" no dia "
+                            + dataStr + " das " + hInicioConflito + " às " + hFimConflito
+                            + ", que se sobrepõe ao turno " + hInicioNovo + "–" + hFimNovo
+                            + " gerado para esta loja. Remove o turno existente ou exclui "
+                            + nomeColaborador + " da geração.");
                 }
             }
 

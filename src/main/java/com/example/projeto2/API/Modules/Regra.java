@@ -22,6 +22,10 @@ public class Regra {
     @Column(name = "tipo", length = 50)
     private String tipo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_loja_privada")
+    private Loja idLojaPrivada;
+
     @OneToMany(mappedBy = "idRegra")
     private Set<RegrasLoja> regrasLojas = new LinkedHashSet<>();
 
@@ -55,6 +59,14 @@ public class Regra {
 
     public void setTipo(String tipo) {
         this.tipo = tipo;
+    }
+
+    public Loja getIdLojaPrivada() {
+        return idLojaPrivada;
+    }
+
+    public void setIdLojaPrivada(Loja idLojaPrivada) {
+        this.idLojaPrivada = idLojaPrivada;
     }
 
     public Set<RegrasLoja> getRegrasLojas() {

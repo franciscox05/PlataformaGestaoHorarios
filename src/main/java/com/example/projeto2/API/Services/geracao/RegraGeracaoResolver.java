@@ -49,13 +49,15 @@ public class RegraGeracaoResolver {
     public List<RegraAplicada> obterRegrasAplicadas(Integer idLoja) {
         Map<Integer, RegrasLoja> overrides = new HashMap<>();
         for (RegrasLoja regraLoja : regrasLojaRepository.findByIdLojaWithRegraOrderByDescricao(idLoja)) {
-            if (regraLoja.getIdRegra() != null && regraLoja.getIdRegra().getId() != null) {
+            if (regraLoja.getIdRegra() != null && regraLoja.getIdRegra().getId() != null
+                    && !Boolean.FALSE.equals(regraLoja.getAtivo())) {
                 overrides.put(regraLoja.getIdRegra().getId(), regraLoja);
             }
         }
 
         List<RegraAplicada> regras = new ArrayList<>();
         for (Regra regra : regraRepository.findAllByOrderByDescricaoAsc()) {
+            if ("nota".equals(regra.getTipo())) continue;
             RegrasLoja override = overrides.get(regra.getId());
             Integer valor = override != null && override.getValorEspecifico() != null
                     ? override.getValorEspecifico()

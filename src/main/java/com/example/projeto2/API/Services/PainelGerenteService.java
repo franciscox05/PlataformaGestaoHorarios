@@ -107,6 +107,12 @@ public class PainelGerenteService {
     }
 
     @Transactional
+    public void rejeitarFolga(Integer idPedido, Integer idUtilizadorGestor, String motivoDecisao) {
+        validarAcesso(idUtilizadorGestor);
+        dayOffBLL.rejeitarPedidoFolga(idPedido, idUtilizadorGestor, motivoDecisao);
+    }
+
+    @Transactional
     public void aprovarPermuta(Integer idPermuta, Integer idUtilizadorGestor) {
         validarAcesso(idUtilizadorGestor);
         permutaBLL.aprovarPedidoPermuta(idPermuta, idUtilizadorGestor);
@@ -128,6 +134,24 @@ public class PainelGerenteService {
     public void rejeitarPreferencia(Integer idPreferencia, Integer idUtilizadorGestor, String decisao) {
         validarAcesso(idUtilizadorGestor);
         preferenciaBLL.rejeitarPreferencia(idPreferencia, idUtilizadorGestor, decisao);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DayOff> listarHistoricoFolgas(Integer idGestor) {
+        validarAcesso(idGestor);
+        return dayOffBLL.listarHistoricoDecisoesDaLoja(idGestor);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Permuta> listarHistoricoPermutas(Integer idGestor) {
+        validarAcesso(idGestor);
+        return permutaBLL.listarHistoricoDecisoesDaLoja(idGestor);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Preferencia> listarHistoricoPreferencias(Integer idGestor) {
+        validarAcesso(idGestor);
+        return preferenciaBLL.listarHistoricoDecisoesDaLoja(idGestor);
     }
 
     private void validarAcesso(Integer idUtilizadorGestor) {

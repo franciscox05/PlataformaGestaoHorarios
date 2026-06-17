@@ -6,15 +6,22 @@ import com.example.projeto2.API.Modules.Utilizador;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
@@ -27,93 +34,54 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @Component
 @Scope("prototype")
 public class GestaoLojaController {
 
     private static final DateTimeFormatter HORA_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final List<String> OPCOES_HORA = gerarOpcoesHora();
 
-    @FXML
-    private Label lblNomeLoja;
+    @FXML private Label lblNomeLoja;
+    @FXML private Label lblLocalizacao;
+    @FXML private Label lblCargoGestor;
+    @FXML private ComboBox<String> cbHoraAbertura;
+    @FXML private ComboBox<String> cbHoraFecho;
+    @FXML private Label lblMensagem;
+    @FXML private VBox regrasContainer;
 
-    @FXML
-    private Label lblLocalizacao;
+    @FXML private TextField txtDescricaoExcecao;
+    @FXML private DatePicker dpDataInicioExcecao;
+    @FXML private DatePicker dpDataFimExcecao;
+    @FXML private CheckBox chkLojaEncerrada;
+    @FXML private ComboBox<String> cbHoraAberturaExcecao;
+    @FXML private ComboBox<String> cbHoraFechoExcecao;
+    @FXML private TextField txtMinimoExcecao;
+    @FXML private TextArea txtObservacoesExcecao;
+    @FXML private Label lblMensagemExcecao;
+    @FXML private VBox emptyStateExcecoes;
 
-    @FXML
-    private Label lblCargoGestor;
+    @FXML private TableView<GestaoLojaService.HorarioEspecialResumo> tabelaHorariosEspeciais;
+    @FXML private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colPeriodoExcecao;
+    @FXML private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colOperacaoExcecao;
+    @FXML private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colHorarioExcecao;
+    @FXML private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colMinimoExcecao;
+    @FXML private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colDescricaoExcecao;
+    @FXML private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colTurnosCompativeisExcecao;
 
-    @FXML
-    private TextField txtHoraAbertura;
-
-    @FXML
-    private TextField txtHoraFecho;
-
-    @FXML
-    private Label lblMensagem;
-
-    @FXML
-    private VBox regrasContainer;
-
-    @FXML
-    private TextField txtDescricaoExcecao;
-
-    @FXML
-    private DatePicker dpDataInicioExcecao;
-
-    @FXML
-    private DatePicker dpDataFimExcecao;
-
-    @FXML
-    private CheckBox chkLojaEncerrada;
-
-    @FXML
-    private TextField txtHoraAberturaExcecao;
-
-    @FXML
-    private TextField txtHoraFechoExcecao;
-
-    @FXML
-    private TextField txtMinimoExcecao;
-
-    @FXML
-    private TextArea txtObservacoesExcecao;
-
-    @FXML
-    private Label lblMensagemExcecao;
-
-    @FXML
-    private VBox emptyStateExcecoes;
-
-    @FXML
-    private TableView<GestaoLojaService.HorarioEspecialResumo> tabelaHorariosEspeciais;
-
-    @FXML
-    private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colPeriodoExcecao;
-
-    @FXML
-    private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colOperacaoExcecao;
-
-    @FXML
-    private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colHorarioExcecao;
-
-    @FXML
-    private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colMinimoExcecao;
-
-    @FXML
-    private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colDescricaoExcecao;
-
-    @FXML
-    private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colTurnosCompativeisExcecao;
+    @FXML private VBox turnosContainer;
 
     private final GestaoLojaService gestaoLojaBLL;
     private final Map<Integer, TextField> camposValor = new LinkedHashMap<>();
     private final Map<Integer, CheckBox> camposBooleanos = new LinkedHashMap<>();
-    /** Toggle "Ativa nesta loja" para regras numéricas EDITAVEL. */
-    private final Map<Integer, CheckBox> camposAtivos = new LinkedHashMap<>();
     private final Map<Integer, TextArea> camposObservacoes = new LinkedHashMap<>();
+    private List<GestaoLojaService.RegraLojaResumo> todasRegras = new ArrayList<>();
+    private final Set<Integer> regrasAdicionadasNaSessao = new LinkedHashSet<>();
     private Utilizador utilizadorLogado;
     private Integer idHorarioEspecialEmEdicao;
 
@@ -125,13 +93,13 @@ public class GestaoLojaController {
     public void initialize() {
         esconderMensagem();
         esconderMensagemExcecao();
-        configurarCamposHora();
+        popularComboBoxesHora();
         configurarOcultacaoFeedback();
         configurarTabelaHorariosEspeciais();
         configurarFormularioEncerrada();
         limparFormularioHorarioEspecial();
-
-        tabelaHorariosEspeciais.setPlaceholder(new Label("Ainda não existem exceções de horário configuradas para esta loja."));
+        tabelaHorariosEspeciais.setPlaceholder(
+                new Label("Ainda não existem exceções de horário configuradas para esta loja."));
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -150,29 +118,20 @@ public class GestaoLojaController {
                     obterJanela(),
                     "Guardar configuração",
                     "Deseja guardar a configuração da loja?",
-                    "As regras base e o horário de funcionamento serão atualizados."
+                    "Se o horário de funcionamento for alterado, os 3 turnos serão recriados e todos os horários existentes serão apagados."
             )) {
                 return;
             }
 
-            LocalTime horaAbertura = parseHora(txtHoraAbertura.getText(), "abertura");
-            LocalTime horaFecho = parseHora(txtHoraFecho.getText(), "fecho");
+            LocalTime horaAbertura = parseHoraComboBox(cbHoraAbertura.getValue(), "abertura");
+            LocalTime horaFecho = parseHoraComboBox(cbHoraFecho.getValue(), "fecho");
 
             List<GestaoLojaService.ConfiguracaoRegraRequest> regras = new ArrayList<>();
             for (Map.Entry<Integer, TextField> entry : camposValor.entrySet()) {
                 Integer idRegra = entry.getKey();
-                CheckBox chkAtiva = camposAtivos.get(idRegra);
-                Integer valorEspecifico;
-                if (chkAtiva != null && !chkAtiva.isSelected()) {
-                    // Toggle OFF → remove o override desta loja; motor usa o valor base global.
-                    valorEspecifico = null;
-                } else {
-                    valorEspecifico = parseInteiroOpcional(entry.getValue().getText(), idRegra);
-                }
                 regras.add(new GestaoLojaService.ConfiguracaoRegraRequest(
-                        idRegra, valorEspecifico, observacoesDe(idRegra)));
+                        idRegra, parseInteiroOpcional(entry.getValue().getText(), idRegra), observacoesDe(idRegra)));
             }
-            // Regras liga/desliga (ex.: chefia ao sábado): 1 = ativa, 0 = inativa.
             for (Map.Entry<Integer, CheckBox> entry : camposBooleanos.entrySet()) {
                 Integer idRegra = entry.getKey();
                 regras.add(new GestaoLojaService.ConfiguracaoRegraRequest(
@@ -190,6 +149,27 @@ public class GestaoLojaController {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
             mostrarMensagem("Não foi possível guardar a configuração da loja.", false);
+        }
+    }
+
+    @FXML
+    public void onRecriarTurnosPadraoClick() {
+        if (!DialogosHelper.confirmarAcao(
+                obterJanela(),
+                "Recriar 3 turnos padrão",
+                "Todos os horários existentes serão eliminados e os 3 turnos (Manhã, Tarde, Noite) recriados com base no horário de funcionamento atual.",
+                "Esta ação não pode ser desfeita."
+        )) {
+            return;
+        }
+        try {
+            gestaoLojaBLL.recriarTurnosPadrao(utilizadorLogado.getId());
+            mostrarMensagem("3 turnos padrão criados. Os horários anteriores foram eliminados.", true);
+            carregarDados();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagem(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagem("Não foi possível recriar os turnos.", false);
         }
     }
 
@@ -223,17 +203,15 @@ public class GestaoLojaController {
                             dpDataInicioExcecao.getValue(),
                             dpDataFimExcecao.getValue(),
                             chkLojaEncerrada.isSelected(),
-                            parseHoraOpcional(txtHoraAberturaExcecao.getText(), "abertura especial"),
-                            parseHoraOpcional(txtHoraFechoExcecao.getText(), "fecho especial"),
+                            parseHoraOpcionalComboBox(cbHoraAberturaExcecao.getValue(), "abertura especial"),
+                            parseHoraOpcionalComboBox(cbHoraFechoExcecao.getValue(), "fecho especial"),
                             parseInteiroPositivoOpcional(txtMinimoExcecao.getText(), "mínimo especial por turno"),
                             txtObservacoesExcecao.getText()
                     )
             );
 
             mostrarMensagemExcecao(
-                    novaExcecao
-                            ? "Exceção guardada com sucesso."
-                            : "Exceção atualizada com sucesso.",
+                    novaExcecao ? "Exceção guardada com sucesso." : "Exceção atualizada com sucesso.",
                     true
             );
             carregarDados();
@@ -287,24 +265,27 @@ public class GestaoLojaController {
                 throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
+            regrasAdicionadasNaSessao.clear();
             GestaoLojaService.GestaoLojaResumo resumo = gestaoLojaBLL.obterResumo(utilizadorLogado.getId());
 
             lblNomeLoja.setText(resumo.nomeLoja());
             lblLocalizacao.setText(resumo.localizacao());
             lblCargoGestor.setText(resumo.cargoGestor());
-            txtHoraAbertura.setText(resumo.horaAbertura());
-            txtHoraFecho.setText(resumo.horaFecho());
+            cbHoraAbertura.setValue(resumo.horaAbertura().isBlank() ? null : resumo.horaAbertura());
+            cbHoraFecho.setValue(resumo.horaFecho().isBlank() ? null : resumo.horaFecho());
 
             preencherRegras(resumo.regras());
             preencherHorariosEspeciais(resumo.horariosEspeciais());
+            preencherTurnos(resumo.turnos());
         } catch (IllegalArgumentException e) {
             lblNomeLoja.setText("-");
             lblLocalizacao.setText("-");
             lblCargoGestor.setText("-");
-            txtHoraAbertura.clear();
-            txtHoraFecho.clear();
+            cbHoraAbertura.setValue(null);
+            cbHoraFecho.setValue(null);
             preencherRegras(List.of());
             preencherHorariosEspeciais(List.of());
+            preencherTurnos(List.of());
             mostrarMensagem(e.getMessage(), false);
         }
     }
@@ -313,44 +294,155 @@ public class GestaoLojaController {
         regrasContainer.getChildren().clear();
         camposValor.clear();
         camposBooleanos.clear();
-        camposAtivos.clear();
         camposObservacoes.clear();
+        this.todasRegras = regras != null ? regras : List.of();
 
-        if (regras == null || regras.isEmpty()) {
+        if (todasRegras.isEmpty()) {
             Label semRegras = new Label("Não existem regras base configuradas para apresentar nesta loja.");
             semRegras.getStyleClass().add("subtitulo");
             regrasContainer.getChildren().add(semRegras);
             return;
         }
 
-        // Separa as regras fixas por lei (apresentadas bloqueadas) das personalizáveis.
         List<GestaoLojaService.RegraLojaResumo> fixas = new ArrayList<>();
-        List<GestaoLojaService.RegraLojaResumo> personalizaveis = new ArrayList<>();
-        for (GestaoLojaService.RegraLojaResumo regra : regras) {
+        List<GestaoLojaService.RegraLojaResumo> proprias = new ArrayList<>();
+        for (GestaoLojaService.RegraLojaResumo regra : todasRegras) {
             if (ClassificadorRegra.ehFixaLegal(regra.descricao(), regra.tipo())) {
                 fixas.add(regra);
             } else {
-                personalizaveis.add(regra);
+                proprias.add(regra);
+            }
+        }
+
+        regrasContainer.getChildren().add(cabecalhoSeccao("Regras do motor de geração",
+                "Parâmetros que controlam o planeamento automático desta loja. "
+                        + "Os valores base do sistema podem ser ajustados para personalizar o motor. "
+                        + "Usa \"Criar nota / regra livre\" para adicionar diretrizes específicas."));
+
+        Button btnAdicionar = new Button("✏️ Criar nota / regra livre");
+        btnAdicionar.getStyleClass().add("botao-secundario");
+        btnAdicionar.setMaxWidth(Double.MAX_VALUE);
+        btnAdicionar.setOnAction(e -> onAdicionarRegraClick());
+        regrasContainer.getChildren().add(btnAdicionar);
+
+        if (proprias.isEmpty()) {
+            Label vazio = new Label("Ainda não adicionaste regras próprias. Usa o botão acima para criar "
+                    + "qualquer diretriz ou nota específica para esta loja.");
+            vazio.getStyleClass().add("subtitulo");
+            vazio.setWrapText(true);
+            regrasContainer.getChildren().add(vazio);
+        } else {
+            for (GestaoLojaService.RegraLojaResumo regra : proprias) {
+                regrasContainer.getChildren().add(criarCardRegra(regra, true));
             }
         }
 
         if (!fixas.isEmpty()) {
             regrasContainer.getChildren().add(cabecalhoSeccao("Fixas por lei",
-                    "Mínimos legais obrigatórios. Apresentadas para referência — não podem ser reduzidas."));
+                    "Mínimos legais obrigatórios. Apresentadas para referência — não podem ser reduzidas nem removidas."));
             for (GestaoLojaService.RegraLojaResumo regra : fixas) {
-                regrasContainer.getChildren().add(criarCardRegra(regra));
+                regrasContainer.getChildren().add(criarCardRegra(regra, false));
             }
-        }
-
-        regrasContainer.getChildren().add(cabecalhoSeccao("Regras da loja",
-                "Personaliza por loja. Deixa o valor em branco para usar o valor base; "
-                        + "usa o interruptor para ligar/desligar as regras opcionais."));
-        for (GestaoLojaService.RegraLojaResumo regra : personalizaveis) {
-            regrasContainer.getChildren().add(criarCardRegra(regra));
         }
     }
 
-    /** Cabeçalho de uma secção de regras (título + nota explicativa). */
+    private void onAdicionarRegraClick() {
+        Dialog<String[]> dialog = new Dialog<>();
+        dialog.setTitle("Criar nota / regra livre");
+        dialog.setHeaderText("Cria uma diretriz ou regra específica para esta loja.\n"
+                + "Pode ser qualquer instrução — o motor de geração não a processa automaticamente.");
+        Window janela = obterJanela();
+        if (janela != null) dialog.initOwner(janela);
+
+        ButtonType btnCriar = new ButtonType("Criar", ButtonType.OK.getButtonData());
+        dialog.getDialogPane().getButtonTypes().addAll(btnCriar, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(16));
+
+        Label lblDesc = new Label("Descrição:");
+        TextField txtDesc = new TextField();
+        txtDesc.setPromptText("Ex.: Toda a equipa trabalha na última sexta-feira do mês");
+        txtDesc.setPrefWidth(360);
+        grid.add(lblDesc, 0, 0);
+        grid.add(txtDesc, 1, 0);
+
+        Label lblObs = new Label("Observações:");
+        TextArea txtObs = new TextArea();
+        txtObs.setPromptText("Notas adicionais (opcional)");
+        txtObs.setPrefRowCount(3);
+        txtObs.setWrapText(true);
+        grid.add(lblObs, 0, 1);
+        grid.add(txtObs, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().lookupButton(btnCriar).setDisable(true);
+        txtDesc.textProperty().addListener((obs, old, val) ->
+                dialog.getDialogPane().lookupButton(btnCriar).setDisable(val.isBlank()));
+
+        dialog.setResultConverter(bt -> bt == btnCriar
+                ? new String[]{ txtDesc.getText(), txtObs.getText() } : null);
+
+        dialog.showAndWait().ifPresent(resultado -> {
+            try {
+                gestaoLojaBLL.criarRegraLivre(utilizadorLogado.getId(), resultado[0], resultado[1]);
+                mostrarMensagem("Regra criada com sucesso.", true);
+                carregarDados();
+            } catch (IllegalArgumentException e) {
+                mostrarMensagem(e.getMessage(), false);
+            } catch (Exception e) {
+                mostrarMensagem("Não foi possível criar a regra.", false);
+            }
+        });
+    }
+
+    private void onDesativarRegraClick(GestaoLojaService.RegraLojaResumo regra) {
+        try {
+            regrasAdicionadasNaSessao.remove(regra.idRegra());
+            gestaoLojaBLL.desativarRegraDaLoja(utilizadorLogado.getId(), regra.idRegra());
+            mostrarMensagem("Regra desativada. Podes reativá-la a qualquer momento.", true);
+            carregarDados();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagem(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagem("Não foi possível desativar a regra.", false);
+        }
+    }
+
+    private void onAtivarRegraClick(GestaoLojaService.RegraLojaResumo regra) {
+        try {
+            gestaoLojaBLL.ativarRegraDaLoja(utilizadorLogado.getId(), regra.idRegra());
+            mostrarMensagem("Regra reativada.", true);
+            carregarDados();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagem(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagem("Não foi possível reativar a regra.", false);
+        }
+    }
+
+    private void onRemoverRegraClick(GestaoLojaService.RegraLojaResumo regra) {
+        if (!DialogosHelper.confirmarAcao(
+                obterJanela(),
+                "Remover regra",
+                "Remover \"" + regra.descricao() + "\"?",
+                "Esta ação não pode ser desfeita."
+        )) {
+            return;
+        }
+        try {
+            gestaoLojaBLL.removerRegraLivre(utilizadorLogado.getId(), regra.idRegra());
+            mostrarMensagem("Regra removida com sucesso.", true);
+            carregarDados();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagem(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagem("Não foi possível remover a regra.", false);
+        }
+    }
+
     private VBox cabecalhoSeccao(String titulo, String nota) {
         Label lblTitulo = new Label(titulo);
         lblTitulo.getStyleClass().add("card-titulo");
@@ -362,36 +454,90 @@ public class GestaoLojaController {
         return box;
     }
 
-    private VBox criarCardRegra(GestaoLojaService.RegraLojaResumo regra) {
-        ClassificadorRegra.Categoria categoria =
-                ClassificadorRegra.categoria(regra.descricao(), regra.tipo());
+    private VBox criarCardRegra(GestaoLojaService.RegraLojaResumo regra, boolean editavel) {
+        boolean ehNota = regra.privada() || "nota".equals(regra.tipo());
+        ClassificadorRegra.Categoria categoria = ehNota
+                ? ClassificadorRegra.Categoria.EDITAVEL
+                : ClassificadorRegra.categoria(regra.descricao(), regra.tipo());
 
         VBox card = new VBox(16);
         card.getStyleClass().add("bento-card");
         card.setPadding(new Insets(28));
+        if (!regra.ativo()) {
+            card.setStyle("-fx-opacity: 0.65;");
+        }
 
         Label lblTitulo = new Label(regra.descricao());
         lblTitulo.getStyleClass().addAll("card-titulo", "config-card-titulo");
         lblTitulo.setWrapText(true);
 
-        String valorPadrao = regra.valorPadrao() != null ? String.valueOf(regra.valorPadrao()) : "sem valor base";
-        Label lblDetalhe = new Label("Tipo: " + formatarTipo(regra.tipo()) + " | Valor base: " + valorPadrao);
-        lblDetalhe.getStyleClass().addAll("subtitulo", "config-card-desc");
-        lblDetalhe.setWrapText(true);
+        HBox cabecalho = new HBox(12);
+        cabecalho.setFillHeight(true);
+        cabecalho.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(lblTitulo, Priority.ALWAYS);
+        cabecalho.getChildren().add(lblTitulo);
 
-        card.getChildren().addAll(lblTitulo, lblDetalhe);
-
-        switch (categoria) {
-            case FIXA_LEGAL -> preencherCardFixaLegal(card, regra);
-            case BOOLEANA -> preencherCardBooleana(card, regra);
-            case EDITAVEL -> preencherCardEditavel(card, regra);
+        if (!regra.ativo()) {
+            Label badgeDesativada = new Label("DESATIVADA");
+            badgeDesativada.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #991b1b; "
+                    + "-fx-font-weight: 700; -fx-font-size: 10px; "
+                    + "-fx-padding: 2 8 2 8; -fx-background-radius: 6;");
+            cabecalho.getChildren().add(badgeDesativada);
         }
 
-        adicionarObservacoes(card, regra);
+        if (regra.privada()) {
+            Region espaco = new Region();
+            HBox.setHgrow(espaco, Priority.ALWAYS);
+            cabecalho.getChildren().add(espaco);
+
+            Button btnRemover = new Button("Remover");
+            btnRemover.getStyleClass().add("botao-perigo");
+            btnRemover.setOnAction(e -> onRemoverRegraClick(regra));
+            cabecalho.getChildren().add(btnRemover);
+
+            if (regra.ativo()) {
+                Button btnDesativar = new Button("Desativar");
+                btnDesativar.getStyleClass().add("botao-secundario");
+                btnDesativar.setOnAction(e -> onDesativarRegraClick(regra));
+                cabecalho.getChildren().add(btnDesativar);
+            } else {
+                Button btnAtivar = new Button("Ativar");
+                btnAtivar.getStyleClass().add("botao-acao");
+                btnAtivar.setOnAction(e -> onAtivarRegraClick(regra));
+                cabecalho.getChildren().add(btnAtivar);
+            }
+        }
+
+        card.getChildren().add(cabecalho);
+
+        if (ehNota) {
+            Label lblNotaInfo = new Label("Nota / regra livre — apenas referência para o gestor.");
+            lblNotaInfo.getStyleClass().add("subtitulo");
+            card.getChildren().add(lblNotaInfo);
+            if (regra.observacoes() != null && !regra.observacoes().isBlank()) {
+                Label lblObs = new Label(regra.observacoes());
+                lblObs.getStyleClass().add("subtitulo");
+                lblObs.setWrapText(true);
+                card.getChildren().add(lblObs);
+            }
+        } else {
+            String valorPadrao = regra.valorPadrao() != null ? String.valueOf(regra.valorPadrao()) : "sem valor base";
+            Label lblDetalhe = new Label("Tipo: " + formatarTipo(regra.tipo()) + " | Valor base: " + valorPadrao);
+            lblDetalhe.getStyleClass().addAll("subtitulo", "config-card-desc");
+            lblDetalhe.setWrapText(true);
+            card.getChildren().add(lblDetalhe);
+
+            switch (categoria) {
+                case FIXA_LEGAL -> preencherCardFixaLegal(card, regra);
+                case BOOLEANA -> preencherCardBooleana(card, regra);
+                case EDITAVEL -> preencherCardEditavel(card, regra);
+            }
+            adicionarObservacoes(card, regra);
+        }
+
         return card;
     }
 
-    /** Regra legal: valor bloqueado (nunca abaixo do mínimo legal) + selo explicativo. */
     private void preencherCardFixaLegal(VBox card, GestaoLojaService.RegraLojaResumo regra) {
         Label badge = new Label("FIXO POR LEI");
         badge.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #991b1b; -fx-font-weight: 700; "
@@ -416,12 +562,9 @@ public class GestaoLojaController {
         HBox linhaValor = new HBox(12, lblValor, txtValor);
         HBox.setHgrow(txtValor, Priority.ALWAYS);
         card.getChildren().addAll(badge, linhaValor, lblNota);
-
-        // Grava o valor legal (≥ mínimo) — garante que o que fica na BD nunca é ilegal.
         camposValor.put(regra.idRegra(), txtValor);
     }
 
-    /** Regra opcional liga/desliga (ex.: chefia ao sábado). */
     private void preencherCardBooleana(VBox card, GestaoLojaService.RegraLojaResumo regra) {
         boolean ativa = regra.valorEspecifico() != null
                 ? regra.valorEspecifico() > 0
@@ -432,38 +575,25 @@ public class GestaoLojaController {
         camposBooleanos.put(regra.idRegra(), chk);
     }
 
-    /** Regra numérica personalizável — com toggle "Ativa nesta loja". */
     private void preencherCardEditavel(VBox card, GestaoLojaService.RegraLojaResumo regra) {
-        // Toggle ON se não houver override (usa valor base global) ou se o override for positivo.
-        // Toggle OFF só quando o override é explicitamente 0 (override antigo de desativação).
-        boolean ativa = regra.valorEspecifico() == null || regra.valorEspecifico() > 0;
-        CheckBox chkAtiva = new CheckBox("Ativa nesta loja");
-        chkAtiva.setSelected(ativa);
-
-        Label lblValor = new Label("Valor específico da loja");
+        Label lblValor = new Label("Valor próprio da loja");
         lblValor.getStyleClass().add("campo-titulo");
 
         TextField txtValor = new TextField();
         txtValor.getStyleClass().add("campo-input");
-        if (regra.valorPadrao() != null) {
-            txtValor.setPromptText("Base: " + regra.valorPadrao());
-        } else {
-            txtValor.setPromptText("Usar valor base");
-        }
-        // Mostra o valor específico se existir e for positivo (0 = desativada).
-        if (regra.valorEspecifico() != null && regra.valorEspecifico() > 0) {
+        txtValor.setPromptText(regra.valorPadrao() != null
+                ? "Base do sistema: " + regra.valorPadrao()
+                : "Usar valor base do sistema");
+        if (regra.valorEspecifico() != null) {
             txtValor.setText(String.valueOf(regra.valorEspecifico()));
+        } else if (regra.valorPadrao() != null) {
+            txtValor.setText(String.valueOf(regra.valorPadrao()));
         }
-        txtValor.setDisable(!ativa);
-
-        chkAtiva.selectedProperty().addListener((obs, antigo, agora) -> txtValor.setDisable(!agora));
 
         HBox linhaValor = new HBox(12, lblValor, txtValor);
         linhaValor.setFillHeight(true);
         HBox.setHgrow(txtValor, Priority.ALWAYS);
-        card.getChildren().addAll(chkAtiva, linhaValor);
-
-        camposAtivos.put(regra.idRegra(), chkAtiva);
+        card.getChildren().add(linhaValor);
         camposValor.put(regra.idRegra(), txtValor);
     }
 
@@ -517,9 +647,7 @@ public class GestaoLojaController {
                 new SimpleStringProperty(cellData.getValue().turnosCompativeis()));
 
         tabelaHorariosEspeciais.getSelectionModel().selectedItemProperty().addListener((observavel, antigo, novo) -> {
-            if (novo == null) {
-                return;
-            }
+            if (novo == null) return;
             preencherFormularioHorarioEspecial(novo);
             esconderMensagemExcecao();
         });
@@ -531,11 +659,12 @@ public class GestaoLojaController {
         dpDataInicioExcecao.setValue(horarioEspecial.dataInicio());
         dpDataFimExcecao.setValue(horarioEspecial.dataFim());
         chkLojaEncerrada.setSelected(horarioEspecial.lojaEncerrada());
-        txtHoraAberturaExcecao.setText(horarioEspecial.horaAbertura() != null ? horarioEspecial.horaAbertura().format(HORA_FORMATTER) : "");
-        txtHoraFechoExcecao.setText(horarioEspecial.horaFecho() != null ? horarioEspecial.horaFecho().format(HORA_FORMATTER) : "");
+        cbHoraAberturaExcecao.setValue(horarioEspecial.horaAbertura() != null
+                ? horarioEspecial.horaAbertura().format(HORA_FORMATTER) : null);
+        cbHoraFechoExcecao.setValue(horarioEspecial.horaFecho() != null
+                ? horarioEspecial.horaFecho().format(HORA_FORMATTER) : null);
         txtMinimoExcecao.setText(horarioEspecial.minimoColaboradoresTurno() != null
-                ? String.valueOf(horarioEspecial.minimoColaboradoresTurno())
-                : "");
+                ? String.valueOf(horarioEspecial.minimoColaboradoresTurno()) : "");
         txtObservacoesExcecao.setText(horarioEspecial.observacoes() != null ? horarioEspecial.observacoes() : "");
         aplicarModoEncerrada();
     }
@@ -546,8 +675,8 @@ public class GestaoLojaController {
         dpDataInicioExcecao.setValue(null);
         dpDataFimExcecao.setValue(null);
         chkLojaEncerrada.setSelected(false);
-        txtHoraAberturaExcecao.clear();
-        txtHoraFechoExcecao.clear();
+        cbHoraAberturaExcecao.setValue(null);
+        cbHoraFechoExcecao.setValue(null);
         txtMinimoExcecao.clear();
         txtObservacoesExcecao.clear();
         tabelaHorariosEspeciais.getSelectionModel().clearSelection();
@@ -563,76 +692,104 @@ public class GestaoLojaController {
 
     private void aplicarModoEncerrada() {
         boolean encerrada = chkLojaEncerrada.isSelected();
-        txtHoraAberturaExcecao.setDisable(encerrada);
-        txtHoraFechoExcecao.setDisable(encerrada);
+        cbHoraAberturaExcecao.setDisable(encerrada);
+        cbHoraFechoExcecao.setDisable(encerrada);
         txtMinimoExcecao.setDisable(encerrada);
         if (encerrada) {
-            txtHoraAberturaExcecao.clear();
-            txtHoraFechoExcecao.clear();
+            cbHoraAberturaExcecao.setValue(null);
+            cbHoraFechoExcecao.setValue(null);
             txtMinimoExcecao.clear();
         }
     }
 
     private void configurarOcultacaoFeedback() {
-        txtHoraAbertura.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
-        txtHoraFecho.textProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+        cbHoraAbertura.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
+        cbHoraFecho.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
         txtDescricaoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
-        txtHoraAberturaExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
-        txtHoraFechoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        cbHoraAberturaExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
+        cbHoraFechoExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         txtMinimoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         txtObservacoesExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         dpDataInicioExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         dpDataFimExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
     }
 
-    private void configurarCamposHora() {
-        configurarCampoHora(txtHoraAbertura, "HH:mm");
-        configurarCampoHora(txtHoraFecho, "HH:mm");
-        configurarCampoHora(txtHoraAberturaExcecao, "HH:mm");
-        configurarCampoHora(txtHoraFechoExcecao, "HH:mm");
+    private void popularComboBoxesHora() {
+        cbHoraAbertura.getItems().setAll(OPCOES_HORA);
+        cbHoraFecho.getItems().setAll(OPCOES_HORA);
+        cbHoraAberturaExcecao.getItems().setAll(OPCOES_HORA);
+        cbHoraFechoExcecao.getItems().setAll(OPCOES_HORA);
     }
 
-    private void configurarCampoHora(TextField campo, String prompt) {
-        campo.setPromptText(prompt);
-        campo.focusedProperty().addListener((observavel, estavaFocado, estaFocado) -> {
-            if (!estaFocado && campo.getText() != null && !campo.getText().isBlank()) {
-                try {
-                    campo.setText(LocalTime.parse(campo.getText().trim(), HORA_FORMATTER).format(HORA_FORMATTER));
-                } catch (DateTimeParseException ignored) {
-                    // Mantém o valor original para a validação formal no guardar.
-                }
+    private static List<String> gerarOpcoesHora() {
+        List<String> opcoes = new ArrayList<>();
+        for (int h = 6; h <= 23; h++) {
+            opcoes.add(String.format("%02d:00", h));
+            opcoes.add(String.format("%02d:30", h));
+        }
+        return opcoes;
+    }
+
+    // ── Turnos (apenas leitura) ───────────────────────────────────────────────
+
+    private void preencherTurnos(List<GestaoLojaService.TurnoResumo> turnos) {
+        if (turnosContainer == null) return;
+        turnosContainer.getChildren().clear();
+
+        if (turnos == null || turnos.isEmpty()) {
+            Label vazio = new Label("Os 3 turnos serão criados automaticamente ao guardar a configuração de horário.");
+            vazio.getStyleClass().add("subtitulo");
+            vazio.setWrapText(true);
+            turnosContainer.getChildren().add(vazio);
+        } else {
+            for (GestaoLojaService.TurnoResumo turno : turnos) {
+                turnosContainer.getChildren().add(criarCardTurno(turno));
             }
-        });
-    }
-
-    private LocalTime parseHora(String texto, String campo) {
-        if (texto == null || texto.isBlank()) {
-            throw new IllegalArgumentException("Indica a hora de " + campo + " no formato HH:mm.");
-        }
-
-        try {
-            return LocalTime.parse(texto.trim(), HORA_FORMATTER);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("A hora de " + campo + " deve seguir o formato HH:mm.");
         }
     }
 
-    private LocalTime parseHoraOpcional(String texto, String campo) {
-        if (texto == null || texto.isBlank()) {
-            return null;
+    private HBox criarCardTurno(GestaoLojaService.TurnoResumo turno) {
+        HBox row = new HBox(16);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(12, 16, 12, 16));
+        row.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 8; "
+                + "-fx-border-color: #e2e8f0; -fx-border-radius: 8;");
+
+        Label lblNome = new Label(turno.nome());
+        lblNome.getStyleClass().add("campo-titulo");
+        lblNome.setPrefWidth(140);
+
+        Label lblHoras = new Label(turno.horaInicio() + " – " + turno.horaFim());
+        lblHoras.getStyleClass().add("subtitulo");
+
+        row.getChildren().addAll(lblNome, lblHoras);
+        return row;
+    }
+
+    // ── Parsing ───────────────────────────────────────────────────────────────
+
+    private LocalTime parseHoraComboBox(String valor, String campo) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException("Seleciona a hora de " + campo + ".");
         }
         try {
-            return LocalTime.parse(texto.trim(), HORA_FORMATTER);
+            return LocalTime.parse(valor.trim(), HORA_FORMATTER);
         } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("A hora de " + campo + " deve seguir o formato HH:mm.");
+            throw new IllegalArgumentException("A hora de " + campo + " é inválida.");
+        }
+    }
+
+    private LocalTime parseHoraOpcionalComboBox(String valor, String campo) {
+        if (valor == null || valor.isBlank()) return null;
+        try {
+            return LocalTime.parse(valor.trim(), HORA_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("A hora de " + campo + " é inválida.");
         }
     }
 
     private Integer parseInteiroOpcional(String texto, Integer idRegra) {
-        if (texto == null || texto.isBlank()) {
-            return null;
-        }
-
+        if (texto == null || texto.isBlank()) return null;
         try {
             return Integer.valueOf(texto.trim());
         } catch (NumberFormatException e) {
@@ -641,10 +798,7 @@ public class GestaoLojaController {
     }
 
     private Integer parseInteiroPositivoOpcional(String texto, String campo) {
-        if (texto == null || texto.isBlank()) {
-            return null;
-        }
-
+        if (texto == null || texto.isBlank()) return null;
         try {
             int valor = Integer.parseInt(texto.trim());
             if (valor <= 0) {
@@ -657,12 +811,11 @@ public class GestaoLojaController {
     }
 
     private String formatarTipo(String tipo) {
-        if (tipo == null || tipo.isBlank()) {
-            return "geral";
-        }
-
+        if (tipo == null || tipo.isBlank()) return "geral";
         return Character.toUpperCase(tipo.charAt(0)) + tipo.substring(1).toLowerCase();
     }
+
+    // ── Feedback ─────────────────────────────────────────────────────────────
 
     private void esconderMensagem() {
         lblMensagem.setManaged(false);
@@ -693,9 +846,7 @@ public class GestaoLojaController {
     }
 
     private Window obterJanela() {
-        if (lblNomeLoja == null || lblNomeLoja.getScene() == null) {
-            return null;
-        }
+        if (lblNomeLoja == null || lblNomeLoja.getScene() == null) return null;
         return lblNomeLoja.getScene().getWindow();
     }
 }

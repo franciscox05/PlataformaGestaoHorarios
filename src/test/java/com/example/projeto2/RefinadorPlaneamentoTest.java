@@ -139,6 +139,78 @@ class RefinadorPlaneamentoTest {
         assertEquals(2, turnosAna, "Sem candidato disponível, o plano fica inalterado.");
     }
 
+    /**
+     * FT Ana tem dois turnos consecutivos (Manhã+Tarde) num dia de folga preferida.
+     * Com dois outros colaboradores livres, o refinador deve mover AMBOS os turnos
+     * para diferentes pessoas e honrar o dia de folga (contado como 1 recuperação, não 2).
+     */
+    @Test
+    void recuperaFolgaPreferidaFTMovendoAmbosOsTurnosAtomicamente() {
+        Lojautilizador ana   = colaborador(1, "Ana");
+        Lojautilizador bruno = colaborador(2, "Bruno");
+        Lojautilizador carlos = colaborador(3, "Carlos");
+        Turno manha = turnoManhaConsecutivo(); // 9:00-14:00
+        Turno tarde = turnoTardeConsecutivo(); // 14:00-19:00
+        LocalDate diaPreferido = segunda.plusDays(2);
+
+        // Ana escalada com 2 turnos no seu dia preferido de folga; Bruno e Carlos livres.
+        List<Horario> plano = new ArrayList<>(List.of(
+                horario(ana, manha, diaPreferido),
+                horario(ana, tarde, diaPreferido)));
+
+        PedidoGeracao pedido = pedidoComCargas(
+                List.of(ana, bruno, carlos),
+                List.of(manha, tarde),
+                Map.of(1, 9_600L, 2, 9_600L, 3, 9_600L),
+                Map.of(1, Set.of(diaPreferido)));
+
+        List<Horario> refinado = refinador.refinar(pedido, plano);
+
+        assertEquals(2, refinado.size(), "O refinamento nunca cria nem remove turnos.");
+        long turnosAna = refinado.stream()
+                .filter(h -> h.getIdLojautilizador().getIdUtilizador().getId() == 1)
+                .count();
+        assertEquals(0, turnosAna,
+                "Ambos os turnos de Ana no dia preferido devem ter sido reatribuídos.");
+    }
+
+    /**
+     * FT Ana tem dois turnos consecutivos (Manhã+Tarde) num dia de folga preferida,
+     * mas apenas um outro colaborador (Bruno) está disponível. Depois de Manhã ir para
+     * Bruno, Bruno fica escalado nesse dia e não pode receber Tarde. O refinador deve
+     * reverter o movimento parcial para não deixar Ana numa situação pior (1 turno
+     * num dia preferido de folga com cobertura degradada).
+     */
+    @Test
+    void naoMoveParcialmanteFTQuandoSoUmColaboradorEstaDisponivel() {
+        Lojautilizador ana   = colaborador(1, "Ana");
+        Lojautilizador bruno = colaborador(2, "Bruno");
+        Turno manha = turnoManhaConsecutivo(); // 9:00-14:00
+        Turno tarde = turnoTardeConsecutivo(); // 14:00-19:00
+        LocalDate diaPreferido = segunda.plusDays(2);
+
+        List<Horario> plano = new ArrayList<>(List.of(
+                horario(ana, manha, diaPreferido),
+                horario(ana, tarde, diaPreferido)));
+
+        PedidoGeracao pedido = pedidoComCargas(
+                List.of(ana, bruno),
+                List.of(manha, tarde),
+                Map.of(1, 9_600L, 2, 9_600L),
+                Map.of(1, Set.of(diaPreferido)));
+
+        List<Horario> refinado = refinador.refinar(pedido, plano);
+
+        // Com apenas Bruno disponível, o 2º turno não tem para onde ir.
+        // O grupo é revertido: Ana mantém ambos os turnos, plano inalterado.
+        assertEquals(2, refinado.size(), "O refinamento nunca cria nem remove turnos.");
+        long turnosAna = refinado.stream()
+                .filter(h -> h.getIdLojautilizador().getIdUtilizador().getId() == 1)
+                .count();
+        assertEquals(2, turnosAna,
+                "Movimento parcial deve ser revertido: Ana mantém ambos os turnos.");
+    }
+
     @Test
     void equilibraCargaMovendoTurnosDoMaisCarregadoParaOMenosCarregado() {
         Lojautilizador ana = colaborador(1, "Ana");
@@ -205,6 +277,26 @@ class RefinadorPlaneamentoTest {
         return turno;
     }
 
+    /** Turno de 5h da manhã (9:00-14:00) — consecutivo com turnoTardeConsecutivo. */
+    private Turno turnoManhaConsecutivo() {
+        Turno turno = new Turno();
+        turno.setId(10);
+        turno.setTipo("manha");
+        turno.setHoraInicio(LocalTime.of(9, 0));
+        turno.setHoraFim(LocalTime.of(14, 0));
+        return turno;
+    }
+
+    /** Turno de 5h da tarde (14:00-19:00) — consecutivo com turnoManhaConsecutivo. */
+    private Turno turnoTardeConsecutivo() {
+        Turno turno = new Turno();
+        turno.setId(11);
+        turno.setTipo("tarde");
+        turno.setHoraInicio(LocalTime.of(14, 0));
+        turno.setHoraFim(LocalTime.of(19, 0));
+        return turno;
+    }
+
     private Horario horario(Lojautilizador ligacao, Turno turno, LocalDate data) {
         Horario h = new Horario();
         h.setIdLojautilizador(ligacao);
@@ -216,6 +308,14 @@ class RefinadorPlaneamentoTest {
     private PedidoGeracao pedido(List<Lojautilizador> colaboradores,
                                  List<Turno> turnos,
                                  Map<Integer, Set<LocalDate>> folgasPreferidas) {
+        return pedidoComCargas(colaboradores, turnos,
+                Map.of(1, 9_600L, 2, 9_600L), folgasPreferidas);
+    }
+
+    private PedidoGeracao pedidoComCargas(List<Lojautilizador> colaboradores,
+                                          List<Turno> turnos,
+                                          Map<Integer, Long> cargas,
+                                          Map<Integer, Set<LocalDate>> folgasPreferidas) {
         return new PedidoGeracao(
                 colaboradores,
                 turnos,
@@ -228,7 +328,7 @@ class RefinadorPlaneamentoTest {
                 1,      // janelaRotacaoFimDeSemana
                 false,  // exigirChefiaAoSabado
                 Set.of(),
-                Map.of(1, 9_600L, 2, 9_600L), // carga máxima folgada (160h)
+                cargas,
                 Map.of(),
                 Map.of(),
                 Map.of(),

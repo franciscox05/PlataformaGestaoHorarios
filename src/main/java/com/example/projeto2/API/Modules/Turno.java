@@ -14,8 +14,11 @@ public class Turno {
     @Column(name = "id_turno", nullable = false)
     private Integer id;
 
-    @Column(name = "tipo", nullable = false, columnDefinition = "tipo_turno_enum")
+    @Column(name = "tipo", nullable = false, length = 50)
     private String tipo;
+
+    @Column(name = "nome", length = 100)
+    private String nome;
 
     @Column(name = "hora_inicio", nullable = false)
     private LocalTime horaInicio;
@@ -40,6 +43,14 @@ public class Turno {
 
     public void setTipo(String tipo) {
         this.tipo = tipo;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
     }
 
     public LocalTime getHoraInicio() {

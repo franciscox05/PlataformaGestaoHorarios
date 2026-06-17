@@ -146,68 +146,6 @@
                     </VBox>
                 </VBox>
 
-                <!-- ─── PAINEL DE APROVAÇÃO (visível apenas para gestores) ─── -->
-                <VBox fx:id="painelAprovacao" spacing="16.0">
-
-                    <HBox alignment="CENTER_LEFT" spacing="10.0">
-                        <SVGPath fill="#ea580c"
-                                 content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-                                 styleClass="section-icon" />
-                        <Label styleClass="section-title" text="Aprovar Pedidos da Loja" />
-                        <Region HBox.hgrow="ALWAYS" />
-                        <Label styleClass="hero-chip" text="&#11044; GESTOR" />
-                    </HBox>
-
-                    <VBox spacing="16.0" styleClass="bento-card">
-                        <HBox alignment="CENTER_LEFT" spacing="12.0">
-                            <StackPane styleClass="stat-icon-wrap-orange" minWidth="40.0" minHeight="40.0">
-                                <SVGPath fill="#ea580c"
-                                         content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-                                         styleClass="card-icon" />
-                            </StackPane>
-                            <VBox spacing="2.0">
-                                <Label styleClass="stat-kicker" text="APRECIA&#199;&#195;O" />
-                                <Label styleClass="bento-card-titulo" text="Pedidos pendentes da loja" />
-                                <Label styleClass="bento-card-subtitulo"
-                                       text="Seleciona um pedido e aprova ou rejeita." />
-                            </VBox>
-                        </HBox>
-
-                        <TableView fx:id="tabelaPedidosPendentes" VBox.vgrow="ALWAYS" minHeight="180.0"
-                                   styleClass="tabela-premium">
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                            <columns>
-                                <TableColumn fx:id="colColaboradorPendente" text="Colaborador" />
-                                <TableColumn fx:id="colDataPendente"        text="Data" />
-                                <TableColumn fx:id="colTipoPendente"        text="Tipo" />
-                                <TableColumn fx:id="colMotivoPendente"      text="Justifica&#231;&#227;o" />
-                            </columns>
-                            <placeholder>
-                                <VBox alignment="CENTER" spacing="12.0">
-                                    <padding>
-                                        <Insets top="32.0" bottom="32.0" left="24.0" right="24.0" />
-                                    </padding>
-                                    <SVGPath fill="#dddddd"
-                                             content="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                                             styleClass="empty-state-icon" />
-                                    <Label styleClass="empty-state-titulo" text="Nenhum pedido pendente" />
-                                    <Label styleClass="empty-state-subtitulo"
-                                           text="Todos os pedidos da tua loja est&#227;o tratados."
-                                           textAlignment="CENTER" wrapText="true" />
-                                </VBox>
-                            </placeholder>
-                        </TableView>
-
-                        <HBox alignment="CENTER_RIGHT" spacing="12.0">
-                            <Button fx:id="btnRejeitarPedido" onAction="#onRejeitarPedidoClick"
-                                    styleClass="botao-secundario" text="Rejeitar" />
-                            <Button fx:id="btnAprovarPedido"  onAction="#onAprovarPedidoClick"
-                                    styleClass="botao-acao" text="Aprovar" />
-                        </HBox>
-                    </VBox>
-                </VBox>
 
             </VBox>
         </VBox>

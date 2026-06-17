@@ -4,7 +4,6 @@ import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.PermutaFolga;
 import com.example.projeto2.API.Modules.Utilizador;
 import com.example.projeto2.API.Services.PermutaFolgaService;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
@@ -16,7 +15,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
 
@@ -25,16 +23,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Supplier;
 
-/**
- * Encapsula toda a lógica do painel "Permuta de Folga": configuração de combos
- * e tabelas, carregamento de dados, submissão, aprovação/rejeição e cancelamento.
- */
 public final class PermutaFolgaHelper {
 
     private static final DateTimeFormatter DATA_FORMATTER      = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    // ── FXML nodes ────────────────────────────────────────────────────────────────
     private final ComboBox<Horario> cbMeuTurnoFolga;
     private final ComboBox<Horario> cbCompensacaoFolga;
     private final Button btnSubmeterPermutaFolga;
@@ -44,13 +37,6 @@ public final class PermutaFolgaHelper {
     private final TableColumn<PermutaFolga, String> colPfDiaD;
     private final TableColumn<PermutaFolga, String> colPfDiaY;
     private final TableColumn<PermutaFolga, String> colPfEstado;
-    private final VBox painelAprovacaoFolga;
-    private final TableView<PermutaFolga> tabelaPendentesPermutaFolga;
-    private final TableColumn<PermutaFolga, String> colPfPendSolicitante;
-    private final TableColumn<PermutaFolga, String> colPfPendDiaD;
-    private final TableColumn<PermutaFolga, String> colPfPendDiaY;
-    private final Button btnAprovarPermutaFolga;
-    private final Button btnRejeitarPermutaFolga;
 
     private final PermutaFolgaService service;
     private final Supplier<Window> janelaSupplier;
@@ -68,33 +54,19 @@ public final class PermutaFolgaHelper {
             TableColumn<PermutaFolga, String> colPfDiaD,
             TableColumn<PermutaFolga, String> colPfDiaY,
             TableColumn<PermutaFolga, String> colPfEstado,
-            VBox painelAprovacaoFolga,
-            TableView<PermutaFolga> tabelaPendentesPermutaFolga,
-            TableColumn<PermutaFolga, String> colPfPendSolicitante,
-            TableColumn<PermutaFolga, String> colPfPendDiaD,
-            TableColumn<PermutaFolga, String> colPfPendDiaY,
-            Button btnAprovarPermutaFolga,
-            Button btnRejeitarPermutaFolga,
             PermutaFolgaService service,
             Supplier<Window> janelaSupplier) {
-        this.cbMeuTurnoFolga            = cbMeuTurnoFolga;
-        this.cbCompensacaoFolga         = cbCompensacaoFolga;
-        this.btnSubmeterPermutaFolga    = btnSubmeterPermutaFolga;
-        this.lblMensagemFolga           = lblMensagemFolga;
-        this.tabelaPermutasFolga        = tabelaPermutasFolga;
-        this.colPfDataPedido            = colPfDataPedido;
-        this.colPfDiaD                  = colPfDiaD;
-        this.colPfDiaY                  = colPfDiaY;
-        this.colPfEstado                = colPfEstado;
-        this.painelAprovacaoFolga       = painelAprovacaoFolga;
-        this.tabelaPendentesPermutaFolga = tabelaPendentesPermutaFolga;
-        this.colPfPendSolicitante       = colPfPendSolicitante;
-        this.colPfPendDiaD              = colPfPendDiaD;
-        this.colPfPendDiaY              = colPfPendDiaY;
-        this.btnAprovarPermutaFolga     = btnAprovarPermutaFolga;
-        this.btnRejeitarPermutaFolga    = btnRejeitarPermutaFolga;
-        this.service                    = service;
-        this.janelaSupplier             = janelaSupplier;
+        this.cbMeuTurnoFolga         = cbMeuTurnoFolga;
+        this.cbCompensacaoFolga      = cbCompensacaoFolga;
+        this.btnSubmeterPermutaFolga = btnSubmeterPermutaFolga;
+        this.lblMensagemFolga        = lblMensagemFolga;
+        this.tabelaPermutasFolga     = tabelaPermutasFolga;
+        this.colPfDataPedido         = colPfDataPedido;
+        this.colPfDiaD               = colPfDiaD;
+        this.colPfDiaY               = colPfDiaY;
+        this.colPfEstado             = colPfEstado;
+        this.service                 = service;
+        this.janelaSupplier          = janelaSupplier;
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -116,33 +88,22 @@ public final class PermutaFolgaHelper {
         colPfEstado.setCellValueFactory(c -> new SimpleStringProperty(formatarEstado(c.getValue().getEstado())));
         colPfEstado.setCellFactory(col -> criarCelulaEstado());
 
-        colPfPendSolicitante.setCellValueFactory(c -> new SimpleStringProperty(obterNomeSolicitante(c.getValue())));
-        colPfPendDiaD.setCellValueFactory(c -> new SimpleStringProperty(formatarTurnoFolga(c.getValue().getIdHorarioD())));
-        colPfPendDiaY.setCellValueFactory(c -> new SimpleStringProperty(formatarTurnoCompensacao(c.getValue().getIdHorarioY())));
-
         btnSubmeterPermutaFolga.disableProperty().bind(
                 cbMeuTurnoFolga.getSelectionModel().selectedItemProperty().isNull()
                         .or(cbCompensacaoFolga.getSelectionModel().selectedItemProperty().isNull()));
-        btnAprovarPermutaFolga.disableProperty().bind(
-                Bindings.isNull(tabelaPendentesPermutaFolga.getSelectionModel().selectedItemProperty()));
-        btnRejeitarPermutaFolga.disableProperty().bind(
-                Bindings.isNull(tabelaPendentesPermutaFolga.getSelectionModel().selectedItemProperty()));
 
         tabelaPermutasFolga.setPlaceholder(new Label("Nenhuma permuta de folga encontrada."));
-        tabelaPendentesPermutaFolga.setPlaceholder(new Label("Não há permutas de folga pendentes para aprovar."));
 
-        if (lblMensagemFolga != null)     { lblMensagemFolga.setManaged(false);     lblMensagemFolga.setVisible(false); }
-        if (painelAprovacaoFolga != null) { painelAprovacaoFolga.setManaged(false); painelAprovacaoFolga.setVisible(false); }
+        if (lblMensagemFolga != null) { lblMensagemFolga.setManaged(false); lblMensagemFolga.setVisible(false); }
     }
 
     public void carregarDados(Utilizador utilizador) {
         this.utilizadorAtual = utilizador;
         carregarMeusTurnos();
-        carregarHistorico();
-        configurarPainelAprovacao();
+        try { carregarHistorico(); } catch (Exception e) { tabelaPermutasFolga.setItems(FXCollections.observableArrayList()); }
     }
 
-    // ── Public @FXML delegates ────────────────────────────────────────────────────
+    // ── Public delegate ───────────────────────────────────────────────────────────
 
     public void onSubmeter() {
         try {
@@ -172,7 +133,6 @@ public final class PermutaFolgaHelper {
             compensacoesElegiveis = List.of();
             carregarMeusTurnos();
             carregarHistorico();
-            carregarPendentes();
         } catch (IllegalArgumentException e) {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
@@ -180,15 +140,17 @@ public final class PermutaFolgaHelper {
         }
     }
 
-    public void onAprovar()  { tratarPedidoSelecionado(true); }
-    public void onRejeitar() { tratarPedidoSelecionado(false); }
-
     // ── Data loading ──────────────────────────────────────────────────────────────
 
     private void carregarMeusTurnos() {
         if (utilizadorAtual == null) { cbMeuTurnoFolga.setItems(FXCollections.observableArrayList()); return; }
-        List<Horario> turnos = service.listarTurnosParaCederFolga(utilizadorAtual.getId());
-        cbMeuTurnoFolga.setItems(FXCollections.observableArrayList(turnos));
+        try {
+            List<Horario> turnos = service.listarTurnosParaCederFolga(utilizadorAtual.getId());
+            cbMeuTurnoFolga.setItems(FXCollections.observableArrayList(turnos));
+        } catch (Exception e) {
+            cbMeuTurnoFolga.setItems(FXCollections.observableArrayList());
+            mostrarMensagem("Não foi possível carregar os turnos disponíveis para permuta.", false);
+        }
     }
 
     private void carregarCompensacoes() {
@@ -206,53 +168,6 @@ public final class PermutaFolgaHelper {
         if (utilizadorAtual == null) { tabelaPermutasFolga.setItems(FXCollections.observableArrayList()); return; }
         List<PermutaFolga> pedidos = service.listarPedidosPorUtilizador(utilizadorAtual.getId());
         tabelaPermutasFolga.setItems(FXCollections.observableArrayList(pedidos));
-    }
-
-    private void configurarPainelAprovacao() {
-        boolean podeAprovar = utilizadorAtual != null && service.podeAprovar(utilizadorAtual.getId());
-        painelAprovacaoFolga.setManaged(podeAprovar);
-        painelAprovacaoFolga.setVisible(podeAprovar);
-        if (podeAprovar) carregarPendentes();
-        else tabelaPendentesPermutaFolga.setItems(FXCollections.observableArrayList());
-    }
-
-    private void carregarPendentes() {
-        if (utilizadorAtual == null || !service.podeAprovar(utilizadorAtual.getId())) {
-            tabelaPendentesPermutaFolga.setItems(FXCollections.observableArrayList());
-            return;
-        }
-        List<PermutaFolga> pendentes = service.listarPendentesParaAprovacao(utilizadorAtual.getId());
-        tabelaPendentesPermutaFolga.setItems(FXCollections.observableArrayList(pendentes));
-    }
-
-    // ── Decision handlers ─────────────────────────────────────────────────────────
-
-    private void tratarPedidoSelecionado(boolean aprovar) {
-        try {
-            if (utilizadorAtual == null) throw new IllegalArgumentException("Utilizador não identificado.");
-            PermutaFolga pf = tabelaPendentesPermutaFolga.getSelectionModel().getSelectedItem();
-            if (pf == null) throw new IllegalArgumentException("Seleciona um pedido pendente primeiro.");
-            String detalhe = String.format(
-                    "Solicitante: %s%nTurno cedido: %s%nCompensação:  %s",
-                    obterNomeSolicitante(pf), formatarTurnoFolga(pf.getIdHorarioD()), formatarTurnoCompensacao(pf.getIdHorarioY()));
-            if (!DialogosHelper.confirmarAcao(janelaSupplier.get(),
-                    aprovar ? "Aprovar permuta de folga" : "Rejeitar permuta de folga",
-                    aprovar ? "Confirmas a aprovação deste pedido?" : "Confirmas a rejeição deste pedido?",
-                    detalhe)) return;
-            if (aprovar) {
-                service.aprovar(pf.getId(), utilizadorAtual.getId());
-                mostrarMensagem("Permuta de folga aprovada. Os horários foram atualizados.", true);
-            } else {
-                service.rejeitar(pf.getId(), utilizadorAtual.getId());
-                mostrarMensagem("Permuta de folga rejeitada.", true);
-            }
-            carregarPendentes();
-            carregarHistorico();
-        } catch (IllegalArgumentException e) {
-            mostrarMensagem(e.getMessage(), false);
-        } catch (Exception e) {
-            mostrarMensagem("Não foi possível atualizar o pedido de permuta de folga.", false);
-        }
     }
 
     private void cancelarPermutaFolga(PermutaFolga pf) {
@@ -326,13 +241,6 @@ public final class PermutaFolgaHelper {
     private String formatarDataPedido(PermutaFolga pf) {
         if (pf == null || pf.getDataPedido() == null) return "-";
         return DATA_HORA_FORMATTER.format(pf.getDataPedido().atZone(ZoneId.systemDefault()));
-    }
-
-    private String obterNomeSolicitante(PermutaFolga pf) {
-        if (pf == null || pf.getIdHorarioD() == null
-                || pf.getIdHorarioD().getIdLojautilizador() == null
-                || pf.getIdHorarioD().getIdLojautilizador().getIdUtilizador() == null) return "-";
-        return pf.getIdHorarioD().getIdLojautilizador().getIdUtilizador().getNome();
     }
 
     private String formatarEstado(String estado) {

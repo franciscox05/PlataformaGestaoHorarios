@@ -31,8 +31,10 @@ public final class EstadoColaborador {
     private final long cargaMaximaMinutos;
     private final boolean chefiaAoSabado;
     private final boolean apenasFimDeSemana;
-    private final boolean exigeTurnoMinimoOitoHoras;
+    private final int maxTurnosPorDia;
     private final HorarioValidatorService validator;
+
+    private final Map<LocalDate, Integer> contagemTurnosPorDia = new HashMap<>();
 
     private LocalDate ultimaDataAtribuida;
     private int diasConsecutivos;
@@ -57,10 +59,9 @@ public final class EstadoColaborador {
                 && chefiasSabadoIds.contains(ligacao.getIdUtilizador().getId());
         String tipoCargo = ligacao.getIdCargo() != null ? normalizarCargo(ligacao.getIdCargo().getTipo()) : "";
         this.apenasFimDeSemana = "reforco_parttime".equals(tipoCargo);
-        this.exigeTurnoMinimoOitoHoras = "fulltime".equals(tipoCargo)
-                || "gerente".equals(tipoCargo)
-                || "subgerente".equals(tipoCargo)
-                || "supervisor".equals(tipoCargo);
+        boolean ehPerfilTI = "fulltime".equals(tipoCargo) || "gerente".equals(tipoCargo)
+                || "subgerente".equals(tipoCargo) || "supervisor".equals(tipoCargo);
+        this.maxTurnosPorDia = ehPerfilTI ? 2 : 1;
     }
 
     public Integer idUtilizador() {
@@ -143,6 +144,12 @@ public final class EstadoColaborador {
 
     public int totalFimDeSemanaTrabalhados() { return totalFimDeSemanaTrabalhados; }
 
+    /** Máximo de turnos por dia para este colaborador (2 para full-time, 1 para part-time). */
+    public int maxTurnosPorDia() { return maxTurnosPorDia; }
+
+    /** Número de turnos já atribuídos neste dia. */
+    public int turnosDia(LocalDate data) { return contagemTurnosPorDia.getOrDefault(data, 0); }
+
     /**
      * Número de fins de semana <b>distintos</b> trabalhados (ao contrário de
      * {@link #totalFimDeSemanaTrabalhados()}, que conta dias — sábado e domingo
@@ -214,11 +221,12 @@ public final class EstadoColaborador {
         Set<LocalDate> bloqueios = pedido.bloqueiosPorColaborador()
                 .getOrDefault(idUtilizador(), Set.of());
 
+        int turnosDoDia = contagemTurnosPorDia.getOrDefault(data, 0);
         if ((apenasFimDeSemana && !validator.ehFimDeSemana(data))
-                || (exigeTurnoMinimoOitoHoras && minutosTurno < 8 * 60L)
                 || bloqueios.contains(data)
                 || folgasReservadas.contains(data)
-                || atribuicoesConhecidas.containsKey(data)
+                || turnosDoDia >= maxTurnosPorDia
+                || (turnosDoDia > 0 && !eTurnoConsecutivo(data, turno))
                 || (minutosAtribuidos + minutosTurno) > cargaMaximaMinutos) {
             return false;
         }
@@ -320,11 +328,12 @@ public final class EstadoColaborador {
         Set<LocalDate> bloqueios = pedido.bloqueiosPorColaborador()
                 .getOrDefault(idUtilizador(), Set.of());
 
+        int turnosDoDia = contagemTurnosPorDia.getOrDefault(data, 0);
         if (apenasFimDeSemana && !validator.ehFimDeSemana(data)) return "parttime_fim_semana";
-        if (exigeTurnoMinimoOitoHoras && minutosTurno < 8 * 60L) return "turno_curto";
         if (bloqueios.contains(data)) return "bloqueado";
         if (folgasReservadas.contains(data)) return "folga_reservada";
-        if (atribuicoesConhecidas.containsKey(data)) return "ja_escalado";
+        if (turnosDoDia >= maxTurnosPorDia) return "ja_escalado";
+        if (turnosDoDia > 0 && !eTurnoConsecutivo(data, turno)) return "turno_nao_consecutivo";
         if ((minutosAtribuidos + minutosTurno) > cargaMaximaMinutos) return "carga_esgotada";
 
         int diasNaSemana = diasTrabalhadosPorSemana.getOrDefault(validator.inicioSemana(data), 0);
@@ -354,22 +363,33 @@ public final class EstadoColaborador {
     }
 
     public void registarAtribuicao(LocalDate data, Turno turno, long minutosTurno) {
-        if (data == null || turno == null || atribuicoesConhecidas.containsKey(data)) return;
+        if (data == null || turno == null) return;
 
-        if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
-            diasConsecutivos++;
-        } else {
-            diasConsecutivos = 1;
-        }
-        ultimaDataAtribuida = data;
-        atribuicoesConhecidas.put(data, turno);
-        diasTrabalhadosPorSemana.merge(validator.inicioSemana(data), 1, Integer::sum);
+        boolean primeiroTurnoDoDia = !contagemTurnosPorDia.containsKey(data);
 
-        if (validator.ehFimDeSemana(data)) {
-            totalFimDeSemanaTrabalhados++;
-            ultimoFimDeSemana.put(validator.inicioFimDeSemana(data),
-                    validator.inicioFimDeSemana(data));
+        if (primeiroTurnoDoDia) {
+            if (ultimaDataAtribuida != null && ultimaDataAtribuida.plusDays(1).equals(data)) {
+                diasConsecutivos++;
+            } else {
+                diasConsecutivos = 1;
+            }
+            ultimaDataAtribuida = data;
+            diasTrabalhadosPorSemana.merge(validator.inicioSemana(data), 1, Integer::sum);
+
+            if (validator.ehFimDeSemana(data)) {
+                totalFimDeSemanaTrabalhados++;
+                ultimoFimDeSemana.put(validator.inicioFimDeSemana(data),
+                        validator.inicioFimDeSemana(data));
+            }
         }
+
+        // Guarda sempre o turno com hora de fim mais tarde (para cálculo de descanso inter-dia)
+        Turno existente = atribuicoesConhecidas.get(data);
+        if (existente == null || (turno.getHoraFim() != null && existente.getHoraFim() != null
+                && turno.getHoraFim().isAfter(existente.getHoraFim()))) {
+            atribuicoesConhecidas.put(data, turno);
+        }
+        contagemTurnosPorDia.merge(data, 1, Integer::sum);
         minutosAtribuidos += minutosTurno;
     }
 
@@ -434,6 +454,18 @@ public final class EstadoColaborador {
         return ultimoFimDeSemana.values().stream()
                 .max(Comparator.naturalOrder())
                 .orElse(null);
+    }
+
+    /** Dois turnos são consecutivos se um começa exactamente onde o outro acaba. */
+    private boolean eTurnoConsecutivo(LocalDate data, Turno novoTurno) {
+        Turno existente = atribuicoesConhecidas.get(data);
+        if (existente == null) return true;
+        if (novoTurno.getHoraInicio() == null || novoTurno.getHoraFim() == null
+                || existente.getHoraInicio() == null || existente.getHoraFim() == null) {
+            return false;
+        }
+        return novoTurno.getHoraInicio().equals(existente.getHoraFim())
+                || existente.getHoraInicio().equals(novoTurno.getHoraFim());
     }
 
     private String normalizarCargo(String tipoCargo) {

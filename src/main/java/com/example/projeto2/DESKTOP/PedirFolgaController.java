@@ -4,7 +4,6 @@ import com.example.projeto2.API.Services.DayOffService;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Modules.Utilizador;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -19,15 +18,12 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 @Scope("prototype")
@@ -59,34 +55,9 @@ public class PedirFolgaController {
     @FXML
     private TableColumn<DayOff, String> colEstadoPedido;
 
-    @FXML
-    private VBox painelAprovacao;
-
-    @FXML
-    private TableView<DayOff> tabelaPedidosPendentes;
-
-    @FXML
-    private TableColumn<DayOff, String> colColaboradorPendente;
-
-    @FXML
-    private TableColumn<DayOff, String> colDataPendente;
-
-    @FXML
-    private TableColumn<DayOff, String> colTipoPendente;
-
-    @FXML
-    private TableColumn<DayOff, String> colMotivoPendente;
-
-    @FXML
-    private Button btnAprovarPedido;
-
-    @FXML
-    private Button btnRejeitarPedido;
-
     private final DayOffService dayOffBLL;
 
     private Utilizador utilizadorLogado;
-    private Map<Integer, String> nomesPendentesPorUtilizador = Map.of();
 
     public PedirFolgaController(DayOffService dayOffBLL) {
         this.dayOffBLL = dayOffBLL;
@@ -102,7 +73,6 @@ public class PedirFolgaController {
         ));
 
         configurarTabelaHistorico();
-        configurarTabelaAprovacao();
 
         // Empty state com CTA para a tabela histórico
         javafx.scene.layout.VBox emptyFolgas = new javafx.scene.layout.VBox(12);
@@ -120,24 +90,15 @@ public class PedirFolgaController {
         emptyFolgas.getChildren().addAll(emptyFolgasTitulo, emptyFolgasSubtitulo, btnEmptyFolga);
         tabelaPedidos.setPlaceholder(emptyFolgas);
 
-        tabelaPedidosPendentes.setPlaceholder(new Label("Não existem pedidos pendentes para aprovar."));
-
         // Tooltips nos campos do formulário
         dpData.setTooltip(new Tooltip("Seleciona a data em que pretendes ausentar-te"));
         cbTipo.setTooltip(new Tooltip("Seleciona o tipo de ausência: férias, folga, baixa ou emergência urgente"));
         txtMotivo.setTooltip(new Tooltip("Opcional — descreve brevemente o motivo da ausência"));
-
-        btnAprovarPedido.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
-        btnRejeitarPedido.disableProperty().bind(Bindings.isNull(tabelaPedidosPendentes.getSelectionModel().selectedItemProperty()));
-
-        painelAprovacao.setManaged(false);
-        painelAprovacao.setVisible(false);
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
         this.utilizadorLogado = utilizadorLogado;
         carregarHistoricoPedidos();
-        configurarPainelAprovacao();
     }
 
     @FXML
@@ -192,22 +153,11 @@ public class PedirFolgaController {
             mostrarInformacao("Sucesso", "Pedido de folga registado com sucesso.");
             limparFormulario();
             carregarHistoricoPedidos();
-            carregarPedidosPendentes();
         } catch (IllegalArgumentException e) {
             mostrarErro("Erro", e.getMessage());
         } catch (Exception e) {
             mostrarErro("Erro", "Não foi possível guardar o pedido de folga.");
         }
-    }
-
-    @FXML
-    public void onAprovarPedidoClick() {
-        tratarPedidoSelecionado(true);
-    }
-
-    @FXML
-    public void onRejeitarPedidoClick() {
-        tratarPedidoSelecionado(false);
     }
 
     private void configurarTabelaHistorico() {
@@ -263,27 +213,6 @@ public class PedirFolgaController {
         });
     }
 
-    private void configurarTabelaAprovacao() {
-        colColaboradorPendente.setCellValueFactory(cellData -> {
-            var utilizadorPendente = cellData.getValue().getIdUtilizador();
-            Integer idColaborador = (utilizadorPendente != null) ? utilizadorPendente.getId() : null;
-            return new SimpleStringProperty(nomesPendentesPorUtilizador.getOrDefault(
-                    idColaborador,
-                    idColaborador != null ? "Colaborador #" + idColaborador : "Colaborador"));
-        });
-
-        colDataPendente.setCellValueFactory(cellData -> {
-            java.time.LocalDate data = cellData.getValue().getDataAusencia();
-            return new SimpleStringProperty(data != null ? data.format(DATA_FORMATTER) : "-");
-        });
-
-        colTipoPendente.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarTipo(cellData.getValue().getTipo())));
-
-        colMotivoPendente.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarMotivo(cellData.getValue().getMotivo())));
-    }
-
     private void carregarHistoricoPedidos() {
         if (utilizadorLogado == null) {
             tabelaPedidos.setItems(FXCollections.observableArrayList());
@@ -292,86 +221,6 @@ public class PedirFolgaController {
 
         List<DayOff> pedidos = dayOffBLL.listarPedidosPorUtilizador(utilizadorLogado.getId());
         tabelaPedidos.setItems(FXCollections.observableArrayList(pedidos));
-    }
-
-    private void configurarPainelAprovacao() {
-        boolean podeAprovar = utilizadorLogado != null && dayOffBLL.utilizadorPodeAprovarFolgas(utilizadorLogado.getId());
-        painelAprovacao.setManaged(podeAprovar);
-        painelAprovacao.setVisible(podeAprovar);
-
-        if (podeAprovar) {
-            carregarPedidosPendentes();
-        } else {
-            tabelaPedidosPendentes.setItems(FXCollections.observableArrayList());
-        }
-    }
-
-    private void carregarPedidosPendentes() {
-        if (utilizadorLogado == null || !dayOffBLL.utilizadorPodeAprovarFolgas(utilizadorLogado.getId())) {
-            tabelaPedidosPendentes.setItems(FXCollections.observableArrayList());
-            nomesPendentesPorUtilizador = Map.of();
-            return;
-        }
-
-        List<DayOff> pedidosPendentes = dayOffBLL.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId());
-        nomesPendentesPorUtilizador = dayOffBLL.listarNomesUtilizadores(
-                pedidosPendentes.stream().map(d -> d.getIdUtilizador().getId()).collect(Collectors.toSet())
-        );
-        tabelaPedidosPendentes.setItems(FXCollections.observableArrayList(pedidosPendentes));
-        tabelaPedidosPendentes.refresh();
-    }
-
-    private void tratarPedidoSelecionado(boolean aprovar) {
-        try {
-            if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
-            }
-
-            DayOff pedidoSelecionado = tabelaPedidosPendentes.getSelectionModel().getSelectedItem();
-            if (pedidoSelecionado == null) {
-                throw new IllegalArgumentException("Seleciona um pedido pendente primeiro.");
-            }
-
-            String nomeColaboradorFolga = nomesPendentesPorUtilizador.getOrDefault(
-                    pedidoSelecionado.getIdUtilizador() != null ? pedidoSelecionado.getIdUtilizador().getId() : null,
-                    "Colaborador");
-            String dataFolga = pedidoSelecionado.getDataAusencia() != null
-                    ? pedidoSelecionado.getDataAusencia().format(DATA_FORMATTER) : "-";
-            String motivoFolga = pedidoSelecionado.getMotivo() != null && !pedidoSelecionado.getMotivo().isBlank()
-                    ? "\nMotivo: " + pedidoSelecionado.getMotivo() : "";
-            String detalhesFolga = "Colaborador: " + nomeColaboradorFolga + "\nData: " + dataFolga + motivoFolga;
-
-            if (!DialogosHelper.confirmarAcao(
-                    obterJanela(),
-                    aprovar ? "Aprovar pedido de folga" : "Rejeitar pedido de folga",
-                    aprovar ? "Confirmas a aprovação desta ausência?" : "Confirmas a rejeição desta ausência?",
-                    detalhesFolga
-            )) {
-                return;
-            }
-
-            if (aprovar) {
-                boolean urgente = "urgente".equalsIgnoreCase(pedidoSelecionado.getTipo());
-                if (urgente) {
-                    com.example.projeto2.API.Services.DayOffService.ResultadoAprovacaoFolga resultado =
-                            dayOffBLL.aprovarPedidoFolgaComCobertura(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                    mostrarInformacao("Ausência aprovada", resultado.avisoCobertura());
-                } else {
-                    dayOffBLL.aprovarPedidoFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                    mostrarInformacao("Sucesso", "Pedido de folga aprovado.");
-                }
-            } else {
-                dayOffBLL.rejeitarPedidoFolga(pedidoSelecionado.getIdDayoff(), utilizadorLogado.getId());
-                mostrarInformacao("Sucesso", "Pedido de folga rejeitado.");
-            }
-
-            carregarPedidosPendentes();
-            carregarHistoricoPedidos();
-        } catch (IllegalArgumentException e) {
-            mostrarErro("Erro", e.getMessage());
-        } catch (Exception e) {
-            mostrarErro("Erro", "Não foi possível atualizar o estado do pedido.");
-        }
     }
 
     private void cancelarPedidoProprio(DayOff pedido) {

@@ -308,13 +308,16 @@ public final class GrelhaHorarioRenderer {
     // Altura de linha calculada dinamicamente em renderizarDetalhado()
 
     // cores por tipo: [chip-bg, chip-text, cell-bg, cell-bg-fds]
+    // Para tipos combinados, chip-bg é um gradiente CSS inline
     private static final Map<String, String[]> CORES_DET = Map.of(
-            "manha",      new String[]{"#2563eb", "white",    "#eff6ff", "#dbeafe"},
-            "tarde",      new String[]{"#0891b2", "white",    "#f0fdfa", "#ccfbf1"},
-            "noite",      new String[]{"#7c3aed", "white",    "#f5f3ff", "#ede9fe"},
-            "intermedio", new String[]{"#d97706", "white",    "#fffbeb", "#fef3c7"},
-            "folga",      new String[]{"#6b7280", "#9ca3af",  "#f9fafb", "#f3f4f6"},
-            "outro",      new String[]{"#374151", "white",    "#f9fafb", "#f3f4f6"}
+            "manha",       new String[]{"#2563eb", "white",   "#eff6ff", "#dbeafe"},
+            "tarde",       new String[]{"#0891b2", "white",   "#f0fdfa", "#ccfbf1"},
+            "noite",       new String[]{"#7c3aed", "white",   "#f5f3ff", "#ede9fe"},
+            "intermedio",  new String[]{"#d97706", "white",   "#fffbeb", "#fef3c7"},
+            "folga",       new String[]{"#6b7280", "#9ca3af", "#f9fafb", "#f3f4f6"},
+            "outro",       new String[]{"#374151", "white",   "#f9fafb", "#f3f4f6"},
+            "manha_tarde", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #2563eb 50%, #0891b2 50%)", "white", "#eff6ff", "#dbeafe"},
+            "tarde_noite", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #0891b2 50%, #7c3aed 50%)", "white", "#f0fdfa", "#ccfbf1"}
     );
 
     /**
@@ -548,8 +551,14 @@ public final class GrelhaHorarioRenderer {
             content.getChildren().add(chip);
 
             if (mostrarHoras && horas != null && !horas.isBlank()) {
+                // cores[0] pode ser um gradiente para tipos combinados — usar cor sólida para texto
+                String horasCorTexto = switch (chave) {
+                    case "manha_tarde" -> "#1d4ed8";
+                    case "tarde_noite" -> "#0891b2";
+                    default            -> cores[0];
+                };
                 Label lblHoras = new Label(formatarHorasGrelha(horas));
-                lblHoras.setStyle("-fx-font-size: " + fntHoras + "px; -fx-font-weight: 600; -fx-text-fill: " + cores[0] + ";");
+                lblHoras.setStyle("-fx-font-size: " + fntHoras + "px; -fx-font-weight: 600; -fx-text-fill: " + horasCorTexto + ";");
                 content.getChildren().add(lblHoras);
             }
             cell.getChildren().add(content);
@@ -722,12 +731,14 @@ public final class GrelhaHorarioRenderer {
     private static String turnoLetraCompacta(String tipo) {
         if (tipo == null) return "–";
         return switch (turnoChave(tipo)) {
-            case "manha"      -> "M";
-            case "tarde"      -> "T";
-            case "noite"      -> "N";
-            case "intermedio" -> "I";
-            case "folga"      -> "–";
-            default           -> tipo.isBlank() ? "?" : tipo.substring(0, 1).toUpperCase(Locale.ROOT);
+            case "manha"       -> "M";
+            case "tarde"       -> "T";
+            case "noite"       -> "N";
+            case "intermedio"  -> "I";
+            case "manha_tarde" -> "M/T";
+            case "tarde_noite" -> "T/N";
+            case "folga"       -> "–";
+            default            -> tipo.isBlank() ? "?" : tipo.substring(0, 1).toUpperCase(Locale.ROOT);
         };
     }
 
@@ -740,12 +751,14 @@ public final class GrelhaHorarioRenderer {
         String p = Normalizer.normalize(tipo.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
                 .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
         return switch (p) {
-            case "manha"      -> "manha";
-            case "tarde"      -> "tarde";
-            case "noite"      -> "noite";
-            case "folga"      -> "folga";
-            case "intermedio" -> "intermedio";
-            default           -> "outro";
+            case "manha"       -> "manha";
+            case "tarde"       -> "tarde";
+            case "noite"       -> "noite";
+            case "folga"       -> "folga";
+            case "intermedio"  -> "intermedio";
+            case "manha_tarde" -> "manha_tarde";
+            case "tarde_noite" -> "tarde_noite";
+            default            -> "outro";
         };
     }
 
@@ -754,12 +767,14 @@ public final class GrelhaHorarioRenderer {
             return "–";
         }
         return switch (turnoChave(tipo)) {
-            case "manha"      -> "Manhã";
-            case "tarde"      -> "Tarde";
-            case "noite"      -> "Noite";
-            case "folga"      -> "Folga";
-            case "intermedio" -> "Interm.";
-            default           -> tipo.length() > 8 ? tipo.substring(0, 7) + "." : tipo;
+            case "manha"       -> "Manhã";
+            case "tarde"       -> "Tarde";
+            case "noite"       -> "Noite";
+            case "folga"       -> "Folga";
+            case "intermedio"  -> "Interm.";
+            case "manha_tarde" -> "Manhã+Tarde";
+            case "tarde_noite" -> "Tarde+Noite";
+            default            -> tipo.length() > 8 ? tipo.substring(0, 7) + "." : tipo;
         };
     }
 

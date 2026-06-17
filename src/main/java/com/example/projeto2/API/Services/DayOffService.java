@@ -37,6 +37,7 @@ public class DayOffService {
     private final PermutaRepository permutaRepository;
     private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
     private final NotificacaoService notificacaoService;
+    private final AuditoriaService auditoriaService;
 
     public DayOffService(DayOffRepository dayOffRepository,
                      LojautilizadorHelper lojautilizadorHelper,
@@ -44,7 +45,8 @@ public class DayOffService {
                      HorarioRepository horarioRepository,
                      PermutaRepository permutaRepository,
                      HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository,
-                     NotificacaoService notificacaoService) {
+                     NotificacaoService notificacaoService,
+                     AuditoriaService auditoriaService) {
         this.dayOffRepository = dayOffRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.utilizadorRepository = utilizadorRepository;
@@ -52,6 +54,7 @@ public class DayOffService {
         this.permutaRepository = permutaRepository;
         this.historicoHorarioEstadoRepository = historicoHorarioEstadoRepository;
         this.notificacaoService = notificacaoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -150,10 +153,7 @@ public class DayOffService {
                 idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
                 "Este utilizador nao tem permissao para aprovar folgas.");
 
-        return dayOffRepository.findPedidosPendentesDaLoja(
-                ligacaoAtiva.getIdLoja().getId(),
-                idUtilizadorAprovador
-        );
+        return dayOffRepository.findPedidosPendentesDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
     /** Store-scoped variant — uses the explicit idLoja from the session. */
@@ -163,14 +163,13 @@ public class DayOffService {
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
                 "Este utilizador nao tem permissao para aprovar folgas.");
-        return dayOffRepository.findPedidosPendentesDaLoja(ligacaoAtiva.getIdLoja().getId(), idUtilizadorAprovador);
+        return dayOffRepository.findPedidosPendentesDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
     @Transactional(readOnly = true)
     public int contarPendentesParaAprovacao(Integer idUtilizador) {
         return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, LojautilizadorHelper.APROVACAO)
-                .map(lu -> (int) dayOffRepository.countPedidosPendentesDaLoja(
-                        lu.getIdLoja().getId(), idUtilizador))
+                .map(lu -> (int) dayOffRepository.countPedidosPendentesDaLoja(lu.getIdLoja().getId()))
                 .orElse(0);
     }
 
@@ -210,28 +209,40 @@ public class DayOffService {
 
     @Transactional
     public DayOff aprovarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador) {
-        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, null, "aprovado");
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, null, "aprovado", null);
     }
 
     @Transactional
     public DayOff rejeitarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador) {
-        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, null, "rejeitado");
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, null, "rejeitado", null);
+    }
+
+    @Transactional
+    public DayOff rejeitarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador, String motivoDecisao) {
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, null, "rejeitado", motivoDecisao);
     }
 
     /** Store-scoped approval — permission validated strictly within the given store. */
     @Transactional
     public DayOff aprovarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador, Integer idLoja) {
-        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, idLoja, "aprovado");
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, idLoja, "aprovado", null);
     }
 
     /** Store-scoped rejection — permission validated strictly within the given store. */
     @Transactional
     public DayOff rejeitarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador, Integer idLoja) {
-        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, idLoja, "rejeitado");
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, idLoja, "rejeitado", null);
+    }
+
+    /** Store-scoped rejection with mandatory reason for audit trail. */
+    @Transactional
+    public DayOff rejeitarPedidoFolga(Integer idDayOff, Integer idUtilizadorAprovador, Integer idLoja,
+                                       String motivoDecisao) {
+        return atualizarEstadoPedido(idDayOff, idUtilizadorAprovador, idLoja, "rejeitado", motivoDecisao);
     }
 
     private DayOff atualizarEstadoPedido(Integer idDayOff, Integer idUtilizadorAprovador,
-                                          Integer idLoja, String novoEstado) {
+                                          Integer idLoja, String novoEstado, String motivoDecisao) {
         if (idDayOff == null) {
             throw new IllegalArgumentException("O pedido selecionado e obrigatorio.");
         }
@@ -248,8 +259,7 @@ public class DayOffService {
         }
 
         boolean pedidoVisivelAoAprovador = dayOffRepository.findPedidosPendentesDaLoja(
-                        ligacaoAtiva.getIdLoja().getId(),
-                        idUtilizadorAprovador)
+                        ligacaoAtiva.getIdLoja().getId())
                 .stream()
                 .anyMatch(dayOff -> dayOff.getIdDayoff().equals(idDayOff));
 
@@ -268,10 +278,19 @@ public class DayOffService {
                 ? pedidoAtualizado.getIdUtilizador().getId() : null;
         if (idFuncionario != null && pedidoAtualizado.getDataAusencia() != null) {
             String dataFormatada = pedidoAtualizado.getDataAusencia().format(FMT_DATA);
-            String decisaoLabel = "aprovado".equalsIgnoreCase(novoEstado) ? "Aprovado" : "Rejeitado";
-            notificacaoService.criarNotificacao(idFuncionario,
-                    "O teu pedido de folga para o dia " + dataFormatada + " foi " + decisaoLabel + ".",
-                    ligacaoAtiva.getIdLoja().getId());
+            boolean aprovado = "aprovado".equalsIgnoreCase(novoEstado);
+            String decisaoLabel = aprovado ? "Aprovado" : "Rejeitado";
+            String msgNotificacao = "O teu pedido de folga para o dia " + dataFormatada + " foi " + decisaoLabel + ".";
+            if (!aprovado && motivoDecisao != null && !motivoDecisao.isBlank()) {
+                msgNotificacao += " Motivo: " + motivoDecisao;
+            }
+            notificacaoService.criarNotificacao(idFuncionario, msgNotificacao, ligacaoAtiva.getIdLoja().getId());
+            String tipoEvento = aprovado ? "FOLGA_APROVADA" : "FOLGA_REJEITADA";
+            String auditDetalhe = "Folga #" + pedidoAtualizado.getIdDayoff()
+                    + " de colaborador #" + idFuncionario + " para " + dataFormatada
+                    + (!aprovado && motivoDecisao != null && !motivoDecisao.isBlank()
+                            ? " — motivo: " + motivoDecisao : "");
+            auditoriaService.registar(tipoEvento, idUtilizadorAprovador, auditDetalhe);
         }
 
         return pedidoAtualizado;
@@ -339,6 +358,14 @@ public class DayOffService {
                 })
                 .toList();
         historicoHorarioEstadoRepository.saveAll(historicos);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DayOff> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador) {
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para ver o historico de folgas.");
+        return dayOffRepository.findDecididosDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
     /** Projection used by the employee "who is off today" endpoint — motivo intentionally excluded. */

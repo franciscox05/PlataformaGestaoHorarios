@@ -145,10 +145,41 @@ CREATE TABLE IF NOT EXISTS public.horarios_especiais_loja (
 CREATE INDEX IF NOT EXISTS idx_horarios_especiais_loja_periodo
     ON public.horarios_especiais_loja (id_loja, data_inicio, data_fim);
 
+-- Compatibilidade com gestao de turnos e regras livres (junho 2026).
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'turnos'
+          AND column_name = 'tipo' AND udt_name = 'tipo_turno_enum'
+    ) THEN
+        EXECUTE 'ALTER TABLE public.turnos ALTER COLUMN tipo TYPE VARCHAR(50)';
+    END IF;
+END $$;
+
+ALTER TABLE public.turnos ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
+ALTER TABLE public.regras_loja ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.regras ADD COLUMN IF NOT EXISTS id_loja_privada INTEGER REFERENCES public.lojas(id_loja);
+
+CREATE TABLE IF NOT EXISTS public.permutas_folga (
+    id_permuta_folga  SERIAL PRIMARY KEY,
+    id_horario_d      INTEGER NOT NULL REFERENCES public.horarios(id_horario),
+    id_horario_y      INTEGER NOT NULL REFERENCES public.horarios(id_horario),
+    estado            VARCHAR(20) NOT NULL DEFAULT 'pendente',
+    data_pedido       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pf_estado CHECK (estado IN ('pendente','aprovado','rejeitado','cancelado')),
+    CONSTRAINT chk_pf_diferente CHECK (id_horario_d <> id_horario_y)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pf_horario_d ON public.permutas_folga(id_horario_d);
+CREATE INDEX IF NOT EXISTS idx_pf_horario_y ON public.permutas_folga(id_horario_y);
+CREATE INDEX IF NOT EXISTS idx_pf_estado    ON public.permutas_folga(estado);
+
 TRUNCATE TABLE
     public.eventos_auditoria,
     public.historico_horario_estados,
     public.permutas,
+    public.permutas_folga,
     public.horarios_especiais_loja,
     public.horarios,
     public.propostas_horario_mensal,
@@ -196,13 +227,10 @@ INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifi
     (4, 2, 1, 2, 'Configuracao base para loja secundaria.'),
     (5, 1, 10, 1, 'Garantir presenca de gerente ou subgerente aos sabados com loja aberta.');
 
-INSERT INTO public.turnos (id_turno, tipo, hora_inicio, hora_fim) VALUES
-    (1, 'manha', '10:00', '19:00'),
-    (2, 'intermedio', '12:00', '21:00'),
-    (3, 'noite', '14:00', '23:00'),
-    (4, 'manha', '10:00', '14:30'),
-    (5, 'intermedio', '14:00', '18:30'),
-    (6, 'noite', '18:30', '23:00');
+INSERT INTO public.turnos (id_turno, tipo, nome, hora_inicio, hora_fim) VALUES
+    (1, 'manha', 'Manhã',  '10:00', '14:00'),
+    (2, 'tarde', 'Tarde',  '14:00', '18:00'),
+    (3, 'noite', 'Noite',  '19:00', '23:00');
 
 INSERT INTO public.utilizadores (id_utilizador, nome, email, telemovel, password_hash, estado) VALUES
     (1, 'Francisco Gomes', 'francisco.gomes@levis.com', '912000001', '123456', 'ativo'),
@@ -229,24 +257,24 @@ INSERT INTO public.lojautilizador (id_lojautilizador, id_utilizador, id_loja, id
     (10, 10, 1, 5, CURRENT_DATE - 140, CURRENT_DATE - 30);
 
 INSERT INTO public.horarios (id_horario, id_lojautilizador, id_turno, data_turno, estado) VALUES
-    (1, 7, 2, CURRENT_DATE + 1, 'aprovado'),
-    (2, 7, 1, CURRENT_DATE + 3, 'aprovado'),
-    (3, 7, 3, CURRENT_DATE + 6, 'pendente'),
-    (4, 3, 1, CURRENT_DATE + 1, 'aprovado'),
-    (5, 4, 3, CURRENT_DATE + 1, 'aprovado'),
-    (6, 5, 4, CURRENT_DATE + 2, 'aprovado'),
-    (7, 6, 6, CURRENT_DATE + 5, 'aprovado'),
-    (8, 2, 1, CURRENT_DATE, 'aprovado'),
-    (9, 1, 2, CURRENT_DATE, 'aprovado'),
+    (1,  7, 2, CURRENT_DATE + 1, 'aprovado'),
+    (2,  7, 1, CURRENT_DATE + 3, 'aprovado'),
+    (3,  7, 3, CURRENT_DATE + 6, 'pendente'),
+    (4,  3, 1, CURRENT_DATE + 1, 'aprovado'),
+    (5,  4, 3, CURRENT_DATE + 1, 'aprovado'),
+    (6,  5, 1, CURRENT_DATE + 2, 'aprovado'),
+    (7,  6, 3, CURRENT_DATE + 5, 'aprovado'),
+    (8,  2, 1, CURRENT_DATE,     'aprovado'),
+    (9,  1, 2, CURRENT_DATE,     'aprovado'),
     (10, 3, 2, CURRENT_DATE + 3, 'aprovado'),
-    (11, 4, 5, CURRENT_DATE + 2, 'aprovado'),
+    (11, 4, 2, CURRENT_DATE + 2, 'aprovado'),
     (12, 7, 2, CURRENT_DATE - 5, 'aprovado'),
     (13, 3, 1, CURRENT_DATE - 7, 'aprovado'),
-    (14, 5, 4, CURRENT_DATE - 2, 'aprovado'),
+    (14, 5, 1, CURRENT_DATE - 2, 'aprovado'),
     (15, 7, 2, CURRENT_DATE + 4, 'aprovado'),
     (16, 3, 3, CURRENT_DATE + 4, 'aprovado'),
-    (17, 4, 5, CURRENT_DATE + 6, 'aprovado'),
-    (18, 5, 6, CURRENT_DATE + 6, 'aprovado');
+    (17, 4, 2, CURRENT_DATE + 6, 'aprovado'),
+    (18, 5, 3, CURRENT_DATE + 6, 'aprovado');
 
 INSERT INTO public.day_offs (id_dayoff, id_utilizador, data_ausencia, motivo, tipo, estado) VALUES
     (1, 7, CURRENT_DATE + 10, 'Fim de semana prolongado com a familia.', 'ferias', 'pendente'),
@@ -310,6 +338,7 @@ BEGIN
     PERFORM setval(pg_get_serial_sequence('public.preferencias', 'id_preferencia'), COALESCE((SELECT MAX(id_preferencia) FROM public.preferencias), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.horarios_especiais_loja', 'id_horario_especial'), COALESCE((SELECT MAX(id_horario_especial) FROM public.horarios_especiais_loja), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.permutas', 'id_permuta'), COALESCE((SELECT MAX(id_permuta) FROM public.permutas), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.permutas_folga', 'id_permuta_folga'), COALESCE((SELECT MAX(id_permuta_folga) FROM public.permutas_folga), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.propostas_horario_mensal', 'id_proposta_horario'), COALESCE((SELECT MAX(id_proposta_horario) FROM public.propostas_horario_mensal), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.eventos_auditoria', 'id_evento'), COALESCE((SELECT MAX(id_evento) FROM public.eventos_auditoria), 1), true);
 END $$;

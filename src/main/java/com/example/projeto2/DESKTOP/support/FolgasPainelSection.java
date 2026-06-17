@@ -6,11 +6,15 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.VBox;
 
 import java.util.List;
 import java.util.Map;
@@ -99,20 +103,18 @@ public final class FolgasPainelSection {
             String detalhes = String.format("Colaborador: %s%nData: %s%nTipo: %s%s",
                     nomeColab, data, tipo, motivo);
 
-            if (!DialogosHelper.confirmarAcao(
-                    coord.obterJanela(),
-                    aprovar ? "Aprovar folga" : "Rejeitar folga",
-                    aprovar ? "Confirmas a aprovação?" : "Confirmas a rejeição?",
-                    detalhes)) {
-                return;
-            }
-
             if (aprovar) {
+                if (!DialogosHelper.confirmarAcao(
+                        coord.obterJanela(), "Aprovar folga", "Confirmas a aprovação?", detalhes)) {
+                    return;
+                }
                 bll.aprovarFolga(pedido.getIdDayoff(), coord.obterIdUtilizadorLogado());
                 FeedbackHelper.mostrar(feedback, "Pedido de folga aprovado com sucesso.", true);
             } else {
-                bll.rejeitarFolga(pedido.getIdDayoff(), coord.obterIdUtilizadorLogado());
-                FeedbackHelper.mostrar(feedback, "Pedido de folga rejeitado com sucesso.", true);
+                String motivoRejeicao = pedirMotivoRejeicao(detalhes);
+                if (motivoRejeicao == null) return;
+                bll.rejeitarFolga(pedido.getIdDayoff(), coord.obterIdUtilizadorLogado(), motivoRejeicao);
+                FeedbackHelper.mostrar(feedback, "Pedido de folga rejeitado.", true);
             }
 
             tabela.getSelectionModel().clearSelection();
@@ -122,6 +124,41 @@ public final class FolgasPainelSection {
         } catch (Exception e) {
             FeedbackHelper.mostrar(feedback, "Não foi possível atualizar o pedido de folga.", false);
         }
+    }
+
+    /** Returns the typed reason, or null if the manager cancelled / left it blank. */
+    private String pedirMotivoRejeicao(String detalhesPedido) {
+        TextArea area = new TextArea();
+        area.setPromptText("Escreve o motivo da rejeição (obrigatório)...");
+        area.setWrapText(true);
+        area.setPrefRowCount(3);
+        area.setMaxWidth(400);
+
+        Label lblDetalhe = new Label(detalhesPedido);
+        lblDetalhe.setStyle("-fx-text-fill: #4b5563; -fx-font-size: 12px;");
+        lblDetalhe.setWrapText(true);
+
+        VBox corpo = new VBox(8, lblDetalhe, area);
+        corpo.setPrefWidth(420);
+
+        Dialog<String> dlg = new Dialog<>();
+        dlg.setTitle("Rejeitar folga");
+        dlg.setHeaderText("Indica o motivo da rejeição");
+        dlg.getDialogPane().setContent(corpo);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        if (coord.obterJanela() != null) {
+            dlg.initOwner(coord.obterJanela());
+        }
+
+        dlg.setResultConverter(bt -> {
+            if (bt == ButtonType.OK) {
+                String texto = area.getText();
+                return (texto != null && !texto.isBlank()) ? texto.trim() : null;
+            }
+            return null;
+        });
+
+        return dlg.showAndWait().orElse(null);
     }
 
     private void configurarColunas() {

@@ -130,7 +130,10 @@
                                     <Label fx:id="lblFeedbackFolgas" managed="false"
                                            styleClass="mensagem-feedback" text="Mensagem"
                                            visible="false" wrapText="true" />
-                                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                        <Button fx:id="btnHistoricoFolgas" onAction="#onHistoricoFolgasClick"
+                                                styleClass="botao-secundario" text="Ver Hist&#243;rico" />
+                                        <Region HBox.hgrow="ALWAYS" />
                                         <Button fx:id="btnRejeitarFolga" onAction="#onRejeitarFolgaClick"
                                                 styleClass="botao-secundario" text="Rejeitar" />
                                         <Button fx:id="btnAprovarFolga"  onAction="#onAprovarFolgaClick"
@@ -162,7 +165,10 @@
                                     <Label fx:id="lblFeedbackPermutas" managed="false"
                                            styleClass="mensagem-feedback" text="Mensagem"
                                            visible="false" wrapText="true" />
-                                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                        <Button fx:id="btnHistoricoPermutas" onAction="#onHistoricoPermutasClick"
+                                                styleClass="botao-secundario" text="Ver Hist&#243;rico" />
+                                        <Region HBox.hgrow="ALWAYS" />
                                         <Button fx:id="btnRejeitarPermuta" onAction="#onRejeitarPermutaClick"
                                                 styleClass="botao-secundario" text="Rejeitar" />
                                         <Button fx:id="btnAprovarPermuta"  onAction="#onAprovarPermutaClick"
@@ -203,7 +209,10 @@
                                     <Label fx:id="lblFeedbackPreferencias" managed="false"
                                            styleClass="mensagem-feedback" text="Mensagem"
                                            visible="false" wrapText="true" />
-                                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                        <Button fx:id="btnHistoricoPreferencias" onAction="#onHistoricoPreferenciasClick"
+                                                styleClass="botao-secundario" text="Ver Hist&#243;rico" />
+                                        <Region HBox.hgrow="ALWAYS" />
                                         <Button fx:id="btnRejeitarPreferencia" onAction="#onRejeitarPreferenciaClick"
                                                 styleClass="botao-secundario" text="Rejeitar" />
                                         <Button fx:id="btnAprovarPreferencia"  onAction="#onAprovarPreferenciaClick"
@@ -234,6 +243,8 @@
                         <Label fx:id="lblContextoResumo"  styleClass="texto-ajuda"
                                text="Aqui v&#227;o aparecer os colaboradores envolvidos e a escala da loja no per&#237;odo relevante."
                                wrapText="true" />
+                        <Label fx:id="lblContextoMotivoCompleto" styleClass="texto-ajuda"
+                               text="-" wrapText="true" />
                     </VBox>
 
                     <HBox spacing="10.0">
@@ -276,16 +287,13 @@
                     </VBox>
 
                     <VBox spacing="8.0">
-                        <Label styleClass="campo-titulo" text="HOR&#193;RIO DO COLABORADOR SELECIONADO" />
-                        <Label fx:id="lblContextoColaboradorSelecionado" styleClass="texto-ajuda"
-                               text="Seleciona um colaborador para veres o hor&#225;rio em calend&#225;rio."
-                               wrapText="true" />
-                        <HBox fx:id="boxHorarioColaborador" spacing="10.0" styleClass="calendario-semana" />
-                    </VBox>
-
-                    <VBox spacing="8.0">
-                        <Label styleClass="campo-titulo" text="ESCALA PUBLICADA DA LOJA &#8212; MESMO PER&#237;ODO" />
-                        <HBox fx:id="boxEscalaLoja" spacing="10.0" styleClass="calendario-semana" />
+                        <Label styleClass="campo-titulo" text="ESCALA DA LOJA &#8212; PER&#205;ODO DO PEDIDO" />
+                        <ScrollPane fitToWidth="true" hbarPolicy="AS_NEEDED" vbarPolicy="AS_NEEDED"
+                                    minHeight="120.0" maxHeight="320.0">
+                            <content>
+                                <VBox fx:id="gradeHorario" spacing="4.0" />
+                            </content>
+                        </ScrollPane>
                     </VBox>
 
                 </VBox>

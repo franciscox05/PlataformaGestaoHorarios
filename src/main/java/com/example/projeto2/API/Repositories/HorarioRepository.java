@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 
 public interface HorarioRepository extends JpaRepository<Horario, Integer> {
 
@@ -247,6 +248,35 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
                                                          @Param("dataFim") LocalDate dataFim,
                                                          @Param("idColaborador") Integer idColaborador);
 
+    /** Context panel variant — includes horarios from any proposal state so the manager
+     *  sees the full planned schedule when reviewing a pending request. */
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "WHERE l.id = :idLoja " +
+            "AND h.dataTurno = :data " +
+            "AND lu.dataFim IS NULL " +
+            "ORDER BY u.nome ASC, h.dataTurno ASC, t.horaInicio ASC")
+    List<Horario> findHorariosDeContextoLojaNoDia(@Param("idLoja") Integer idLoja,
+                                                   @Param("data") LocalDate data);
+
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "WHERE l.id = :idLoja " +
+            "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
+            "AND lu.dataFim IS NULL " +
+            "ORDER BY u.nome ASC, h.dataTurno ASC, t.horaInicio ASC")
+    List<Horario> findHorariosDeContextoLojaEntreDatas(@Param("idLoja") Integer idLoja,
+                                                        @Param("dataInicio") LocalDate dataInicio,
+                                                        @Param("dataFim") LocalDate dataFim);
+
     @Query("SELECT h FROM Horario h " +
             "JOIN FETCH h.idLojautilizador lu " +
             "JOIN FETCH lu.idUtilizador u " +
@@ -306,7 +336,31 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
                                       @Param("data") LocalDate data,
                                       @Param("idUtilizador") Integer idUtilizador);
 
-    /** Cross-store overlap guard — intentionally omits store filter so it detects double-booking across all stores. */
+    /**
+     * Cross-store overlap guard: detects double-booking in OTHER stores only.
+     * Intentionally excludes same-store shifts so that multiple rascunho proposals
+     * from the same store do not block each other during generation.
+     * Returns the conflicting Horario objects for use in error messages.
+     */
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "WHERE u.id = :idUtilizador " +
+            "AND lu.idLoja.id <> :idLoja " +
+            "AND h.dataTurno = :data " +
+            "AND :horaInicio < t.horaFim " +
+            "AND :horaFim > t.horaInicio " +
+            "ORDER BY t.horaInicio")
+    List<Horario> findOverlappingShiftsInOtherStores(
+            @Param("idUtilizador") Integer idUtilizador,
+            @Param("idLoja") Integer idLoja,
+            @Param("data") LocalDate data,
+            @Param("horaInicio") LocalTime horaInicio,
+            @Param("horaFim") LocalTime horaFim);
+
+    /** Legacy count-only variant kept for callers that only need the boolean. */
     @Query("SELECT COUNT(h) FROM Horario h " +
             "WHERE h.idLojautilizador.idUtilizador.id = :idUtilizador " +
             "AND h.dataTurno = :data " +
@@ -316,6 +370,25 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
                                       @Param("data") LocalDate data,
                                       @Param("horaInicio") LocalTime horaInicio,
                                       @Param("horaFim") LocalTime horaFim);
+
+    /**
+     * Returns IDs of users from {@code ids} that already have approved or pending
+     * shifts in any store other than {@code idLoja} for the given period.
+     * Used to warn the manager before generation that those collaborators may
+     * cause a cross-store conflict when the proposal is persisted.
+     */
+    @Query("SELECT DISTINCT lu.idUtilizador.id FROM Horario h " +
+            "JOIN h.idLojautilizador lu " +
+            "LEFT JOIN h.idPropostaHorario ph " +
+            "WHERE lu.idUtilizador.id IN :ids " +
+            "AND lu.idLoja.id <> :idLoja " +
+            "AND h.dataTurno >= :dataInicio AND h.dataTurno <= :dataFim " +
+            "AND (ph IS NULL OR LOWER(ph.estado) IN ('pendente', 'aprovado'))")
+    Set<Integer> findUtilizadoresComTurnosNoutraLoja(
+            @Param("ids") List<Integer> ids,
+            @Param("idLoja") Integer idLoja,
+            @Param("dataInicio") LocalDate dataInicio,
+            @Param("dataFim") LocalDate dataFim);
 
     /** Same as above but excludes a specific Horario row — used when editing an existing record to avoid self-counting. */
     @Query("SELECT COUNT(h) FROM Horario h " +

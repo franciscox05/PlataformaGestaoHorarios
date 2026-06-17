@@ -7,8 +7,16 @@ public record ColaboradorElegivel(
         String cargo,
         String perfilContratual,
         String periodoVinculo,
-        boolean selecionadoPorDefeito
+        boolean selecionadoPorDefeito,
+        boolean temTurnosNoutraLoja
 ) {
+    /** Construtor de compatibilidade sem flag de conflito de loja. */
+    public ColaboradorElegivel(Integer idColaborador, String nome, String cargo,
+                               String perfilContratual, String periodoVinculo,
+                               boolean selecionadoPorDefeito) {
+        this(idColaborador, nome, cargo, perfilContratual, periodoVinculo, selecionadoPorDefeito, false);
+    }
+
     @Override
     public String toString() {
         return nome + " - " + cargo;

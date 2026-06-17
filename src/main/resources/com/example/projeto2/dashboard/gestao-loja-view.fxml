@@ -11,6 +11,7 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -90,22 +91,23 @@
                                          content="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"
                                          styleClass="card-icon" />
                             </StackPane>
-                            <VBox spacing="2.0">
+                            <VBox spacing="2.0" HBox.hgrow="ALWAYS">
                                 <Label styleClass="stat-kicker" text="HOR&#193;RIO" />
                                 <Label styleClass="bento-card-titulo" text="Funcionamento" />
                             </VBox>
+                            <Button onAction="#onGuardarClick" styleClass="botao-acao" text="Guardar configura&#231;&#227;o" />
                         </HBox>
                         <Label styleClass="bento-card-subtitulo"
-                               text="Indica as horas no formato HH:mm. Se a loja fechar ap&#243;s a meia-noite, o fecho pode ser inferior &#224; abertura."
+                               text="Seleciona as horas de abertura e fecho. O sistema cria automaticamente 3 turnos (Manh&#227;, Tarde, Noite) de igual dura&#231;&#227;o ao guardar."
                                wrapText="true" />
                         <HBox spacing="20.0">
                             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                 <Label styleClass="campo-titulo" text="Hora de abertura" />
-                                <TextField fx:id="txtHoraAbertura" promptText="HH:mm" styleClass="campo-input" />
+                                <ComboBox fx:id="cbHoraAbertura" maxWidth="Infinity" promptText="Selecionar hora" styleClass="campo-combo" />
                             </VBox>
                             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                 <Label styleClass="campo-titulo" text="Hora de fecho" />
-                                <TextField fx:id="txtHoraFecho" promptText="HH:mm" styleClass="campo-input" />
+                                <ComboBox fx:id="cbHoraFecho" maxWidth="Infinity" promptText="Selecionar hora" styleClass="campo-combo" />
                             </VBox>
                         </HBox>
                     </VBox>
@@ -129,6 +131,26 @@
                     <Label fx:id="lblMensagem" managed="false" styleClass="mensagem-feedback"
                            text="" visible="false" wrapText="true" />
                     <VBox fx:id="regrasContainer" spacing="32.0" />
+                </VBox>
+
+                <!-- ─── TURNOS ─── -->
+                <VBox spacing="16.0" styleClass="bento-card">
+                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                        <StackPane styleClass="stat-icon-wrap-blue" minWidth="40.0" minHeight="40.0">
+                            <SVGPath fill="#2563eb"
+                                     content="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"
+                                     styleClass="card-icon" />
+                        </StackPane>
+                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                            <Label styleClass="stat-kicker" text="PER&#205;ODOS DE TRABALHO" />
+                            <Label styleClass="bento-card-titulo" text="Turnos" />
+                        </VBox>
+                        <Button onAction="#onRecriarTurnosPadraoClick" styleClass="botao-acao" text="Recriar 3 turnos padr&#227;o" />
+                    </HBox>
+                    <Label styleClass="bento-card-subtitulo"
+                           text="Os 3 turnos (Manh&#227;, Tarde, Noite) s&#227;o gerados automaticamente com base no hor&#225;rio de funcionamento ao guardar a configura&#231;&#227;o."
+                           wrapText="true" />
+                    <VBox fx:id="turnosContainer" spacing="12.0" />
                 </VBox>
 
                                     </VBox>
@@ -195,13 +217,13 @@
                     <HBox spacing="20.0">
                         <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                             <Label styleClass="campo-titulo" text="Hora de abertura especial" />
-                            <TextField fx:id="txtHoraAberturaExcecao" promptText="HH:mm"
-                                       styleClass="campo-input" />
+                            <ComboBox fx:id="cbHoraAberturaExcecao" maxWidth="Infinity"
+                                      promptText="Opcional" styleClass="campo-combo" />
                         </VBox>
                         <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                             <Label styleClass="campo-titulo" text="Hora de fecho especial" />
-                            <TextField fx:id="txtHoraFechoExcecao" promptText="HH:mm"
-                                       styleClass="campo-input" />
+                            <ComboBox fx:id="cbHoraFechoExcecao" maxWidth="Infinity"
+                                      promptText="Opcional" styleClass="campo-combo" />
                         </VBox>
                         <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                             <Label styleClass="campo-titulo" text="M&#237;nimo especial por turno" />

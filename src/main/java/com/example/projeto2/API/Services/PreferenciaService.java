@@ -30,17 +30,20 @@ public class PreferenciaService {
     private final LojautilizadorRepository lojautilizadorRepository;
     private final LojautilizadorHelper lojautilizadorHelper;
     private final NotificacaoService notificacaoService;
+    private final AuditoriaService auditoriaService;
 
     public PreferenciaService(PreferenciaRepository preferenciaRepository,
                           UtilizadorRepository utilizadorRepository,
                           LojautilizadorRepository lojautilizadorRepository,
                           LojautilizadorHelper lojautilizadorHelper,
-                          NotificacaoService notificacaoService) {
+                          NotificacaoService notificacaoService,
+                          AuditoriaService auditoriaService) {
         this.preferenciaRepository = preferenciaRepository;
         this.utilizadorRepository = utilizadorRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.notificacaoService = notificacaoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional(readOnly = true)
@@ -318,6 +321,13 @@ public class PreferenciaService {
                     "A tua preferência de horário (" + tipoFormatado + ") foi " + decisaoLabel + " pela gerência.",
                     idLoja);
         }
+
+        String tipoEvento = "aprovado".equalsIgnoreCase(novoEstado) ? "PREFERENCIA_APROVADA" : "PREFERENCIA_REJEITADA";
+        String desc = preferenciaGuardada.getTipo() != null ? preferenciaGuardada.getTipo() : "?";
+        String detalhe = "Preferência #" + preferenciaGuardada.getId() + " (" + desc + ")"
+                + (idFuncionario != null ? " de colaborador #" + idFuncionario : "")
+                + (decisaoRecebida != null && !decisaoRecebida.isBlank() ? " — " + decisaoRecebida : "");
+        auditoriaService.registar(tipoEvento, idUtilizadorAprovador, detalhe);
 
         return preferenciaGuardada;
     }

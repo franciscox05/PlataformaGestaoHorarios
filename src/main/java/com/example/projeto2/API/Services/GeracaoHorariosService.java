@@ -76,7 +76,7 @@ public class GeracaoHorariosService {
     // Formatadores movidos para HorarioFormatters (Fase 3.1)
     private static final DateTimeFormatter DATA_HORA_FORMATTER = HorarioFormatters.DATA_HORA_FORMATTER;
     private static final DateTimeFormatter DATA_FORMATTER = HorarioFormatters.DATA_FORMATTER;
-    private static final Duration TEMPO_MAXIMO_GERACAO_ALTERNATIVA = Duration.ofSeconds(20);
+    private static final Duration TEMPO_MAXIMO_GERACAO_ALTERNATIVA = Duration.ofSeconds(45);
     private final LojautilizadorRepository lojautilizadorRepository;
     private final LojautilizadorHelper lojautilizadorHelper;
     private final HorarioRepository horarioRepository;
@@ -253,8 +253,18 @@ public class GeracaoHorariosService {
         int mesNormalizado = normalizarMes(mes);
         LocalDate dataInicio = LocalDate.of(anoNormalizado, mesNormalizado, 1);
         LocalDate dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
+        Integer idLoja = ligacaoAtiva.getIdLoja().getId();
 
-        return obterColaboradoresElegiveis(ligacaoAtiva.getIdLoja().getId(), dataInicio, dataFim).stream()
+        List<Lojautilizador> elegiveisList = obterColaboradoresElegiveis(idLoja, dataInicio, dataFim);
+        List<Integer> ids = elegiveisList.stream()
+                .filter(l -> l.getIdUtilizador() != null && l.getIdUtilizador().getId() != null)
+                .map(l -> l.getIdUtilizador().getId())
+                .toList();
+        Set<Integer> comConflito = ids.isEmpty()
+                ? Set.of()
+                : horarioRepository.findUtilizadoresComTurnosNoutraLoja(ids, idLoja, dataInicio, dataFim);
+
+        return elegiveisList.stream()
                 .map(ligacao -> new ColaboradorElegivel(
                         ligacao.getIdUtilizador().getId(),
                         valorOuTraco(ligacao.getIdUtilizador().getNome()),
@@ -263,7 +273,8 @@ public class GeracaoHorariosService {
                                 .map(PerfilContratual::descricaoCurta)
                                 .orElse("-"),
                         formatarPeriodoVinculo(ligacao),
-                        true
+                        true,
+                        comConflito.contains(ligacao.getIdUtilizador().getId())
                 ))
                 .toList();
     }
@@ -526,6 +537,13 @@ public class GeracaoHorariosService {
     @Transactional(readOnly = true)
     public com.example.projeto2.API.Services.geracao.dto.CriteriosGeracao obterCriteriosGeracao(
             Integer idUtilizador, Integer ano, Integer mes) {
+        return obterCriteriosGeracao(idUtilizador, ano, mes, null);
+    }
+
+    @Transactional(readOnly = true)
+    public com.example.projeto2.API.Services.geracao.dto.CriteriosGeracao obterCriteriosGeracao(
+            Integer idUtilizador, Integer ano, Integer mes,
+            Collection<Integer> idsColaboradoresSelecionados) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
         Loja loja = ligacaoAtiva.getIdLoja();
         int anoNormalizado = normalizarAno(ano);
@@ -540,6 +558,19 @@ public class GeracaoHorariosService {
         ParametrosGeracao parametros = regraGeracaoResolver.resolverParametrosGeracao(regras, turnos);
 
         List<Lojautilizador> elegiveis = obterColaboradoresElegiveis(idLoja, dataInicio, dataFim);
+        // Se foram fornecidos IDs de seleção, restringir a equipa mostrada ao motor aos
+        // colaboradores escolhidos — o mesmo filtro aplicado na geração real. Sem seleção
+        // explícita (null ou vazio) usa todos os elegíveis.
+        Set<Integer> idsSelecionados = idsColaboradoresSelecionados != null
+                ? normalizarIds(idsColaboradoresSelecionados)
+                : Set.of();
+        List<Lojautilizador> colaboradoresParaCapacidade = (!idsSelecionados.isEmpty())
+                ? elegiveis.stream()
+                        .filter(lig -> lig.getIdUtilizador() != null
+                                && idsSelecionados.contains(lig.getIdUtilizador().getId()))
+                        .toList()
+                : elegiveis;
+
         List<DayOff> dayOffsAprovados = dayOffRepository.findPedidosAprovadosDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<Preferencia> preferenciasAprovadas = preferenciaRepository.findPreferenciasAprovadasDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<HorarioEspecialLoja> horariosEspeciais = horarioEspecialLojaRepository.findAtivosNoPeriodo(idLoja, dataInicio, dataFim);
@@ -588,10 +619,11 @@ public class GeracaoHorariosService {
             minutosNecessarios += minutosNecessariosPorDia;
         }
 
-        // Capacidade da equipa elegível: carga contratual do perfil de cada colaborador.
+        // Capacidade da equipa: usa os colaboradores selecionados (ou todos os elegíveis se
+        // não houver seleção explícita) — o mesmo conjunto que o motor vai usar na geração.
         long capacidadeMinutos = 0;
         List<String> detalheColaboradores = new ArrayList<>();
-        for (Lojautilizador lig : elegiveis) {
+        for (Lojautilizador lig : colaboradoresParaCapacidade) {
             String cargo = lig.getIdCargo() != null ? valorOuTraco(lig.getIdCargo().getNome()) : "-";
             String tipoCargo = lig.getIdCargo() != null ? lig.getIdCargo().getTipo() : null;
             long minutos = PerfilContratual.fromCargoTipo(tipoCargo)
@@ -795,10 +827,25 @@ public class GeracaoHorariosService {
                     .getOrDefault(ligacao.getIdUtilizador().getId(), 0L);
             resumos.put(ligacao.getIdUtilizador().getId(), new EstadoColaboradorResumo(ligacao, carga));
         }
+        Map<Integer, Set<LocalDate>> fdsTracker = new LinkedHashMap<>();
         for (Horario h : horarios) {
             if (h.getIdLojautilizador() == null || h.getIdLojautilizador().getIdUtilizador() == null) continue;
-            EstadoColaboradorResumo resumo = resumos.get(h.getIdLojautilizador().getIdUtilizador().getId());
-            if (resumo != null) resumo.registarTurno(HorarioFormatters.calcularDuracaoEmMinutos(h.getIdTurno()));
+            Integer idUtil = h.getIdLojautilizador().getIdUtilizador().getId();
+            EstadoColaboradorResumo resumo = resumos.get(idUtil);
+            if (resumo != null) {
+                resumo.registarTurno(HorarioFormatters.calcularDuracaoEmMinutos(h.getIdTurno()));
+                if (h.getDataTurno() != null) {
+                    DayOfWeek dow = h.getDataTurno().getDayOfWeek();
+                    if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) {
+                        fdsTracker.computeIfAbsent(idUtil, ignored -> new LinkedHashSet<>())
+                                .add(h.getDataTurno().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY)));
+                    }
+                }
+            }
+        }
+        for (Map.Entry<Integer, Set<LocalDate>> entry : fdsTracker.entrySet()) {
+            EstadoColaboradorResumo resumo = resumos.get(entry.getKey());
+            if (resumo != null) resumo.totalFinsDeSemanaTrabalhados = entry.getValue().size();
         }
 
         List<String> avisos = PreferenciasGeracaoBuilder.construirAvisosNaoHonrados(

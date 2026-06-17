@@ -60,25 +60,6 @@ public class PreferenciasController {
     @FXML private TableColumn<Preferencia, String> colEstado;
     @FXML private TableColumn<Preferencia, String> colDescricao;
 
-    @FXML private VBox painelAprovacao;
-    @FXML private TableView<Preferencia> tabelaPreferenciasPendentes;
-    @FXML private TableColumn<Preferencia, String> colColaboradorPendente;
-    @FXML private TableColumn<Preferencia, String> colTipoPendente;
-    @FXML private TableColumn<Preferencia, String> colPeriodoPendente;
-    @FXML private TableColumn<Preferencia, String> colPrioridadePendente;
-    @FXML private TableColumn<Preferencia, String> colDescricaoPendente;
-    @FXML private TextArea txtDecisaoGestor;
-    @FXML private Label lblFeedbackGestao;
-    @FXML private Button btnAprovarPreferencia;
-    @FXML private Button btnRejeitarPreferencia;
-
-    @FXML private TableView<Preferencia> tabelaHistoricoDecisoes;
-    @FXML private TableColumn<Preferencia, String> colColaboradorHistorico;
-    @FXML private TableColumn<Preferencia, String> colEstadoHistorico;
-    @FXML private TableColumn<Preferencia, String> colDecisaoHistorico;
-    @FXML private TableColumn<Preferencia, String> colDecisorHistorico;
-    @FXML private TableColumn<Preferencia, String> colDataDecisaoHistorico;
-
     // ── State ────────────────────────────────────────────────────────────────────
 
     private final PreferenciaService preferenciaBLL;
@@ -101,12 +82,9 @@ public class PreferenciasController {
         cbDuracaoPreferida.setValue("Indiferente");
 
         configurarTabelaHistoricoProprio();
-        configurarTabelaPendentes();
-        configurarTabelaHistoricoDecisoes();
         configurarAcoes();
         limparFormulario();
         esconderFeedback();
-        esconderFeedbackGestao();
 
         cbTipo.setTooltip(new Tooltip("Tipo de preferência: folgas, férias, folga preferida (recorrente soft), colegas ou turnos"));
         dpDataInicio.setTooltip(new Tooltip("Data a partir da qual a preferência é válida"));
@@ -114,8 +92,6 @@ public class PreferenciasController {
         txtDescricao.setTooltip(new Tooltip("Notas adicionais para o gestor (opcional)"));
 
         tabelaPreferencias.setPlaceholder(new Label("Ainda não tens preferências registadas."));
-        tabelaPreferenciasPendentes.setPlaceholder(new Label("Não existem preferências pendentes para decidir nesta loja."));
-        tabelaHistoricoDecisoes.setPlaceholder(new Label("Ainda não existem decisões registadas nesta loja."));
 
         btnGuardarPreferencia.disableProperty().bind(Bindings.createBooleanBinding(
                 () -> {
@@ -131,13 +107,7 @@ public class PreferenciasController {
                 },
                 tabelaPreferencias.getSelectionModel().selectedItemProperty()
         ));
-        btnAprovarPreferencia.disableProperty().bind(
-                Bindings.isNull(tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty()));
-        btnRejeitarPreferencia.disableProperty().bind(
-                Bindings.isNull(tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty()));
 
-        painelAprovacao.setManaged(false);
-        painelAprovacao.setVisible(false);
         painelTurnos.setManaged(false);
         painelTurnos.setVisible(false);
 
@@ -149,7 +119,6 @@ public class PreferenciasController {
         this.utilizadorLogado = utilizadorLogado;
         carregarColegasDaLoja();
         carregarPreferencias();
-        configurarPainelAprovacao();
     }
 
     // ── FXML event handlers ──────────────────────────────────────────────────────
@@ -232,16 +201,6 @@ public class PreferenciasController {
         }
     }
 
-    @FXML
-    public void onAprovarPreferenciaClick() {
-        tratarDecisaoPreferencia(true);
-    }
-
-    @FXML
-    public void onRejeitarPreferenciaClick() {
-        tratarDecisaoPreferencia(false);
-    }
-
     // ── Table configuration ──────────────────────────────────────────────────────
 
     private void configurarTabelaHistoricoProprio() {
@@ -256,33 +215,6 @@ public class PreferenciasController {
         colEstado.setCellFactory(col -> PreferenciaFormatters.criarCelulaBadgeEstado());
         colDescricao.setCellValueFactory(cd ->
                 new SimpleStringProperty(cd.getValue().getDescricao()));
-    }
-
-    private void configurarTabelaPendentes() {
-        colColaboradorPendente.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.obterNomeUtilizador(cd.getValue().getIdUtilizador())));
-        colTipoPendente.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.formatarTipo(cd.getValue().getTipo())));
-        colPeriodoPendente.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.formatarPeriodo(cd.getValue())));
-        colPrioridadePendente.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.formatarVigencia(cd.getValue())));
-        colDescricaoPendente.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.formatarDescricao(cd.getValue().getDescricao())));
-    }
-
-    private void configurarTabelaHistoricoDecisoes() {
-        colColaboradorHistorico.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.obterNomeUtilizador(cd.getValue().getIdUtilizador())));
-        colEstadoHistorico.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.formatarEstado(cd.getValue().getEstado())));
-        colEstadoHistorico.setCellFactory(col -> PreferenciaFormatters.criarCelulaBadgeEstado());
-        colDecisaoHistorico.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.formatarDecisao(cd.getValue().getDecisao())));
-        colDecisorHistorico.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.obterNomeUtilizador(cd.getValue().getIdDecisor())));
-        colDataDecisaoHistorico.setCellValueFactory(cd ->
-                new SimpleStringProperty(PreferenciaFormatters.formatarDataDecisao(cd.getValue().getDataDecisao())));
     }
 
     // ── Actions and listeners ────────────────────────────────────────────────────
@@ -328,9 +260,6 @@ public class PreferenciasController {
         chkSemDataFim.selectedProperty().addListener((obs, a, n) -> { atualizarEstadoDatas(); esconderFeedback(); });
         txtDescricao.textProperty().addListener((obs, a, n) -> esconderFeedback());
 
-        tabelaPreferenciasPendentes.getSelectionModel().selectedItemProperty()
-                .addListener((obs, a, n) -> { txtDecisaoGestor.clear(); esconderFeedbackGestao(); });
-        txtDecisaoGestor.textProperty().addListener((obs, a, n) -> esconderFeedbackGestao());
     }
 
     // ── Data loading ─────────────────────────────────────────────────────────────
@@ -343,42 +272,6 @@ public class PreferenciasController {
         List<Preferencia> preferencias = preferenciaBLL.listarPreferenciasPorUtilizador(utilizadorLogado.getId());
         tabelaPreferencias.setItems(FXCollections.observableArrayList(preferencias));
         tabelaPreferencias.refresh();
-    }
-
-    private void configurarPainelAprovacao() {
-        boolean podeAprovar = utilizadorLogado != null
-                && preferenciaBLL.utilizadorPodeAprovarPreferencias(utilizadorLogado.getId());
-        painelAprovacao.setManaged(podeAprovar);
-        painelAprovacao.setVisible(podeAprovar);
-        if (podeAprovar) {
-            carregarPreferenciasPendentes();
-            carregarHistoricoDecisoes();
-        } else {
-            tabelaPreferenciasPendentes.setItems(FXCollections.observableArrayList());
-            tabelaHistoricoDecisoes.setItems(FXCollections.observableArrayList());
-        }
-    }
-
-    private void carregarPreferenciasPendentes() {
-        if (utilizadorLogado == null
-                || !preferenciaBLL.utilizadorPodeAprovarPreferencias(utilizadorLogado.getId())) {
-            tabelaPreferenciasPendentes.setItems(FXCollections.observableArrayList());
-            return;
-        }
-        List<Preferencia> pendentes = preferenciaBLL.listarPreferenciasPendentesParaAprovacao(utilizadorLogado.getId());
-        tabelaPreferenciasPendentes.setItems(FXCollections.observableArrayList(pendentes));
-        tabelaPreferenciasPendentes.refresh();
-    }
-
-    private void carregarHistoricoDecisoes() {
-        if (utilizadorLogado == null
-                || !preferenciaBLL.utilizadorPodeAprovarPreferencias(utilizadorLogado.getId())) {
-            tabelaHistoricoDecisoes.setItems(FXCollections.observableArrayList());
-            return;
-        }
-        List<Preferencia> historico = preferenciaBLL.listarHistoricoDecisoesDaLoja(utilizadorLogado.getId());
-        tabelaHistoricoDecisoes.setItems(FXCollections.observableArrayList(historico));
-        tabelaHistoricoDecisoes.refresh();
     }
 
     // ── Form management ──────────────────────────────────────────────────────────
@@ -408,45 +301,6 @@ public class PreferenciasController {
         txtDescricao.setPromptText("Explica a tua preferência com detalhe suficiente para ser analisada.");
     }
 
-    // ── Decision handling ────────────────────────────────────────────────────────
-
-    private void tratarDecisaoPreferencia(boolean aprovar) {
-        try {
-            if (utilizadorLogado == null) {
-                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
-            }
-            Preferencia selecionada = tabelaPreferenciasPendentes.getSelectionModel().getSelectedItem();
-            if (selecionada == null) {
-                throw new IllegalArgumentException("Seleciona uma preferência pendente primeiro.");
-            }
-            if (!DialogosHelper.confirmarAcao(
-                    obterJanela(),
-                    aprovar ? "Aprovar preferência" : "Rejeitar preferência",
-                    aprovar ? "Deseja aprovar esta preferência?" : "Deseja rejeitar esta preferência?",
-                    aprovar ? "A decisão ficará registada para a loja." : "A rejeição ficará registada para a loja."
-            )) {
-                return;
-            }
-
-            if (aprovar) {
-                preferenciaBLL.aprovarPreferencia(selecionada.getId(), utilizadorLogado.getId(), txtDecisaoGestor.getText());
-                mostrarFeedbackGestao("Preferência aprovada com sucesso.", true);
-            } else {
-                preferenciaBLL.rejeitarPreferencia(selecionada.getId(), utilizadorLogado.getId(), txtDecisaoGestor.getText());
-                mostrarFeedbackGestao("Preferência rejeitada com sucesso.", true);
-            }
-
-            txtDecisaoGestor.clear();
-            tabelaPreferenciasPendentes.getSelectionModel().clearSelection();
-            carregarPreferenciasPendentes();
-            carregarHistoricoDecisoes();
-        } catch (IllegalArgumentException e) {
-            mostrarFeedbackGestao(e.getMessage(), false);
-        } catch (Exception e) {
-            mostrarFeedbackGestao("Não foi possível atualizar a decisão da preferência.", false);
-        }
-    }
-
     // ── Feedback display ─────────────────────────────────────────────────────────
 
     private void mostrarFeedback(String mensagem, boolean sucesso) {
@@ -466,25 +320,6 @@ public class PreferenciasController {
         lblFeedback.setVisible(false);
         lblFeedback.setManaged(false);
         lblFeedback.setText("");
-    }
-
-    private void mostrarFeedbackGestao(String mensagem, boolean sucesso) {
-        lblFeedbackGestao.setText(mensagem);
-        lblFeedbackGestao.getStyleClass().removeAll("mensagem-sucesso", "mensagem-erro");
-        lblFeedbackGestao.getStyleClass().addAll("mensagem-feedback", sucesso ? "mensagem-sucesso" : "mensagem-erro");
-        lblFeedbackGestao.setVisible(true);
-        lblFeedbackGestao.setManaged(true);
-        if (sucesso) {
-            javafx.animation.PauseTransition p = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5));
-            p.setOnFinished(e -> esconderFeedbackGestao());
-            p.play();
-        }
-    }
-
-    private void esconderFeedbackGestao() {
-        lblFeedbackGestao.setVisible(false);
-        lblFeedbackGestao.setManaged(false);
-        lblFeedbackGestao.setText("");
     }
 
     // ── Business logic helpers ───────────────────────────────────────────────────
