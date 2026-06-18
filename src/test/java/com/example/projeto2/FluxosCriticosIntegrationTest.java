@@ -80,7 +80,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
     }
 
     @Test
-    void preferenciaAprovadaPelaGerenciaFicaNoHistoricoENaoPodeSerEditada() {
+    void preferenciaAprovadaPelaGerenciaFicaNoHistoricoEPodeSerEditadaVoltandoAPendente() {
         LojaFixture fixture = criarLojaComEquipaCompleta("preferencias");
         Utilizador gerente = fixture.gerente();
         Utilizador colaborador = fixture.colaboradores().get(0);
@@ -104,6 +104,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         assertTrue(preferenciaBLL.listarHistoricoDecisoesDaLoja(gerente.getId()).stream()
                 .anyMatch(preferencia -> guardada.getId().equals(preferencia.getId())));
 
+        // Editar uma preferência aprovada é permitido — volta a pendente para nova aprovação
         Preferencia tentativaEdicao = new Preferencia();
         tentativaEdicao.setId(aprovada.getId());
         tentativaEdicao.setTipo(aprovada.getTipo());
@@ -112,11 +113,9 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         tentativaEdicao.setPrioridade(aprovada.getPrioridade());
         tentativaEdicao.setDescricao("Descricao alterada apos aprovacao.");
 
-        IllegalArgumentException erro = assertThrows(
-                IllegalArgumentException.class,
-                () -> preferenciaBLL.guardarPreferencia(colaborador.getId(), tentativaEdicao)
-        );
-        assertEquals("So podes editar preferencias pendentes.", erro.getMessage());
+        Preferencia editada = preferenciaBLL.guardarPreferencia(colaborador.getId(), tentativaEdicao);
+        assertEquals("pendente", editada.getEstado());
+        assertEquals("Descricao alterada apos aprovacao.", editada.getDescricao());
     }
 
     @Test

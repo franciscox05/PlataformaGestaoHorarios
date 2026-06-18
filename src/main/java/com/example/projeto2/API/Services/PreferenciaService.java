@@ -156,16 +156,19 @@ public class PreferenciaService {
         if (preferenciaRecebida.getId() != null) {
             preferenciaPersistida = preferenciaRepository.findByIdAndIdUtilizadorId(preferenciaRecebida.getId(), idUtilizador)
                     .orElseThrow(() -> new IllegalArgumentException("Nao foi possivel atualizar a preferencia selecionada."));
-
-            if (!preferenciaPodeSerEditada(preferenciaPersistida)) {
-                throw new IllegalArgumentException("So podes editar preferencias pendentes.");
-            }
         } else {
             preferenciaPersistida = new Preferencia();
             preferenciaPersistida.setIdUtilizador(utilizador);
         }
 
         String tipoNormalizado = normalizarTipo(preferenciaRecebida.getTipo());
+
+        if (preferenciaPersistida.getId() == null
+                && preferenciaRepository.existsPreferenciaAtivaPorTipo(idUtilizador, tipoNormalizado)) {
+            throw new IllegalArgumentException(
+                    "Já tens uma preferência de " + formatarTipoParaMensagem(tipoNormalizado)
+                    + " registada. Edita ou remove a existente antes de criar uma nova.");
+        }
         String descricaoNormalizada = normalizarDescricao(preferenciaRecebida.getDescricao());
         Integer prioridadeNormalizada = normalizarPrioridade(preferenciaRecebida.getPrioridade(), tipoNormalizado);
         LocalDate dataInicio = normalizarDataInicio(
@@ -223,11 +226,6 @@ public class PreferenciaService {
     @Transactional
     public void removerPreferencia(Integer idUtilizador, Integer idPreferencia) {
         Preferencia preferencia = obterPreferenciaDoUtilizador(idUtilizador, idPreferencia);
-
-        if (!preferenciaPodeSerEditada(preferencia)) {
-            throw new IllegalArgumentException("So podes remover preferencias pendentes.");
-        }
-
         preferenciaRepository.delete(preferencia);
     }
 
@@ -434,6 +432,18 @@ public class PreferenciaService {
                                                Integer idIgnorado) {
         return preferenciaRepository.existsPreferenciaDuplicada(
                 idUtilizador, tipo, descricao, prioridade, dataInicio, dataFim, idIgnorado);
+    }
+
+    private String formatarTipoParaMensagem(String tipo) {
+        if (tipo == null) return "preferência";
+        return switch (tipo) {
+            case "folga_preferida" -> "folga preferida semanal";
+            case "colegas"         -> "colegas preferidos";
+            case "turnos"          -> "turnos preferidos";
+            case "folgas"          -> "folgas";
+            case "ferias"          -> "férias";
+            default                -> tipo;
+        };
     }
 
     private boolean preferenciaPodeSerEditada(Preferencia preferencia) {

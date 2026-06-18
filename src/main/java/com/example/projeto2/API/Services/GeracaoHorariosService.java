@@ -553,7 +553,7 @@ public class GeracaoHorariosService {
         Integer idLoja = loja.getId();
         DateTimeFormatter formatoDia = DateTimeFormatter.ofPattern("dd/MM");
 
-        List<Turno> turnos = turnoRepository.findAllByOrderByHoraInicioAsc();
+        List<Turno> turnos = turnoRepository.findAllAtivosOrderByHoraInicioAsc();
         List<RegraAplicada> regras = regraGeracaoResolver.obterRegrasAplicadas(idLoja);
         ParametrosGeracao parametros = regraGeracaoResolver.resolverParametrosGeracao(regras, turnos);
 
@@ -759,7 +759,7 @@ public class GeracaoHorariosService {
             throw new IllegalArgumentException("Nao e possivel gerar horarios sem colaboradores elegiveis e com vinculo valido na loja.");
         }
 
-        List<Turno> turnos = turnoRepository.findAllByOrderByHoraInicioAsc();
+        List<Turno> turnos = turnoRepository.findAllAtivosOrderByHoraInicioAsc();
         if (turnos.isEmpty()) {
             throw new IllegalArgumentException("Nao existem turnos base configurados para gerar a proposta.");
         }

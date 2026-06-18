@@ -97,6 +97,14 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
     long countPreferenciasPendentesDaLoja(@Param("idLoja") Integer idLoja,
                                           @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
 
+    @Query(value = "SELECT COUNT(*) > 0 FROM preferencias p " +
+            "WHERE p.id_utilizador = :idUtilizador " +
+            "AND LOWER(p.tipo) = LOWER(:tipo) " +
+            "AND LOWER(COALESCE(p.estado,'')) <> 'rejeitado'",
+            nativeQuery = true)
+    boolean existsPreferenciaAtivaPorTipo(@Param("idUtilizador") Integer idUtilizador,
+                                          @Param("tipo") String tipo);
+
     // IS NOT DISTINCT FROM is PostgreSQL's null-safe equality (NULL IS NOT DISTINCT FROM NULL = TRUE).
     // Used here because Hibernate 6 cannot infer types for null JPQL named parameters in IS NULL tests.
     @Query(value = "SELECT COUNT(*) > 0 " +

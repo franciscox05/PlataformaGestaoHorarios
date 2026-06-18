@@ -36,7 +36,7 @@
             <Region minHeight="24.0" />
 
             <HBox alignment="TOP_LEFT" spacing="16.0">
-                <VBox fx:id="painelFormulario" spacing="14.0" styleClass="bento-card" HBox.hgrow="ALWAYS">
+                <VBox fx:id="painelFormulario" spacing="14.0" styleClass="bento-card" HBox.hgrow="ALWAYS" prefWidth="0">
                     <Label fx:id="lblTituloFormulario" styleClass="card-titulo" text="Nova Prefer&#234;ncia" />
 
                     <VBox spacing="5.0">
@@ -44,9 +44,18 @@
                         <ComboBox fx:id="cbTipo" maxWidth="Infinity" promptText="Seleciona o tipo" styleClass="campo-combo" />
                     </VBox>
 
-                    <VBox fx:id="painelColega" managed="false" spacing="5.0" visible="false">
-                        <Label styleClass="campo-titulo" text="Colega preferido" />
-                        <ComboBox fx:id="cbColegaPreferido" maxWidth="Infinity" promptText="Seleciona um colega" styleClass="campo-combo" />
+                    <VBox fx:id="painelColega" managed="false" spacing="8.0" visible="false">
+                        <Label styleClass="campo-titulo" text="Colegas preferidos (at&#233; 2)" />
+                        <Label styleClass="texto-ajuda" wrapText="true"
+                               text="O gerador tenta escalar-te com estes colegas sempre que poss&#237;vel." />
+                        <VBox spacing="4.0">
+                            <Label styleClass="campo-titulo" text="1.&#186; colega" />
+                            <ComboBox fx:id="cbColega1" maxWidth="Infinity" promptText="Seleciona um colega" styleClass="campo-combo" />
+                        </VBox>
+                        <VBox spacing="4.0">
+                            <Label styleClass="campo-titulo" text="2.&#186; colega (opcional)" />
+                            <ComboBox fx:id="cbColega2" maxWidth="Infinity" promptText="Opcional" styleClass="campo-combo" />
+                        </VBox>
                     </VBox>
 
                     <VBox fx:id="painelTurnos" managed="false" spacing="10.0" styleClass="bento-card-accent" visible="false">
@@ -108,7 +117,7 @@
                     </HBox>
                 </VBox>
 
-                <VBox spacing="10.0" styleClass="bento-card" HBox.hgrow="ALWAYS">
+                <VBox spacing="10.0" styleClass="bento-card" HBox.hgrow="ALWAYS" prefWidth="0">
                     <Label styleClass="card-titulo" text="As minhas prefer&#234;ncias" />
                     <Label styleClass="subtitulo" text="Hist&#243;rico das prefer&#234;ncias que registaste." />
                     <TableView fx:id="tabelaPreferencias" VBox.vgrow="ALWAYS" styleClass="tabela-premium">

@@ -501,7 +501,11 @@ public class PainelGerentePedidosController {
                     utilizadorLogado.getId(), tipoPedido, idPedido);
 
             lblContextoPedidoSelecionado.setText(descreverPedido(contexto));
-            lblContextoPeriodo.setText(descreverPeriodoContexto(contexto.snapshotRelacionada().intervalo()));
+            boolean preferenciaPermamente = contexto.pedido().tipo() == SnapshotOperacionalLojaService.TipoPedidoOperacional.PREFERENCIA
+                    && contexto.pedido().dataFim() == null;
+            lblContextoPeriodo.setText(preferenciaPermamente
+                    ? "Preferência sem data de fim (permanente até o colaborador cancelar) · escala de contexto: próximos 30 dias"
+                    : descreverPeriodoContexto(contexto.snapshotRelacionada().intervalo()));
             lblContextoResumo.setText(contexto.pedido().resumo());
             lblContextoMotivoCompleto.setText(contexto.pedido().motivoCompleto());
 

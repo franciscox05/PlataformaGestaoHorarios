@@ -42,7 +42,8 @@ public class PreferenciasController {
     @FXML private Label lblTituloFormulario;
     @FXML private ComboBox<String> cbTipo;
     @FXML private VBox painelColega;
-    @FXML private ComboBox<String> cbColegaPreferido;
+    @FXML private ComboBox<String> cbColega1;
+    @FXML private ComboBox<String> cbColega2;
     @FXML private VBox painelTurnos;
     @FXML private CheckBox chkTurnoManha;
     @FXML private CheckBox chkTurnoIntermedio;
@@ -123,18 +124,8 @@ public class PreferenciasController {
 
         tabelaPreferencias.setPlaceholder(new Label("Ainda não tens preferências registadas."));
 
-        btnGuardarPreferencia.disableProperty().bind(Bindings.createBooleanBinding(
-                () -> {
-                    Preferencia sel = tabelaPreferencias.getSelectionModel().getSelectedItem();
-                    return sel != null && !preferenciaPodeSerEditada(sel);
-                },
-                tabelaPreferencias.getSelectionModel().selectedItemProperty()
-        ));
         btnRemoverPreferencia.disableProperty().bind(Bindings.createBooleanBinding(
-                () -> {
-                    Preferencia sel = tabelaPreferencias.getSelectionModel().getSelectedItem();
-                    return sel == null || !preferenciaPodeSerEditada(sel);
-                },
+                () -> tabelaPreferencias.getSelectionModel().getSelectedItem() == null,
                 tabelaPreferencias.getSelectionModel().selectedItemProperty()
         ));
 
@@ -145,7 +136,7 @@ public class PreferenciasController {
         painelFolgaPreferida.setVisible(false);
 
         descricaoBuilder = new PreferenciaDescricaoBuilder(
-                cbColegaPreferido, chkTurnoManha, chkTurnoIntermedio, chkTurnoNoite, cbDuracaoPreferida);
+                cbColega1, cbColega2, chkTurnoManha, chkTurnoIntermedio, chkTurnoNoite, cbDuracaoPreferida);
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -283,11 +274,11 @@ public class PreferenciasController {
             txtDescricao.setText(descricaoBuilder.obterNotaLivre(nova));
             atualizarEstadoDatas();
 
-            if (!preferenciaPodeSerEditada(nova)) {
-                mostrarFeedback(
-                        "Esta preferência já foi decidida. Regista uma nova preferência se precisares de alterar o pedido.",
-                        false
-                );
+            String estado = nova.getEstado();
+            if ("aprovado".equalsIgnoreCase(estado)) {
+                mostrarFeedback("Preferência aprovada. Podes editá-la (volta a ficar pendente) ou removê-la.", true);
+            } else if ("rejeitado".equalsIgnoreCase(estado)) {
+                mostrarFeedback("Preferência rejeitada. Podes editá-la para resubmeter ou removê-la.", true);
             } else {
                 esconderFeedback();
             }
@@ -297,7 +288,15 @@ public class PreferenciasController {
         cbTipo.valueProperty().addListener((obs, a, n) -> configurarTipoSelecionado());
         dpDataInicio.valueProperty().addListener((obs, a, n) -> esconderFeedback());
         dpDataFim.valueProperty().addListener((obs, a, n) -> esconderFeedback());
-        cbColegaPreferido.valueProperty().addListener((obs, a, n) -> esconderFeedback());
+        cbColega1.valueProperty().addListener((obs, a, n) -> esconderFeedback());
+        cbColega2.valueProperty().addListener((obs, a, n) -> {
+            if (n != null && n.equals(cbColega1.getValue())) {
+                cbColega2.setValue(null);
+                mostrarFeedback("Não podes selecionar o mesmo colega mais do que uma vez.", false);
+            } else {
+                esconderFeedback();
+            }
+        });
         cbDuracaoPreferida.valueProperty().addListener((obs, a, n) -> esconderFeedback());
         chkTurnoManha.selectedProperty().addListener((obs, a, n) -> esconderFeedback());
         chkTurnoIntermedio.selectedProperty().addListener((obs, a, n) -> esconderFeedback());
@@ -328,7 +327,8 @@ public class PreferenciasController {
         btnCancelarEdicao.setDisable(true);
 
         cbTipo.setValue(null);
-        cbColegaPreferido.setValue(null);
+        cbColega1.setValue(null);
+        cbColega2.setValue(null);
         cbDiaSemana.setValue(null);
         chkTurnoManha.setSelected(false);
         chkTurnoIntermedio.setSelected(false);
@@ -396,13 +396,15 @@ public class PreferenciasController {
     private void carregarColegasDaLoja() {
         if (utilizadorLogado == null) {
             colegasDaLoja = List.of();
-            cbColegaPreferido.setItems(FXCollections.observableArrayList());
-            cbColegaPreferido.setPromptText("Sem colegas disponíveis");
+            var lista = FXCollections.<String>observableArrayList();
+            cbColega1.setItems(lista);
+            cbColega2.setItems(lista);
             return;
         }
         colegasDaLoja = new ArrayList<>(preferenciaBLL.listarColegasDaLoja(utilizadorLogado.getId()));
-        cbColegaPreferido.setItems(FXCollections.observableArrayList(colegasDaLoja));
-        cbColegaPreferido.setPromptText(colegasDaLoja.isEmpty() ? "Sem colegas disponíveis" : "Seleciona um colega");
+        var lista = FXCollections.observableArrayList(colegasDaLoja);
+        cbColega1.setItems(lista);
+        cbColega2.setItems(lista);
     }
 
     private void configurarTipoSelecionado() {
@@ -418,10 +420,10 @@ public class PreferenciasController {
         painelTurnos.setVisible(tipoTurnos);
         painelFolgaPreferida.setManaged(tipoFolgaPreferida);
         painelFolgaPreferida.setVisible(tipoFolgaPreferida);
-        painelDatas.setManaged(!tipoFolgaPreferida);
-        painelDatas.setVisible(!tipoFolgaPreferida);
+        painelDatas.setManaged(!tipoFolgaPreferida && !tipoColegas);
+        painelDatas.setVisible(!tipoFolgaPreferida && !tipoColegas);
 
-        if (!tipoColegas) cbColegaPreferido.setValue(null);
+        if (!tipoColegas) { cbColega1.setValue(null); cbColega2.setValue(null); }
         if (!tipoTurnos) {
             chkTurnoManha.setSelected(false);
             chkTurnoIntermedio.setSelected(false);
@@ -430,8 +432,8 @@ public class PreferenciasController {
         }
         if (!tipoFolgaPreferida) cbDiaSemana.setValue(null);
 
-        chkSemDataFim.setDisable(!permiteSemFim || tipoFolgaPreferida);
-        if (!permiteSemFim || tipoFolgaPreferida) chkSemDataFim.setSelected(false);
+        chkSemDataFim.setDisable(!permiteSemFim || tipoFolgaPreferida || tipoColegas);
+        if (!permiteSemFim || tipoFolgaPreferida || tipoColegas) chkSemDataFim.setSelected(false);
 
         if (tipoColegas) {
             txtDescricao.setPromptText("Se quiseres, acrescenta contexto adicional para esta preferência.");
@@ -481,6 +483,7 @@ public class PreferenciasController {
     }
 
     private LocalDate resolverDataFim(String tipoNormalizado) {
+        if ("colegas".equals(tipoNormalizado)) return null;
         if (chkSemDataFim.isSelected() && permitePreferenciaSemDataFim(tipoNormalizado)) return null;
         return dpDataFim.getValue();
     }

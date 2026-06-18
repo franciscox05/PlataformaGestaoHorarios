@@ -12,6 +12,16 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
 
     List<Turno> findAllByOrderByHoraInicioAsc();
 
+    @Query("SELECT t FROM Turno t WHERE t.ativo = true ORDER BY t.horaInicio ASC")
+    List<Turno> findAllAtivosOrderByHoraInicioAsc();
+
+    @Query(value = "SELECT COUNT(*) > 0 FROM horarios h " +
+            "WHERE h.id_turno = :idTurno " +
+            "AND h.data_turno >= CURRENT_DATE " +
+            "AND LOWER(h.estado) IN ('aprovado', 'publicado')",
+            nativeQuery = true)
+    boolean existeEmHorariosFuturosAprovados(@Param("idTurno") Integer idTurno);
+
     @Query("""
             SELECT t FROM Turno t
             WHERE t.horaInicio < :horaFim AND t.horaFim > :horaInicio

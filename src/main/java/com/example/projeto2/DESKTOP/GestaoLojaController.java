@@ -50,8 +50,8 @@ public class GestaoLojaController {
     @FXML private Label lblNomeLoja;
     @FXML private Label lblLocalizacao;
     @FXML private Label lblCargoGestor;
-    @FXML private ComboBox<String> cbHoraAbertura;
-    @FXML private ComboBox<String> cbHoraFecho;
+    @FXML private Label lblHoraAbertura;
+    @FXML private Label lblHoraFecho;
     @FXML private Label lblMensagem;
     @FXML private VBox regrasContainer;
 
@@ -75,6 +75,12 @@ public class GestaoLojaController {
     @FXML private TableColumn<GestaoLojaService.HorarioEspecialResumo, String> colTurnosCompativeisExcecao;
 
     @FXML private VBox turnosContainer;
+    @FXML private VBox painelCriarTurno;
+    @FXML private Label lblTituloFormTurno;
+    @FXML private TextField txtNomeTurno;
+    @FXML private ComboBox<String> cbHoraInicioTurno;
+    @FXML private ComboBox<String> cbHoraFimTurno;
+    @FXML private Label lblMensagemTurnos;
 
     private final GestaoLojaService gestaoLojaBLL;
     private final Map<Integer, TextField> camposValor = new LinkedHashMap<>();
@@ -84,6 +90,9 @@ public class GestaoLojaController {
     private final Set<Integer> regrasAdicionadasNaSessao = new LinkedHashSet<>();
     private Utilizador utilizadorLogado;
     private Integer idHorarioEspecialEmEdicao;
+    private Integer idTurnoEmEdicao;
+    private LocalTime horaAberturaAtual;
+    private LocalTime horaFechoAtual;
 
     public GestaoLojaController(GestaoLojaService gestaoLojaBLL) {
         this.gestaoLojaBLL = gestaoLojaBLL;
@@ -93,7 +102,9 @@ public class GestaoLojaController {
     public void initialize() {
         esconderMensagem();
         esconderMensagemExcecao();
-        popularComboBoxesHora();
+        popularComboBoxesHoraExcecoes();
+        cbHoraInicioTurno.getItems().setAll(OPCOES_HORA);
+        cbHoraFimTurno.getItems().setAll(OPCOES_HORA);
         configurarOcultacaoFeedback();
         configurarTabelaHorariosEspeciais();
         configurarFormularioEncerrada();
@@ -117,14 +128,14 @@ public class GestaoLojaController {
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     "Guardar configuração",
-                    "Deseja guardar a configuração da loja?",
-                    "Se o horário de funcionamento for alterado, os 3 turnos serão recriados e todos os horários existentes serão apagados."
+                    "Deseja guardar as regras da loja?",
+                    "As regras ficam ativas na próxima geração de horários."
             )) {
                 return;
             }
 
-            LocalTime horaAbertura = parseHoraComboBox(cbHoraAbertura.getValue(), "abertura");
-            LocalTime horaFecho = parseHoraComboBox(cbHoraFecho.getValue(), "fecho");
+            LocalTime horaAbertura = horaAberturaAtual;
+            LocalTime horaFecho = horaFechoAtual;
 
             List<GestaoLojaService.ConfiguracaoRegraRequest> regras = new ArrayList<>();
             for (Map.Entry<Integer, TextField> entry : camposValor.entrySet()) {
@@ -149,27 +160,6 @@ public class GestaoLojaController {
             mostrarMensagem(e.getMessage(), false);
         } catch (Exception e) {
             mostrarMensagem("Não foi possível guardar a configuração da loja.", false);
-        }
-    }
-
-    @FXML
-    public void onRecriarTurnosPadraoClick() {
-        if (!DialogosHelper.confirmarAcao(
-                obterJanela(),
-                "Recriar 3 turnos padrão",
-                "Todos os horários existentes serão eliminados e os 3 turnos (Manhã, Tarde, Noite) recriados com base no horário de funcionamento atual.",
-                "Esta ação não pode ser desfeita."
-        )) {
-            return;
-        }
-        try {
-            gestaoLojaBLL.recriarTurnosPadrao(utilizadorLogado.getId());
-            mostrarMensagem("3 turnos padrão criados. Os horários anteriores foram eliminados.", true);
-            carregarDados();
-        } catch (IllegalArgumentException e) {
-            mostrarMensagem(e.getMessage(), false);
-        } catch (Exception e) {
-            mostrarMensagem("Não foi possível recriar os turnos.", false);
         }
     }
 
@@ -271,8 +261,17 @@ public class GestaoLojaController {
             lblNomeLoja.setText(resumo.nomeLoja());
             lblLocalizacao.setText(resumo.localizacao());
             lblCargoGestor.setText(resumo.cargoGestor());
-            cbHoraAbertura.setValue(resumo.horaAbertura().isBlank() ? null : resumo.horaAbertura());
-            cbHoraFecho.setValue(resumo.horaFecho().isBlank() ? null : resumo.horaFecho());
+            lblHoraAbertura.setText(resumo.horaAbertura().isBlank() ? "-" : resumo.horaAbertura());
+            lblHoraFecho.setText(resumo.horaFecho().isBlank() ? "-" : resumo.horaFecho());
+            try {
+                horaAberturaAtual = resumo.horaAbertura().isBlank() ? null
+                        : LocalTime.parse(resumo.horaAbertura(), DateTimeFormatter.ofPattern("HH:mm"));
+                horaFechoAtual = resumo.horaFecho().isBlank() ? null
+                        : LocalTime.parse(resumo.horaFecho(), DateTimeFormatter.ofPattern("HH:mm"));
+            } catch (Exception ignored) {
+                horaAberturaAtual = null;
+                horaFechoAtual = null;
+            }
 
             preencherRegras(resumo.regras());
             preencherHorariosEspeciais(resumo.horariosEspeciais());
@@ -281,8 +280,10 @@ public class GestaoLojaController {
             lblNomeLoja.setText("-");
             lblLocalizacao.setText("-");
             lblCargoGestor.setText("-");
-            cbHoraAbertura.setValue(null);
-            cbHoraFecho.setValue(null);
+            lblHoraAbertura.setText("-");
+            lblHoraFecho.setText("-");
+            horaAberturaAtual = null;
+            horaFechoAtual = null;
             preencherRegras(List.of());
             preencherHorariosEspeciais(List.of());
             preencherTurnos(List.of());
@@ -703,8 +704,6 @@ public class GestaoLojaController {
     }
 
     private void configurarOcultacaoFeedback() {
-        cbHoraAbertura.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
-        cbHoraFecho.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagem());
         txtDescricaoExcecao.textProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         cbHoraAberturaExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
         cbHoraFechoExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
@@ -714,9 +713,7 @@ public class GestaoLojaController {
         dpDataFimExcecao.valueProperty().addListener((observavel, antigo, novo) -> esconderMensagemExcecao());
     }
 
-    private void popularComboBoxesHora() {
-        cbHoraAbertura.getItems().setAll(OPCOES_HORA);
-        cbHoraFecho.getItems().setAll(OPCOES_HORA);
+    private void popularComboBoxesHoraExcecoes() {
         cbHoraAberturaExcecao.getItems().setAll(OPCOES_HORA);
         cbHoraFechoExcecao.getItems().setAll(OPCOES_HORA);
     }
@@ -730,14 +727,14 @@ public class GestaoLojaController {
         return opcoes;
     }
 
-    // ── Turnos (apenas leitura) ───────────────────────────────────────────────
+    // ── Turnos ────────────────────────────────────────────────────────────────
 
     private void preencherTurnos(List<GestaoLojaService.TurnoResumo> turnos) {
         if (turnosContainer == null) return;
         turnosContainer.getChildren().clear();
 
         if (turnos == null || turnos.isEmpty()) {
-            Label vazio = new Label("Os 3 turnos serão criados automaticamente ao guardar a configuração de horário.");
+            Label vazio = new Label("Ainda não existem turnos configurados. Usa o botão \"Criar turno\" acima para adicionar o primeiro.");
             vazio.getStyleClass().add("subtitulo");
             vazio.setWrapText(true);
             turnosContainer.getChildren().add(vazio);
@@ -748,12 +745,119 @@ public class GestaoLojaController {
         }
     }
 
+    @FXML
+    public void onCriarTurnoClick() {
+        idTurnoEmEdicao = null;
+        txtNomeTurno.clear();
+        cbHoraInicioTurno.setValue(null);
+        cbHoraFimTurno.setValue(null);
+        lblTituloFormTurno.setText("Criar turno");
+        esconderMensagemTurnos();
+        mostrarPainelTurno();
+    }
+
+    @FXML
+    public void onGuardarTurnoClick() {
+        try {
+            if (utilizadorLogado == null || utilizadorLogado.getId() == null) {
+                throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
+            }
+            LocalTime horaInicio = parseHoraOpcionalComboBox(cbHoraInicioTurno.getValue(), "início do turno");
+            LocalTime horaFim = parseHoraOpcionalComboBox(cbHoraFimTurno.getValue(), "fim do turno");
+
+            if (idTurnoEmEdicao == null) {
+                if (horaInicio == null || horaFim == null) {
+                    throw new IllegalArgumentException("Indica a hora de início e a hora de fim do turno.");
+                }
+                gestaoLojaBLL.criarTurno(utilizadorLogado.getId(), txtNomeTurno.getText(), horaInicio, horaFim);
+                mostrarMensagemTurnos("Turno criado com sucesso.", true);
+            } else {
+                gestaoLojaBLL.editarTurno(utilizadorLogado.getId(), idTurnoEmEdicao,
+                        txtNomeTurno.getText(), horaInicio, horaFim);
+                mostrarMensagemTurnos("Turno atualizado com sucesso.", true);
+            }
+            ocultarPainelTurno();
+            carregarDados();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagemTurnos(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagemTurnos("Não foi possível guardar o turno.", false);
+        }
+    }
+
+    @FXML
+    public void onCancelarTurnoClick() {
+        ocultarPainelTurno();
+        esconderMensagemTurnos();
+    }
+
+    private void onEditarTurnoClick(GestaoLojaService.TurnoResumo turno) {
+        idTurnoEmEdicao = turno.idTurno();
+        txtNomeTurno.setText(turno.nome());
+        cbHoraInicioTurno.setValue(turno.horaInicio());
+        cbHoraFimTurno.setValue(turno.horaFim());
+        lblTituloFormTurno.setText("Editar: " + turno.nome());
+        esconderMensagemTurnos();
+        mostrarPainelTurno();
+    }
+
+    private void onDesativarTurnoClick(GestaoLojaService.TurnoResumo turno) {
+        if (!DialogosHelper.confirmarAcao(
+                obterJanela(),
+                "Desativar turno",
+                "Desativar \"" + turno.nome() + "\"?",
+                "O turno deixará de ser usado em novas gerações. Os horários já atribuídos são preservados."
+        )) return;
+        try {
+            gestaoLojaBLL.desativarTurno(utilizadorLogado.getId(), turno.idTurno());
+            mostrarMensagem("Turno \"" + turno.nome() + "\" desativado.", true);
+            carregarDados();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagem(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagem("Não foi possível desativar o turno.", false);
+        }
+    }
+
+    private void onAtivarTurnoClick(GestaoLojaService.TurnoResumo turno) {
+        try {
+            gestaoLojaBLL.ativarTurno(utilizadorLogado.getId(), turno.idTurno());
+            mostrarMensagem("Turno \"" + turno.nome() + "\" reativado.", true);
+            carregarDados();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagem(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagem("Não foi possível reativar o turno.", false);
+        }
+    }
+
+    private void onEliminarTurnoClick(GestaoLojaService.TurnoResumo turno) {
+        if (!DialogosHelper.confirmarAcao(
+                obterJanela(),
+                "Eliminar turno",
+                "Eliminar \"" + turno.nome() + "\" definitivamente?",
+                "Só é possível eliminar turnos sem horários atribuídos. Esta ação não pode ser desfeita."
+        )) return;
+        try {
+            gestaoLojaBLL.removerTurno(utilizadorLogado.getId(), turno.idTurno());
+            mostrarMensagem("Turno \"" + turno.nome() + "\" eliminado.", true);
+            carregarDados();
+        } catch (IllegalArgumentException e) {
+            mostrarMensagem(e.getMessage(), false);
+        } catch (Exception e) {
+            mostrarMensagem("Não foi possível eliminar o turno.", false);
+        }
+    }
+
     private HBox criarCardTurno(GestaoLojaService.TurnoResumo turno) {
-        HBox row = new HBox(16);
+        HBox row = new HBox(12);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(12, 16, 12, 16));
-        row.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 8; "
-                + "-fx-border-color: #e2e8f0; -fx-border-radius: 8;");
+        boolean desativado = !turno.ativo();
+        row.setStyle("-fx-background-color: " + (desativado ? "#f8fafc" : "#ffffff") + "; "
+                + "-fx-background-radius: 8; -fx-border-color: "
+                + (desativado ? "#e2e8f0" : "#bfdbfe") + "; -fx-border-radius: 8;");
+        if (desativado) row.setOpacity(0.65);
 
         Label lblNome = new Label(turno.nome());
         lblNome.getStyleClass().add("campo-titulo");
@@ -762,8 +866,67 @@ public class GestaoLojaController {
         Label lblHoras = new Label(turno.horaInicio() + " – " + turno.horaFim());
         lblHoras.getStyleClass().add("subtitulo");
 
-        row.getChildren().addAll(lblNome, lblHoras);
+        Region espacador = new Region();
+        HBox.setHgrow(espacador, Priority.ALWAYS);
+
+        row.getChildren().addAll(lblNome, lblHoras, espacador);
+
+        if (desativado) {
+            Label badge = new Label("DESATIVADO");
+            badge.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #991b1b; "
+                    + "-fx-font-weight: 700; -fx-font-size: 10px; "
+                    + "-fx-padding: 2 8 2 8; -fx-background-radius: 6;");
+            row.getChildren().add(badge);
+
+            Button btnAtivar = new Button("Ativar");
+            btnAtivar.getStyleClass().add("botao-acao");
+            btnAtivar.setOnAction(e -> onAtivarTurnoClick(turno));
+            row.getChildren().add(btnAtivar);
+        } else {
+            Button btnEditar = new Button("Editar");
+            btnEditar.getStyleClass().add("botao-secundario");
+            btnEditar.setOnAction(e -> onEditarTurnoClick(turno));
+
+            Button btnDesativar = new Button("Desativar");
+            btnDesativar.getStyleClass().add("botao-secundario");
+            btnDesativar.setOnAction(e -> onDesativarTurnoClick(turno));
+
+            row.getChildren().addAll(btnEditar, btnDesativar);
+        }
+
+        Button btnEliminar = new Button("Eliminar");
+        btnEliminar.getStyleClass().add("botao-perigo");
+        btnEliminar.setOnAction(e -> onEliminarTurnoClick(turno));
+        row.getChildren().add(btnEliminar);
+
         return row;
+    }
+
+    private void mostrarPainelTurno() {
+        painelCriarTurno.setVisible(true);
+        painelCriarTurno.setManaged(true);
+    }
+
+    private void ocultarPainelTurno() {
+        painelCriarTurno.setVisible(false);
+        painelCriarTurno.setManaged(false);
+        idTurnoEmEdicao = null;
+    }
+
+    private void esconderMensagemTurnos() {
+        if (lblMensagemTurnos == null) return;
+        lblMensagemTurnos.setManaged(false);
+        lblMensagemTurnos.setVisible(false);
+        lblMensagemTurnos.setText("");
+    }
+
+    private void mostrarMensagemTurnos(String mensagem, boolean sucesso) {
+        if (lblMensagemTurnos == null) return;
+        lblMensagemTurnos.setText(mensagem);
+        lblMensagemTurnos.getStyleClass().removeAll("mensagem-sucesso", "mensagem-erro");
+        lblMensagemTurnos.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
+        lblMensagemTurnos.setManaged(true);
+        lblMensagemTurnos.setVisible(true);
     }
 
     // ── Parsing ───────────────────────────────────────────────────────────────

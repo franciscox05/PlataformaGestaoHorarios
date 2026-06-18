@@ -176,7 +176,7 @@ public class HorarioService {
      */
     @Transactional(readOnly = true)
     public List<Turno> listarTodosOsTurnos() {
-        return turnoRepository.findAllByOrderByHoraInicioAsc();
+        return turnoRepository.findAllAtivosOrderByHoraInicioAsc();
     }
 
     /**

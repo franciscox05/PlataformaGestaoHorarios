@@ -83,7 +83,7 @@
                         </HBox>
                     </VBox>
 
-                    <!-- Horário de funcionamento -->
+                    <!-- Horário de funcionamento (só leitura) -->
                 <VBox spacing="16.0" styleClass="bento-card, bento-card-destacado" HBox.hgrow="ALWAYS">
                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                             <StackPane styleClass="stat-icon-wrap-blue" minWidth="40.0" minHeight="40.0">
@@ -95,19 +95,18 @@
                                 <Label styleClass="stat-kicker" text="HOR&#193;RIO" />
                                 <Label styleClass="bento-card-titulo" text="Funcionamento" />
                             </VBox>
-                            <Button onAction="#onGuardarClick" styleClass="botao-acao" text="Guardar configura&#231;&#227;o" />
                         </HBox>
                         <Label styleClass="bento-card-subtitulo"
-                               text="Seleciona as horas de abertura e fecho. O sistema cria automaticamente 3 turnos (Manh&#227;, Tarde, Noite) de igual dura&#231;&#227;o ao guardar."
+                               text="Hor&#225;rio definido na configura&#231;&#227;o inicial da loja. Para qualquer altera&#231;&#227;o contacta o administrador do sistema."
                                wrapText="true" />
                         <HBox spacing="20.0">
                             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="campo-titulo" text="Hora de abertura" />
-                                <ComboBox fx:id="cbHoraAbertura" maxWidth="Infinity" promptText="Selecionar hora" styleClass="campo-combo" />
+                                <Label styleClass="meta-etiqueta" text="Hora de abertura" />
+                                <Label fx:id="lblHoraAbertura" styleClass="meta-valor" text="-" />
                             </VBox>
                             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="campo-titulo" text="Hora de fecho" />
-                                <ComboBox fx:id="cbHoraFecho" maxWidth="Infinity" promptText="Selecionar hora" styleClass="campo-combo" />
+                                <Label styleClass="meta-etiqueta" text="Hora de fecho" />
+                                <Label fx:id="lblHoraFecho" styleClass="meta-valor" text="-" />
                             </VBox>
                         </HBox>
                     </VBox>
@@ -145,11 +144,42 @@
                             <Label styleClass="stat-kicker" text="PER&#205;ODOS DE TRABALHO" />
                             <Label styleClass="bento-card-titulo" text="Turnos" />
                         </VBox>
-                        <Button onAction="#onRecriarTurnosPadraoClick" styleClass="botao-acao" text="Recriar 3 turnos padr&#227;o" />
+                        <Button onAction="#onCriarTurnoClick" styleClass="botao-acao" text="Criar turno" />
                     </HBox>
                     <Label styleClass="bento-card-subtitulo"
-                           text="Os 3 turnos (Manh&#227;, Tarde, Noite) s&#227;o gerados automaticamente com base no hor&#225;rio de funcionamento ao guardar a configura&#231;&#227;o."
+                           text="Gere os turnos ativos da loja. Turnos com hor&#225;rios j&#225; atribu&#237;dos n&#227;o permitem alterar as horas — desativa e cria um novo em vez disso."
                            wrapText="true" />
+
+                    <!-- Formulário criar/editar turno (oculto por defeito) -->
+                    <VBox fx:id="painelCriarTurno" spacing="12.0" managed="false" visible="false"
+                          style="-fx-background-color: #f0f9ff; -fx-background-radius: 8; -fx-border-color: #bae6fd; -fx-border-radius: 8; -fx-padding: 16;">
+                        <Label fx:id="lblTituloFormTurno" styleClass="campo-titulo" text="Criar turno" />
+                        <HBox spacing="16.0">
+                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                <Label styleClass="campo-titulo" text="Nome" />
+                                <TextField fx:id="txtNomeTurno"
+                                           promptText="Ex.: Manh&#227;, Tarde..."
+                                           styleClass="campo-input" />
+                            </VBox>
+                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                <Label styleClass="campo-titulo" text="Hora de in&#237;cio" />
+                                <ComboBox fx:id="cbHoraInicioTurno" maxWidth="Infinity"
+                                          promptText="HH:mm" styleClass="campo-combo" />
+                            </VBox>
+                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                <Label styleClass="campo-titulo" text="Hora de fim" />
+                                <ComboBox fx:id="cbHoraFimTurno" maxWidth="Infinity"
+                                          promptText="HH:mm" styleClass="campo-combo" />
+                            </VBox>
+                        </HBox>
+                        <HBox spacing="12.0">
+                            <Button onAction="#onGuardarTurnoClick" styleClass="botao-acao" text="Guardar" />
+                            <Button onAction="#onCancelarTurnoClick" styleClass="botao-secundario" text="Cancelar" />
+                        </HBox>
+                        <Label fx:id="lblMensagemTurnos" managed="false" styleClass="mensagem-feedback"
+                               text="" visible="false" wrapText="true" />
+                    </VBox>
+
                     <VBox fx:id="turnosContainer" spacing="12.0" />
                 </VBox>
 

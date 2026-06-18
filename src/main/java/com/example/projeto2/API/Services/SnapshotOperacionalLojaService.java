@@ -462,11 +462,22 @@ public class SnapshotOperacionalLojaService {
                 preferencia.getIdUtilizador() != null
                         ? valorOuFallback(preferencia.getIdUtilizador().getNome(), "Colaborador")
                         : "Colaborador",
-                "Preferencia de " + capitalizar(valorOuTraco(preferencia.getTipo()))
-                        + " (prioridade " + preferencia.getPrioridade() + ")",
+                "Preferencia de " + formatarNomeTipoPreferencia(preferencia.getTipo()),
                 valorOuTraco(preferencia.getDescricao()),
                 idUtilizador == null ? List.of() : List.of(idUtilizador)
         );
+    }
+
+    private String formatarNomeTipoPreferencia(String tipo) {
+        if (tipo == null || tipo.isBlank()) return "-";
+        return switch (tipo.toLowerCase()) {
+            case "folga_preferida" -> "Folga preferida";
+            case "ferias"          -> "Férias";
+            case "folgas"          -> "Folgas";
+            case "colegas"         -> "Colegas";
+            case "turnos"          -> "Turnos";
+            default                -> capitalizar(tipo);
+        };
     }
 
     private IntervaloOperacional resolverIntervaloDaPreferencia(Preferencia preferencia) {

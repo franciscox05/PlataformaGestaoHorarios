@@ -142,9 +142,11 @@ public class GestaoLojaService {
         boolean horasAlteraram = !request.horaAbertura().equals(loja.getHoraAbertura())
                 || !request.horaFecho().equals(loja.getHoraFecho());
 
-        loja.setHoraAbertura(request.horaAbertura());
-        loja.setHoraFecho(request.horaFecho());
-        lojaRepository.save(loja);
+        if (horasAlteraram) {
+            loja.setHoraAbertura(request.horaAbertura());
+            loja.setHoraFecho(request.horaFecho());
+            lojaRepository.save(loja);
+        }
 
         if (request.regras() != null) {
             for (ConfiguracaoRegraRequest regraRequest : request.regras()) {
@@ -178,10 +180,6 @@ public class GestaoLojaService {
                 }
                 regrasLojaRepository.save(regraLoja);
             }
-        }
-
-        if (horasAlteraram || turnoRepository.count() != 3) {
-            recriarTurnosELimparHorarios(loja);
         }
     }
 
@@ -363,10 +361,70 @@ public class GestaoLojaService {
         turno.setHoraInicio(horaInicio);
         turno.setHoraFim(horaFim);
         turno.setTipo(derivarTipo(horaInicio));
+        turno.setAtivo(true);
         return criarResumoTurno(turnoRepository.save(turno));
     }
 
-    /** Remove um turno. Falha se o turno tiver horários atribuídos. */
+    /** Edita um turno. Nome sempre editável. Horas só editáveis se não tiver horários atribuídos. */
+    @Transactional
+    public TurnoResumo editarTurno(Integer idUtilizador, Integer idTurno,
+                                   String nome, LocalTime horaInicio, LocalTime horaFim) {
+        if (idTurno == null) throw new IllegalArgumentException("Seleciona um turno antes de o editar.");
+        obterLigacaoAtivaComPermissao(idUtilizador);
+        Turno turno = turnoRepository.findById(idTurno)
+                .orElseThrow(() -> new IllegalArgumentException("Turno não encontrado."));
+        String nomeLimpo = limparTexto(nome);
+        if (nomeLimpo == null) throw new IllegalArgumentException("Indica um nome para o turno.");
+        turno.setNome(nomeLimpo);
+
+        boolean horasAlteraram = horaInicio != null && horaFim != null
+                && (!horaInicio.equals(turno.getHoraInicio()) || !horaFim.equals(turno.getHoraFim()));
+        if (horasAlteraram) {
+            if (turnoRepository.existeEmHorarios(idTurno)) {
+                throw new IllegalArgumentException(
+                        "Este turno tem horários atribuídos — as horas não podem ser alteradas. "
+                        + "Para mudar as horas, desativa este turno e cria um novo.");
+            }
+            if (!horaFim.isAfter(horaInicio)) {
+                throw new IllegalArgumentException("A hora de fim deve ser posterior à hora de início.");
+            }
+            List<Turno> sobrepostos = turnoRepository.findSobrepostos(horaInicio, horaFim, idTurno);
+            if (!sobrepostos.isEmpty()) {
+                String nomes = sobrepostos.stream()
+                        .map(t -> nomeDisplayTurno(t) + " (" + formatarHora(t.getHoraInicio()) + "-" + formatarHora(t.getHoraFim()) + ")")
+                        .reduce((a, b) -> a + ", " + b).orElse("outro turno");
+                throw new IllegalArgumentException("O horário sobrepõe-se a: " + nomes + ".");
+            }
+            turno.setHoraInicio(horaInicio);
+            turno.setHoraFim(horaFim);
+            turno.setTipo(derivarTipo(horaInicio));
+        }
+        return criarResumoTurno(turnoRepository.save(turno));
+    }
+
+    /** Desativa um turno — fica invisível para futuras gerações mas os registos históricos são preservados. */
+    @Transactional
+    public void desativarTurno(Integer idUtilizador, Integer idTurno) {
+        if (idTurno == null) throw new IllegalArgumentException("Seleciona um turno antes de o desativar.");
+        obterLigacaoAtivaComPermissao(idUtilizador);
+        Turno turno = turnoRepository.findById(idTurno)
+                .orElseThrow(() -> new IllegalArgumentException("Turno não encontrado."));
+        turno.setAtivo(false);
+        turnoRepository.save(turno);
+    }
+
+    /** Reativa um turno desativado. */
+    @Transactional
+    public void ativarTurno(Integer idUtilizador, Integer idTurno) {
+        if (idTurno == null) throw new IllegalArgumentException("Seleciona um turno antes de o ativar.");
+        obterLigacaoAtivaComPermissao(idUtilizador);
+        Turno turno = turnoRepository.findById(idTurno)
+                .orElseThrow(() -> new IllegalArgumentException("Turno não encontrado."));
+        turno.setAtivo(true);
+        turnoRepository.save(turno);
+    }
+
+    /** Remove um turno. Só permitido se não tiver nenhum horário atribuído. */
     @Transactional
     public void removerTurno(Integer idUtilizador, Integer idTurno) {
         if (idTurno == null) {
@@ -377,7 +435,8 @@ public class GestaoLojaService {
             throw new IllegalArgumentException("Turno não encontrado.");
         }
         if (turnoRepository.existeEmHorarios(idTurno)) {
-            throw new IllegalArgumentException("Não é possível remover um turno com horários atribuídos.");
+            throw new IllegalArgumentException(
+                    "Não é possível eliminar um turno com horários atribuídos. Desativa-o em vez de eliminar.");
         }
         turnoRepository.deleteById(idTurno);
     }
@@ -447,7 +506,7 @@ public class GestaoLojaService {
                 throw new IllegalArgumentException("O horario base da loja nao permite aplicar esta excecao.");
             }
 
-            List<Turno> turnosCompativeis = filtrarTurnosCompativeis(turnoRepository.findAllByOrderByHoraInicioAsc(), aberturaEfetiva, fechoEfetivo);
+            List<Turno> turnosCompativeis = filtrarTurnosCompativeis(turnoRepository.findAllAtivosOrderByHoraInicioAsc(), aberturaEfetiva, fechoEfetivo);
             if (turnosCompativeis.isEmpty()) {
                 throw new IllegalArgumentException("Nao existe nenhum turno base compativel com o horario especial indicado.");
             }
@@ -523,7 +582,8 @@ public class GestaoLojaService {
                 nome,
                 turno.getTipo(),
                 formatarHora(turno.getHoraInicio()),
-                formatarHora(turno.getHoraFim())
+                formatarHora(turno.getHoraFim()),
+                Boolean.TRUE.equals(turno.getAtivo())
         );
     }
 
@@ -692,7 +752,8 @@ public class GestaoLojaService {
             String nome,
             String tipo,
             String horaInicio,
-            String horaFim
+            String horaFim,
+            boolean ativo
     ) {
     }
 

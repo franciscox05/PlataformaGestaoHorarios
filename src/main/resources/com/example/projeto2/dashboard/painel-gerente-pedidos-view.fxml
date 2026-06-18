@@ -233,15 +233,15 @@
                         <Label styleClass="card-titulo" text="Contexto Operacional da Decis&#227;o" />
                     </HBox>
 
-                    <VBox spacing="6.0">
-                        <Label fx:id="lblContextoPedidoSelecionado" styleClass="subtitulo"
+                    <VBox spacing="8.0">
+                        <Label fx:id="lblContextoPedidoSelecionado" styleClass="card-titulo"
                                text="Seleciona um pedido pendente para veres o contexto operacional."
                                wrapText="true" />
                         <Label fx:id="lblContextoPeriodo" styleClass="texto-ajuda" text="-" wrapText="true" />
-                        <Label fx:id="lblContextoResumo"  styleClass="texto-ajuda"
+                        <Label fx:id="lblContextoResumo"  styleClass="meta-valor"
                                text="Aqui v&#227;o aparecer os colaboradores envolvidos e a escala da loja no per&#237;odo relevante."
                                wrapText="true" />
-                        <Label fx:id="lblContextoMotivoCompleto" styleClass="texto-ajuda"
+                        <Label fx:id="lblContextoMotivoCompleto" styleClass="meta-valor"
                                text="-" wrapText="true" />
                     </VBox>
 

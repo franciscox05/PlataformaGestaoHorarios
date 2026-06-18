@@ -44,11 +44,12 @@ public final class PedidosFormatters {
     public static String formatarTipoPreferencia(String tipo) {
         if (tipo == null || tipo.isBlank()) return "-";
         return switch (tipo.toLowerCase(LOCALE_PT)) {
-            case "folgas"   -> "Folgas";
-            case "ferias"   -> "Férias";
-            case "colegas"  -> "Colegas";
-            case "turnos"   -> "Turnos";
-            default         -> tipo;
+            case "folga_preferida" -> "Folga preferida";
+            case "folgas"          -> "Folgas";
+            case "ferias"          -> "Férias";
+            case "colegas"         -> "Colegas";
+            case "turnos"          -> "Turnos";
+            default                -> tipo;
         };
     }
 

@@ -15,19 +15,22 @@ import java.util.Set;
  */
 public final class PreferenciaDescricaoBuilder {
 
-    private final ComboBox<String> cbColegaPreferido;
+    private final ComboBox<String> cbColega1;
+    private final ComboBox<String> cbColega2;
     private final CheckBox chkTurnoManha;
     private final CheckBox chkTurnoIntermedio;
     private final CheckBox chkTurnoNoite;
     private final ComboBox<String> cbDuracaoPreferida;
 
     public PreferenciaDescricaoBuilder(
-            ComboBox<String> cbColegaPreferido,
+            ComboBox<String> cbColega1,
+            ComboBox<String> cbColega2,
             CheckBox chkTurnoManha,
             CheckBox chkTurnoIntermedio,
             CheckBox chkTurnoNoite,
             ComboBox<String> cbDuracaoPreferida) {
-        this.cbColegaPreferido  = cbColegaPreferido;
+        this.cbColega1          = cbColega1;
+        this.cbColega2          = cbColega2;
         this.chkTurnoManha      = chkTurnoManha;
         this.chkTurnoIntermedio = chkTurnoIntermedio;
         this.chkTurnoNoite      = chkTurnoNoite;
@@ -38,13 +41,16 @@ public final class PreferenciaDescricaoBuilder {
 
     public String construirDescricaoFinal(String tipoNormalizado, String textoLivre) {
         if ("colegas".equals(tipoNormalizado)) {
-            String colega = cbColegaPreferido.getValue();
-            if (colega == null || colega.isBlank()) {
-                throw new IllegalArgumentException("Seleciona o colega com quem queres trabalhar.");
+            Set<String> selecionados = new LinkedHashSet<>();
+            for (ComboBox<String> cb : List.of(cbColega1, cbColega2)) {
+                String v = cb.getValue();
+                if (v != null && !v.isBlank()) selecionados.add(v.trim());
             }
-            return textoLivre == null
-                    ? "Colega preferido: " + colega + "."
-                    : "Colega preferido: " + colega + ". Nota adicional: " + textoLivre;
+            if (selecionados.isEmpty()) {
+                throw new IllegalArgumentException("Seleciona pelo menos um colega com quem queres trabalhar.");
+            }
+            String nomes = String.join(", ", selecionados);
+            return textoLivre == null ? nomes : nomes + ". Nota adicional: " + textoLivre;
         }
 
         if ("turnos".equals(tipoNormalizado)) {
@@ -119,23 +125,23 @@ public final class PreferenciaDescricaoBuilder {
     // ── Form filling (reverse direction) ───────────────────────────────────────
 
     public void preencherFormularioColegas(Preferencia preferencia, List<String> colegas) {
-        if (!"colegas".equalsIgnoreCase(preferencia.getTipo())) {
-            cbColegaPreferido.setValue(null);
-            return;
-        }
+        cbColega1.setValue(null);
+        cbColega2.setValue(null);
+        if (!"colegas".equalsIgnoreCase(preferencia.getTipo())) return;
+
         String descricao = preferencia.getDescricao();
-        if (descricao == null || descricao.isBlank()) {
-            cbColegaPreferido.setValue(null);
-            return;
-        }
+        if (descricao == null || descricao.isBlank()) return;
+
         String descNorm = descricao.toLowerCase(Locale.ROOT);
+        List<ComboBox<String>> slots = List.of(cbColega1, cbColega2);
+        int slot = 0;
         for (String colega : colegas) {
+            if (slot >= slots.size()) break;
             if (descNorm.contains(colega.toLowerCase(Locale.ROOT))) {
-                cbColegaPreferido.setValue(colega);
-                return;
+                slots.get(slot).setValue(colega);
+                slot++;
             }
         }
-        cbColegaPreferido.setValue(null);
     }
 
     public void preencherFormularioTurnos(Preferencia preferencia) {

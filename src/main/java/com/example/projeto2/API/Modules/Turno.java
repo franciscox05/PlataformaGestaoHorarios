@@ -26,6 +26,9 @@ public class Turno {
     @Column(name = "hora_fim", nullable = false)
     private LocalTime horaFim;
 
+    @Column(name = "ativo", nullable = false)
+    private Boolean ativo = true;
+
     @OneToMany(mappedBy = "idTurno")
     private Set<Horario> horarios = new LinkedHashSet<>();
 
@@ -67,6 +70,14 @@ public class Turno {
 
     public void setHoraFim(LocalTime horaFim) {
         this.horaFim = horaFim;
+    }
+
+    public Boolean getAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
     }
 
     public Set<Horario> getHorarios() {
