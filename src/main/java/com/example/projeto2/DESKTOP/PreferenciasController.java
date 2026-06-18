@@ -180,7 +180,15 @@ public class PreferenciasController {
             preferencia.setDataFim(resolverDataFim(tipoNormalizado));
             preferencia.setPrioridade(null);
             String textoLivre = PreferenciaFormatters.limparTexto(txtDescricao.getText());
-            preferencia.setDescricao(descricaoBuilder.construirDescricaoFinal(tipoNormalizado, textoLivre));
+            String descricao;
+            if ("folga_preferida".equals(tipoNormalizado)) {
+                String dia = cbDiaSemana.getValue();
+                descricao = "Folga preferida: " + (dia != null ? dia : "sem dia definido") + ".";
+                if (textoLivre != null) descricao += " " + textoLivre;
+            } else {
+                descricao = descricaoBuilder.construirDescricaoFinal(tipoNormalizado, textoLivre);
+            }
+            preferencia.setDescricao(descricao);
 
             preferenciaBLL.guardarPreferencia(utilizadorLogado.getId(), preferencia);
             mostrarFeedback(
