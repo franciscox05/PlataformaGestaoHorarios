@@ -111,6 +111,10 @@ public class WebLoginController {
             return "redirect:/web/horarios";
         }
 
+        // An active store in session means the user is already logged in and reached this
+        // page via "Alternar Loja" (not straight from login) — drives the back-button target.
+        Integer idLoja = webAppService.obterLojaAtual(session);
+        model.addAttribute("veioDoPainel", idLoja != null);
         model.addAttribute("lojas", lojas);
         model.addAttribute("nomeUtilizador", session.getAttribute(WebSession.UTILIZADOR_NOME));
         return "web/selecionar-loja";

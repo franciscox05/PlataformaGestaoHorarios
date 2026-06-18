@@ -41,95 +41,275 @@
              class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 overflow-hidden"
              style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
 
-        <!-- Section label -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/15">
-            <p class="font-body font-semibold text-[12px] uppercase tracking-wider text-on-surface-variant">
-                Histórico de notificações
-            </p>
-            <span th:if="${totalNaoLidas > 0}"
-                  class="inline-flex items-center gap-1 font-body font-bold text-[11px] px-2.5 py-1 rounded-full"
-                  style="background:rgba(192,0,31,.1);color:#c0001f"
-                  th:text="${totalNaoLidas} + ' nova' + (${totalNaoLidas} == 1 ? '' : 's')">
-                0 novas
-            </span>
-            <span th:if="${totalNaoLidas == 0}"
-                  class="inline-flex items-center gap-1 font-body font-semibold text-[11px] px-2.5 py-1 rounded-full text-on-surface-variant"
-                  style="background:rgba(0,0,0,.04)">
-                Tudo lido
-            </span>
+        <!-- Toolbar: pesquisa + filtro por tipo -->
+        <div class="flex flex-col sm:flex-row gap-3 px-6 py-4 border-b border-outline-variant/15">
+            <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant pointer-events-none">search</span>
+                <input id="notif-search" type="text" autocomplete="off"
+                       placeholder="Pesquisar nas notificações…"
+                       class="w-full pl-10 pr-3 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl font-body text-[13px] text-on-surface"
+                       style="outline:none">
+            </div>
+            <select id="notif-filter"
+                    class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface sm:w-52"
+                    style="outline:none">
+                <option value="">Todos os tipos</option>
+                <option value="folga">Folgas</option>
+                <option value="preferencia">Preferências</option>
+                <option value="permuta">Permutas</option>
+                <option value="geral">Outras</option>
+            </select>
         </div>
 
-        <!-- List -->
-        <ul id="notif-list" class="divide-y divide-outline-variant/10">
-            <li th:each="notif : ${notificacoes}"
-                th:classappend="${notif.lida} ? 'opacity-60' : ''"
-                class="flex items-start gap-4 px-6 py-4 hover:bg-surface-container/40 transition-colors">
+        <!-- Tabs: Ativas / Arquivadas -->
+        <div class="border-b border-outline-variant/25 px-6 flex gap-1 overflow-x-auto whitespace-nowrap" id="notifTabs">
+            <button onclick="showNotifTab('tab-ativas')" id="btn-ativas" type="button"
+                    class="tab-btn font-body font-bold text-[13px] px-4 py-3 border-b-2 border-primary-container text-primary-container transition-all rounded-t-lg">
+                Ativas
+                <span class="ml-1 font-semibold text-[11px] opacity-70" th:text="'(' + ${#lists.size(ativas)} + ')'">(0)</span>
+            </button>
+            <button onclick="showNotifTab('tab-arquivadas')" id="btn-arquivadas" type="button"
+                    class="tab-btn font-body font-bold text-[13px] px-4 py-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all rounded-t-lg hover:bg-surface-container-low/50">
+                Arquivadas
+                <span class="ml-1 font-semibold text-[11px] opacity-70" th:text="'(' + ${#lists.size(arquivadas)} + ')'">(0)</span>
+            </button>
+        </div>
 
-                <!-- Icon circle: red for unread, neutral for read -->
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                     th:style="${notif.lida} ? 'background:rgba(0,0,0,.05)' : 'background:rgba(192,0,31,.08)'">
-                    <span class="material-symbols-outlined text-[17px] icon-fill"
-                          th:style="${notif.lida} ? 'color:var(--md-sys-color-on-surface-variant)' : 'color:#c0001f'">notifications</span>
-                </div>
+        <!-- ── Tab: Ativas ── -->
+        <div id="tab-ativas">
+            <ul id="lista-ativas" class="divide-y divide-outline-variant/10">
+                <li th:each="notif : ${ativas}"
+                    th:with="msgLower=${#strings.toLowerCase(notif.mensagem)},
+                             tipo=${#strings.contains(msgLower,'folga') ? 'folga' : (#strings.contains(msgLower,'prefer') ? 'preferencia' : (#strings.contains(msgLower,'permuta') ? 'permuta' : 'geral'))},
+                             urg=${#strings.contains(msgLower,'rejeitad') ? 'rejeitado' : (#strings.contains(msgLower,'aprovad') ? 'aprovado' : 'info')}"
+                    th:attr="data-id=${notif.id}, data-msg=${msgLower}, data-tipo=${tipo}, data-urg=${urg}, data-lida=${notif.lida}"
+                    th:classappend="${notif.lida} ? 'opacity-60' : ''"
+                    class="notif-row flex items-start gap-4 px-6 py-4 hover:bg-surface-container/40 transition-colors">
 
-                <!-- Content -->
-                <div class="flex-1 min-w-0">
-                    <p class="font-body text-[13.5px] leading-snug"
-                       th:classappend="${notif.lida} ? 'font-medium text-on-surface-variant' : 'font-semibold text-on-surface'"
-                       th:text="${notif.mensagem}">–</p>
-                    <p class="font-body text-[11px] text-on-surface-variant mt-1 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[12px]">schedule</span>
-                        <span th:text="${'Enviado em ' + #temporals.format(notif.dataEnvio, 'dd/MM/yyyy') + ' às ' + #temporals.format(notif.dataEnvio, 'HH:mm')}">–</span>
-                    </p>
-
-                    <!-- Quick action: rejected preference → go submit a new one -->
-                    <div th:if="${#strings.contains(notif.mensagem, 'preferência de horário') and #strings.contains(notif.mensagem, 'Rejeitada')}"
-                         class="mt-2.5">
-                        <a href="/web/complementares?tab=pref"
-                           class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] px-3 py-1.5 rounded-lg transition-colors"
-                           style="color:#c0001f;border:1px solid rgba(192,0,31,.25);background:rgba(192,0,31,.05)">
-                            <span class="material-symbols-outlined text-[13px]">add_circle</span>
-                            Submeter Nova
-                        </a>
+                    <div class="notif-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                         th:style="${notif.lida} ? 'background:rgba(0,0,0,.05)' : 'background:rgba(192,0,31,.08)'">
+                        <span class="notif-icon material-symbols-outlined text-[17px] icon-fill"
+                              th:style="${notif.lida} ? 'color:var(--md-sys-color-on-surface-variant)' : 'color:#c0001f'">notifications</span>
                     </div>
 
-                    <!-- Quick action: rejected day-off → go pick a new date -->
-                    <div th:if="${#strings.contains(notif.mensagem, 'pedido de folga') and #strings.contains(notif.mensagem, 'Rejeitado')}"
-                         class="mt-2.5">
-                        <a href="/web/complementares?tab=folgas#seccao-folga"
-                           class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] px-3 py-1.5 rounded-lg transition-colors"
-                           style="color:#c0001f;border:1px solid rgba(192,0,31,.25);background:rgba(192,0,31,.05)">
-                            <span class="material-symbols-outlined text-[13px]">event</span>
-                            Agendar Nova Data
-                        </a>
-                    </div>
-                </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span th:if="${urg == 'aprovado'}" class="badge-ok font-body font-semibold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full">Aprovado</span>
+                            <span th:if="${urg == 'rejeitado'}" class="badge-err font-body font-semibold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full">Rejeitado</span>
+                        </div>
+                        <p class="font-body text-[13.5px] leading-snug mt-0.5"
+                           th:classappend="${notif.lida} ? 'font-medium text-on-surface-variant' : 'font-semibold text-on-surface'"
+                           th:text="${notif.mensagem}">–</p>
+                        <p class="font-body text-[11px] text-on-surface-variant mt-1 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[12px]">schedule</span>
+                            <span th:text="${'Enviado em ' + #temporals.format(notif.dataEnvio, 'dd/MM/yyyy') + ' às ' + #temporals.format(notif.dataEnvio, 'HH:mm')}">–</span>
+                        </p>
 
-                <!-- Right column: Nova pill + Archive button -->
-                <div class="flex flex-col items-end gap-2 shrink-0">
-                    <span th:if="${!notif.lida}"
-                          class="inline-flex items-center font-body font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
-                          style="background:rgba(192,0,31,.12);color:#c0001f;border:1px solid rgba(192,0,31,.2)">
-                        Nova
-                    </span>
-                    <button type="button"
-                            onclick="arquivarNotificacao(this)"
-                            title="Arquivar notificação"
-                            class="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors">
-                        <span class="material-symbols-outlined text-[15px]">archive</span>
-                    </button>
-                </div>
-            </li>
-        </ul>
+                        <div th:if="${#strings.contains(notif.mensagem, 'preferência de horário') and #strings.contains(notif.mensagem, 'Rejeitada')}" class="mt-2.5">
+                            <a href="/web/complementares?tab=pref"
+                               class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] px-3 py-1.5 rounded-lg transition-colors"
+                               style="color:#c0001f;border:1px solid rgba(192,0,31,.25);background:rgba(192,0,31,.05)">
+                                <span class="material-symbols-outlined text-[13px]">add_circle</span>
+                                Submeter Nova
+                            </a>
+                        </div>
+                        <div th:if="${#strings.contains(notif.mensagem, 'pedido de folga') and #strings.contains(notif.mensagem, 'Rejeitado')}" class="mt-2.5">
+                            <a href="/web/complementares?tab=folgas#seccao-folga"
+                               class="inline-flex items-center gap-1.5 font-body font-semibold text-[11px] px-3 py-1.5 rounded-lg transition-colors"
+                               style="color:#c0001f;border:1px solid rgba(192,0,31,.25);background:rgba(192,0,31,.05)">
+                                <span class="material-symbols-outlined text-[13px]">event</span>
+                                Agendar Nova Data
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="notif-actions flex flex-col items-end gap-2 shrink-0">
+                        <span th:if="${!notif.lida}"
+                              class="inline-flex items-center font-body font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
+                              style="background:rgba(192,0,31,.12);color:#c0001f;border:1px solid rgba(192,0,31,.2)">
+                            Nova
+                        </span>
+                        <button type="button" onclick="arquivarNotificacao(this)" title="Arquivar notificação"
+                                class="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors">
+                            <span class="material-symbols-outlined text-[15px]">archive</span>
+                        </button>
+                    </div>
+                </li>
+            </ul>
+            <p id="empty-ativas" th:classappend="${#lists.isEmpty(ativas)} ? '' : 'hidden'"
+               class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">
+                Não tens notificações ativas. As que arquivares aparecem no separador "Arquivadas".
+            </p>
+            <p data-empty-filter="tab-ativas" class="hidden px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">
+                Nenhuma notificação corresponde à tua pesquisa.
+            </p>
+        </div>
+
+        <!-- ── Tab: Arquivadas ── -->
+        <div id="tab-arquivadas" class="hidden">
+            <ul id="lista-arquivadas" class="divide-y divide-outline-variant/10">
+                <li th:each="notif : ${arquivadas}"
+                    th:with="msgLower=${#strings.toLowerCase(notif.mensagem)},
+                             tipo=${#strings.contains(msgLower,'folga') ? 'folga' : (#strings.contains(msgLower,'prefer') ? 'preferencia' : (#strings.contains(msgLower,'permuta') ? 'permuta' : 'geral'))},
+                             urg=${#strings.contains(msgLower,'rejeitad') ? 'rejeitado' : (#strings.contains(msgLower,'aprovad') ? 'aprovado' : 'info')}"
+                    th:attr="data-id=${notif.id}, data-msg=${msgLower}, data-tipo=${tipo}, data-urg=${urg}, data-lida=${notif.lida}"
+                    class="notif-row flex items-start gap-4 px-6 py-4 opacity-70 hover:bg-surface-container/40 transition-colors">
+
+                    <div class="notif-icon-wrap w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style="background:rgba(0,0,0,.05)">
+                        <span class="notif-icon material-symbols-outlined text-[17px] icon-fill text-on-surface-variant">inventory_2</span>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span th:if="${urg == 'aprovado'}" class="badge-ok font-body font-semibold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full">Aprovado</span>
+                            <span th:if="${urg == 'rejeitado'}" class="badge-err font-body font-semibold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full">Rejeitado</span>
+                        </div>
+                        <p class="font-body text-[13.5px] leading-snug mt-0.5 font-medium text-on-surface-variant" th:text="${notif.mensagem}">–</p>
+                        <p class="font-body text-[11px] text-on-surface-variant mt-1 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[12px]">schedule</span>
+                            <span th:text="${'Enviado em ' + #temporals.format(notif.dataEnvio, 'dd/MM/yyyy') + ' às ' + #temporals.format(notif.dataEnvio, 'HH:mm')}">–</span>
+                        </p>
+                    </div>
+
+                    <div class="notif-actions flex flex-col items-end gap-2 shrink-0">
+                        <button type="button" onclick="desarquivarNotificacao(this)" title="Restaurar para ativas"
+                                class="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors">
+                            <span class="material-symbols-outlined text-[15px]">unarchive</span>
+                        </button>
+                    </div>
+                </li>
+            </ul>
+            <p id="empty-arquivadas" th:classappend="${#lists.isEmpty(arquivadas)} ? '' : 'hidden'"
+               class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">
+                Ainda não arquivaste nenhuma notificação.
+            </p>
+            <p data-empty-filter="tab-arquivadas" class="hidden px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">
+                Nenhuma notificação corresponde à tua pesquisa.
+            </p>
+        </div>
     </section>
 
 </div>
 </main>
 <th:block th:replace="~{web/fragments :: scripts}"></th:block>
 <script>
-function arquivarNotificacao(btn) {
-    var li = btn.closest('li');
-    if (!li) return;
+// ── Separadores Ativas / Arquivadas ───────────────────────────────────────
+function showNotifTab(id) {
+    ['tab-ativas', 'tab-arquivadas'].forEach(function (t) {
+        var el = document.getElementById(t);
+        if (el) el.classList.add('hidden');
+    });
+    ['btn-ativas', 'btn-arquivadas'].forEach(function (b) {
+        var btn = document.getElementById(b);
+        if (!btn) return;
+        btn.classList.remove('border-primary-container', 'text-primary-container');
+        btn.classList.add('border-transparent', 'text-on-surface-variant');
+    });
+    var panel = document.getElementById(id);
+    if (panel) panel.classList.remove('hidden');
+    var activeBtn = document.getElementById(id.replace('tab-', 'btn-'));
+    if (activeBtn) {
+        activeBtn.classList.add('border-primary-container', 'text-primary-container');
+        activeBtn.classList.remove('border-transparent', 'text-on-surface-variant');
+    }
+    aplicarFiltro(); // re-evaluate the empty-results message for the newly shown tab
+}
+
+// ── Pesquisa + filtro por tipo (client-side, tempo real) ───────────────────
+function aplicarFiltro() {
+    var termo  = (document.getElementById('notif-search') || {}).value || '';
+    var tipo   = (document.getElementById('notif-filter') || {}).value || '';
+    termo = termo.trim().toLowerCase();
+
+    document.querySelectorAll('.notif-row').forEach(function (row) {
+        var msg  = row.getAttribute('data-msg')  || '';
+        var rTipo = row.getAttribute('data-tipo') || '';
+        var matchTexto = !termo || msg.indexOf(termo) !== -1;
+        var matchTipo  = !tipo  || rTipo === tipo;
+        row.style.display = (matchTexto && matchTipo) ? '' : 'none';
+    });
+
+    // Mostra a mensagem "sem resultados" no separador visível, se tudo ficou escondido
+    document.querySelectorAll('[data-empty-filter]').forEach(function (msgEl) {
+        var painel = document.getElementById(msgEl.getAttribute('data-empty-filter'));
+        if (!painel) return;
+        var visivel = !painel.classList.contains('hidden');
+        var rows = painel.querySelectorAll('.notif-row');
+        var algumVisivel = Array.prototype.some.call(rows, function (r) { return r.style.display !== 'none'; });
+        var temFiltro = termo !== '' || tipo !== '';
+        msgEl.classList.toggle('hidden', !(visivel && temFiltro && rows.length > 0 && !algumVisivel));
+    });
+}
+
+(function () {
+    var s = document.getElementById('notif-search');
+    var f = document.getElementById('notif-filter');
+    if (s) s.addEventListener('input', aplicarFiltro);
+    if (f) f.addEventListener('change', aplicarFiltro);
+})();
+
+// ── Contadores das tabs + placeholders ─────────────────────────────────────
+function setContador(btnId, n) {
+    var badge = document.querySelector('#' + btnId + ' span');
+    if (badge) badge.textContent = '(' + n + ')';
+}
+function atualizarContadores() {
+    var a  = document.getElementById('lista-ativas');
+    var ar = document.getElementById('lista-arquivadas');
+    setContador('btn-ativas',     a  ? a.querySelectorAll('.notif-row').length  : 0);
+    setContador('btn-arquivadas', ar ? ar.querySelectorAll('.notif-row').length : 0);
+}
+function togglePlaceholder(listaId, emptyId) {
+    var lista = document.getElementById(listaId);
+    var empty = document.getElementById(emptyId);
+    if (!lista || !empty) return;
+    empty.classList.toggle('hidden', lista.querySelectorAll('.notif-row').length !== 0);
+}
+function atualizarPlaceholders() {
+    togglePlaceholder('lista-ativas', 'empty-ativas');
+    togglePlaceholder('lista-arquivadas', 'empty-arquivadas');
+}
+
+// ── Re-estilização da linha consoante o estado ─────────────────────────────
+function htmlAcoesArquivada() {
+    return '<button type="button" onclick="desarquivarNotificacao(this)" title="Restaurar para ativas" '
+         + 'class="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors">'
+         + '<span class="material-symbols-outlined text-[15px]">unarchive</span></button>';
+}
+function htmlAcoesAtiva() {
+    return '<button type="button" onclick="arquivarNotificacao(this)" title="Arquivar notificação" '
+         + 'class="w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors">'
+         + '<span class="material-symbols-outlined text-[15px]">archive</span></button>';
+}
+function restilizarArquivada(li) {
+    li.classList.add('opacity-70');
+    li.classList.remove('opacity-60');
+    var wrap = li.querySelector('.notif-icon-wrap');
+    var icon = li.querySelector('.notif-icon');
+    if (wrap) wrap.style.background = 'rgba(0,0,0,.05)';
+    if (icon) { icon.style.color = 'var(--md-sys-color-on-surface-variant)'; icon.textContent = 'inventory_2'; }
+    var acoes = li.querySelector('.notif-actions');
+    if (acoes) acoes.innerHTML = htmlAcoesArquivada();
+}
+function restilizarAtiva(li) {
+    // Respeita o estado real de leitura: lida → cinza/opaco; não lida → vermelho vibrante.
+    var lida = li.getAttribute('data-lida') === 'true';
+    li.classList.remove('opacity-70', 'opacity-60');
+    if (lida) li.classList.add('opacity-60');
+    var wrap = li.querySelector('.notif-icon-wrap');
+    var icon = li.querySelector('.notif-icon');
+    if (wrap) wrap.style.background = lida ? 'rgba(0,0,0,.05)' : 'rgba(192,0,31,.08)';
+    if (icon) {
+        icon.style.color = lida ? 'var(--md-sys-color-on-surface-variant)' : '#c0001f';
+        icon.textContent = 'notifications';
+    }
+    var acoes = li.querySelector('.notif-actions');
+    if (acoes) acoes.innerHTML = htmlAcoesAtiva();
+}
+
+// ── Migração suave de uma linha entre listas (sem refresh) ─────────────────
+function migrarLinha(li, destinoListaId, restilizar) {
+    var destino = document.getElementById(destinoListaId);
     var h = li.offsetHeight;
     li.style.overflow = 'hidden';
     li.style.maxHeight = h + 'px';
@@ -140,7 +320,99 @@ function arquivarNotificacao(btn) {
         li.style.paddingTop = '0';
         li.style.paddingBottom = '0';
     });
-    setTimeout(function () { li.remove(); }, 300);
+    setTimeout(function () {
+        restilizar(li);
+        // limpar estilos inline para a linha aparecer normal no destino
+        ['maxHeight', 'opacity', 'overflow', 'transition', 'paddingTop', 'paddingBottom'].forEach(function (p) {
+            li.style[p] = '';
+        });
+        if (destino) destino.appendChild(li);
+        atualizarContadores();
+        atualizarPlaceholders();
+        aplicarFiltro();
+    }, 300);
+}
+
+// ── Arquivar (persistente + migração em tempo real + toast com Desfazer) ───
+function arquivarNotificacao(btn) {
+    var li = btn.closest('li');
+    if (!li) return;
+    var id = li.getAttribute('data-id');
+    if (!id) return;
+
+    btn.disabled = true;
+    fetch('/web/notificacoes/' + id + '/arquivar', { method: 'POST', headers: { 'X-Requested-With': 'fetch' } })
+        .then(function (res) {
+            if (!res.ok) throw new Error('falha');
+            migrarLinha(li, 'lista-arquivadas', restilizarArquivada);
+            mostrarToast('Notificação enviada para o arquivo.', id);
+        })
+        .catch(function () {
+            btn.disabled = false;
+            mostrarToast('Não foi possível arquivar a notificação. Tenta novamente.', null);
+        });
+}
+
+// ── Desarquivar (restaura para Ativas em tempo real) ───────────────────────
+function desarquivarNotificacao(btn) {
+    var li = btn.closest('li');
+    if (li) desarquivarLinha(li);
+}
+function desarquivarLinha(li) {
+    var id = li.getAttribute('data-id');
+    if (!id) return;
+    fetch('/web/notificacoes/' + id + '/desarquivar', { method: 'POST', headers: { 'X-Requested-With': 'fetch' } })
+        .then(function (res) {
+            if (!res.ok) throw new Error('falha');
+            migrarLinha(li, 'lista-ativas', restilizarAtiva);
+            esconderToast();
+        })
+        .catch(function () {
+            mostrarToast('Não foi possível restaurar a notificação. Tenta novamente.', null);
+        });
+}
+
+// ── Toast com ação "Desfazer" ──────────────────────────────────────────────
+var _toastTimer = null;
+function mostrarToast(mensagem, idParaDesfazer) {
+    esconderToast();
+    var toast = document.createElement('div');
+    toast.id = 'notif-toast';
+    toast.className = 'fixed left-1/2 bottom-6 z-[9000] flex items-center gap-3 px-4 py-3 rounded-xl font-body text-[13px]';
+    toast.style.cssText = 'background:#1c1b1b;color:#fff;box-shadow:0 8px 28px rgba(0,0,0,.28);opacity:0;transform:translate(-50%,8px);transition:opacity .2s ease, transform .2s ease';
+
+    var span = document.createElement('span');
+    span.textContent = mensagem;
+    toast.appendChild(span);
+
+    if (idParaDesfazer) {
+        var undo = document.createElement('button');
+        undo.type = 'button';
+        undo.textContent = 'Desfazer';
+        undo.style.cssText = 'color:#ffb3af;font-weight:700;text-decoration:underline;text-underline-offset:2px;cursor:pointer;background:none;border:none;padding:0';
+        undo.addEventListener('click', function () { desfazerArquivar(idParaDesfazer); });
+        toast.appendChild(undo);
+    }
+
+    document.body.appendChild(toast);
+    requestAnimationFrame(function () {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translate(-50%,0)';
+    });
+    _toastTimer = setTimeout(esconderToast, 6000);
+}
+function esconderToast() {
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    var t = document.getElementById('notif-toast');
+    if (!t) return;
+    t.style.opacity = '0';
+    t.style.transform = 'translate(-50%,8px)';
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 200);
+}
+function desfazerArquivar(id) {
+    var li = document.querySelector('.notif-row[data-id="' + id + '"]');
+    esconderToast();
+    if (li) desarquivarLinha(li);
 }
 </script>
 </body>

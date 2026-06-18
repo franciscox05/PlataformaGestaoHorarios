@@ -63,14 +63,14 @@
             <div th:if="${turnos != null && !#lists.isEmpty(turnos)}" class="ml-auto flex items-center gap-2">
                 <div class="inline-flex rounded-xl border border-outline-variant/40 overflow-hidden bg-surface-container-low">
                     <button id="btn-vista-lista" type="button" onclick="setVista('lista')"
-                            class="flex items-center gap-1.5 px-3.5 py-2 font-body font-semibold text-[12px] transition-colors cursor-pointer bg-surface-container-high text-on-surface"
-                            aria-pressed="true">
+                            class="flex items-center gap-1.5 px-3.5 py-2 font-body font-semibold text-[12px] transition-colors cursor-pointer text-on-surface-variant"
+                            aria-pressed="false">
                         <span class="material-symbols-outlined text-[15px]">view_list</span>
                         Lista
                     </button>
                     <button id="btn-vista-calendario" type="button" onclick="setVista('calendario')"
-                            class="flex items-center gap-1.5 px-3.5 py-2 font-body font-semibold text-[12px] transition-colors cursor-pointer text-on-surface-variant"
-                            aria-pressed="false">
+                            class="flex items-center gap-1.5 px-3.5 py-2 font-body font-semibold text-[12px] transition-colors cursor-pointer bg-surface-container-high text-on-surface"
+                            aria-pressed="true">
                         <span class="material-symbols-outlined text-[15px]">calendar_view_month</span>
                         Calendário
                     </button>
@@ -96,7 +96,7 @@
         </div>
 
         <!-- tabela de turnos -->
-        <div th:if="${turnos != null && !#lists.isEmpty(turnos)}" id="lista-turnos-view" class="overflow-x-auto">
+        <div th:if="${turnos != null && !#lists.isEmpty(turnos)}" id="lista-turnos-view" style="display:none" class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-surface-container-low">
                     <tr>
@@ -109,12 +109,16 @@
                 </thead>
                 <tbody class="divide-y divide-outline-variant/20">
                     <tr th:each="t : ${turnos}"
-                        th:classappend="${t.dataTurno.equals(hoje)} ? 'bg-primary-fixed/10' : 'hover:bg-surface-container-low/60'"
+                        th:classappend="${t.dataTurno.equals(hoje)} ? 'bg-red-50/60 dark:bg-red-950/20 border-l-4 border-[#c0001f]' : (${t.dataTurno.isBefore(hoje)} ? 'opacity-45 filter grayscale-[25%] transition-opacity hover:bg-surface-container-low/60' : 'hover:bg-surface-container-low/60')"
                         th:attr="data-date=${#temporals.format(t.dataTurno, 'yyyy-MM-dd')}"
                         th:onclick="|openDayDetail(this.dataset.date,${t.dataTurno.dayOfMonth})|"
                         class="transition-colors cursor-pointer">
-                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface"
-                            th:text="${#temporals.format(t.dataTurno, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td class="px-6 py-3.5 font-body font-bold text-[13px] text-on-surface">
+                            <span th:text="${#temporals.format(t.dataTurno, 'dd/MM/yyyy')}">01/01/2026</span>
+                            <span th:if="${t.dataTurno.equals(hoje)}"
+                                  class="inline-flex items-center ml-1.5 align-middle font-body font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full text-white"
+                                  style="background:#c0001f">Hoje</span>
+                        </td>
                         <td class="px-6 py-3.5 font-body text-[13px] text-on-surface-variant capitalize"
                             th:text="${#temporals.format(t.dataTurno, 'EEEE', new java.util.Locale('pt','PT'))}">segunda</td>
                         <td class="px-6 py-3.5">
@@ -134,19 +138,61 @@
 
         <!-- ── Vista calendário (UC-F03) ── -->
         <div th:if="${turnos != null && !#lists.isEmpty(turnos)}"
-             id="calendario-view" style="display:none" class="p-5">
-            <!-- Cabeçalho — dias da semana (Segunda → Domingo) -->
-            <div class="grid grid-cols-7 gap-1.5 mb-1.5">
-                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Seg</div>
-                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Ter</div>
-                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Qua</div>
-                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Qui</div>
-                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Sex</div>
-                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider py-1.5 rounded-lg bg-surface-container-low" style="color:#906f6d">Sáb</div>
-                <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider py-1.5 rounded-lg bg-surface-container-low" style="color:#906f6d">Dom</div>
+             id="calendario-view" style="display:block" class="p-5">
+
+            <!-- Barra de navegação: Anterior/Hoje/Seguinte · título dinâmico · Mensal/Semanal -->
+            <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <div class="flex items-center gap-1">
+                    <button id="cal-nav-prev" type="button" onclick="calNavegar(-1)" aria-label="Anterior"
+                            class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px] text-on-surface-variant">chevron_left</span>
+                    </button>
+                    <button id="cal-nav-today" type="button" onclick="calNavegarHoje()"
+                            class="px-2.5 py-1 rounded-lg font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer">
+                        Hoje
+                    </button>
+                    <button id="cal-nav-next" type="button" onclick="calNavegar(1)" aria-label="Seguinte"
+                            class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px] text-on-surface-variant">chevron_right</span>
+                    </button>
+                </div>
+
+                <h3 id="cal-titulo" class="font-display font-bold text-[15px] text-on-surface capitalize order-first w-full text-center md:order-none md:w-auto md:text-left">&nbsp;</h3>
+
+                <div class="inline-flex rounded-xl border border-outline-variant/40 overflow-hidden bg-surface-container-low ml-auto">
+                    <button id="btn-modo-mensal" type="button" onclick="setModoCalendario('mensal')"
+                            class="flex items-center gap-1.5 px-3 py-1.5 font-body font-semibold text-[11px] transition-colors cursor-pointer bg-surface-container-high text-on-surface"
+                            aria-pressed="true">
+                        <span class="material-symbols-outlined text-[14px]">calendar_view_month</span>
+                        Mensal
+                    </button>
+                    <button id="btn-modo-semanal" type="button" onclick="setModoCalendario('semanal')"
+                            class="flex items-center gap-1.5 px-3 py-1.5 font-body font-semibold text-[11px] transition-colors cursor-pointer text-on-surface-variant"
+                            aria-pressed="false">
+                        <span class="material-symbols-outlined text-[14px]">view_week</span>
+                        Semanal
+                    </button>
+                </div>
             </div>
-            <!-- Células do calendário (geradas por JS) -->
-            <div id="cal-grid-body" class="grid grid-cols-7 gap-1.5"></div>
+
+            <!-- Vista Mensal -->
+            <div id="cal-mensal-wrap" style="transition:opacity .16s ease">
+                <!-- Cabeçalho — dias da semana (Segunda → Domingo) -->
+                <div class="grid grid-cols-7 gap-1.5 mb-1.5">
+                    <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Seg</div>
+                    <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Ter</div>
+                    <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Qua</div>
+                    <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Qui</div>
+                    <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant py-1.5 rounded-lg bg-surface-container-low">Sex</div>
+                    <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider py-1.5 rounded-lg bg-surface-container-low" style="color:#906f6d">Sáb</div>
+                    <div class="text-center font-body font-semibold text-[10px] uppercase tracking-wider py-1.5 rounded-lg bg-surface-container-low" style="color:#906f6d">Dom</div>
+                </div>
+                <!-- Células do calendário (geradas por JS) -->
+                <div id="cal-grid-body" class="grid grid-cols-7 gap-1.5"></div>
+            </div>
+
+            <!-- Vista Semanal -->
+            <div id="cal-semanal-wrap" style="display:none;transition:opacity .16s ease" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2"></div>
         </div>
     </section>
 
@@ -160,20 +206,78 @@
 (function () {
 
     /* ── 1. Dados injetados pelo servidor ── */
-    var hoje   = /*[[${hoje}]]*/ null;
     var anoMes = /*[[${ano}]]*/ 0;
     var mesMes = /*[[${mes}]]*/ 1;
 
     var turnosMes = /*[[${turnosCalendario}]]*/ [];
 
-    /* ── 2. Parse de "hoje" sem risco de fuso horário ── */
-    var hp       = hoje ? String(hoje).split('-') : null;
-    var hojeAno  = hp ? parseInt(hp[0], 10) : -1;
-    var hojeMesN = hp ? parseInt(hp[1], 10) : -1;
-    var hojeDiaN = hp ? parseInt(hp[2], 10) : -1;
+    /* Nome do utilizador autenticado — para destacar a sua própria folga no modal */
+    var euNome     = /*[[${session.webUtilizadorNome}]]*/ '';
+    var euNomeNorm = (euNome || '').trim().toLowerCase();
+
+    /* ── 2. "Hoje" é determinado por comparação nativa de Date dentro de renderMensal/renderSemanal
+            (ver isToday/isPast), evitando depender da serialização de LocalDate no backend. ── */
 
     /* ── 3. Utilitário de padding ── */
     function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+    /* ── 3b. Cache de turnos por mês (ano-mes → lista) + navegação Mensal/Semanal ──
+       O mês inicial (anoMes/mesMes) já vem embutido pelo servidor — preenche a cache
+       sem custo de rede. Saltos de mês/semana só pedem ao backend quando o mês de
+       destino ainda não está em cache. ── */
+    var monthCache = {};
+    monthCache[anoMes + '-' + pad2(mesMes)] = turnosMes;
+
+    function getMonthData(ano, mes) {
+        var key = ano + '-' + pad2(mes);
+        if (monthCache[key]) { return Promise.resolve(monthCache[key]); }
+        return fetch('/api/horarios/mes?ano=' + ano + '&mes=' + mes)
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (data) { monthCache[key] = data || []; return monthCache[key]; })
+            .catch(function () { monthCache[key] = []; return []; });
+    }
+
+    var NOMES_MES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+                      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    var NOMES_DIA_CURTO = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+    var modoCalendario = 'mensal'; /* 'mensal' | 'semanal' */
+    var mensalAno = anoMes, mensalMes = mesMes;
+
+    var hojeReal = new Date();
+    var semanalAncora = (hojeReal.getFullYear() === anoMes && (hojeReal.getMonth() + 1) === mesMes)
+        ? new Date(hojeReal.getFullYear(), hojeReal.getMonth(), hojeReal.getDate())
+        : new Date(anoMes, mesMes - 1, 1);
+
+    function tituloMensal(ano, mes) {
+        return NOMES_MES[mes - 1] + ' de ' + ano;
+    }
+
+    function tituloSemanal(inicio, fim) {
+        var mesmoMes = inicio.getMonth() === fim.getMonth() && inicio.getFullYear() === fim.getFullYear();
+        if (mesmoMes) {
+            return inicio.getDate() + ' a ' + fim.getDate() + ' de ' + NOMES_MES[inicio.getMonth()] + ' de ' + inicio.getFullYear();
+        }
+        var mesmoAno = inicio.getFullYear() === fim.getFullYear();
+        return inicio.getDate() + ' de ' + NOMES_MES[inicio.getMonth()] + (mesmoAno ? '' : ' de ' + inicio.getFullYear())
+            + ' a ' + fim.getDate() + ' de ' + NOMES_MES[fim.getMonth()] + ' de ' + fim.getFullYear();
+    }
+
+    function startOfWeek(d) {
+        var copy = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        var dow  = (copy.getDay() + 6) % 7; /* Seg=0 … Dom=6 */
+        copy.setDate(copy.getDate() - dow);
+        return copy;
+    }
+
+    function fadeSwap(el, renderFn) {
+        if (!el) { renderFn(); return; }
+        el.style.opacity = '0';
+        setTimeout(function () {
+            renderFn();
+            el.style.opacity = '1';
+        }, 130);
+    }
 
     /* ── 4. Classe do badge por tipo de turno ── */
     function badgeClass(tipo) {
@@ -196,84 +300,234 @@
         return tipo;
     }
 
-    /* ── 4. Constrói o calendário mensal (lazy — chamado 1 vez) ── */
-    function buildCalendar() {
+    /* ── 4. Constrói o calendário mensal para um ano/mês arbitrário (cache-backed) ── */
+    function renderMensal(ano, mes) {
         var container = document.getElementById('cal-grid-body');
+        var titulo    = document.getElementById('cal-titulo');
         if (!container) return;
+        if (titulo) titulo.textContent = tituloMensal(ano, mes);
 
-        /* mapeia dia → lista de turnos */
-        var shiftMap = {};
-        var i;
-        for (i = 0; i < turnosMes.length; i++) {
-            var entry = turnosMes[i];
-            if (!shiftMap[entry.dia]) { shiftMap[entry.dia] = []; }
-            shiftMap[entry.dia].push(entry);
-        }
+        getMonthData(ano, mes).then(function (turnos) {
+            /* mapeia dia → lista de turnos */
+            var shiftMap = {};
+            var i;
+            for (i = 0; i < turnos.length; i++) {
+                var entry = turnos[i];
+                if (!shiftMap[entry.dia]) { shiftMap[entry.dia] = []; }
+                shiftMap[entry.dia].push(entry);
+            }
 
-        var diasNoMes  = new Date(anoMes, mesMes, 0).getDate();
-        var firstDayJS = new Date(anoMes, mesMes - 1, 1).getDay(); /* JS: 0=Dom */
-        var offset     = (firstDayJS + 6) % 7;                     /* Seg=0 … Dom=6 */
-        var totalRows  = Math.ceil((offset + diasNoMes) / 7);
+            var diasNoMes  = new Date(ano, mes, 0).getDate();
+            var firstDayJS = new Date(ano, mes - 1, 1).getDay(); /* JS: 0=Dom */
+            var offset     = (firstDayJS + 6) % 7;               /* Seg=0 … Dom=6 */
+            var totalRows  = Math.ceil((offset + diasNoMes) / 7);
 
-        var html     = '';
-        var diaAtual = 1;
-        var row, col, idx, dia, isToday, isWknd, shifts, cellCls, numCls, numStyle, si, s, dateStr;
+            var html     = '';
+            var diaAtual = 1;
+            var row, col, idx, dia, isToday, isPast, isWknd, shifts, cellCls, numCls, numStyle, si, s, dateStr, dReal;
 
-        for (row = 0; row < totalRows; row++) {
-            for (col = 0; col < 7; col++) {
-                idx = row * 7 + col;
+            for (row = 0; row < totalRows; row++) {
+                for (col = 0; col < 7; col++) {
+                    idx = row * 7 + col;
 
-                if (idx < offset || diaAtual > diasNoMes) {
-                    /* célula fantasma — antes/depois do mês */
-                    html += '<div style="min-height:88px;border-radius:12px;border:1px solid rgba(0,0,0,0.06)"></div>';
+                    if (idx < offset || diaAtual > diasNoMes) {
+                        /* célula fantasma — antes/depois do mês */
+                        html += '<div style="min-height:88px;border-radius:12px;border:1px solid rgba(0,0,0,0.06)"></div>';
 
-                } else {
-                    dia     = diaAtual++;
-                    isToday = (anoMes === hojeAno && mesMes === hojeMesN && dia === hojeDiaN);
-                    isWknd  = (col >= 5);
-                    shifts  = shiftMap[dia] || [];
-
-                    dateStr = anoMes + '-' + pad2(mesMes) + '-' + pad2(dia);
-                    cellCls = isToday
-                        ? 'min-h-[88px] rounded-xl p-2.5 border-2 border-primary/50 bg-primary-fixed/10 flex flex-col gap-1 cursor-pointer'
-                        : 'min-h-[88px] rounded-xl p-2.5 border border-outline-variant/20 bg-surface-container-lowest hover:bg-surface-container-low/60 transition-colors flex flex-col gap-1 cursor-pointer';
-
-                    html += '<div class="' + cellCls + '" data-date="' + dateStr + '" onclick="openDayDetail(\'' + dateStr + '\',' + dia + ')">';
-
-                    /* número do dia */
-                    numCls   = isToday
-                        ? 'font-display font-bold text-[13px] leading-none text-primary'
-                        : 'font-display font-bold text-[13px] leading-none text-on-surface-variant';
-                    numStyle = (isWknd && !isToday) ? ' style="color:#906f6d"' : '';
-
-                    html += '<div class="flex items-center justify-between mb-1">';
-                    html += '<span class="' + numCls + '"' + numStyle + '>' + dia + '</span>';
-                    if (isToday) {
-                        html += '<span class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>';
-                    }
-                    html += '</div>';
-
-                    /* turno(s) ou indicador de folga */
-                    if (shifts.length > 0) {
-                        for (si = 0; si < shifts.length; si++) {
-                            s = shifts[si];
-                            html += '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold self-start '
-                                 +  badgeClass(s.tipo) + '">' + tipoLabel(s.tipo) + '</span>';
-                            html += '<span class="font-body text-[11px] text-on-surface-variant">'
-                                 +  s.inicio + '–' + s.fim + '</span>';
-                        }
                     } else {
-                        html += '<span class="font-body text-[11px] italic mt-auto"'
-                             +  ' style="opacity:.4;color:inherit">Folga</span>';
-                    }
+                        dia     = diaAtual++;
+                        /* Comparação nativa de data — imune à serialização de LocalDate no backend */
+                        dReal   = new Date();
+                        isToday = (dia === dReal.getDate() && (mes - 1) === dReal.getMonth() && ano === dReal.getFullYear());
+                        isPast  = (!isToday && (dia < dReal.getDate() && (mes - 1) === dReal.getMonth() && ano === dReal.getFullYear()) || ((mes - 1) < dReal.getMonth() && ano === dReal.getFullYear()) || (ano < dReal.getFullYear()));
+                        isWknd  = (col >= 5);
+                        shifts  = shiftMap[dia] || [];
 
-                    html += '</div>'; /* /célula */
+                        dateStr = ano + '-' + pad2(mes) + '-' + pad2(dia);
+                        cellCls = isToday
+                            ? 'min-h-[88px] rounded-xl p-2.5 border-2 border-[#c0001f] bg-red-50/10 ring-2 ring-[#c0001f]/20 flex flex-col gap-1 cursor-pointer'
+                            : 'min-h-[88px] rounded-xl p-2.5 border border-outline-variant/20 bg-surface-container-lowest hover:bg-surface-container-low/60 transition-colors flex flex-col gap-1 cursor-pointer';
+                        if (isPast) {
+                            /* dias passados — efeito histórico esbatido */
+                            cellCls += ' opacity-45 filter grayscale-[30%] transition-opacity';
+                        }
+
+                        html += '<div class="' + cellCls + '" data-date="' + dateStr + '" onclick="openDayDetail(\'' + dateStr + '\',' + dia + ')">';
+
+                        /* número do dia */
+                        numStyle = (isWknd && !isToday) ? ' style="color:#906f6d"' : '';
+
+                        html += '<div class="flex items-center justify-between mb-1">';
+                        if (isToday) {
+                            /* dia de hoje — número a vermelho limpo + badge "Hoje" discreto */
+                            html += '<span class="font-display font-bold text-[14px] text-[#c0001f]">' + dia + '</span>';
+                            html += '<span class="font-body font-bold text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full text-white shrink-0" style="background:#c0001f">Hoje</span>';
+                        } else {
+                            numCls = 'font-display font-bold text-[13px] leading-none text-on-surface-variant';
+                            html += '<span class="' + numCls + '"' + numStyle + '>' + dia + '</span>';
+                        }
+                        html += '</div>';
+
+                        /* turno(s) ou indicador de folga */
+                        if (shifts.length > 0) {
+                            for (si = 0; si < shifts.length; si++) {
+                                s = shifts[si];
+                                html += '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold self-start '
+                                     +  badgeClass(s.tipo) + '">' + tipoLabel(s.tipo) + '</span>';
+                                html += '<span class="font-body text-[11px] text-on-surface-variant">'
+                                     +  s.inicio + '–' + s.fim + '</span>';
+                            }
+                        } else if (isToday) {
+                            /* hoje + sem turno (folga): tom neutro elegante (o realce é a moldura/badge) */
+                            html += '<span class="font-body italic text-[11px] mt-auto text-on-surface/70">Folga</span>';
+                        } else {
+                            html += '<span class="font-body text-[11px] italic mt-auto"'
+                                 +  ' style="opacity:.4;color:inherit">Folga</span>';
+                        }
+
+                        html += '</div>'; /* /célula */
+                    }
                 }
             }
+
+            container.innerHTML = html;
+        });
+    } /* /renderMensal */
+
+    /* ── 4b. Constrói a vista semanal (linha de 7 dias) a partir de uma data-âncora.
+       Pode abranger dois meses (ex.: semana 29 jun–5 jul) — pede ambos os meses em
+       paralelo e só vai à rede para os que ainda não estão em cache. ── */
+    function renderSemanal(anchorDate) {
+        var container = document.getElementById('cal-semanal-wrap');
+        var titulo    = document.getElementById('cal-titulo');
+        if (!container) return;
+
+        var inicio = startOfWeek(anchorDate);
+        var dias = [];
+        var i, d;
+        for (i = 0; i < 7; i++) {
+            d = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
+            dias.push(d);
+        }
+        var fim = dias[6];
+        if (titulo) titulo.textContent = tituloSemanal(inicio, fim);
+
+        var chaves = {};
+        dias.forEach(function (dt) { chaves[dt.getFullYear() + '-' + pad2(dt.getMonth() + 1)] = [dt.getFullYear(), dt.getMonth() + 1]; });
+        var pedidos = Object.keys(chaves).map(function (k) { return getMonthData(chaves[k][0], chaves[k][1]); });
+
+        Promise.all(pedidos).then(function () {
+            var dReal = new Date();
+            var hojeMidnight = new Date(dReal.getFullYear(), dReal.getMonth(), dReal.getDate());
+            var html = '';
+
+            dias.forEach(function (dt, idx) {
+                var key      = dt.getFullYear() + '-' + pad2(dt.getMonth() + 1);
+                var lista    = monthCache[key] || [];
+                var shifts   = lista.filter(function (s) { return s.dia === dt.getDate(); });
+                var dateStr  = dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate());
+                var isToday  = (dt.getDate() === dReal.getDate() && dt.getMonth() === dReal.getMonth() && dt.getFullYear() === dReal.getFullYear());
+                var diaMidnight = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+                var isPast   = !isToday && diaMidnight < hojeMidnight;
+                var isWknd   = (idx >= 5);
+
+                var cellCls = isToday
+                    ? 'min-h-[120px] rounded-xl p-3 border-2 border-[#c0001f] bg-red-50/10 ring-2 ring-[#c0001f]/20 flex flex-col gap-1.5 cursor-pointer'
+                    : 'min-h-[120px] rounded-xl p-3 border border-outline-variant/20 bg-surface-container-lowest hover:bg-surface-container-low/60 transition-colors flex flex-col gap-1.5 cursor-pointer';
+                if (isPast) cellCls += ' opacity-45 filter grayscale-[30%] transition-opacity';
+
+                html += '<div class="' + cellCls + '" data-date="' + dateStr + '" onclick="openDayDetail(\'' + dateStr + '\',' + dt.getDate() + ')">';
+                html += '<div class="flex items-center justify-between">';
+                html += '<span class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant"'
+                     +  ((isWknd && !isToday) ? ' style="color:#906f6d"' : '') + '>' + NOMES_DIA_CURTO[idx] + '</span>';
+                if (isToday) {
+                    html += '<span class="font-body font-bold text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full text-white shrink-0" style="background:#c0001f">Hoje</span>';
+                }
+                html += '</div>';
+                html += '<span class="font-display font-bold text-[20px] leading-none'
+                     +  (isToday ? ' text-[#c0001f]' : ' text-on-surface') + '">' + dt.getDate() + '</span>';
+
+                if (shifts.length > 0) {
+                    shifts.forEach(function (s) {
+                        html += '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold self-start ' + badgeClass(s.tipo) + '">' + tipoLabel(s.tipo) + '</span>';
+                        html += '<span class="font-body text-[11px] text-on-surface-variant">' + s.inicio + '–' + s.fim + '</span>';
+                    });
+                } else if (isToday) {
+                    html += '<span class="font-body italic text-[11px] mt-auto text-on-surface/70">Folga</span>';
+                } else {
+                    html += '<span class="font-body text-[11px] italic mt-auto" style="opacity:.4;color:inherit">Folga</span>';
+                }
+                html += '</div>'; /* /célula */
+            });
+
+            container.innerHTML = html;
+        });
+    } /* /renderSemanal */
+
+    /* ── 4c. Dispatcher + navegação Mensal/Semanal ── */
+    function renderCalendarioAtual() {
+        var wrapMensal  = document.getElementById('cal-mensal-wrap');
+        var wrapSemanal = document.getElementById('cal-semanal-wrap');
+        if (modoCalendario === 'mensal') {
+            if (wrapSemanal) wrapSemanal.style.display = 'none';
+            if (wrapMensal)  wrapMensal.style.display  = '';
+            fadeSwap(wrapMensal, function () { renderMensal(mensalAno, mensalMes); });
+        } else {
+            if (wrapMensal)  wrapMensal.style.display  = 'none';
+            if (wrapSemanal) wrapSemanal.style.display = '';
+            fadeSwap(wrapSemanal, function () { renderSemanal(semanalAncora); });
+        }
+    }
+
+    window.setModoCalendario = function (modo) {
+        if (modo === modoCalendario) return;
+        modoCalendario = modo;
+
+        var btnM = document.getElementById('btn-modo-mensal');
+        var btnS = document.getElementById('btn-modo-semanal');
+        var toRemove = ['bg-surface-container-high', 'text-on-surface', 'text-on-surface-variant'];
+        var ci, cls;
+        if (btnM && btnS) {
+            for (ci = 0; ci < toRemove.length; ci++) {
+                cls = toRemove[ci];
+                btnM.classList.remove(cls);
+                btnS.classList.remove(cls);
+            }
+            if (modo === 'mensal') {
+                btnM.classList.add('bg-surface-container-high', 'text-on-surface');
+                btnS.classList.add('text-on-surface-variant');
+            } else {
+                btnS.classList.add('bg-surface-container-high', 'text-on-surface');
+                btnM.classList.add('text-on-surface-variant');
+            }
+            btnM.setAttribute('aria-pressed', String(modo === 'mensal'));
+            btnS.setAttribute('aria-pressed', String(modo === 'semanal'));
         }
 
-        container.innerHTML = html;
-    } /* /buildCalendar */
+        renderCalendarioAtual();
+    };
+
+    window.calNavegar = function (delta) {
+        if (modoCalendario === 'mensal') {
+            mensalMes += delta;
+            if (mensalMes > 12) { mensalMes = 1; mensalAno++; }
+            if (mensalMes < 1)  { mensalMes = 12; mensalAno--; }
+        } else {
+            semanalAncora = new Date(semanalAncora.getFullYear(), semanalAncora.getMonth(), semanalAncora.getDate() + delta * 7);
+        }
+        renderCalendarioAtual();
+    };
+
+    window.calNavegarHoje = function () {
+        var hoje = new Date();
+        if (modoCalendario === 'mensal') {
+            mensalAno = hoje.getFullYear();
+            mensalMes = hoje.getMonth() + 1;
+        } else {
+            semanalAncora = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        }
+        renderCalendarioAtual();
+    };
 
     /* ── 5. Troca de vista (lista ↔ calendário) ── */
     window.setVista = function (mode) {
@@ -305,9 +559,8 @@
             btnCal.setAttribute('aria-pressed', String(eCal));
         }
 
-        if (eCal && calView && !calView.dataset.built) {
-            buildCalendar();
-            calView.dataset.built = 'true';
+        if (eCal && calView) {
+            renderCalendarioAtual();
         }
     }; /* /setVista */
 
@@ -320,7 +573,8 @@
         var title   = document.getElementById('day-detail-title');
         var sub     = document.getElementById('day-detail-subtitle');
 
-        title.textContent     = 'Equipa — ' + pad2(diaNum) + '/' + pad2(mesMes) + '/' + anoMes;
+        var dataPartes = dateStr.split('-'); /* [ano, mes, dia] — evita depender de mesMes/anoMes (globais do SSR) */
+        title.textContent     = 'Equipa — ' + dataPartes[2] + '/' + dataPartes[1] + '/' + dataPartes[0];
         sub.textContent       = '';
         loading.style.display = '';
         content.style.display = 'none';
@@ -376,6 +630,9 @@
         } else {
             equipaEmpty.style.display = 'none';
             data.equipa.forEach(function (c) {
+                /* Destacar a própria linha só em dias de hoje/passados.
+                   No futuro, o botão "Solicitar Permuta" já dá relevo natural. */
+                var destacarEu = c.meuTurno && !shiftIsFuture;
                 var row   = document.createElement('div');
                 row.className = 'flex items-center justify-between gap-2 px-3 py-2.5';
                 var left  = document.createElement('div');
@@ -383,6 +640,13 @@
                 var nome  = document.createElement('span');
                 nome.className = 'font-body font-semibold text-[13px] text-on-surface truncate';
                 nome.textContent = c.nome;
+                if (destacarEu) {
+                    var euTag = document.createElement('span');
+                    euTag.className = 'ml-1.5 align-middle font-body font-bold text-[10px]';
+                    euTag.style.color = '#c0001f';
+                    euTag.textContent = '(Tu)';
+                    nome.appendChild(euTag);
+                }
                 var cargo = document.createElement('span');
                 cargo.className = 'font-body text-[11px] text-on-surface-variant truncate';
                 cargo.textContent = c.cargo;
@@ -402,12 +666,14 @@
                 row.appendChild(right);
 
                 var card = document.createElement('div');
-                card.className = 'bg-surface-container-low rounded-xl overflow-hidden';
+                card.className = destacarEu
+                    ? 'bg-red-50/50 border-l-2 border-[#c0001f] rounded-xl overflow-hidden'
+                    : 'bg-surface-container-low rounded-xl overflow-hidden';
                 card.appendChild(row);
 
                 if (c.meuTurno && c.horarioId && shiftIsFuture) {
                     var permBar = document.createElement('a');
-                    permBar.href = '/web/complementares?tab=permutas&origemPermuta=' + c.horarioId + '#seccao-permuta';
+                    permBar.href = '/web/complementares?tab=permutas&origemPermuta=' + c.horarioId;
                     permBar.className = 'flex items-center justify-center gap-1.5 px-3 py-1.5 border-t border-outline-variant/20 bg-primary-container/5 hover:bg-primary-container/15 transition-colors font-body text-[11px] font-semibold text-primary-container';
                     permBar.innerHTML = '<span class="material-symbols-outlined text-[13px]">swap_horiz</span>Solicitar Permuta';
                     card.appendChild(permBar);
@@ -424,11 +690,20 @@
         } else {
             folgasEmpty.style.display = 'none';
             data.folgas.forEach(function (f) {
+                var ehEu = euNomeNorm && f.nome && f.nome.trim().toLowerCase() === euNomeNorm;
                 var row  = document.createElement('div');
-                row.className = 'flex items-center justify-between gap-2 bg-surface-container-low rounded-xl px-3 py-2.5';
+                row.className = 'flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 '
+                    + (ehEu ? 'bg-red-50/50 border-l-2 border-[#c0001f]' : 'bg-surface-container-low');
                 var nome = document.createElement('span');
                 nome.className = 'font-body font-semibold text-[13px] text-on-surface';
                 nome.textContent = f.nome;
+                if (ehEu) {
+                    var euBadge = document.createElement('span');
+                    euBadge.className = 'ml-1.5 align-middle font-body font-bold text-[10px]';
+                    euBadge.style.color = '#c0001f';
+                    euBadge.textContent = '(A tua folga)';
+                    nome.appendChild(euBadge);
+                }
                 var tipo = document.createElement('span');
                 tipo.className = 'font-body text-[11px] text-on-surface-variant capitalize';
                 tipo.textContent = f.tipo;
@@ -454,6 +729,11 @@
             document.body.style.overflow = '';
         }, 220);
     };
+
+    /* ── 7. Estado inicial — vista Calendário por defeito ──
+       Chama setVista para garantir o estado visual coerente E construir
+       a grelha (que é lazy: só corre na 1.ª chamada a 'calendario'). */
+    setVista('calendario');
 
 })(); /* /IIFE */
 /*]]>*/

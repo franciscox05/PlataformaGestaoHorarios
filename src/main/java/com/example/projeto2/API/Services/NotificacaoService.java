@@ -61,6 +61,28 @@ public class NotificacaoService {
         notificacaoRepository.marcarTodasComoLidasPorLoja(utilizadorId, idLoja);
     }
 
+    /**
+     * Arquiva permanentemente uma notificação do próprio utilizador.
+     * O filtro por idUtilizador garante o isolamento — ninguém arquiva notificações de outrem.
+     * @return true se uma linha foi efetivamente arquivada.
+     */
+    @Transactional
+    public boolean arquivarNotificacao(Integer id, Integer utilizadorId) {
+        if (id == null || utilizadorId == null) return false;
+        return notificacaoRepository.arquivar(id, utilizadorId) > 0;
+    }
+
+    /**
+     * Restaura uma notificação arquivada do próprio utilizador para o estado ativo.
+     * O filtro por idUtilizador garante o isolamento.
+     * @return true se uma linha foi efetivamente restaurada.
+     */
+    @Transactional
+    public boolean desarquivarNotificacao(Integer id, Integer utilizadorId) {
+        if (id == null || utilizadorId == null) return false;
+        return notificacaoRepository.desarquivar(id, utilizadorId) > 0;
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void criarNotificacao(Integer utilizadorId, String mensagem) {
         criarNotificacao(utilizadorId, mensagem, null);

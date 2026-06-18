@@ -28,17 +28,17 @@
             <div>
                 <div class="flex items-center gap-2 mb-2">
                     <div class="h-px w-6" style="background:linear-gradient(90deg,#c0001f,transparent)"></div>
-                    <p class="font-body font-bold text-[9px] uppercase tracking-[.2em]" style="color:rgba(255,179,175,.4)">Colaborador</p>
+                    <p class="font-body font-bold text-[9px] uppercase tracking-[.2em] text-white/60">Colaborador</p>
                 </div>
                 <h1 class="font-display font-bold text-white text-[26px] leading-tight" th:text="${resumo.nome()}">–</h1>
                 <div class="flex items-center gap-2.5 mt-2.5 flex-wrap">
-                    <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full"
-                          style="background:rgba(255,179,175,.1);color:#ffb3af;border:1px solid rgba(255,179,175,.15)"
+                    <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full text-white"
+                          style="background:rgba(255,179,175,.18);border:1px solid rgba(255,179,175,.35)"
                           th:text="${resumo.cargoAtual()}">–</span>
                     <span class="inline-flex items-center gap-1.5 font-body font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full badge-ok"
                           th:text="${resumo.estado()}">Ativo</span>
-                    <span class="font-body text-[12px] flex items-center gap-1.5" style="color:rgba(255,255,255,.28)">
-                        <span class="material-symbols-outlined text-[13px]">store</span>
+                    <span class="font-body text-[12px] flex items-center gap-1.5 text-slate-200">
+                        <span class="material-symbols-outlined text-[13px] text-white/70">store</span>
                         <span th:text="${resumo.lojaAtual()}">–</span>
                     </span>
                 </div>
@@ -62,7 +62,8 @@
 
     <!-- KPIs -->
     <div th:if="${resumo != null}" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift"
+        <article role="button" tabindex="0" onclick="openHorasModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+                 class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="flex items-center justify-between">
                 <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Horas este mês</p>
@@ -70,10 +71,11 @@
                     <span class="material-symbols-outlined text-[17px]" style="color:#c0001f">timer</span>
                 </span>
             </div>
-            <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
+            <strong id="kpi-horas-valor" class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
                     th:text="${resumo.horasEsteMes()}">0</strong>
         </article>
-        <article class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift"
+        <article role="button" tabindex="0" onclick="location.href='/web/complementares?tab=permutas'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+                 class="fade-up fade-up-2 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="flex items-center justify-between">
                 <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Pedidos pendentes</p>
@@ -84,7 +86,8 @@
             <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
                     th:text="${resumo.pedidosPendentes()}">0</strong>
         </article>
-        <article class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift"
+        <article role="button" tabindex="0" onclick="location.href='/web/complementares?tab=folgas'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+                 class="fade-up fade-up-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="flex items-center justify-between">
                 <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Folgas aprovadas</p>
@@ -95,7 +98,8 @@
             <strong class="font-display font-bold text-on-surface" style="font-size:2.4rem;line-height:1"
                     th:text="${resumo.pedidosAprovados()}">0</strong>
         </article>
-        <article class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift"
+        <article role="button" tabindex="0" onclick="location.href='/web/horarios'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+                 class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-2 card-lift cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
                  style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
             <div class="flex items-center justify-between">
                 <p class="font-body font-semibold text-[11px] uppercase tracking-wider text-on-surface-variant">Turnos futuros</p>
@@ -170,7 +174,17 @@
         </section>
 
         <!-- Formulários de edição -->
-        <div class="grid sm:grid-cols-2 gap-4 content-start">
+        <div class="flex flex-col gap-4 content-start">
+
+            <!-- Feedback local · dados (email/telemóvel) -->
+            <div id="perfil-data-feedback"
+                 class="flex items-center gap-2.5 bg-error-container text-on-error-container px-4 py-3 rounded-xl font-body text-[12.5px]"
+                 style="display:none">
+                <span class="material-symbols-outlined text-[16px]">error_outline</span>
+                <span id="perfil-data-feedback-msg"></span>
+            </div>
+
+        <div class="grid sm:grid-cols-2 gap-4 content-start items-start">
 
             <article class="fade-up fade-up-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4 card-lift"
                      style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
@@ -180,7 +194,7 @@
                     </span>
                     <h2 class="font-display font-bold text-[15px] text-on-surface">Atualizar nome</h2>
                 </div>
-                <form method="post" action="/web/perfil/nome" class="flex flex-col gap-3 flex-1">
+                <form id="form-nome" method="post" action="/web/perfil/nome" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Novo nome</label>
                         <input name="nome" type="text" placeholder="Nome completo" required
@@ -199,13 +213,13 @@
                     </span>
                     <h2 class="font-display font-bold text-[15px] text-on-surface">Atualizar email</h2>
                 </div>
-                <form method="post" action="/web/perfil/email" class="flex flex-col gap-3 flex-1">
+                <form id="form-email" method="post" action="/web/perfil/email" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Novo email</label>
-                        <input name="email" type="email" placeholder="email@empresa.pt" required
+                        <input id="emailInput" name="email" type="email" placeholder="nome@levis.com" required
                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                     </div>
-                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
+                    <button id="btn-guardar-email" type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
                             style="background:linear-gradient(135deg,#c0001f,#7a0014)">Guardar email</button>
                 </form>
             </article>
@@ -218,19 +232,20 @@
                     </span>
                     <h2 class="font-display font-bold text-[15px] text-on-surface">Atualizar telemóvel</h2>
                 </div>
-                <form method="post" action="/web/perfil/telemovel" class="flex flex-col gap-3 flex-1">
+                <form id="form-telemovel" method="post" action="/web/perfil/telemovel" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Número (9 dígitos)</label>
-                        <input name="telemovel" type="text" maxlength="9" pattern="[0-9]{9}" placeholder="9XXXXXXXX" required
-                               th:value="${resumo.telemovel()}"
+                        <input id="telemovelInput" name="telemovel" type="text" maxlength="9" pattern="[0-9]{9}" required
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               th:placeholder="${resumo.telemovel() != null ? resumo.telemovel() : '9XXXXXXXX'}"
                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
                     </div>
-                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
+                    <button id="btn-guardar-telemovel" type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
                             style="background:linear-gradient(135deg,#c0001f,#7a0014)">Guardar telemóvel</button>
                 </form>
             </article>
 
-            <article class="fade-up fade-up-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4 card-lift"
+            <article class="fade-up fade-up-4 md:col-span-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/25 p-5 flex flex-col gap-4 card-lift"
                      style="box-shadow:0 2px 12px rgba(28,27,27,.05)">
                 <div class="flex items-center gap-2.5">
                     <span class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:rgba(192,0,31,.08)">
@@ -238,16 +253,28 @@
                     </span>
                     <h2 class="font-display font-bold text-[15px] text-on-surface">Alterar palavra-passe</h2>
                 </div>
-                <form method="post" action="/web/perfil/password" class="flex flex-col gap-3 flex-1">
+                <form id="form-password" method="post" action="/web/perfil/password" class="flex flex-col gap-3 flex-1">
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Atual</label>
-                        <input name="passwordAtual" type="password" required placeholder="••••••••"
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                        <div class="relative flex items-center">
+                            <input id="passwordAtual" name="passwordAtual" type="password" required placeholder="••••••••"
+                                   class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 pr-10 font-body text-[13px] text-on-surface w-full">
+                            <button type="button" class="absolute right-2.5 flex items-center justify-center" tabindex="-1"
+                                    onclick="togglePasswordVisibility('passwordAtual', this)" aria-label="Mostrar palavra-passe atual">
+                                <span class="material-symbols-outlined cursor-pointer select-none text-[18px] text-on-surface-variant">visibility</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Nova</label>
-                        <input id="novaPassword" name="novaPassword" type="password" required placeholder="••••••••"
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                        <div class="relative flex items-center">
+                            <input id="novaPassword" name="novaPassword" type="password" required placeholder="••••••••"
+                                   class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 pr-10 font-body text-[13px] text-on-surface w-full">
+                            <button type="button" class="absolute right-2.5 flex items-center justify-center" tabindex="-1"
+                                    onclick="togglePasswordVisibility('novaPassword', this)" aria-label="Mostrar nova palavra-passe">
+                                <span class="material-symbols-outlined cursor-pointer select-none text-[18px] text-on-surface-variant">visibility</span>
+                            </button>
+                        </div>
                         <div class="flex gap-1 mt-0.5" id="strengthBars">
                             <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb1"></div>
                             <div class="h-1 flex-1 rounded-full bg-outline-variant/30" id="sb2"></div>
@@ -258,18 +285,243 @@
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Confirmar</label>
-                        <input name="confirmarPassword" type="password" required placeholder="••••••••"
-                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface">
+                        <div class="relative flex items-center">
+                            <input id="confirmarPassword" name="confirmarPassword" type="password" required placeholder="••••••••"
+                                   class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 pr-10 font-body text-[13px] text-on-surface w-full">
+                            <button type="button" class="absolute right-2.5 flex items-center justify-center" tabindex="-1"
+                                    onclick="togglePasswordVisibility('confirmarPassword', this)" aria-label="Mostrar confirmação de palavra-passe">
+                                <span class="material-symbols-outlined cursor-pointer select-none text-[18px] text-on-surface-variant">visibility</span>
+                            </button>
+                        </div>
                     </div>
-                    <button type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
+
+                    <!-- Feedback local · palavra-passe -->
+                    <div id="perfil-pwd-feedback"
+                         class="flex items-center gap-2.5 bg-error-container text-on-error-container px-3.5 py-2.5 rounded-xl font-body text-[12px]"
+                         style="display:none">
+                        <span class="material-symbols-outlined text-[16px]">error_outline</span>
+                        <span id="perfil-pwd-feedback-msg"></span>
+                    </div>
+
+                    <button id="btn-guardar-password" type="submit" class="mt-auto text-white font-body font-bold text-[13px] py-2.5 rounded-xl transition-all hover:opacity-90"
                             style="background:linear-gradient(135deg,#c0001f,#7a0014)">Atualizar palavra-passe</button>
                 </form>
             </article>
+        </div>
         </div>
     </div>
 
 </div>
 </main>
+
+<!-- ═══════════════ MODAL · Distribuição de horas ═══════════════ -->
+<!-- Mesmo padrão transform-immune dos modais de logout/loja: overlay fixed independente + caixa fixed transladada -->
+<div id="horas-detalhe-modal"
+     style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)"
+     onclick="if(event.target===this)closeHorasModal()">
+</div>
+
+<div id="horas-detalhe-modal-box"
+     class="rounded-2xl overflow-hidden"
+     style="display:none;position:fixed;top:50vh;left:50vw;z-index:9001;width:calc(100% - 2rem);max-width:460px;transform:translate(-50%,-50%) scale(.95);opacity:0;transition:transform .22s cubic-bezier(.16,1,.3,1),opacity .22s ease;background:#fff;box-shadow:0 24px 64px rgba(0,0,0,.18)">
+
+    <!-- Barra de destaque bordeaux -->
+    <div class="h-1 w-full" style="background:linear-gradient(90deg,#c0001f,#7a0014)"></div>
+
+    <div class="p-6">
+        <!-- Cabeçalho -->
+        <div class="flex items-start gap-4 mb-5">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:#fee2e2">
+                <span class="material-symbols-outlined text-[20px]" style="color:#c0001f">timer</span>
+            </div>
+            <div>
+                <h3 class="font-display font-bold text-[16px] text-on-surface leading-tight">Distribuição de carga horária mensal</h3>
+                <p class="font-body text-[13px] text-on-surface-variant mt-1 leading-snug">
+                    Resumo das horas atribuídas no mês corrente.
+                </p>
+            </div>
+        </div>
+
+        <!-- Total acumulado -->
+        <div class="flex flex-col gap-1.5 mb-4">
+            <div class="flex items-center justify-between">
+                <span class="font-body font-semibold text-[12px] text-on-surface">Total acumulado</span>
+                <strong id="hm-total" class="font-display font-bold text-[14px]" style="color:#c0001f">–</strong>
+            </div>
+            <div class="h-2 w-full rounded-full overflow-hidden" style="background:rgba(192,0,31,.08)">
+                <div id="hm-total-bar" class="h-full rounded-full transition-all duration-500" style="width:0%;background:linear-gradient(90deg,#c0001f,#7a0014)"></div>
+            </div>
+        </div>
+
+        <!-- Horas contratuais de contrato -->
+        <div class="flex flex-col gap-1.5 mb-4">
+            <div class="flex items-center justify-between">
+                <span class="font-body font-semibold text-[12px] text-on-surface">Horas contratuais de contrato</span>
+                <strong id="hm-contrato" class="font-display font-bold text-[14px] text-on-surface-variant">–</strong>
+            </div>
+            <div class="h-2 w-full rounded-full overflow-hidden bg-outline-variant/20">
+                <div class="h-full rounded-full bg-outline-variant/60" style="width:100%"></div>
+            </div>
+        </div>
+
+        <!-- Banco de horas / estimativa de extra -->
+        <div class="flex items-center justify-between rounded-xl px-3.5 py-3 mb-5"
+             style="background:rgba(192,0,31,.04);border:1px solid rgba(192,0,31,.1)">
+            <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(192,0,31,.1)">
+                    <span class="material-symbols-outlined text-[16px]" style="color:#c0001f">account_balance</span>
+                </span>
+                <div>
+                    <p id="hm-extra-label" class="font-body font-semibold text-[12px] text-on-surface leading-tight">Banco de horas</p>
+                    <p class="font-body text-[10px] text-on-surface-variant leading-tight">Estimativa face às horas contratuais</p>
+                </div>
+            </div>
+            <strong id="hm-extra" class="font-display font-bold text-[15px]" style="color:#c0001f">–</strong>
+        </div>
+
+        <p class="font-body text-[10.5px] text-on-surface-variant/70 leading-snug mb-4">
+            * Referência mensal de 160h (tempo inteiro). O banco de horas é uma estimativa calculada face a essa referência.
+        </p>
+
+        <!-- Ação -->
+        <div class="flex justify-end">
+            <button type="button" onclick="closeHorasModal()"
+                    class="font-body font-semibold text-[13px] px-5 py-2 rounded-lg text-white transition-all"
+                    style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 8px rgba(192,0,31,.35)">
+                Fechar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    /* ── Olhinhos: alterna visibilidade dos campos de palavra-passe ── */
+    window.togglePasswordVisibility = function (inputId, btn) {
+        var input = document.getElementById(inputId);
+        var icon  = btn.querySelector('span');
+        if (!input || !icon) return;
+        var aMostrar = input.type === 'password';
+        input.type = aMostrar ? 'text' : 'password';
+        icon.textContent = aMostrar ? 'visibility_off' : 'visibility';
+    };
+
+    /* ── Feedback local genérico (sem alerts, sem refresh) ── */
+    function mostrarFeedback(container, msgEl, mensagem) {
+        if (msgEl) msgEl.textContent = mensagem;
+        if (container) container.style.display = 'flex';
+    }
+    function ocultarFeedback(container) {
+        if (container) container.style.display = 'none';
+    }
+    function desativarBotao(btn) {
+        if (!btn) return;
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+        btn.style.cursor = 'not-allowed';
+    }
+    function ativarBotao(btn) {
+        if (!btn) return;
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+        btn.style.cursor = '';
+    }
+
+    /* ── Regras de validação ── */
+    function emailValido(valor) {
+        var formato = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return formato.test(valor) && valor.toLowerCase().endsWith('@levis.com');
+    }
+    function telemovelValido(valor) {
+        return /^[9][1236][0-9]{7}$/.test(valor);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var emailInput     = document.getElementById('emailInput');
+        var telemovelInput = document.getElementById('telemovelInput');
+        var dataFeedback    = document.getElementById('perfil-data-feedback');
+        var dataFeedbackMsg = document.getElementById('perfil-data-feedback-msg');
+        var btnEmail        = document.getElementById('btn-guardar-email');
+        var btnTelemovel    = document.getElementById('btn-guardar-telemovel');
+        var formEmail       = document.getElementById('form-email');
+        var formTelemovel   = document.getElementById('form-telemovel');
+        var formNome        = document.getElementById('form-nome');
+
+        function validarDados() {
+            var emailOk = !emailInput || emailInput.value.length === 0 || emailValido(emailInput.value);
+            var telOk   = !telemovelInput || telemovelInput.value.length === 0 || telemovelValido(telemovelInput.value);
+
+            if (!emailOk) {
+                mostrarFeedback(dataFeedback, dataFeedbackMsg, 'O email tem de ser válido e terminar em "@levis.com".');
+            } else if (!telOk) {
+                mostrarFeedback(dataFeedback, dataFeedbackMsg, 'O telemóvel tem de ter 9 dígitos válidos (ex.: 9XXXXXXXX).');
+            } else {
+                ocultarFeedback(dataFeedback);
+            }
+
+            emailOk ? ativarBotao(btnEmail) : desativarBotao(btnEmail);
+            telOk   ? ativarBotao(btnTelemovel) : desativarBotao(btnTelemovel);
+
+            return { emailOk: emailOk, telOk: telOk };
+        }
+
+        if (emailInput)     emailInput.addEventListener('input', validarDados);
+        if (telemovelInput) telemovelInput.addEventListener('blur', validarDados);
+
+        if (formNome) {
+            formNome.addEventListener('submit', function (e) {
+                e.preventDefault();
+                window.abrirPerfilConfirmModal(formNome);
+            });
+        }
+        if (formEmail) {
+            formEmail.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (validarDados().emailOk) window.abrirPerfilConfirmModal(formEmail);
+            });
+        }
+        if (formTelemovel) {
+            formTelemovel.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (validarDados().telOk) window.abrirPerfilConfirmModal(formTelemovel);
+            });
+        }
+
+        /* ── Confirmação de nova palavra-passe ── */
+        var novaPassword       = document.getElementById('novaPassword');
+        var confirmarPassword  = document.getElementById('confirmarPassword');
+        var pwdFeedback        = document.getElementById('perfil-pwd-feedback');
+        var pwdFeedbackMsg     = document.getElementById('perfil-pwd-feedback-msg');
+        var btnPassword        = document.getElementById('btn-guardar-password');
+        var formPassword       = document.getElementById('form-password');
+
+        function validarPassword() {
+            var mismatch = novaPassword && confirmarPassword
+                && confirmarPassword.value.length > 0
+                && novaPassword.value !== confirmarPassword.value;
+
+            if (mismatch) {
+                mostrarFeedback(pwdFeedback, pwdFeedbackMsg, 'As palavras-passe não coincidem.');
+                desativarBotao(btnPassword);
+            } else {
+                ocultarFeedback(pwdFeedback);
+                ativarBotao(btnPassword);
+            }
+            return !mismatch;
+        }
+
+        if (novaPassword)      novaPassword.addEventListener('input', validarPassword);
+        if (confirmarPassword) confirmarPassword.addEventListener('input', validarPassword);
+
+        if (formPassword) {
+            formPassword.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (validarPassword()) window.abrirPerfilConfirmModal(formPassword);
+            });
+        }
+    });
+})();
+</script>
 
 <script>
 (function () {
@@ -307,6 +559,180 @@
     });
 })();
 </script>
+
+<script>
+(function () {
+    var CONTRATO_MIN = 160 * 60; // referência mensal: tempo inteiro
+
+    // Lê valores tipo "148h 30m" → minutos
+    function parseHoras(txt) {
+        var h = /(\d+)\s*h/.exec(txt);
+        var m = /(\d+)\s*m/.exec(txt);
+        return (h ? parseInt(h[1], 10) : 0) * 60 + (m ? parseInt(m[1], 10) : 0);
+    }
+    function fmt(min) {
+        var sinal = min < 0 ? '-' : '';
+        min = Math.abs(min);
+        return sinal + Math.floor(min / 60) + 'h ' + (min % 60) + 'm';
+    }
+
+    window.openHorasModal = function () {
+        var valorEl  = document.getElementById('kpi-horas-valor');
+        var totalMin = valorEl ? parseHoras(valorEl.textContent) : 0;
+        var pct      = CONTRATO_MIN > 0 ? Math.min(100, Math.round(totalMin / CONTRATO_MIN * 100)) : 0;
+        var diff     = totalMin - CONTRATO_MIN;
+
+        document.getElementById('hm-total').textContent     = fmt(totalMin);
+        document.getElementById('hm-contrato').textContent  = fmt(CONTRATO_MIN);
+        document.getElementById('hm-total-bar').style.width = pct + '%';
+
+        var extraEl = document.getElementById('hm-extra');
+        var labelEl = document.getElementById('hm-extra-label');
+        if (diff >= 0) {
+            extraEl.textContent = '+' + fmt(diff);
+            extraEl.style.color = '#c0001f';
+            labelEl.textContent = 'Horas extra / banco positivo';
+        } else {
+            extraEl.textContent = fmt(diff);
+            extraEl.style.color = '#0f766e';
+            labelEl.textContent = 'Horas em falta para o contrato';
+        }
+
+        var modal = document.getElementById('horas-detalhe-modal');
+        var box   = document.getElementById('horas-detalhe-modal-box');
+        modal.style.display = 'block';
+        box.style.display   = 'block';
+        document.body.style.overflow = 'hidden';
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                box.style.transform = 'translate(-50%,-50%) scale(1)';
+                box.style.opacity   = '1';
+            });
+        });
+    };
+
+    window.closeHorasModal = function () {
+        var modal = document.getElementById('horas-detalhe-modal');
+        var box   = document.getElementById('horas-detalhe-modal-box');
+        box.style.transform = 'translate(-50%,-50%) scale(.95)';
+        box.style.opacity   = '0';
+        setTimeout(function () {
+            modal.style.display = 'none';
+            box.style.display   = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && document.getElementById('horas-detalhe-modal').style.display === 'block') {
+            closeHorasModal();
+        }
+    });
+})();
+</script>
+
+<!-- ═══════════════ MODAL · Confirmar alteração de perfil ═══════════════ -->
+<!-- Mesmo padrão transform-immune dos modais de logout/loja/horas: overlay fixed independente + caixa fixed transladada -->
+<div id="perfil-confirm-modal"
+     style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)"
+     onclick="if(event.target===this)closePerfilConfirmModal()">
+</div>
+
+<div id="perfil-confirm-modal-box"
+     class="rounded-2xl overflow-hidden"
+     style="display:none;position:fixed;top:50vh;left:50vw;z-index:9001;width:calc(100% - 2rem);max-width:448px;transform:translate(-50%,-50%) scale(.95);opacity:0;transition:transform .22s cubic-bezier(.16,1,.3,1),opacity .22s ease;background:#fff;box-shadow:0 24px 64px rgba(0,0,0,.18)"
+     role="dialog" aria-modal="true" aria-labelledby="perfil-confirm-title">
+
+        <!-- Barra de destaque bordeaux -->
+        <div class="h-1 w-full" style="background:linear-gradient(90deg,#c0001f,#7a0014)"></div>
+
+        <div class="p-6">
+            <!-- Ícone + cabeçalho -->
+            <div class="flex items-start gap-4 mb-4">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:#fee2e2">
+                    <span id="perfil-confirm-icon" class="material-symbols-outlined text-[20px]" style="color:#c0001f">help</span>
+                </div>
+                <div>
+                    <h3 id="perfil-confirm-title" class="font-display font-bold text-[16px] text-on-surface leading-tight">Confirmar alteração?</h3>
+                    <p id="perfil-confirm-msg" class="font-body text-[13px] text-on-surface-variant mt-1 leading-snug">
+                        Tem a certeza que pretende guardar esta alteração?
+                    </p>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="flex gap-2.5 justify-end mt-5">
+                <button type="button" onclick="closePerfilConfirmModal()"
+                        class="font-body font-semibold text-[13px] px-4 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmarPerfilAccao()"
+                        class="font-body font-semibold text-[13px] px-5 py-2 rounded-lg text-white transition-all"
+                        style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 8px rgba(192,0,31,.35)">
+                    <span class="material-symbols-outlined text-[14px] align-middle mr-1">check</span>
+                    Confirmar
+                </button>
+            </div>
+        </div>
+</div>
+
+<script>
+(function () {
+    var PERFIL_CONFIRM_CONFIG = {
+        'form-nome':      { icon: 'badge',        titulo: 'Atualizar nome?',        msg: 'Tem a certeza que pretende guardar o novo nome?' },
+        'form-email':     { icon: 'mail',         titulo: 'Atualizar email?',       msg: 'Tem a certeza que pretende guardar o novo email? Vai passar a usá-lo para iniciar sessão.' },
+        'form-telemovel': { icon: 'phone_iphone', titulo: 'Atualizar telemóvel?',   msg: 'Tem a certeza que pretende guardar o novo número de telemóvel?' },
+        'form-password':  { icon: 'lock',         titulo: 'Alterar palavra-passe?', msg: 'Tem a certeza que pretende atualizar a sua palavra-passe?' }
+    };
+    var pendingForm = null;
+
+    window.abrirPerfilConfirmModal = function (form) {
+        if (!form) return;
+        var cfg = PERFIL_CONFIRM_CONFIG[form.id] || { icon: 'help', titulo: 'Confirmar alteração?', msg: 'Tem a certeza que pretende guardar esta alteração?' };
+        document.getElementById('perfil-confirm-icon').textContent  = cfg.icon;
+        document.getElementById('perfil-confirm-title').textContent = cfg.titulo;
+        document.getElementById('perfil-confirm-msg').textContent   = cfg.msg;
+        pendingForm = form;
+
+        var modal = document.getElementById('perfil-confirm-modal');
+        var box   = document.getElementById('perfil-confirm-modal-box');
+        modal.style.display = 'block';
+        box.style.display   = 'block';
+        document.body.style.overflow = 'hidden';
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                box.style.transform = 'translate(-50%,-50%) scale(1)';
+                box.style.opacity   = '1';
+            });
+        });
+    };
+
+    window.closePerfilConfirmModal = function () {
+        var modal = document.getElementById('perfil-confirm-modal');
+        var box   = document.getElementById('perfil-confirm-modal-box');
+        box.style.transform = 'translate(-50%,-50%) scale(.95)';
+        box.style.opacity   = '0';
+        setTimeout(function () {
+            modal.style.display = 'none';
+            box.style.display   = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+        pendingForm = null;
+    };
+
+    window.confirmarPerfilAccao = function () {
+        if (pendingForm) pendingForm.submit();
+        window.closePerfilConfirmModal();
+    };
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && document.getElementById('perfil-confirm-modal').style.display === 'block') {
+            window.closePerfilConfirmModal();
+        }
+    });
+})();
+</script>
+
 <th:block th:replace="~{web/fragments :: scripts}"></th:block>
 </body>
 </html>

@@ -54,7 +54,7 @@
                     'display': ['"Space Grotesk"', 'sans-serif'],
                     'body':    ['"Manrope"', 'sans-serif'],
                 },
-                spacing: { 'sidebar': '16rem', 'topbar': '4.5rem' },
+                spacing: { 'sidebar': '16.5rem', 'topbar': '4.5rem' },
                 borderRadius: { DEFAULT:'0.25rem','xl':'0.75rem','2xl':'1rem','3xl':'1.5rem' },
                 boxShadow: {
                     'card':   '0 2px 12px rgba(28,27,27,.06)',
@@ -86,11 +86,18 @@
         ::-webkit-scrollbar-thumb { background:rgba(144,111,109,.25); border-radius:9999px; }
         ::-webkit-scrollbar-thumb:hover { background:rgba(144,111,109,.45); }
 
-        /* Badges */
-        .badge-ok   { background:#d1fae5; color:#065f46; }
-        .badge-warn { background:#fef3c7; color:#92400e; }
-        .badge-err  { background:#fee2e2; color:#991b1b; }
-        .badge-neu  { background:#f1edec; color:#5c403e; }
+        /* Badges premium — pill com ring inset semi-transparente + status dot */
+        .badge-ok, .badge-warn, .badge-err, .badge-neu {
+            display:inline-flex; align-items:center; gap:6px;
+        }
+        .badge-ok::before, .badge-warn::before, .badge-err::before, .badge-neu::before {
+            content:''; width:6px; height:6px; border-radius:9999px;
+            background:currentColor; flex-shrink:0; opacity:.9;
+        }
+        .badge-ok   { background:#ecfdf5; color:#047857; box-shadow:inset 0 0 0 1px rgba(5,150,105,.20); }
+        .badge-warn { background:#fffbeb; color:#b45309; box-shadow:inset 0 0 0 1px rgba(217,119,6,.20); }
+        .badge-err  { background:#fff1f2; color:#be123c; box-shadow:inset 0 0 0 1px rgba(225,29,72,.20); }
+        .badge-neu  { background:#f8fafc; color:#475569; box-shadow:inset 0 0 0 1px rgba(100,116,139,.20); }
 
         /* Animations */
         @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
@@ -174,7 +181,8 @@
         </div>
 
         <!-- User pill — links to /web/perfil -->
-        <div class="px-4 py-3 border-b border-white/5 shrink-0" th:if="${webUtilizador != null}">
+        <div class="px-4 py-3 border-b border-white/5 shrink-0" th:if="${webUtilizador != null}"
+             th:with="nomePartes=${webUtilizador.nome != null ? webUtilizador.nome.split(' ') : null}">
             <a href="/web/perfil"
                class="flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all active:scale-[0.98] hover:bg-white/10 block"
                style="background:rgba(255,255,255,.05)">
@@ -186,10 +194,8 @@
                           style="background:#4ade80;border-color:#1e1a19"></span>
                 </div>
                 <div class="min-w-0 flex-1">
-                    <p class="font-body font-bold text-[13px] text-white/90 leading-tight truncate"
-                       th:text="${webUtilizador.nome != null ? webUtilizador.nome.split(' ')[0] : 'Utilizador'}">Nome</p>
-                    <p class="font-body text-[10px] text-white/35 uppercase tracking-wider"
-                       th:text="${webCargoAtual}">Cargo</p>
+                    <p class="font-body font-bold text-[13px] text-white/90 leading-tight whitespace-nowrap overflow-hidden truncate"
+                       th:text="${nomePartes != null ? (nomePartes.length > 1 ? nomePartes[0] + ' ' + nomePartes[nomePartes.length - 1] : nomePartes[0]) : 'Utilizador'}">Nome</p>
                 </div>
                 <span class="material-symbols-outlined text-[14px] text-white/20 shrink-0">chevron_right</span>
             </a>
@@ -249,6 +255,8 @@
             </a>
             <a th:if="${podeAlternarLoja}"
                href="/web/selecionar-loja"
+               th:data-loja="${webLoja}"
+               onclick="openStoreSwitchModal(event); return false;"
                th:classappend="${webModuloAtivo == 'selecionar-loja'} ? 'nav-active' : 'text-white/40'"
                class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl font-body font-semibold text-[13px]">
                 <span class="material-symbols-outlined text-[19px]"
@@ -277,7 +285,7 @@
 
 <!-- ═══════════════════════════ TOPBAR ═══════════════════════════ -->
 <header class="topbar-glass fixed top-0 right-0 h-topbar z-30 flex items-center justify-between px-4 md:px-7
-               w-full md:w-[calc(100%-16rem)] border-b border-outline-variant/25"
+               w-full md:w-[calc(100%-theme(spacing.sidebar))] border-b border-outline-variant/25"
         th:fragment="shellHeader">
 
     <button class="md:hidden w-9 h-9 flex items-center justify-center text-on-surface rounded-xl hover:bg-surface-container transition-colors"
@@ -285,11 +293,16 @@
         <span class="material-symbols-outlined text-[22px]">menu</span>
     </button>
 
-    <!-- Breadcrumb desktop -->
-    <div class="hidden md:flex items-center gap-2 text-on-surface-variant">
-        <span class="material-symbols-outlined text-[15px] text-outline/50">store_mall_directory</span>
-        <span class="font-body text-[12px] font-medium text-on-surface-variant/60 tracking-wide"
-              th:text="${webLoja != null ? webLoja : 'Staff Portal'}">Staff Portal</span>
+    <!-- Breadcrumb desktop — active store rendered as a high-contrast pill -->
+    <div class="hidden md:flex items-center gap-3 text-on-surface-variant min-w-0">
+        <span th:if="${webLoja != null}"
+              class="inline-flex items-center gap-1.5 font-body font-bold text-[11px] tracking-wide
+                     text-on-surface bg-surface-container border border-outline-variant/50 rounded-full px-3 py-1">
+            <span class="material-symbols-outlined text-[14px]" style="color:#c0001f">store_mall_directory</span>
+            <span th:text="${webLoja}">Loja</span>
+        </span>
+        <span th:unless="${webLoja != null}"
+              class="material-symbols-outlined text-[15px] text-outline/50">store_mall_directory</span>
         <span class="text-outline/30 text-[13px]" th:if="${webModuloAtivo != null}">›</span>
         <span class="font-body text-[12px] font-bold text-on-surface capitalize"
               th:if="${webModuloAtivo != null}" th:text="${webModuloAtivo}"></span>
@@ -320,13 +333,6 @@
                       th:text="${totalPendenciasComplementares ?: 0}">0</span>
             </a>
         </div>
-
-        <!-- Avatar -->
-        <a href="/web/perfil"
-           th:if="${webUtilizador != null}"
-           class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-[13px] cursor-pointer select-none hover:ring-2 transition-all"
-           style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 0 0 2px rgba(192,0,31,.2);ring-color:rgba(192,0,31,.4)"
-           th:text="${webUtilizador.nome != null && !webUtilizador.nome.isEmpty() ? webUtilizador.nome.substring(0,1).toUpperCase() : 'U'}">U</a>
 
         <div class="hidden sm:block w-px h-5 bg-outline-variant/40 mx-1"></div>
 
@@ -521,6 +527,92 @@ function confirmLogout() {
 }
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeLogoutModal();
+});
+</script>
+
+<!-- ═══════════════════════ STORE SWITCH MODAL ═══════════════════════ -->
+<!-- Same transform-immune pattern as the logout modal: independent fixed + translate -->
+<div id="store-modal"
+     style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)"
+     onclick="if(event.target===this)closeStoreSwitchModal()">
+</div>
+
+<div id="store-modal-box"
+     class="rounded-2xl overflow-hidden"
+     style="display:none;position:fixed;top:50vh;left:50vw;z-index:9001;width:calc(100% - 2rem);max-width:448px;transform:translate(-50%,-50%) scale(.95);opacity:0;transition:transform .22s cubic-bezier(.16,1,.3,1),opacity .22s ease;background:#fff;box-shadow:0 24px 64px rgba(0,0,0,.18)"
+     role="dialog" aria-modal="true" aria-labelledby="store-modal-title">
+
+        <!-- Red accent bar -->
+        <div class="h-1 w-full" style="background:linear-gradient(90deg,#c0001f,#7a0014)"></div>
+
+        <div class="p-6">
+            <!-- Icon + heading -->
+            <div class="flex items-start gap-4 mb-4">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                     style="background:#fee2e2">
+                    <span class="material-symbols-outlined text-[20px]" style="color:#c0001f">swap_horiz</span>
+                </div>
+                <div>
+                    <h3 id="store-modal-title" class="font-display font-bold text-[16px] text-on-surface leading-tight">Trocar de loja?</h3>
+                    <p class="font-body text-[13px] text-on-surface-variant mt-1 leading-snug">
+                        Atualmente encontra-se com sessão ativa na loja
+                        <strong id="store-modal-name" class="text-on-surface font-semibold">atual</strong>.
+                        Tem a certeza que deseja trocar de loja?
+                    </p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-2.5 justify-end mt-5">
+                <button type="button" onclick="closeStoreSwitchModal()"
+                        class="font-body font-semibold text-[13px] px-4 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
+                    Cancelar
+                </button>
+                <a href="/web/selecionar-loja"
+                   class="font-body font-semibold text-[13px] px-5 py-2 rounded-lg text-white transition-all inline-flex items-center"
+                   style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 8px rgba(192,0,31,.35)">
+                    <span class="material-symbols-outlined text-[14px] align-middle mr-1">swap_horiz</span>
+                    Sim, Trocar
+                </a>
+            </div>
+        </div>
+</div>
+
+<script>
+function openStoreSwitchModal(e) {
+    // stopImmediatePropagation is essential: it blocks the global "page-exit" nav
+    // listener (bound to every a[href^="/web/"]) that would otherwise navigate anyway.
+    if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+    var origem = e && e.currentTarget ? e.currentTarget : null;
+    var nome   = origem && origem.dataset && origem.dataset.loja ? origem.dataset.loja : 'atual';
+    document.getElementById('store-modal-name').textContent = nome;
+    var modal = document.getElementById('store-modal');
+    var box   = document.getElementById('store-modal-box');
+    modal.style.display = 'block';
+    box.style.display   = 'block';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            box.style.transform = 'translate(-50%,-50%) scale(1)';
+            box.style.opacity   = '1';
+        });
+    });
+}
+function closeStoreSwitchModal() {
+    var modal = document.getElementById('store-modal');
+    var box   = document.getElementById('store-modal-box');
+    box.style.transform = 'translate(-50%,-50%) scale(.95)';
+    box.style.opacity   = '0';
+    setTimeout(function() {
+        modal.style.display = 'none';
+        box.style.display   = 'none';
+        document.body.style.overflow = '';
+    }, 200);
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('store-modal').style.display === 'block') {
+        closeStoreSwitchModal();
+    }
 });
 </script>
 

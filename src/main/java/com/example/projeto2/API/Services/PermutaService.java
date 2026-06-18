@@ -248,6 +248,17 @@ public class PermutaService {
             throw new IllegalArgumentException("A permuta so pode ser feita com turnos do mesmo dia.");
         }
 
+        // Redundância de horário: permutar para um turno com exactamente as mesmas
+        // horas de inicio e fim não altera nada para o colaborador — bloquear.
+        var turnoOrigem = meuTurno.getIdTurno();
+        var turnoDestino = turnoColega.getIdTurno();
+        if (turnoOrigem != null && turnoDestino != null
+                && turnoOrigem.getHoraInicio() != null && turnoOrigem.getHoraFim() != null
+                && turnoOrigem.getHoraInicio().equals(turnoDestino.getHoraInicio())
+                && turnoOrigem.getHoraFim().equals(turnoDestino.getHoraFim())) {
+            throw new IllegalArgumentException("Não é permitido permutar turnos com horários idênticos.");
+        }
+
         validarDescansoMinimoPosPermuta(
                 meuTurno.getIdLojautilizador().getIdUtilizador().getId(),
                 turnoColega.getIdTurno(),

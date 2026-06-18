@@ -149,6 +149,16 @@ public class WebAppService {
         return nomeCargo == null || nomeCargo.isBlank() ? "-" : nomeCargo;
     }
 
+    /** Resolves the display name of the active store for the navbar indicator, or {@code null}. */
+    public String obterNomeLojaAtual(Integer idUtilizador, Integer idLoja) {
+        if (idLoja == null) return null;
+        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(idUtilizador, idLoja)
+                .map(Lojautilizador::getIdLoja)
+                .map(loja -> loja != null ? loja.getNome() : null)
+                .filter(nome -> nome != null && !nome.isBlank())
+                .orElse(null);
+    }
+
     public void preencherModeloBase(Model model, HttpSession session, String moduloAtivo) {
         Integer idUtilizador = obterUtilizadorIdObrigatorio(session);
         Integer idLoja = obterLojaAtual(session);
@@ -160,6 +170,7 @@ public class WebAppService {
         model.addAttribute("webCargoAtual", obterCargoAtual(idUtilizador, idLoja));
         model.addAttribute("webPermissoes", permissoes);
         model.addAttribute("webModuloAtivo", moduloAtivo);
+        model.addAttribute("webLoja", obterNomeLojaAtual(idUtilizador, idLoja));
         model.addAttribute("podeAlternarLoja", contagemLojas >= 2);
         model.addAttribute("totalFolgasPendentes", 0);
         model.addAttribute("totalPreferenciasPendentes", 0);

@@ -173,6 +173,7 @@ public class PreferenciaService {
         LocalDate dataFim = preferenciaRecebida.getDataFim();
 
         validarPeriodo(tipoNormalizado, dataInicio, dataFim);
+        validarRegistoOperacional(idUtilizador, tipoNormalizado);
 
         if (existePreferenciaDuplicada(
                 idUtilizador,
@@ -406,12 +407,38 @@ public class PreferenciaService {
             throw new IllegalArgumentException("Seleciona a data inicial antes da data final.");
         }
 
+        // Uma preferência aplica-se sempre a horários ainda por gerar — datas no passado
+        // são sempre inválidas (mesma regra de negócio que os pedidos de folga).
+        LocalDate hoje = LocalDate.now();
+        if (dataInicio != null && dataInicio.isBefore(hoje)) {
+            throw new IllegalArgumentException("A data inicial da preferencia nao pode estar no passado.");
+        }
+        if (dataFim != null && dataFim.isBefore(hoje)) {
+            throw new IllegalArgumentException("A data final da preferencia nao pode estar no passado.");
+        }
+
         if (dataInicio != null && dataFim != null && dataFim.isBefore(dataInicio)) {
             throw new IllegalArgumentException("A data final nao pode ser anterior a data inicial.");
         }
 
         if (("folgas".equals(tipo) || "ferias".equals(tipo) || "folga_preferida".equals(tipo)) && dataInicio == null) {
             throw new IllegalArgumentException("As preferencias de folgas e ferias precisam de pelo menos uma data inicial.");
+        }
+    }
+
+    /**
+     * Preferencias com data (folgas/ferias/folga_preferida) só fazem sentido para um
+     * colaborador com um registo de loja ativo — sem isso não há horário a influenciar.
+     */
+    private void validarRegistoOperacional(Integer idUtilizador, String tipo) {
+        boolean exigeRegistoAtivo = "folgas".equals(tipo) || "ferias".equals(tipo) || "folga_preferida".equals(tipo);
+        if (!exigeRegistoAtivo) {
+            return;
+        }
+
+        if (lojautilizadorHelper.findLigacaoAtiva(idUtilizador).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Nao tens nenhuma loja ativa associada; nao e possivel registar esta preferencia.");
         }
     }
 

@@ -32,4 +32,14 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Intege
     @Modifying
     @Query("UPDATE Notificacao n SET n.lida = true WHERE n.idUtilizador.id = :idUtilizador AND n.lida = false AND n.idLoja = :idLoja")
     void marcarTodasComoLidasPorLoja(@Param("idUtilizador") Integer idUtilizador, @Param("idLoja") Integer idLoja);
+
+    /** Arquiva uma notificação — restringido ao dono (isolamento por utilizador). Devolve nº de linhas afetadas. */
+    @Modifying
+    @Query("UPDATE Notificacao n SET n.arquivada = true WHERE n.id = :id AND n.idUtilizador.id = :idUtilizador AND n.arquivada = false")
+    int arquivar(@Param("id") Integer id, @Param("idUtilizador") Integer idUtilizador);
+
+    /** Restaura uma notificação arquivada — restringido ao dono. Devolve nº de linhas afetadas. */
+    @Modifying
+    @Query("UPDATE Notificacao n SET n.arquivada = false WHERE n.id = :id AND n.idUtilizador.id = :idUtilizador AND n.arquivada = true")
+    int desarquivar(@Param("id") Integer id, @Param("idUtilizador") Integer idUtilizador);
 }

@@ -46,11 +46,12 @@
                 </span>
                 <h2 class="font-display font-bold text-[15px] text-on-surface">Pedir folga</h2>
             </div>
-            <form method="post" action="/web/complementares/folgas" class="flex flex-col gap-4 p-5 flex-1">
+            <form id="folga-form" method="post" action="/web/complementares/folgas" data-guard class="flex flex-col gap-4 p-5 flex-1">
                 <div class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</label>
-                    <input name="dataAusencia" type="date" required
+                    <input id="folga-data" name="dataAusencia" type="date" required th:attr="min=${hoje}"
                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                    <div id="folga-data-feedback" class="rounded-xl px-3.5 py-2.5 font-body text-[12.5px] flex items-center gap-2 mt-2 hidden"></div>
                 </div>
                 <div class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</label>
@@ -66,7 +67,7 @@
                     <textarea name="motivo" rows="2" placeholder="Descreve o motivo…"
                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
                 </div>
-                <button type="submit"
+                <button type="submit" id="folga-submit-btn"
                         class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-primary transition-colors flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-[17px]">send</span>
                     Submeter pedido
@@ -83,7 +84,7 @@
                 </span>
                 <h2 class="font-display font-bold text-[15px] text-on-surface">Nova preferência</h2>
             </div>
-            <form id="pref-form" method="post" action="/web/complementares/preferencias" class="flex flex-col gap-4 p-5 flex-1">
+            <form id="pref-form" method="post" action="/web/complementares/preferencias" data-guard class="flex flex-col gap-4 p-5 flex-1">
                 <div class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</label>
                     <select id="pref-tipo" name="tipo" required
@@ -92,18 +93,19 @@
                                 th:text="${#strings.capitalize(#strings.replace(tipo,'_',' '))}"></option>
                     </select>
                 </div>
-                <div id="pref-datas-panel" class="grid grid-cols-2 gap-3">
+                <div id="pref-datas-panel" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data início</label>
-                        <input name="dataInicio" type="date"
+                        <input id="pref-data-inicio" name="dataInicio" type="date" th:attr="min=${hoje}"
                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data fim</label>
-                        <input name="dataFim" type="date"
+                        <input id="pref-data-fim" name="dataFim" type="date" th:attr="min=${hoje}"
                                class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                     </div>
                 </div>
+                <div id="pref-data-feedback" class="rounded-xl px-3.5 py-2.5 font-body text-[12.5px] flex items-center gap-2 mt-2 hidden"></div>
                 <div class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Prioridade (1–5)</label>
                     <input name="prioridade" type="number" min="1" max="5" placeholder="3"
@@ -111,7 +113,7 @@
                 </div>
                 <div id="pref-desc-panel" class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</label>
-                    <textarea id="pref-descricao" name="descricao" rows="2" placeholder="Explica a preferência…"
+                    <textarea id="pref-descricao" name="descricao" rows="2" required placeholder="Explica a preferência…"
                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
                 </div>
 
@@ -125,7 +127,7 @@
                         <span id="pref-colegas-erro-txt">Seleciona pelo menos um colega.</span>
                     </p>
                     <!-- Duas colunas: preferidos / evitados -->
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <!-- Coluna: Trabalhar com -->
                         <div class="flex flex-col gap-2">
                             <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
@@ -168,7 +170,7 @@
                     </p>
                 </div>
 
-                <button type="submit"
+                <button type="submit" id="pref-submit-btn"
                         class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-primary transition-colors flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-[17px]">save</span>
                     Guardar preferência
@@ -361,7 +363,7 @@
         </div>
 
         <!-- Tabs -->
-        <div class="border-b border-outline-variant/25 px-6 flex gap-1" id="histTabs">
+        <div class="border-b border-outline-variant/25 px-6 flex gap-1 overflow-x-auto whitespace-nowrap" id="histTabs">
             <button onclick="showTab('tab-folgas')"   id="btn-folgas"
                     class="tab-btn font-body font-bold text-[13px] px-4 py-3 border-b-2 border-primary-container text-primary-container transition-all rounded-t-lg">
                 Folgas
@@ -383,7 +385,7 @@
         <!-- Tab: Folgas -->
         <div id="tab-folgas" class="overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-surface-container-low">
+                <thead class="sticky top-0 bg-surface-container-low/95 backdrop-blur z-10">
                     <tr>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</th>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
@@ -421,7 +423,7 @@
         <!-- Tab: Preferências -->
         <div id="tab-pref" class="hidden overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-surface-container-low">
+                <thead class="sticky top-0 bg-surface-container-low/95 backdrop-blur z-10">
                     <tr>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Período</th>
@@ -481,7 +483,7 @@
         <!-- Tab: Permutas -->
         <div id="tab-permutas" class="hidden overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-surface-container-low">
+                <thead class="sticky top-0 bg-surface-container-low/95 backdrop-blur z-10">
                     <tr>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Pedido em</th>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">O meu turno</th>
@@ -512,12 +514,13 @@
                                th:text="${item.idHorarioDestino.idTurno.horaInicio} + ' – ' + ${item.idHorarioDestino.idTurno.horaFim}"></p>
                         </td>
                         <td class="px-6 py-3.5">
-                            <!-- Badge com cor por estado do enum EstadoPermuta -->
+                            <!-- Badge com cor por estado do enum EstadoPermuta.
+                                 Usa contains() para tolerar variantes de género/grafia
+                                 do tipo enum PG (aprovado/aprovada, rejeitado/recusada). -->
                             <span class="inline-flex items-center gap-1 font-body font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full"
-                                  th:classappend="${item.estado != null and item.estado.name() == 'aprovado'}  ? 'badge-ok'   :
-                                                  (${item.estado != null and item.estado.name() == 'rejeitado'} ? 'badge-err'  :
-                                                  (${item.estado != null and item.estado.name() == 'cancelado'} ? 'badge-err'  :
-                                                  'badge-warn'))"
+                                  th:classappend="${item.estado != null and item.estado.name().toUpperCase().contains('APROV')}  ? 'badge-ok'   :
+                                                  (${item.estado != null and (item.estado.name().toUpperCase().contains('REJEIT') or item.estado.name().toUpperCase().contains('RECUS') or item.estado.name().toUpperCase().contains('CANCEL'))} ? 'badge-err'  :
+                                                  'badge-warn')"
                                   th:text="${item.estado != null ? item.estado.name() : 'pendente'}"></span>
                         </td>
                     </tr>
@@ -527,7 +530,7 @@
         <!-- Tab: Permutas de Folga -->
         <div id="tab-pf" class="hidden overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-surface-container-low">
+                <thead class="sticky top-0 bg-surface-container-low/95 backdrop-blur z-10">
                     <tr>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Pedido em</th>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Cedo (dia D)</th>
@@ -673,6 +676,29 @@ function showTab(id) {
     if (t && document.getElementById('tab-' + t)) { showTab('tab-' + t); }
 })();
 
+// Agrupa uma lista de turnos { id, data: 'dd/MM/yyyy', label } em <optgroup>
+// mensais ("Mês Ano"), ordenados cronologicamente, para selects com vários meses.
+function agruparOptionsPorMes(turnos) {
+    const grupos = new Map(); // chave "yyyy-MM" → { label, itens: [] }
+    turnos.forEach(t => {
+        const parts = (t.data || '').split('/'); // dd/MM/yyyy
+        if (parts.length !== 3) return;
+        const chave = parts[2] + '-' + parts[1];
+        if (!grupos.has(chave)) {
+            const refDate = new Date(Number(parts[2]), Number(parts[1]) - 1, 1);
+            let label = refDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+            label = label.charAt(0).toUpperCase() + label.slice(1);
+            grupos.set(chave, { label, itens: [] });
+        }
+        grupos.get(chave).itens.push(t);
+    });
+    return [...grupos.keys()].sort().map(chave => {
+        const grupo = grupos.get(chave);
+        const opcoes = grupo.itens.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+        return `<optgroup label="${grupo.label}">${opcoes}</optgroup>`;
+    }).join('');
+}
+
 // ── Permutas – lógica dinâmica via API REST ────────────────────────────────
 (function () {
     const selOrigem   = document.getElementById('perm-origem');
@@ -728,8 +754,7 @@ function showTab(id) {
             });
             selOrigem.innerHTML = meusTurnos.length === 0
                 ? '<option value="">Sem turnos futuros disponíveis para permuta</option>'
-                : '<option value="">Seleciona o teu turno…</option>' +
-                  meusTurnos.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+                : '<option value="">Seleciona o teu turno…</option>' + agruparOptionsPorMes(meusTurnos);
         } catch (e) {
             selOrigem.innerHTML = '<option value="">Erro ao carregar turnos</option>';
             mostrarFeedback('Não foi possível carregar os teus turnos. Tenta recarregar a página.', 'err');
@@ -766,12 +791,16 @@ function showTab(id) {
             const res = await fetch('/api/permutas/turnos-elegiveis?idHorarioOrigem=' + id);
             if (!res.ok) throw new Error();
             const turnos = await res.json();
-            selDestino.innerHTML = turnos.length === 0
-                ? '<option value="">Sem colegas elegíveis para esta data</option>'
+            // Filtro de redundância: trocar para um turno com EXACTAMENTE as mesmas
+            // horas que o turno de origem não é uma permuta útil — bloquear a opção.
+            const mesmoHorario = t => meu && t.horaInicio === meu.horaInicio && t.horaFim === meu.horaFim;
+            const elegiveis = turnos.filter(t => !mesmoHorario(t));
+            selDestino.innerHTML = elegiveis.length === 0
+                ? '<option value="">Sem colegas com horário diferente para esta data</option>'
                 : '<option value="">Seleciona o turno do colega…</option>' +
-                  turnos.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+                  elegiveis.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
             selDestino.disabled = false;
-            selDestino._turnos  = turnos;
+            selDestino._turnos  = elegiveis;
         } catch (e) {
             selDestino.innerHTML = '<option value="">Erro ao carregar colegas</option>';
             mostrarFeedback('Não foi possível carregar os turnos elegíveis.', 'err');
@@ -876,8 +905,7 @@ function showTab(id) {
             meusTurnosD = await res.json();
             selD.innerHTML = meusTurnosD.length === 0
                 ? '<option value="">Sem turnos disponíveis</option>'
-                : '<option value="">Seleciona o turno a ceder…</option>' +
-                  meusTurnosD.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+                : '<option value="">Seleciona o turno a ceder…</option>' + agruparOptionsPorMes(meusTurnosD);
         } catch {
             selD.innerHTML = '<option value="">Erro ao carregar turnos</option>';
         } finally { loading(false); }
@@ -1013,6 +1041,10 @@ document.addEventListener('keydown', function (e) {
     const datasPanel = document.getElementById('pref-datas-panel');
     const colPanel   = document.getElementById('pref-colegas-panel');
     const descArea   = document.getElementById('pref-descricao');
+    const dataInicio = document.getElementById('pref-data-inicio');
+    const dataFim    = document.getElementById('pref-data-fim');
+    const feedbackEl = document.getElementById('pref-data-feedback');
+    const submitBtn  = document.getElementById('pref-submit-btn');
     const erroDiv    = document.getElementById('pref-colegas-erro');
     const erroTxt    = document.getElementById('pref-colegas-erro-txt');
 
@@ -1024,6 +1056,15 @@ document.addEventListener('keydown', function (e) {
         if (datasPanel) datasPanel.style.display = isColegas ? 'none'  : '';
         if (colPanel)   colPanel.style.display   = isColegas ? 'flex'  : 'none';
         if (erroDiv)    erroDiv.style.display    = 'none';
+
+        // Tipos que dependem de período de datas (todos exceto 'colegas') exigem dataInicio/dataFim.
+        if (dataInicio) dataInicio.required = !isColegas;
+        if (dataFim)    dataFim.required    = !isColegas;
+        if (isColegas) {
+            if (dataInicio) dataInicio.value = '';
+            if (dataFim)    dataFim.value = '';
+            atualizarContainerFeedback(feedbackEl, submitBtn, '', null);
+        }
     }
 
     tipoSel.addEventListener('change', atualizar);
@@ -1062,6 +1103,208 @@ document.addEventListener('keydown', function (e) {
         if (evitados.length > 0)   desc += 'Prefere evitar: ' + evitados.join(', ');
 
         if (descArea) descArea.value = desc;
+    });
+})();
+
+// ── Feedback integrado em container + bloqueio proativo do botão de submissão ──
+function atualizarContainerFeedback(container, btn, msg, tipo) {
+    if (!container) return;
+    const base = 'rounded-xl px-3.5 py-2.5 font-body text-[12.5px] flex items-center gap-2 mt-2';
+
+    if (!msg) {
+        container.className = base + ' hidden';
+        container.innerHTML = '';
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
+        return;
+    }
+
+    if (tipo === 'err') {
+        container.className = base + ' bg-error-container text-on-error-container';
+        container.innerHTML = `<span class="material-symbols-outlined text-[15px]">error_outline</span><span>${msg}</span>`;
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        }
+    } else if (tipo === 'warn') {
+        container.className = base + ' bg-amber-50 text-amber-800 border border-amber-200/50';
+        container.innerHTML = `<span class="material-symbols-outlined text-[15px]">schedule</span><span>${msg}</span>`;
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
+    }
+}
+
+// ── Pedir folga – legenda dinâmica (trabalho/folga) + validações de data ──
+(function () {
+    const dataInput = document.getElementById('folga-data');
+    const feedbackEl = document.getElementById('folga-data-feedback');
+    const submitBtn  = document.getElementById('folga-submit-btn');
+    const form       = document.getElementById('folga-form');
+    if (!dataInput || !form) return;
+
+    const HOJE = new Date(); HOJE.setHours(0, 0, 0, 0);
+    let meusTurnosFolga = [];
+    const mesesPublicados = new Set();
+
+    fetch('/api/permutas/meus-turnos')
+        .then(res => res.ok ? res.json() : [])
+        .then(turnos => {
+            meusTurnosFolga = (turnos || []).filter(t => t.data && t.data !== '-');
+            meusTurnosFolga.forEach(t => {
+                const p = t.data.split('/'); // dd/MM/yyyy
+                if (p.length === 3) mesesPublicados.add(p[2] + '-' + p[1]);
+            });
+            validarData();
+        })
+        .catch(() => {});
+
+    function turnoNoDia(isoData) {
+        const [y, m, d] = isoData.split('-');
+        return meusTurnosFolga.find(t => t.data === `${d}/${m}/${y}`);
+    }
+
+    function statusDoDia(isoData) {
+        const [y, m] = isoData.split('-');
+        const turno = turnoNoDia(isoData);
+        if (turno) return { tipo: 'trabalho', turno };
+        if (mesesPublicados.has(y + '-' + m)) return { tipo: 'folga' };
+        return { tipo: 'desconhecido' };
+    }
+
+    function validarData() {
+        const valor = dataInput.value;
+        if (!valor) {
+            atualizarContainerFeedback(feedbackEl, submitBtn, '', null);
+            return;
+        }
+
+        const selecionada = new Date(valor + 'T00:00:00');
+        if (selecionada < HOJE) {
+            atualizarContainerFeedback(feedbackEl, submitBtn, 'Não é possível pedir folga para uma data passada.', 'err');
+            return;
+        }
+
+        const status = statusDoDia(valor);
+        if (status.tipo === 'folga') {
+            atualizarContainerFeedback(feedbackEl, submitBtn, 'Já te encontras de folga neste dia.', 'err');
+            return;
+        }
+        if (status.tipo === 'desconhecido') {
+            atualizarContainerFeedback(feedbackEl, submitBtn, 'Ainda não há horário publicado para este mês.', 'err');
+            return;
+        }
+        if (status.tipo === 'trabalho') {
+            atualizarContainerFeedback(feedbackEl, submitBtn, `Trabalhas neste dia (${status.turno.horaInicio}–${status.turno.horaFim}).`, 'warn');
+            return;
+        }
+
+        atualizarContainerFeedback(feedbackEl, submitBtn, '', null);
+    }
+
+    dataInput.addEventListener('change', validarData);
+
+    form.addEventListener('submit', function (e) {
+        const valor = dataInput.value;
+        if (!valor) return;
+
+        const selecionada = new Date(valor + 'T00:00:00');
+        if (selecionada < HOJE) {
+            e.preventDefault();
+            atualizarContainerFeedback(feedbackEl, submitBtn, 'Não é possível pedir folga para uma data passada.', 'err');
+            return;
+        }
+
+        const status = statusDoDia(valor);
+        if (status.tipo === 'folga') {
+            e.preventDefault();
+            atualizarContainerFeedback(feedbackEl, submitBtn, 'Já te encontras de folga neste dia.', 'err');
+            return;
+        }
+
+        const tipoSel = form.querySelector('select[name="tipo"]');
+        if (tipoSel && tipoSel.value === 'baixa') return; // baixa médica sem restrição de antecedência
+
+        const mesFuturo = (selecionada.getFullYear() > HOJE.getFullYear())
+            || (selecionada.getFullYear() === HOJE.getFullYear() && selecionada.getMonth() > HOJE.getMonth());
+        const diffDias = Math.round((selecionada - HOJE) / 86400000);
+        if (!mesFuturo && diffDias < 7) {
+            e.preventDefault();
+            atualizarContainerFeedback(feedbackEl, submitBtn, 'Pedidos de folga no mês atual exigem pelo menos 7 dias de antecedência.', 'err');
+        }
+    });
+})();
+
+// ── Nova preferência – validação básica de data passada ───────────────────
+(function () {
+    const inicio = document.getElementById('pref-data-inicio');
+    const fim    = document.getElementById('pref-data-fim');
+    const feedbackEl = document.getElementById('pref-data-feedback');
+    const submitBtn  = document.getElementById('pref-submit-btn');
+    const form   = document.getElementById('pref-form');
+    if (!form) return;
+
+    function validarDatas() {
+        const tipoSel = document.getElementById('pref-tipo');
+        if (tipoSel && tipoSel.value === 'colegas') { // este tipo não usa datas
+            atualizarContainerFeedback(feedbackEl, submitBtn, '', null);
+            return;
+        }
+
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        for (const input of [inicio, fim]) {
+            if (!input || !input.value) continue;
+            const d = new Date(input.value + 'T00:00:00');
+            if (d < hoje) {
+                atualizarContainerFeedback(feedbackEl, submitBtn, 'Não é possível selecionar uma data passada.', 'err');
+                return;
+            }
+        }
+
+        atualizarContainerFeedback(feedbackEl, submitBtn, '', null);
+    }
+
+    if (inicio) inicio.addEventListener('change', validarDatas);
+    if (fim) fim.addEventListener('change', validarDatas);
+
+    form.addEventListener('submit', function (e) {
+        const tipoSel = document.getElementById('pref-tipo');
+        if (tipoSel && tipoSel.value === 'colegas') return; // este tipo não usa datas
+
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        for (const input of [inicio, fim]) {
+            if (!input || !input.value) continue;
+            const d = new Date(input.value + 'T00:00:00');
+            if (d < hoje) {
+                e.preventDefault();
+                atualizarContainerFeedback(feedbackEl, submitBtn, 'Não é possível selecionar uma data passada.', 'err');
+                return;
+            }
+        }
+    });
+})();
+
+// ── Guard anti-duplo-clique para os forms nativos (folga / preferência) ────
+// Desativa o botão e mostra spinner no 1.º clique. O setTimeout(0) deixa a
+// submissão nativa ocorrer e, ao verificar defaultPrevented, NÃO bloqueia o
+// botão quando outra validação (ex.: colegas) cancelou a submissão.
+(function () {
+    document.querySelectorAll('form[data-guard]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            setTimeout(function () {
+                if (e.defaultPrevented) return;
+                var btn = form.querySelector('button[type="submit"]');
+                if (!btn || btn.disabled) return;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[17px] animate-spin">sync</span> A enviar...';
+            }, 0);
+        });
     });
 })();
 </script>

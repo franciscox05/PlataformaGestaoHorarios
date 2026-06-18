@@ -57,11 +57,11 @@ class WebAcessoPerfisIntegrationTest extends FluxosCriticosTestSupport {
         sessao.setAttribute(WebSession.UTILIZADOR_NOME, colaborador.getNome());
         sessao.setAttribute(WebSession.UTILIZADOR_EMAIL, colaborador.getEmail());
 
-        mockMvc.perform(get("/web/gestao-loja").session(sessao))
+        mockMvc.perform(get("/web/modulos/gestao-loja").session(sessao))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/web/painel?acessoNegado=true"));
 
-        mockMvc.perform(get("/web/relatorios").session(sessao))
+        mockMvc.perform(get("/web/modulos/relatorios").session(sessao))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/web/painel?acessoNegado=true"));
     }
@@ -76,10 +76,10 @@ class WebAcessoPerfisIntegrationTest extends FluxosCriticosTestSupport {
         sessao.setAttribute(WebSession.UTILIZADOR_NOME, gerente.getNome());
         sessao.setAttribute(WebSession.UTILIZADOR_EMAIL, gerente.getEmail());
 
-        mockMvc.perform(get("/web/gestao-loja").session(sessao))
+        mockMvc.perform(get("/web/modulos/gestao-loja").session(sessao))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/web/relatorios").session(sessao))
+        mockMvc.perform(get("/web/modulos/relatorios").session(sessao))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/web/complementares").session(sessao))

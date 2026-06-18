@@ -71,7 +71,24 @@ public class HorarioService {
             return List.of();
         }
 
-        return horarioRepository.findTurnosElegiveisParaPermuta(idUtilizadorLogado, idHorarioOrigem);
+        List<Horario> elegiveis = horarioRepository.findTurnosElegiveisParaPermuta(idUtilizadorLogado, idHorarioOrigem);
+
+        // Alinhamento com a validação de PermutaService: excluir turnos com horário
+        // idêntico ao do turno de origem — permutar para as mesmas horas é redundante.
+        Horario origem = horarioRepository.findById(idHorarioOrigem).orElse(null);
+        if (origem == null || origem.getIdTurno() == null
+                || origem.getIdTurno().getHoraInicio() == null
+                || origem.getIdTurno().getHoraFim() == null) {
+            return elegiveis;
+        }
+        var horaInicioOrigem = origem.getIdTurno().getHoraInicio();
+        var horaFimOrigem = origem.getIdTurno().getHoraFim();
+
+        return elegiveis.stream()
+                .filter(h -> h.getIdTurno() == null
+                        || !(horaInicioOrigem.equals(h.getIdTurno().getHoraInicio())
+                             && horaFimOrigem.equals(h.getIdTurno().getHoraFim())))
+                .toList();
     }
 
     @Transactional(readOnly = true)

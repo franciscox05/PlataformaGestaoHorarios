@@ -8,6 +8,7 @@ import com.example.projeto2.API.Modules.Utilizador;
 import com.example.projeto2.API.Repositories.DayOffRepository;
 import com.example.projeto2.API.Repositories.HistoricoHorarioEstadoRepository;
 import com.example.projeto2.API.Repositories.HorarioRepository;
+import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.API.Repositories.PermutaRepository;
 import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class DayOffService {
 
     private final DayOffRepository dayOffRepository;
     private final LojautilizadorHelper lojautilizadorHelper;
+    private final LojautilizadorRepository lojautilizadorRepository;
     private final UtilizadorRepository utilizadorRepository;
     private final HorarioRepository horarioRepository;
     private final PermutaRepository permutaRepository;
@@ -40,6 +42,7 @@ public class DayOffService {
 
     public DayOffService(DayOffRepository dayOffRepository,
                      LojautilizadorHelper lojautilizadorHelper,
+                     LojautilizadorRepository lojautilizadorRepository,
                      UtilizadorRepository utilizadorRepository,
                      HorarioRepository horarioRepository,
                      PermutaRepository permutaRepository,
@@ -47,6 +50,7 @@ public class DayOffService {
                      NotificacaoService notificacaoService) {
         this.dayOffRepository = dayOffRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
+        this.lojautilizadorRepository = lojautilizadorRepository;
         this.utilizadorRepository = utilizadorRepository;
         this.horarioRepository = horarioRepository;
         this.permutaRepository = permutaRepository;
@@ -76,16 +80,22 @@ public class DayOffService {
             throw new IllegalArgumentException("O tipo de ausencia e obrigatorio.");
         }
 
-        // Folgas no mês atual não são permitidas — o horário já está gerado.
-        // Tipo "baixa" (baixa médica) é sempre permitido; os restantes tipos de folga
-        // só podem ser pedidos para meses futuros (usa Permuta para ausências no mês corrente).
+        // Regra de antecedência: pedidos para o mes atual exigem pelo menos 7 dias de
+        // antecedencia (o horario desse mes pode ja estar gerado); meses futuros (a
+        // partir do mes seguinte) nao tem esta restricao. Tipo "baixa" (baixa medica)
+        // e sempre permitido, por ser uma ausencia de emergencia.
         if (!"baixa".equalsIgnoreCase(pedido.getTipo())) {
             java.time.YearMonth mesAtual = java.time.YearMonth.now();
-            if (java.time.YearMonth.from(pedido.getDataAusencia()).equals(mesAtual)) {
+            boolean mesFuturo = java.time.YearMonth.from(pedido.getDataAusencia()).isAfter(mesAtual);
+            boolean comAntecedenciaSuficiente = !pedido.getDataAusencia().isBefore(LocalDate.now().plusDays(7));
+            if (!mesFuturo && !comAntecedenciaSuficiente) {
                 throw new IllegalArgumentException(
-                        "Pedidos de folga no mes atual nao sao permitidos — o horario ja esta gerado. "
-                        + "Se precisas faltar a um turno deste mes, pede uma Permuta.");
+                        "Pedidos de folga no mes atual exigem pelo menos 7 dias de antecedencia. "
+                        + "Se precisas faltar a um turno mais proximo, pede uma Permuta.");
             }
+
+            validarMesPublicado(pedido.getIdUtilizador().getId(), pedido.getDataAusencia());
+            validarNaoEstaJaDeFolga(pedido.getIdUtilizador().getId(), pedido.getDataAusencia());
         }
 
         if (pedido.getMotivo() != null && pedido.getMotivo().isBlank()) {
@@ -299,6 +309,37 @@ public class DayOffService {
         }
     }
 
+    /**
+     * Garante que o mes da data pedida tem horario publicado para a loja do
+     * utilizador — sem isso nao ha forma de saber se o dia e de trabalho ou de
+     * folga, por isso o pedido nao pode ainda ser avaliado.
+     */
+    private void validarMesPublicado(Integer idUtilizador, LocalDate dataAusencia) {
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.findLigacaoAtiva(idUtilizador).orElse(null);
+        if (ligacaoAtiva == null) {
+            return;
+        }
+
+        LocalDate inicioMes = dataAusencia.withDayOfMonth(1);
+        LocalDate fimMes = inicioMes.withDayOfMonth(inicioMes.lengthOfMonth());
+        boolean existeHorarioPublicado = !horarioRepository.findHorariosPublicadosDaLojaEntreDatas(
+                ligacaoAtiva.getIdLoja().getId(), inicioMes, fimMes, null).isEmpty();
+
+        if (!existeHorarioPublicado) {
+            throw new IllegalArgumentException(
+                    "Ainda nao existe horario publicado para o mes selecionado.");
+        }
+    }
+
+    /** Se o utilizador nao tem nenhum turno aprovado nesse dia, ja esta de folga. */
+    private void validarNaoEstaJaDeFolga(Integer idUtilizador, LocalDate dataAusencia) {
+        List<Horario> turnoNoDia = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                idUtilizador, dataAusencia, dataAusencia);
+        if (turnoNoDia.isEmpty()) {
+            throw new IllegalArgumentException("Ja te encontras de folga neste dia.");
+        }
+    }
+
     private void retirarTurnosDoColaboradorNoDia(DayOff pedido, Lojautilizador ligacaoAprovador) {
         List<Horario> horariosAfetados = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
                 pedido.getIdUtilizador().getId(),
@@ -368,6 +409,20 @@ public class DayOffService {
         return dayOffRepository.findFolgasAprovadasDaLojaNoDia(idLoja, data).stream()
                 .filter(d -> d.getIdUtilizador() != null)
                 .map(d -> new FolgaResumida(d.getIdUtilizador().getNome(), d.getTipo()))
+                .toList();
+    }
+
+    /**
+     * Schedule-derived day-off list: active store members who have no approved shift on the
+     * given date. This is the authoritative source — it reflects the published Horario table
+     * directly rather than explicit day-off request records (DayOff entity).
+     */
+    @Transactional(readOnly = true)
+    public List<FolgaResumida> listarFuncionariosDeFolgaNoDia(Integer idLoja, LocalDate data) {
+        if (idLoja == null || data == null) return List.of();
+        return lojautilizadorRepository.findFuncionariosDeFolgaNoDia(idLoja, data).stream()
+                .filter(lu -> lu.getIdUtilizador() != null)
+                .map(lu -> new FolgaResumida(lu.getIdUtilizador().getNome(), "Folga"))
                 .toList();
     }
 
