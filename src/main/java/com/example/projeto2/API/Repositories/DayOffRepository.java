@@ -80,6 +80,7 @@ public interface DayOffRepository extends JpaRepository<DayOff, Integer> {
                                           @Param("idDayOff") Integer idDayOff);
 
     @Query("SELECT d FROM DayOff d " +
+            "JOIN FETCH d.idUtilizador u " +
             "WHERE LOWER(CAST(d.estado AS string)) != 'pendente' " +
             "AND EXISTS (" +
             "    SELECT 1 FROM Lojautilizador lu " +

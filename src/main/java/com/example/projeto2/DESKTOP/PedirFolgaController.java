@@ -31,14 +31,13 @@ public class PedirFolgaController {
 
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    @FXML
-    private DatePicker dpData;
-
-    @FXML
-    private ComboBox<String> cbTipo;
-
-    @FXML
-    private TextArea txtMotivo;
+    @FXML private DatePicker dpData;
+    @FXML private DatePicker dpDataFim;
+    @FXML private javafx.scene.layout.VBox painelDataFim;
+    @FXML private Label lblData;
+    @FXML private Label lblMotivo;
+    @FXML private ComboBox<String> cbTipo;
+    @FXML private TextArea txtMotivo;
 
     @FXML
     private TableView<DayOff> tabelaPedidos;
@@ -65,12 +64,9 @@ public class PedirFolgaController {
 
     @FXML
     public void initialize() {
-        cbTipo.setItems(FXCollections.observableArrayList(
-                "Férias",
-                "Folgas",
-                "Baixa",
-                "Urgente / Emergência"
-        ));
+        cbTipo.setItems(FXCollections.observableArrayList("Férias", "Folgas", "Baixa"));
+
+        cbTipo.valueProperty().addListener((obs, old, novo) -> configurarCamposParaTipo(novo));
 
         configurarTabelaHistorico();
 
@@ -90,10 +86,9 @@ public class PedirFolgaController {
         emptyFolgas.getChildren().addAll(emptyFolgasTitulo, emptyFolgasSubtitulo, btnEmptyFolga);
         tabelaPedidos.setPlaceholder(emptyFolgas);
 
-        // Tooltips nos campos do formulário
         dpData.setTooltip(new Tooltip("Seleciona a data em que pretendes ausentar-te"));
-        cbTipo.setTooltip(new Tooltip("Seleciona o tipo de ausência: férias, folga, baixa ou emergência urgente"));
-        txtMotivo.setTooltip(new Tooltip("Opcional — descreve brevemente o motivo da ausência"));
+        cbTipo.setTooltip(new Tooltip("Férias: intervalo de datas | Folgas: dia isolado | Baixa: só hoje ou amanhã, motivo obrigatório"));
+        txtMotivo.setTooltip(new Tooltip("Obrigatório para Baixa Médica; opcional para os restantes tipos"));
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -107,57 +102,92 @@ public class PedirFolgaController {
             if (utilizadorLogado == null) {
                 throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
-
-            // Validar campos obrigatórios antes de qualquer diálogo
-            if (dpData.getValue() == null) {
-                throw new IllegalArgumentException("Seleciona uma data para o pedido de folga.");
-            }
             if (cbTipo.getValue() == null) {
                 throw new IllegalArgumentException("Seleciona o tipo de ausência.");
             }
-
-            // Verificar pedido duplicado (pendente ou aprovado para a mesma data)
-            java.time.LocalDate dataAusencia = dpData.getValue();
-            List<DayOff> pedidosExistentes = dayOffBLL.listarPedidosPorUtilizador(utilizadorLogado.getId());
-            boolean jaTem = pedidosExistentes.stream().anyMatch(d ->
-                    dataAusencia.equals(d.getDataAusencia())
-                    && ("pendente".equalsIgnoreCase(d.getEstado()) || "aprovado".equalsIgnoreCase(d.getEstado()))
-            );
-            if (jaTem) {
-                mostrarErro("Pedido duplicado",
-                        "Já tens uma folga pendente ou aprovada para "
-                        + dataAusencia.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                        + ". Cancela o pedido anterior antes de submeter um novo.");
-                return;
-            }
-
-            if (!DialogosHelper.confirmarAcao(
-                    obterJanela(),
-                    "Registar pedido de folga",
-                    "Deseja submeter este pedido?",
-                    "O pedido ficará pendente para análise."
-            )) {
-                return;
+            if (dpData.getValue() == null) {
+                throw new IllegalArgumentException("Seleciona uma data para o pedido.");
             }
 
             String tipoSelecionado = mapearTipoParaBaseDados(cbTipo.getValue());
+            String motivo = txtMotivo.getText();
 
-            DayOff pedido = new DayOff();
-            pedido.setIdUtilizador(utilizadorLogado);
-            pedido.setDataAusencia(dpData.getValue());
-            pedido.setTipo(tipoSelecionado);
-            pedido.setMotivo(txtMotivo.getText());
-
-            dayOffBLL.registarPedidoFolga(pedido);
-
-            mostrarInformacao("Sucesso", "Pedido de folga registado com sucesso.");
-            limparFormulario();
-            carregarHistoricoPedidos();
+            if ("ferias".equals(tipoSelecionado)) {
+                submeterFerias(tipoSelecionado, motivo);
+            } else {
+                submeterFolgaSimples(tipoSelecionado, motivo);
+            }
         } catch (IllegalArgumentException e) {
             mostrarErro("Erro", e.getMessage());
         } catch (Exception e) {
-            mostrarErro("Erro", "Não foi possível guardar o pedido de folga.");
+            mostrarErro("Erro", "Não foi possível guardar o pedido.");
         }
+    }
+
+    private void submeterFerias(String tipo, String motivo) {
+        java.time.LocalDate inicio = dpData.getValue();
+        java.time.LocalDate fim = dpDataFim.getValue();
+        if (fim == null) {
+            mostrarErro("Erro", "Seleciona a data de fim das férias.");
+            return;
+        }
+        if (fim.isBefore(inicio)) {
+            mostrarErro("Erro", "A data de fim não pode ser anterior à data de início.");
+            return;
+        }
+        if (!DialogosHelper.confirmarAcao(obterJanela(),
+                "Registar pedido de férias",
+                "Submeter férias de " + inicio.format(DATA_FORMATTER) + " a " + fim.format(DATA_FORMATTER) + "?",
+                "O pedido ficará pendente para aprovação do gestor.")) {
+            return;
+        }
+        dayOffBLL.registarPedidoFeriasIntervalo(utilizadorLogado, inicio, fim, motivo);
+        mostrarInformacao("Sucesso", "Pedido de férias registado com sucesso.");
+        limparFormulario();
+        carregarHistoricoPedidos();
+    }
+
+    private void submeterFolgaSimples(String tipo, String motivo) {
+        java.time.LocalDate data = dpData.getValue();
+        List<DayOff> pedidosExistentes = dayOffBLL.listarPedidosPorUtilizador(utilizadorLogado.getId());
+        boolean jaTem = pedidosExistentes.stream().anyMatch(d ->
+                data.equals(d.getDataAusencia())
+                && ("pendente".equalsIgnoreCase(d.getEstado()) || "aprovado".equalsIgnoreCase(d.getEstado())));
+        if (jaTem) {
+            mostrarErro("Pedido duplicado",
+                    "Já tens uma folga pendente ou aprovada para "
+                    + data.format(DATA_FORMATTER) + ". Cancela o pedido anterior antes de submeter um novo.");
+            return;
+        }
+        if (!DialogosHelper.confirmarAcao(obterJanela(),
+                "Registar pedido de folga",
+                "Deseja submeter este pedido?",
+                "O pedido ficará pendente para análise.")) {
+            return;
+        }
+        DayOff pedido = new DayOff();
+        pedido.setIdUtilizador(utilizadorLogado);
+        pedido.setDataAusencia(data);
+        pedido.setTipo(tipo);
+        pedido.setMotivo(motivo);
+        dayOffBLL.registarPedidoFolga(pedido);
+        mostrarInformacao("Sucesso", "Pedido de folga registado com sucesso.");
+        limparFormulario();
+        carregarHistoricoPedidos();
+    }
+
+    private void configurarCamposParaTipo(String tipo) {
+        boolean ferias = "Férias".equals(tipo);
+        boolean baixa  = "Baixa".equals(tipo);
+        painelDataFim.setManaged(ferias);
+        painelDataFim.setVisible(ferias);
+        if (lblData != null) {
+            lblData.setText(ferias ? "Data de início das férias" : "Data da ausência");
+        }
+        if (lblMotivo != null) {
+            lblMotivo.setText(baixa ? "Justificação (obrigatória para baixa médica)" : "Justificação (opcional)");
+        }
+        if (!ferias && dpDataFim != null) dpDataFim.setValue(null);
     }
 
     private void configurarTabelaHistorico() {
@@ -261,7 +291,6 @@ public class PedirFolgaController {
             case "Férias" -> "ferias";
             case "Folgas" -> "folgas";
             case "Baixa" -> "baixa";
-            case "Urgente / Emergência" -> "urgente";
             default -> throw new IllegalArgumentException("Tipo de ausência inválido.");
         };
     }
@@ -275,7 +304,6 @@ public class PedirFolgaController {
             case "ferias" -> "Férias";
             case "folgas" -> "Folgas";
             case "baixa" -> "Baixa";
-            case "urgente" -> "⚡ Urgente";
             default -> tipo;
         };
     }
@@ -303,6 +331,7 @@ public class PedirFolgaController {
 
     private void limparFormulario() {
         dpData.setValue(null);
+        if (dpDataFim != null) dpDataFim.setValue(null);
         cbTipo.setValue(null);
         txtMotivo.clear();
     }

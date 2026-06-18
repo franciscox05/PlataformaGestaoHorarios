@@ -79,10 +79,22 @@ public class DayOffService {
             throw new IllegalArgumentException("O tipo de ausencia e obrigatorio.");
         }
 
-        // Folgas no mês atual não são permitidas — o horário já está gerado.
-        // Tipo "baixa" (baixa médica) é sempre permitido; os restantes tipos de folga
-        // só podem ser pedidos para meses futuros (usa Permuta para ausências no mês corrente).
-        if (!"baixa".equalsIgnoreCase(pedido.getTipo())) {
+        boolean isBaixa = "baixa".equalsIgnoreCase(pedido.getTipo());
+
+        if (isBaixa) {
+            // Baixa médica: só hoje ou amanhã, motivo obrigatório
+            LocalDate hoje = LocalDate.now();
+            LocalDate amanha = hoje.plusDays(1);
+            if (!pedido.getDataAusencia().equals(hoje) && !pedido.getDataAusencia().equals(amanha)) {
+                throw new IllegalArgumentException(
+                        "A baixa medica so pode ser registada para hoje ou para amanha.");
+            }
+            if (pedido.getMotivo() == null || pedido.getMotivo().isBlank()) {
+                throw new IllegalArgumentException(
+                        "A justificacao e obrigatoria para uma baixa medica.");
+            }
+        } else {
+            // Folgas no mês atual não são permitidas — o horário já está gerado.
             java.time.YearMonth mesAtual = java.time.YearMonth.now();
             if (java.time.YearMonth.from(pedido.getDataAusencia()).equals(mesAtual)) {
                 throw new IllegalArgumentException(
@@ -95,8 +107,8 @@ public class DayOffService {
             pedido.setMotivo(null);
         }
 
-        // Ausências urgentes (emergências) são aceites sem antecedência mínima
-        if (!"urgente".equalsIgnoreCase(pedido.getTipo())) {
+        // Baixa médica isenta de antecedência mínima (é uma emergência médica)
+        if (!isBaixa) {
             validarAntecedenciaMinimaDoTurno(pedido.getIdUtilizador().getId(), pedido.getDataAusencia());
         }
 
@@ -107,11 +119,14 @@ public class DayOffService {
         // Notify store managers — wrapped so any failure never rolls back the save above
         try {
             Integer idFuncionario = pedidoSalvo.getIdUtilizador().getId();
+            boolean isBaixaSalva = "baixa".equalsIgnoreCase(pedidoSalvo.getTipo());
             lojautilizadorHelper.findLigacaoAtiva(idFuncionario).ifPresent(ligacao -> {
                 String nomeColaborador = utilizadorRepository.findById(idFuncionario)
                         .map(Utilizador::getNome).orElse("Um colaborador");
-                String mensagem = "O funcionário " + nomeColaborador
-                        + " submeteu um novo pedido de folga que aguarda a tua aprovação.";
+                String mensagem = isBaixaSalva
+                        ? "⚠️ URGENTE — " + nomeColaborador + " submeteu uma baixa médica para hoje/amanhã. Requer atenção imediata."
+                        : "O funcionário " + nomeColaborador
+                                + " submeteu um novo pedido de folga que aguarda a tua aprovação.";
                 lojautilizadorHelper.listarIdsComCargoPorLoja(
                                 ligacao.getIdLoja().getId(), LojautilizadorHelper.GESTAO)
                         .forEach(idGerente -> notificacaoService.criarNotificacao(idGerente, mensagem, ligacao.getIdLoja().getId()));
@@ -122,6 +137,54 @@ public class DayOffService {
         }
 
         return pedidoSalvo;
+    }
+
+    @Transactional
+    public List<DayOff> registarPedidoFeriasIntervalo(Utilizador utilizador,
+                                                       LocalDate inicio, LocalDate fim,
+                                                       String motivo) {
+        if (utilizador == null) throw new IllegalArgumentException("Utilizador obrigatorio.");
+        if (inicio == null || fim == null) throw new IllegalArgumentException("Intervalo de datas obrigatorio.");
+        if (fim.isBefore(inicio)) throw new IllegalArgumentException("A data de fim nao pode ser anterior ao inicio.");
+        if (inicio.isBefore(LocalDate.now())) throw new IllegalArgumentException("A data de inicio nao pode estar no passado.");
+
+        java.time.YearMonth mesAtual = java.time.YearMonth.now();
+        if (java.time.YearMonth.from(inicio).equals(mesAtual) || java.time.YearMonth.from(fim).equals(mesAtual)) {
+            throw new IllegalArgumentException(
+                    "Pedidos de ferias no mes atual nao sao permitidos — o horario ja esta gerado.");
+        }
+
+        List<DayOff> pedidosCriados = new java.util.ArrayList<>();
+        LocalDate dia = inicio;
+        while (!dia.isAfter(fim)) {
+            DayOff pedido = new DayOff();
+            pedido.setIdUtilizador(utilizador);
+            pedido.setDataAusencia(dia);
+            pedido.setTipo("ferias");
+            pedido.setMotivo(motivo);
+            pedido.setEstado("pendente");
+            pedidosCriados.add(dayOffRepository.save(pedido));
+            dia = dia.plusDays(1);
+        }
+
+        try {
+            Integer idFuncionario = utilizador.getId();
+            lojautilizadorHelper.findLigacaoAtiva(idFuncionario).ifPresent(ligacao -> {
+                String nomeColaborador = utilizadorRepository.findById(idFuncionario)
+                        .map(Utilizador::getNome).orElse("Um colaborador");
+                String mensagem = "O funcionário " + nomeColaborador
+                        + " submeteu um pedido de férias de " + inicio.format(FMT_DATA)
+                        + " a " + fim.format(FMT_DATA) + " que aguarda aprovação.";
+                lojautilizadorHelper.listarIdsComCargoPorLoja(
+                                ligacao.getIdLoja().getId(), LojautilizadorHelper.GESTAO)
+                        .forEach(idGerente -> notificacaoService.criarNotificacao(idGerente, mensagem, ligacao.getIdLoja().getId()));
+            });
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(DayOffService.class)
+                    .warn("Notificação de férias não enviada para id={}: {}", utilizador.getId(), e.getMessage());
+        }
+
+        return pedidosCriados;
     }
 
     @Transactional(readOnly = true)

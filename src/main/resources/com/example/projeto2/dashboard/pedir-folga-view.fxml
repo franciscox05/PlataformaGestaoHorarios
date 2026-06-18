@@ -73,7 +73,12 @@
                         </VBox>
                     </HBox>
 
-                    <!-- Data + Tipo em grid -->
+                    <!-- Tipo em cima, datas abaixo -->
+                    <VBox spacing="8.0">
+                        <Label styleClass="campo-titulo" text="Tipo de aus&#234;ncia" />
+                        <ComboBox fx:id="cbTipo" promptText="Selecionar tipo" maxWidth="Infinity" />
+                    </VBox>
+
                     <GridPane hgap="20.0" vgap="16.0">
                         <columnConstraints>
                             <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0" />
@@ -81,20 +86,22 @@
                         </columnConstraints>
 
                         <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                            <Label styleClass="campo-titulo" text="Data da aus&#234;ncia" />
+                            <Label fx:id="lblData" styleClass="campo-titulo" text="Data da aus&#234;ncia" />
                             <DatePicker fx:id="dpData" promptText="Selecionar data"
                                         maxWidth="Infinity" />
                         </VBox>
 
-                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                            <Label styleClass="campo-titulo" text="Tipo de aus&#234;ncia" />
-                            <ComboBox fx:id="cbTipo" promptText="Selecionar tipo"
-                                      maxWidth="Infinity" />
+                        <!-- Data de fim — visivel apenas para Ferias -->
+                        <VBox fx:id="painelDataFim" spacing="8.0" managed="false" visible="false"
+                              GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label styleClass="campo-titulo" text="Data de fim das f&#233;rias" />
+                            <DatePicker fx:id="dpDataFim" promptText="Selecionar data de fim"
+                                        maxWidth="Infinity" />
                         </VBox>
                     </GridPane>
 
                     <VBox spacing="8.0">
-                        <Label styleClass="campo-titulo" text="Justifica&#231;&#227;o (opcional)" />
+                        <Label fx:id="lblMotivo" styleClass="campo-titulo" text="Justifica&#231;&#227;o (opcional)" />
                         <TextArea fx:id="txtMotivo"
                                   prefRowCount="4"
                                   promptText="Descreve o motivo do pedido..."

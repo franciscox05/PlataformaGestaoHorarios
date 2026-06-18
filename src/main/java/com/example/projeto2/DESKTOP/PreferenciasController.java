@@ -77,7 +77,7 @@ public class PreferenciasController {
 
     @FXML
     public void initialize() {
-        cbTipo.setItems(FXCollections.observableArrayList("Folgas", "Férias", "Folga preferida", "Colegas", "Turnos"));
+        cbTipo.setItems(FXCollections.observableArrayList("Folga preferida", "Colegas", "Turnos"));
         cbDuracaoPreferida.setItems(FXCollections.observableArrayList("Indiferente", "Mais curto", "Mais longo"));
         cbDuracaoPreferida.setValue("Indiferente");
 
@@ -86,7 +86,7 @@ public class PreferenciasController {
         limparFormulario();
         esconderFeedback();
 
-        cbTipo.setTooltip(new Tooltip("Tipo de preferência: folgas, férias, folga preferida (recorrente soft), colegas ou turnos"));
+        cbTipo.setTooltip(new Tooltip("Tipo de preferência: folga preferida (dia de descanso semanal), colegas ou turnos"));
         dpDataInicio.setTooltip(new Tooltip("Data a partir da qual a preferência é válida"));
         dpDataFim.setTooltip(new Tooltip("Data limite de validade (deixa vazio para permanente)"));
         txtDescricao.setTooltip(new Tooltip("Notas adicionais para o gestor (opcional)"));
@@ -329,8 +329,6 @@ public class PreferenciasController {
             throw new IllegalArgumentException("Seleciona um tipo de preferência.");
         }
         return switch (tipoSelecionado) {
-            case "Folgas"         -> "folgas";
-            case "Férias"         -> "ferias";
             case "Folga preferida"-> "folga_preferida";
             case "Colegas"        -> "colegas";
             case "Turnos"         -> "turnos";
