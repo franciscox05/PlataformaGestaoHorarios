@@ -105,8 +105,6 @@ public class PainelGerentePedidosController {
     @FXML private TableView<Preferencia> tabelaPreferenciasPendentes;
     @FXML private TableColumn<Preferencia, String> colPreferenciaColaborador;
     @FXML private TableColumn<Preferencia, String> colPreferenciaTipo;
-    @FXML private TableColumn<Preferencia, String> colPreferenciaPeriodo;
-    @FXML private TableColumn<Preferencia, String> colPreferenciaPrioridade;
     @FXML private TableColumn<Preferencia, String> colPreferenciaDescricao;
     @FXML private TextArea txtDecisaoPreferencia;
     @FXML private Button btnAprovarPreferencia;
@@ -168,8 +166,7 @@ public class PainelGerentePedidosController {
 
         preferenciasSection = new PreferenciasPainelSection(
                 tabelaPreferenciasPendentes,
-                colPreferenciaColaborador, colPreferenciaTipo, colPreferenciaPeriodo,
-                colPreferenciaPrioridade, colPreferenciaDescricao,
+                colPreferenciaColaborador, colPreferenciaTipo, colPreferenciaDescricao,
                 txtDecisaoPreferencia, lblFeedbackPreferencias,
                 btnAprovarPreferencia, btnRejeitarPreferencia,
                 painelGerenteBLL, coord);

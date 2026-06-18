@@ -472,14 +472,16 @@ public class SnapshotOperacionalLojaService {
     private IntervaloOperacional resolverIntervaloDaPreferencia(Preferencia preferencia) {
         LocalDate dataInicio = preferencia.getDataInicio();
         LocalDate dataFim = preferencia.getDataFim();
+        LocalDate hoje = LocalDate.now();
 
         if (dataInicio == null && dataFim == null) {
-            LocalDate hoje = LocalDate.now();
-            return new IntervaloOperacional(hoje, hoje, true);
+            return normalizarIntervalo(hoje, hoje.plusMonths(1));
         }
 
         LocalDate inicio = dataInicio != null ? dataInicio : dataFim;
-        LocalDate fim = dataFim != null ? dataFim : dataInicio;
+        // Sem data de fim (preferência permanente): olhar 1 mês a partir do início
+        // para encontrar horários publicados no período relevante
+        LocalDate fim = dataFim != null ? dataFim : inicio.plusMonths(1);
         return normalizarIntervalo(inicio, fim);
     }
 

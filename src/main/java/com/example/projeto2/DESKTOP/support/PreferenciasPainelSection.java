@@ -28,8 +28,6 @@ public final class PreferenciasPainelSection {
     private final TableView<Preferencia> tabela;
     private final TableColumn<Preferencia, String> colColaborador;
     private final TableColumn<Preferencia, String> colTipo;
-    private final TableColumn<Preferencia, String> colPeriodo;
-    private final TableColumn<Preferencia, String> colPrioridade;
     private final TableColumn<Preferencia, String> colDescricao;
     private final TextArea txtDecisao;
     private final Label feedback;
@@ -41,8 +39,6 @@ public final class PreferenciasPainelSection {
     public PreferenciasPainelSection(TableView<Preferencia> tabela,
                                      TableColumn<Preferencia, String> colColaborador,
                                      TableColumn<Preferencia, String> colTipo,
-                                     TableColumn<Preferencia, String> colPeriodo,
-                                     TableColumn<Preferencia, String> colPrioridade,
                                      TableColumn<Preferencia, String> colDescricao,
                                      TextArea txtDecisao,
                                      Label feedback,
@@ -53,8 +49,6 @@ public final class PreferenciasPainelSection {
         this.tabela = tabela;
         this.colColaborador = colColaborador;
         this.colTipo = colTipo;
-        this.colPeriodo = colPeriodo;
-        this.colPrioridade = colPrioridade;
         this.colDescricao = colDescricao;
         this.txtDecisao = txtDecisao;
         this.feedback = feedback;
@@ -155,35 +149,6 @@ public final class PreferenciasPainelSection {
                         (tipo.toLowerCase(LOCALE_PT).contains("folga") || tipo.toLowerCase(LOCALE_PT).contains("fer"))
                                 ? "badge-folga"
                                 : "badge-enviado");
-                setGraphic(badge);
-                setText(null);
-            }
-        });
-
-        colPeriodo.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarPeriodo(cellData.getValue().getDataInicio(), cellData.getValue().getDataFim())));
-
-        colPrioridade.setCellValueFactory(cellData ->
-                new SimpleStringProperty(formatarVigencia(cellData.getValue())));
-        colPrioridade.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(String vigencia, boolean empty) {
-                super.updateItem(vigencia, empty);
-                if (empty || vigencia == null || vigencia.isBlank()) {
-                    setGraphic(null);
-                    setText(null);
-                    return;
-                }
-                Label badge = new Label(vigencia.toUpperCase(LOCALE_PT));
-                badge.getStyleClass().add("badge-estado");
-                String normalizado = vigencia.toLowerCase(LOCALE_PT);
-                if (normalizado.contains("permanente")) {
-                    badge.getStyleClass().add("badge-aprovado");
-                } else if (normalizado.contains("tempor")) {
-                    badge.getStyleClass().add("badge-pendente");
-                } else {
-                    badge.getStyleClass().add("badge-rascunho");
-                }
                 setGraphic(badge);
                 setText(null);
             }

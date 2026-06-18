@@ -193,8 +193,6 @@
                                         <columns>
                                             <TableColumn fx:id="colPreferenciaColaborador" text="Colaborador" />
                                             <TableColumn fx:id="colPreferenciaTipo"        text="Tipo" />
-                                            <TableColumn fx:id="colPreferenciaPeriodo"     text="Per&#237;odo" />
-                                            <TableColumn fx:id="colPreferenciaPrioridade"  text="Vig&#234;ncia" />
                                             <TableColumn fx:id="colPreferenciaDescricao"   text="Descri&#231;&#227;o" />
                                         </columns>
                                     </TableView>
