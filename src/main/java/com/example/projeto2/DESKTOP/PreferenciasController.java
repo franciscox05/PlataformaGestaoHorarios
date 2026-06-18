@@ -19,14 +19,18 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @Scope("prototype")
@@ -44,6 +48,9 @@ public class PreferenciasController {
     @FXML private CheckBox chkTurnoIntermedio;
     @FXML private CheckBox chkTurnoNoite;
     @FXML private ComboBox<String> cbDuracaoPreferida;
+    @FXML private VBox painelFolgaPreferida;
+    @FXML private ComboBox<String> cbDiaSemana;
+    @FXML private HBox painelDatas;
     @FXML private DatePicker dpDataInicio;
     @FXML private DatePicker dpDataFim;
     @FXML private CheckBox chkSemDataFim;
@@ -59,6 +66,26 @@ public class PreferenciasController {
     @FXML private TableColumn<Preferencia, String> colPrioridade;
     @FXML private TableColumn<Preferencia, String> colEstado;
     @FXML private TableColumn<Preferencia, String> colDescricao;
+
+    private static final Map<String, DayOfWeek> DIAS_SEMANA = Map.of(
+            "Segunda-feira", DayOfWeek.MONDAY,
+            "Terça-feira",   DayOfWeek.TUESDAY,
+            "Quarta-feira",  DayOfWeek.WEDNESDAY,
+            "Quinta-feira",  DayOfWeek.THURSDAY,
+            "Sexta-feira",   DayOfWeek.FRIDAY,
+            "Sábado",        DayOfWeek.SATURDAY,
+            "Domingo",       DayOfWeek.SUNDAY
+    );
+
+    private static final Map<DayOfWeek, String> DIA_PARA_LABEL = Map.of(
+            DayOfWeek.MONDAY,    "Segunda-feira",
+            DayOfWeek.TUESDAY,   "Terça-feira",
+            DayOfWeek.WEDNESDAY, "Quarta-feira",
+            DayOfWeek.THURSDAY,  "Quinta-feira",
+            DayOfWeek.FRIDAY,    "Sexta-feira",
+            DayOfWeek.SATURDAY,  "Sábado",
+            DayOfWeek.SUNDAY,    "Domingo"
+    );
 
     // ── State ────────────────────────────────────────────────────────────────────
 
@@ -78,6 +105,9 @@ public class PreferenciasController {
     @FXML
     public void initialize() {
         cbTipo.setItems(FXCollections.observableArrayList("Folga preferida", "Colegas", "Turnos"));
+        cbDiaSemana.setItems(FXCollections.observableArrayList(
+                "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira",
+                "Sexta-feira", "Sábado", "Domingo"));
         cbDuracaoPreferida.setItems(FXCollections.observableArrayList("Indiferente", "Mais curto", "Mais longo"));
         cbDuracaoPreferida.setValue("Indiferente");
 
@@ -110,6 +140,9 @@ public class PreferenciasController {
 
         painelTurnos.setManaged(false);
         painelTurnos.setVisible(false);
+
+        painelFolgaPreferida.setManaged(false);
+        painelFolgaPreferida.setVisible(false);
 
         descricaoBuilder = new PreferenciaDescricaoBuilder(
                 cbColegaPreferido, chkTurnoManha, chkTurnoIntermedio, chkTurnoNoite, cbDuracaoPreferida);
@@ -230,9 +263,13 @@ public class PreferenciasController {
 
             cbTipo.setValue(PreferenciaFormatters.formatarTipo(nova.getTipo()));
             configurarTipoSelecionado();
-            dpDataInicio.setValue(nova.getDataInicio());
-            chkSemDataFim.setSelected(nova.getDataFim() == null && permitePreferenciaSemDataFim(nova.getTipo()));
-            dpDataFim.setValue(nova.getDataFim());
+            if ("folga_preferida".equalsIgnoreCase(nova.getTipo()) && nova.getDataInicio() != null) {
+                cbDiaSemana.setValue(DIA_PARA_LABEL.get(nova.getDataInicio().getDayOfWeek()));
+            } else {
+                dpDataInicio.setValue(nova.getDataInicio());
+                chkSemDataFim.setSelected(nova.getDataFim() == null && permitePreferenciaSemDataFim(nova.getTipo()));
+                dpDataFim.setValue(nova.getDataFim());
+            }
             descricaoBuilder.preencherFormularioColegas(nova, colegasDaLoja);
             descricaoBuilder.preencherFormularioTurnos(nova);
             txtDescricao.setText(descricaoBuilder.obterNotaLivre(nova));
@@ -284,6 +321,7 @@ public class PreferenciasController {
 
         cbTipo.setValue(null);
         cbColegaPreferido.setValue(null);
+        cbDiaSemana.setValue(null);
         chkTurnoManha.setSelected(false);
         chkTurnoIntermedio.setSelected(false);
         chkTurnoNoite.setSelected(false);
@@ -296,6 +334,10 @@ public class PreferenciasController {
         painelColega.setVisible(false);
         painelTurnos.setManaged(false);
         painelTurnos.setVisible(false);
+        painelFolgaPreferida.setManaged(false);
+        painelFolgaPreferida.setVisible(false);
+        painelDatas.setManaged(true);
+        painelDatas.setVisible(true);
         dpDataFim.setDisable(false);
         dpDataFim.setPromptText("Opcional");
         txtDescricao.setPromptText("Explica a tua preferência com detalhe suficiente para ser analisada.");
@@ -357,14 +399,19 @@ public class PreferenciasController {
 
     private void configurarTipoSelecionado() {
         String tipoSelecionado = cbTipo.getValue();
-        boolean tipoColegas  = "Colegas".equals(tipoSelecionado);
-        boolean tipoTurnos   = "Turnos".equals(tipoSelecionado);
+        boolean tipoColegas       = "Colegas".equals(tipoSelecionado);
+        boolean tipoTurnos        = "Turnos".equals(tipoSelecionado);
+        boolean tipoFolgaPreferida = "Folga preferida".equals(tipoSelecionado);
         boolean permiteSemFim = permitePreferenciaSemDataFim(tipoSelecionado);
 
         painelColega.setManaged(tipoColegas);
         painelColega.setVisible(tipoColegas);
         painelTurnos.setManaged(tipoTurnos);
         painelTurnos.setVisible(tipoTurnos);
+        painelFolgaPreferida.setManaged(tipoFolgaPreferida);
+        painelFolgaPreferida.setVisible(tipoFolgaPreferida);
+        painelDatas.setManaged(!tipoFolgaPreferida);
+        painelDatas.setVisible(!tipoFolgaPreferida);
 
         if (!tipoColegas) cbColegaPreferido.setValue(null);
         if (!tipoTurnos) {
@@ -373,19 +420,17 @@ public class PreferenciasController {
             chkTurnoNoite.setSelected(false);
             cbDuracaoPreferida.setValue("Indiferente");
         }
+        if (!tipoFolgaPreferida) cbDiaSemana.setValue(null);
 
-        chkSemDataFim.setDisable(!permiteSemFim);
-        if (!permiteSemFim) chkSemDataFim.setSelected(false);
+        chkSemDataFim.setDisable(!permiteSemFim || tipoFolgaPreferida);
+        if (!permiteSemFim || tipoFolgaPreferida) chkSemDataFim.setSelected(false);
 
         if (tipoColegas) {
             txtDescricao.setPromptText("Se quiseres, acrescenta contexto adicional para esta preferência.");
-        } else if ("Turnos".equals(tipoSelecionado)) {
+        } else if (tipoTurnos) {
             txtDescricao.setPromptText("Acrescenta contexto opcional, por exemplo: estudo de manha, prefiro fechos curtos ou quero evitar aberturas consecutivas.");
-        } else if ("Folga preferida".equals(tipoSelecionado)) {
-            txtDescricao.setPromptText("Folga recorrente semanal: escolhe a data inicial no dia da semana que preferes folgar. "
-                    + "O algoritmo tenta muito respeitá-la (1/semana), mas pode escalar-te se for preciso para a cobertura.");
-        } else if ("Folgas".equals(tipoSelecionado) || "Férias".equals(tipoSelecionado)) {
-            txtDescricao.setPromptText("Explica a tua preferência com o contexto necessário para análise.");
+        } else if (tipoFolgaPreferida) {
+            txtDescricao.setPromptText("Notas adicionais (opcional).");
         } else {
             txtDescricao.setPromptText("Explica a tua preferência com detalhe suficiente para ser analisada.");
         }
@@ -412,6 +457,15 @@ public class PreferenciasController {
     }
 
     private LocalDate resolverDataInicio(String tipoNormalizado) {
+        if ("folga_preferida".equals(tipoNormalizado)) {
+            String diaSelecionado = cbDiaSemana.getValue();
+            if (diaSelecionado == null || diaSelecionado.isBlank()) {
+                throw new IllegalArgumentException("Seleciona o dia da semana preferido para a folga.");
+            }
+            DayOfWeek dia = DIAS_SEMANA.get(diaSelecionado);
+            if (dia == null) throw new IllegalArgumentException("Dia da semana inválido.");
+            return LocalDate.now().with(TemporalAdjusters.nextOrSame(dia));
+        }
         LocalDate dataInicio = dpDataInicio.getValue();
         if (dataInicio != null) return dataInicio;
         if ("colegas".equals(tipoNormalizado) || "turnos".equals(tipoNormalizado)) return LocalDate.now();

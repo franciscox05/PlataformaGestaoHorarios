@@ -65,7 +65,17 @@
                         </VBox>
                     </VBox>
 
-                    <HBox spacing="12.0">
+                    <!-- Painel folga preferida — dia da semana -->
+                    <VBox fx:id="painelFolgaPreferida" managed="false" spacing="5.0" visible="false">
+                        <Label styleClass="campo-titulo" text="Dia da semana preferido para folgar" />
+                        <ComboBox fx:id="cbDiaSemana" maxWidth="Infinity" promptText="Seleciona o dia" styleClass="campo-combo" />
+                        <Label styleClass="texto-ajuda"
+                               text="O gerador tenta dar-te folga neste dia todas as semanas, mas pode escalar-te se a cobertura exigir."
+                               wrapText="true" />
+                    </VBox>
+
+                    <!-- Painel datas — visível para todos os tipos exceto Folga preferida -->
+                    <HBox fx:id="painelDatas" spacing="12.0">
                         <VBox spacing="5.0" HBox.hgrow="ALWAYS">
                             <Label styleClass="campo-titulo" text="Data inicial" />
                             <DatePicker fx:id="dpDataInicio" maxWidth="Infinity" promptText="Selecionar data" styleClass="campo-input" />

@@ -92,6 +92,24 @@
                                 th:text="${#strings.capitalize(#strings.replace(tipo,'_',' '))}"></option>
                     </select>
                 </div>
+                <!-- Dia da semana — só para Folga preferida -->
+                <div id="pref-dia-semana-panel" class="flex flex-col gap-1.5" style="display:none">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Dia da semana preferido</label>
+                    <select name="diaSemana"
+                            class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                        <option value="">-- Seleciona o dia --</option>
+                        <option value="MONDAY">Segunda-feira</option>
+                        <option value="TUESDAY">Terça-feira</option>
+                        <option value="WEDNESDAY">Quarta-feira</option>
+                        <option value="THURSDAY">Quinta-feira</option>
+                        <option value="FRIDAY">Sexta-feira</option>
+                        <option value="SATURDAY">Sábado</option>
+                        <option value="SUNDAY">Domingo</option>
+                    </select>
+                    <p class="font-body text-[11px] text-on-surface-variant">O gerador tenta dar-te folga neste dia todas as semanas.</p>
+                </div>
+
+                <!-- Datas inicio/fim — escondidas quando tipo = folga_preferida -->
                 <div id="pref-datas-panel" class="grid grid-cols-2 gap-3">
                     <div class="flex flex-col gap-1.5">
                         <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data início</label>
@@ -1005,25 +1023,28 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-// ── Preferências de colegas (UC-F01c) – toggle dinâmico ──────────────────
+// ── Preferências – toggle dinâmico de painéis ─────────────────────────────
 (function () {
-    const tipoSel    = document.getElementById('pref-tipo');
-    const form       = document.getElementById('pref-form');
-    const descPanel  = document.getElementById('pref-desc-panel');
-    const datasPanel = document.getElementById('pref-datas-panel');
-    const colPanel   = document.getElementById('pref-colegas-panel');
-    const descArea   = document.getElementById('pref-descricao');
-    const erroDiv    = document.getElementById('pref-colegas-erro');
-    const erroTxt    = document.getElementById('pref-colegas-erro-txt');
+    const tipoSel       = document.getElementById('pref-tipo');
+    const form          = document.getElementById('pref-form');
+    const descPanel     = document.getElementById('pref-desc-panel');
+    const datasPanel    = document.getElementById('pref-datas-panel');
+    const diaSemanaPanel = document.getElementById('pref-dia-semana-panel');
+    const colPanel      = document.getElementById('pref-colegas-panel');
+    const descArea      = document.getElementById('pref-descricao');
+    const erroDiv       = document.getElementById('pref-colegas-erro');
+    const erroTxt       = document.getElementById('pref-colegas-erro-txt');
 
     if (!tipoSel) return;
 
     function atualizar() {
-        const isColegas = tipoSel.value === 'colegas';
-        if (descPanel)  descPanel.style.display  = isColegas ? 'none'  : '';
-        if (datasPanel) datasPanel.style.display = isColegas ? 'none'  : '';
-        if (colPanel)   colPanel.style.display   = isColegas ? 'flex'  : 'none';
-        if (erroDiv)    erroDiv.style.display    = 'none';
+        const isColegas       = tipoSel.value === 'colegas';
+        const isFolgaPreferida = tipoSel.value === 'folga_preferida';
+        if (descPanel)      descPanel.style.display      = isColegas ? 'none' : '';
+        if (datasPanel)     datasPanel.style.display     = (isColegas || isFolgaPreferida) ? 'none' : '';
+        if (diaSemanaPanel) diaSemanaPanel.style.display = isFolgaPreferida ? '' : 'none';
+        if (colPanel)       colPanel.style.display       = isColegas ? 'flex' : 'none';
+        if (erroDiv)        erroDiv.style.display        = 'none';
     }
 
     tipoSel.addEventListener('change', atualizar);

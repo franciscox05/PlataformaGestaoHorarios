@@ -32,7 +32,7 @@ import java.util.Set;
 public class WebComplementaresController {
 
     private static final List<String> TIPOS_PREFERENCIA =
-            List.of("folgas", "ferias", "folga_preferida", "colegas", "turnos");
+            List.of("folga_preferida", "colegas", "turnos");
     private static final Set<String> TIPOS_PREFERENCIA_VALIDOS = Set.copyOf(TIPOS_PREFERENCIA);
 
     private final WebAppService webAppService;
@@ -125,6 +125,7 @@ public class WebComplementaresController {
     public String registarPreferencia(@RequestParam(value = "tipo", required = false) String tipo,
                                       @RequestParam(value = "dataInicio", required = false) String dataInicio,
                                       @RequestParam(value = "dataFim", required = false) String dataFim,
+                                      @RequestParam(value = "diaSemana", required = false) String diaSemana,
                                       @RequestParam(value = "prioridade", required = false) String prioridade,
                                       @RequestParam(value = "descricao", required = false) String descricao,
                                       HttpSession session,
@@ -139,9 +140,26 @@ public class WebComplementaresController {
                     throw new IllegalArgumentException("A prioridade indicada e invalida.");
                 }
             }
+            String tipoNorm = normalizarTipoPreferencia(tipo);
+            java.time.LocalDate dataInicioDate;
+            if ("folga_preferida".equals(tipoNorm)) {
+                if (diaSemana == null || diaSemana.isBlank()) {
+                    throw new IllegalArgumentException("Seleciona o dia da semana preferido para a folga.");
+                }
+                java.time.DayOfWeek dia;
+                try {
+                    dia = java.time.DayOfWeek.valueOf(diaSemana.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Dia da semana invalido.");
+                }
+                dataInicioDate = java.time.LocalDate.now()
+                        .with(java.time.temporal.TemporalAdjusters.nextOrSame(dia));
+            } else {
+                dataInicioDate = parseDataOpcional(dataInicio);
+            }
             Preferencia preferencia = new Preferencia();
-            preferencia.setTipo(normalizarTipoPreferencia(tipo));
-            preferencia.setDataInicio(parseDataOpcional(dataInicio));
+            preferencia.setTipo(tipoNorm);
+            preferencia.setDataInicio(dataInicioDate);
             preferencia.setDataFim(parseDataOpcional(dataFim));
             preferencia.setPrioridade(prioridadeParsed);
             preferencia.setDescricao(descricao);
