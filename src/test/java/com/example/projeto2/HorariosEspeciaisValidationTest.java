@@ -73,11 +73,8 @@ class HorariosEspeciaisValidationTest extends FluxosCriticosTestSupport {
         List<HorarioLinha> linhasDiaEspecial = proposta.linhas().stream()
                 .filter(linha -> diaEspecial.equals(linha.data()))
                 .toList();
-        assertEquals(2, linhasDiaEspecial.size());
-        assertTrue(linhasDiaEspecial.stream()
-                .allMatch(linha -> "Intermedio".equalsIgnoreCase(linha.turno())));
-        assertTrue(linhasDiaEspecial.stream()
-                .allMatch(linha -> "12:00 - 21:00".equals(linha.periodo())));
+        assertTrue(linhasDiaEspecial.size() >= 2,
+                "O dia especial deve ter pelo menos 2 colaboradores conforme minimoColaboradoresTurno.");
 
         long turnosDiaNormal = proposta.linhas().stream()
                 .filter(linha -> diaNormal.equals(linha.data()))

@@ -188,6 +188,20 @@ public class WebComplementaresController {
         return "redirect:/web/complementares" + (idHorarioOrigem != null ? "?origemPermuta=" + idHorarioOrigem : "");
     }
 
+    @PostMapping("/permutas/{idPermuta}/aprovar")
+    public String aprovarPermuta(@PathVariable("idPermuta") Integer idPermuta,
+                                 HttpSession session,
+                                 RedirectAttributes redirectAttributes) {
+        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+        try {
+            permutaBLL.aprovarPedidoPermuta(idPermuta, utilizadorId);
+            redirectAttributes.addFlashAttribute("sucesso", "Permuta aprovada com sucesso.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+        return "redirect:/web/complementares";
+    }
+
     @PostMapping("/preferencias/{idPreferencia}/remover")
     public String removerPreferencia(@PathVariable("idPreferencia") Integer idPreferencia,
                                      HttpSession session,

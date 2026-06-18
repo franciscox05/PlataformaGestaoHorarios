@@ -4,7 +4,6 @@ import com.example.projeto2.API.Modules.Notificacao;
 import com.example.projeto2.API.Repositories.NotificacaoRepository;
 import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -61,13 +60,13 @@ public class NotificacaoService {
         notificacaoRepository.marcarTodasComoLidasPorLoja(utilizadorId, idLoja);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void criarNotificacao(Integer utilizadorId, String mensagem) {
         criarNotificacao(utilizadorId, mensagem, null);
     }
 
     /** Store-stamped notification — idLoja null creates a global notification visible in all stores. */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void criarNotificacao(Integer utilizadorId, String mensagem, Integer idLoja) {
         if (utilizadorId == null || mensagem == null || mensagem.isBlank()) return;
         Notificacao notificacao = new Notificacao();

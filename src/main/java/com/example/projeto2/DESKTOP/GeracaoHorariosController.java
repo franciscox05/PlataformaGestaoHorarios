@@ -1290,15 +1290,24 @@ public class GeracaoHorariosController {
     // ── Operações em segundo plano ────────────────────────────────────────────
 
     private void carregarPlaneamentoDoPeriodo() {
+        // Capturar valores da UI na FX thread antes de passar ao background
+        final MesOption mesCapturado;
+        final int anoCapturado;
+        try {
+            mesCapturado = obterMesSelecionado();
+            anoCapturado = spAno.getValue();
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
+            return;
+        }
         executarOperacaoEmSegundoPlano(
                 "A carregar o planeamento do período selecionado...",
                 () -> {
                     validarUtilizadorAutenticado();
-                    MesOption mes = obterMesSelecionado();
                     List<PropostaResumo> propostas = geracaoHorariosBLL.listarPropostas(
-                            utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+                            utilizadorLogado.getId(), anoCapturado, mesCapturado.numero());
                     PropostaResultado resultado = geracaoHorariosBLL.obterPlaneamento(
-                            utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+                            utilizadorLogado.getId(), anoCapturado, mesCapturado.numero());
                     return new PlaneamentoCarregadoDados(propostas, resultado);
                 },
                 dados -> {
@@ -1356,13 +1365,15 @@ public class GeracaoHorariosController {
                     "Só as alternativas enviadas ficam disponíveis para aprovação ou rejeição."
             )) return;
 
+            // Capturar valores da UI na FX thread antes de passar ao background
+            final MesOption mesEnvio = obterMesSelecionado();
+            final int anoEnvio = spAno.getValue();
             executarOperacaoEmSegundoPlano(
                     idsPropostas.size() == 1 ? "A enviar alternativa ao supervisor..." : "A enviar alternativas ao supervisor...",
                     () -> {
                         geracaoHorariosBLL.enviarPropostasParaValidacao(utilizadorLogado.getId(), idsPropostas);
-                        MesOption mes = obterMesSelecionado();
                         List<PropostaResumo> propostas = geracaoHorariosBLL.listarPropostas(
-                                utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+                                utilizadorLogado.getId(), anoEnvio, mesEnvio.numero());
                         PropostaResultado enviada = geracaoHorariosBLL.obterPropostaPorId(
                                 utilizadorLogado.getId(), idsPropostas.getFirst());
                         return new EnvioSupervisorDados(propostas, enviada, idsPropostas.size());
@@ -1402,19 +1413,21 @@ public class GeracaoHorariosController {
                     obterJanela(),
                     quantidade == 1 ? "A gerar o horário para o período selecionado..." : "A gerar " + quantidade + " alternativas de horário...");
 
+            // Capturar valores da UI na FX thread antes de passar ao background
+            final MesOption mesGeracao = obterMesSelecionado();
+            final int anoGeracao = spAno.getValue();
             executarOperacaoEmSegundoPlano(
                     quantidade == 1 ? "A gerar uma alternativa para o mês selecionado..." : "A gerar " + quantidade + " alternativas para o mês selecionado...",
                     () -> {
-                        MesOption mes = obterMesSelecionado();
                         List<PropostaResultado> resultados = geracaoHorariosBLL.gerarPropostas(
-                                utilizadorLogado.getId(), spAno.getValue(), mes.numero(),
+                                utilizadorLogado.getId(), anoGeracao, mesGeracao.numero(),
                                 quantidade, idsColaboradoresSelecionados,
                                 overlayCarregamento::atualizarMensagem, configuracaoGeracao);
                         PropostaResultado melhorResultado = resultados.stream()
                                 .min(Comparator.comparingInt(r -> r.metricas().pontuacao()))
                                 .orElse(resultados.getFirst());
                         List<PropostaResumo> propostas = geracaoHorariosBLL.listarPropostas(
-                                utilizadorLogado.getId(), spAno.getValue(), mes.numero());
+                                utilizadorLogado.getId(), anoGeracao, mesGeracao.numero());
                         return new GeracaoAlternativasDados(propostas, melhorResultado, resultados.size());
                     },
                     dados -> {

@@ -386,8 +386,10 @@ public class HomeController {
     private void renderizarCalendarioHorarioPublicado(LocalDate inicioSemana, List<Horario> horarios) {
         Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
         for (Horario horario : horarios) {
-            String evento = formatarPeriodo(horario) + " | "
-                    + horario.getIdLojautilizador().getIdLoja().getNome();
+            String nomeLoja = horario.getIdLojautilizador() != null
+                    && horario.getIdLojautilizador().getIdLoja() != null
+                    ? horario.getIdLojautilizador().getIdLoja().getNome() : "-";
+            String evento = formatarPeriodo(horario) + " | " + nomeLoja;
             eventosPorDia.computeIfAbsent(horario.getDataTurno(), k -> new java.util.ArrayList<>())
                     .add(evento);
         }
