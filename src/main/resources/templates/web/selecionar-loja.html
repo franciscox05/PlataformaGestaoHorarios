@@ -1,89 +1,111 @@
 <!doctype html>
 <html lang="pt" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{web/fragments :: head('Selecionar Loja — Levi\'s Staff Portal')}"></head>
-<body class="min-h-screen flex items-center justify-center px-4 py-12" style="background:#080000">
+<body class="min-h-screen flex items-center justify-center px-4 py-12"
+      style="background:linear-gradient(145deg,#f8fafc 0%,#f1f5f9 55%,#e9edf3 100%)">
 
-<!-- ── Fundo decorativo ─────────────────────────────────────────────── -->
+<!-- ── Fundo decorativo (subtil, tons frios) ────────────────────────── -->
 <div class="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-    <div class="absolute" style="top:-10%;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(circle,rgba(192,0,31,.08),transparent 65%);border-radius:50%"></div>
-    <div class="absolute" style="bottom:-5%;right:10%;width:400px;height:400px;background:radial-gradient(circle,rgba(120,0,20,.06),transparent 70%);border-radius:50%"></div>
-    <div class="absolute inset-0 opacity-[.015]"
-         style="background-image:linear-gradient(rgba(255,255,255,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.15) 1px,transparent 1px);background-size:60px 60px"></div>
+    <!-- Brilho suave no topo-centro -->
+    <div class="absolute" style="top:-8%;left:50%;transform:translateX(-50%);width:680px;height:500px;background:radial-gradient(ellipse,rgba(192,0,31,.05),transparent 68%);border-radius:50%"></div>
+    <!-- Brilho muito subtil canto inferior direito -->
+    <div class="absolute" style="bottom:-6%;right:8%;width:380px;height:380px;background:radial-gradient(circle,rgba(100,116,139,.07),transparent 70%);border-radius:50%"></div>
+    <!-- Grelha submissa -->
+    <div class="absolute inset-0"
+         style="background-image:linear-gradient(rgba(148,163,184,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.06) 1px,transparent 1px);background-size:64px 64px"></div>
 </div>
 
-<!-- ── Loading overlay ──────────────────────────────────────────────── -->
+<!-- ── Loading overlay (adaptado para fundo claro) ──────────────────── -->
 <div id="loadingOverlay"
      class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5"
-     style="background:rgba(8,0,0,.75);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s ease"
+     style="background:rgba(248,250,252,.88);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s ease"
      aria-hidden="true">
-    <!-- Spinner -->
     <div style="width:52px;height:52px;position:relative">
-        <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(192,0,31,.15)"></div>
-        <div id="spinnerRing" style="position:absolute;inset:0;border-radius:50%;border:2px solid transparent;border-top-color:#c0001f;border-right-color:rgba(192,0,31,.4);animation:spinLoader .75s linear infinite"></div>
-        <div style="position:absolute;inset:8px;border-radius:50%;background:rgba(192,0,31,.08)"></div>
+        <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(159,18,57,.12)"></div>
+        <div id="spinnerRing" style="position:absolute;inset:0;border-radius:50%;border:2px solid transparent;border-top-color:#9f1239;border-right-color:rgba(159,18,57,.35);animation:spinLoader .75s linear infinite"></div>
+        <div style="position:absolute;inset:8px;border-radius:50%;background:rgba(159,18,57,.06)"></div>
     </div>
-    <p class="font-body" style="font-size:13px;color:rgba(255,255,255,.55);letter-spacing:.03em">A estabelecer contexto da loja...</p>
+    <p class="font-body" style="font-size:13px;color:#64748b;letter-spacing:.03em">A estabelecer contexto da loja...</p>
 </div>
 
 <style>
-@keyframes fadeUp    { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+@keyframes fadeUp    { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
 @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
-@keyframes cardSlide { from{opacity:0;transform:translateY(14px) scale(.985)} to{opacity:1;transform:none} }
+@keyframes cardSlide { from{opacity:0;transform:translateY(12px) scale(.988)} to{opacity:1;transform:none} }
 @keyframes spinLoader{ to{transform:rotate(360deg)} }
 
+/* ── Store card — light/crisp ────────────────────────────────────── */
 .store-card {
-    position:relative; border:1px solid rgba(255,255,255,.07); border-radius:16px;
-    padding:18px 22px; cursor:pointer; overflow:hidden; user-select:none;
-    transition:border-color .18s, background .18s, box-shadow .18s, transform .12s;
-    background:rgba(255,255,255,.035);
+    position:relative;
+    border:1.5px solid #e2e8f0;
+    border-radius:14px;
+    padding:16px 20px;
+    cursor:pointer;
+    overflow:hidden;
+    user-select:none;
+    background:#ffffff;
+    box-shadow:0 1px 3px rgba(15,23,42,.06);
+    transition:border-color .2s ease, box-shadow .2s ease, transform .15s ease;
 }
 .store-card::before {
-    content:''; position:absolute; inset:0; border-radius:16px;
-    background:linear-gradient(135deg,rgba(192,0,31,.12),transparent 60%);
-    opacity:0; transition:opacity .18s; pointer-events:none;
+    content:''; position:absolute; inset:0; border-radius:14px;
+    background:linear-gradient(135deg,rgba(159,18,57,.05),transparent 55%);
+    opacity:0; transition:opacity .2s; pointer-events:none;
 }
-.store-card:hover            { border-color:rgba(192,0,31,.38); background:rgba(192,0,31,.055); box-shadow:0 4px 24px rgba(192,0,31,.14); transform:translateY(-2px); }
+.store-card:hover {
+    border-color:#be123c;
+    box-shadow:0 4px 20px rgba(159,18,57,.13), 0 1px 4px rgba(15,23,42,.08);
+    transform:translateY(-2px);
+}
 .store-card:hover::before    { opacity:1; }
 .store-card:active           { transform:translateY(0) !important; }
-.store-card.selected         { border-color:#c0001f !important; background:rgba(192,0,31,.1) !important; box-shadow:0 0 0 2px rgba(192,0,31,.3),0 4px 24px rgba(192,0,31,.18) !important; }
+.store-card.selected {
+    border-color:#9f1239 !important;
+    background:#fff5f7 !important;
+    box-shadow:0 0 0 3px rgba(159,18,57,.1), 0 4px 20px rgba(159,18,57,.12) !important;
+}
 .store-card.selected::before { opacity:1; }
 .store-card.selected:hover   { transform:none; }
 
+/* ── Botão Entrar ─────────────────────────────────────────────────── */
 .btn-entrar {
-    background:linear-gradient(135deg,#c0001f,#7a0014);
-    box-shadow:0 4px 18px rgba(192,0,31,.35);
-    transition:box-shadow .18s, transform .12s, opacity .18s;
+    background:linear-gradient(135deg,#c0001f 0%,#7a0014 100%);
+    box-shadow:0 4px 16px rgba(159,18,57,.32);
+    transition:box-shadow .2s ease, transform .15s ease, opacity .2s ease;
 }
-.btn-entrar:hover:not(:disabled) { box-shadow:0 6px 28px rgba(192,0,31,.5); transform:translateY(-1px); }
-.btn-entrar:active:not(:disabled){ transform:translateY(0); }
-.btn-entrar:disabled             { opacity:.38; cursor:not-allowed; box-shadow:none; }
+.btn-entrar:hover:not(:disabled) {
+    box-shadow:0 6px 26px rgba(159,18,57,.45);
+    transform:translateY(-1px);
+}
+.btn-entrar:active:not(:disabled) { transform:translateY(0); }
+.btn-entrar:disabled { opacity:.35; cursor:not-allowed; box-shadow:none; }
 </style>
 
 <!-- ── Conteúdo principal ────────────────────────────────────────────── -->
 <div class="relative z-10 w-full max-w-md" style="animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both">
 
     <!-- Logo -->
-    <div class="flex items-center justify-center gap-2.5 mb-10" style="animation:fadeIn .4s ease both">
+    <div class="flex items-center justify-center gap-2.5 mb-9" style="animation:fadeIn .4s ease both">
         <div class="w-9 h-9 rounded-xl flex items-center justify-center"
-             style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 12px rgba(192,0,31,.4)">
+             style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 2px 10px rgba(159,18,57,.35)">
             <span class="font-display font-black text-white" style="font-size:14px">L</span>
         </div>
-        <span class="font-display font-bold" style="color:rgba(255,255,255,.5);font-size:15px">Levi Strauss &amp; Co.</span>
+        <span class="font-display font-bold" style="color:#64748b;font-size:15px;letter-spacing:.01em">Levi Strauss &amp; Co.</span>
     </div>
 
     <!-- Card principal -->
-    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:32px;backdrop-filter:blur(12px)">
+    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:32px;box-shadow:0 4px 24px rgba(15,23,42,.08),0 1px 4px rgba(15,23,42,.05)">
 
         <!-- Cabeçalho -->
         <div class="mb-7">
             <div class="flex items-center gap-2 mb-3">
-                <div class="h-px w-7" style="background:linear-gradient(90deg,#c0001f,transparent)"></div>
-                <p class="font-body font-bold uppercase" style="font-size:10px;letter-spacing:.2em;color:rgba(255,255,255,.35)">Contexto de trabalho</p>
+                <div class="h-px w-6" style="background:linear-gradient(90deg,#9f1239,transparent)"></div>
+                <p class="font-body font-bold uppercase" style="font-size:10px;letter-spacing:.2em;color:#94a3b8">Contexto de trabalho</p>
             </div>
-            <h1 class="font-display font-black" style="font-size:26px;color:white;line-height:1.15;letter-spacing:-.02em;margin-bottom:6px">
+            <h1 class="font-display font-black" style="font-size:26px;color:#0f172a;line-height:1.15;letter-spacing:-.025em;margin-bottom:6px">
                 Seleciona a tua loja
             </h1>
-            <p class="font-body" style="font-size:13px;color:rgba(255,255,255,.4);line-height:1.5">
+            <p class="font-body" style="font-size:13px;color:#64748b;line-height:1.55">
                 Olá<span th:if="${nomeUtilizador}" th:text="', ' + ${nomeUtilizador} + '!'">!</span><span th:unless="${nomeUtilizador}">!</span>
                 Tens acesso a múltiplas lojas. Escolhe onde vais trabalhar hoje.
             </p>
@@ -92,14 +114,13 @@
         <!-- Erro flash -->
         <div th:if="${erro}"
              class="flex items-center gap-2.5 mb-5 px-4 py-3 rounded-xl font-body"
-             style="background:rgba(192,0,31,.15);border:1px solid rgba(192,0,31,.3);animation:fadeIn .3s ease both">
-            <span class="material-symbols-outlined" style="font-size:17px;color:#ff6b6b">error_outline</span>
-            <span th:text="${erro}" style="font-size:13px;color:#ff9999"></span>
+             style="background:#fff1f2;border:1px solid #fecdd3;animation:fadeIn .3s ease both">
+            <span class="material-symbols-outlined" style="font-size:17px;color:#e11d48">error_outline</span>
+            <span th:text="${erro}" style="font-size:13px;color:#9f1239"></span>
         </div>
 
         <!-- Form -->
         <form id="formLoja" method="post" action="/web/selecionar-loja/escolher">
-            <!-- Hidden radio group — values submitted via JS selection -->
             <div class="flex flex-col gap-3" id="listaLojas">
                 <label th:each="loja, stat : ${lojas}"
                        class="store-card"
@@ -112,27 +133,28 @@
                            th:id="'radio-' + ${loja.id}"
                            style="position:absolute;opacity:0;width:0;height:0">
                     <div class="flex items-center gap-4">
-                        <!-- Ícone -->
+                        <!-- Ícone da loja -->
                         <div class="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
-                             style="background:linear-gradient(135deg,rgba(192,0,31,.25),rgba(120,0,20,.15));border:1px solid rgba(192,0,31,.2)">
-                            <span class="material-symbols-outlined" style="font-size:20px;color:rgba(192,0,31,.9)">store</span>
+                             style="background:#fff1f2;border:1.5px solid #fecdd3">
+                            <span class="material-symbols-outlined" style="font-size:20px;color:#9f1239">store</span>
                         </div>
                         <!-- Texto -->
                         <div class="flex-1 min-w-0">
-                            <p class="font-display font-bold truncate" style="font-size:14px;color:white;margin-bottom:2px"
+                            <p class="font-display font-bold truncate" style="font-size:14px;color:#0f172a;margin-bottom:2px"
                                th:text="${loja.nome}">Nome da Loja</p>
-                            <p class="font-body truncate" style="font-size:11px;color:rgba(255,255,255,.35)"
+                            <p class="font-body truncate" style="font-size:11px;color:#94a3b8"
                                th:text="${loja.localizacao != null and !#strings.isEmpty(loja.localizacao) ? loja.localizacao : 'Loja #' + loja.id}">Localização</p>
                         </div>
-                        <!-- Setas / check -->
+                        <!-- Check (visível quando selecionado) -->
                         <div class="shrink-0 js-check-icon" style="display:none">
                             <div class="w-6 h-6 rounded-full flex items-center justify-center"
-                                 style="background:#c0001f;box-shadow:0 2px 8px rgba(192,0,31,.45)">
+                                 style="background:#9f1239;box-shadow:0 2px 8px rgba(159,18,57,.4)">
                                 <span class="material-symbols-outlined icon-fill" style="font-size:14px;color:white">check</span>
                             </div>
                         </div>
+                        <!-- Seta (padrão) -->
                         <div class="shrink-0 js-arrow-icon">
-                            <span class="material-symbols-outlined" style="font-size:18px;color:rgba(255,255,255,.2)">chevron_right</span>
+                            <span class="material-symbols-outlined" style="font-size:18px;color:#cbd5e1">chevron_right</span>
                         </div>
                     </div>
                 </label>
@@ -141,32 +163,45 @@
             <button type="submit"
                     id="btnEntrar"
                     class="btn-entrar w-full mt-6 py-3.5 rounded-xl text-white font-body font-bold flex items-center justify-center gap-2"
-                    style="font-size:14px"
+                    style="font-size:14px;letter-spacing:.01em"
                     disabled>
                 <span class="material-symbols-outlined" style="font-size:18px">login</span>
                 Entrar na loja
             </button>
         </form>
 
+        <!-- Divisor -->
         <div class="flex items-center gap-3 mt-6">
-            <div class="flex-1 h-px" style="background:rgba(255,255,255,.06)"></div>
-            <span class="font-body" style="font-size:10px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.12em">Staff Portal</span>
-            <div class="flex-1 h-px" style="background:rgba(255,255,255,.06)"></div>
+            <div class="flex-1 h-px" style="background:#f1f5f9"></div>
+            <span class="font-body" style="font-size:10px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.12em">Staff Portal</span>
+            <div class="flex-1 h-px" style="background:#f1f5f9"></div>
         </div>
 
-        <!-- Logout / back link -->
-        <form method="post" action="/web/logout" class="mt-5 text-center">
-            <button type="submit"
-                    class="font-body"
-                    style="background:none;border:none;padding:0;cursor:pointer;font-size:12px;color:rgba(255,255,255,.25);text-decoration:underline;text-underline-offset:3px;transition:color .15s"
-                    onmouseover="this.style.color='rgba(255,255,255,.5)'"
-                    onmouseout="this.style.color='rgba(255,255,255,.25)'">
-                Voltar para o Login
-            </button>
-        </form>
+        <!-- Back link — target depends on how the user reached this page -->
+        <div class="mt-5 text-center">
+            <!-- Arrived via "Alternar Loja": return to the panel, keeping the session intact -->
+            <a th:if="${veioDoPainel}" href="/web/horarios"
+               class="font-body"
+               style="display:inline-block;background:none;border:none;padding:0;cursor:pointer;font-size:12px;color:#94a3b8;text-decoration:underline;text-underline-offset:3px;transition:color .15s"
+               onmouseover="this.style.color='#64748b'"
+               onmouseout="this.style.color='#94a3b8'">
+                Voltar ao Painel
+            </a>
+
+            <!-- Arrived straight from login: retreating clears the session -->
+            <form th:unless="${veioDoPainel}" method="post" action="/web/logout">
+                <button type="submit"
+                        class="font-body"
+                        style="background:none;border:none;padding:0;cursor:pointer;font-size:12px;color:#94a3b8;text-decoration:underline;text-underline-offset:3px;transition:color .15s"
+                        onmouseover="this.style.color='#64748b'"
+                        onmouseout="this.style.color='#94a3b8'">
+                    Voltar para o Login
+                </button>
+            </form>
+        </div>
     </div>
 
-    <p class="font-body text-center mt-6" style="font-size:11px;color:rgba(255,255,255,.18)">
+    <p class="font-body text-center mt-6" style="font-size:11px;color:#94a3b8">
         © 2026 Levi Strauss &amp; Co. · Acesso exclusivo a pessoal autorizado.
     </p>
 </div>
@@ -216,7 +251,6 @@
     // Card click (using label's native behaviour + explicit radio check)
     cards.forEach(function (card) {
         card.addEventListener('click', function (e) {
-            // Prevent double-firing from label→input click chain
             if (e.target.tagName === 'INPUT') return;
             selectCard(card);
         });
@@ -240,12 +274,10 @@
                 return;
             }
             showOverlay();
-            // Allow form to submit naturally after overlay renders
         });
     }
 
     // bfcache guard — hide the overlay when the browser restores the page from Back/Forward cache
-    // without a full network round-trip (event.persisted = true) or via history navigation.
     window.addEventListener('pageshow', function (event) {
         if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
             if (overlay) {

@@ -1,6 +1,7 @@
 package com.example.projeto2.API.Modules;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,6 +22,11 @@ public class Notificacao {
 
     @Column(name = "lida", nullable = false)
     private boolean lida = false;
+
+    /** Arquivamento persistente — separa o histórico em "Ativas" (false) e "Arquivadas" (true). */
+    @ColumnDefault("false")
+    @Column(name = "arquivada", nullable = false)
+    private boolean arquivada = false;
 
     @Column(name = "data_envio", nullable = false)
     private LocalDateTime dataEnvio = LocalDateTime.now();
@@ -58,6 +64,14 @@ public class Notificacao {
 
     public void setLida(boolean lida) {
         this.lida = lida;
+    }
+
+    public boolean isArquivada() {
+        return arquivada;
+    }
+
+    public void setArquivada(boolean arquivada) {
+        this.arquivada = arquivada;
     }
 
     public LocalDateTime getDataEnvio() {

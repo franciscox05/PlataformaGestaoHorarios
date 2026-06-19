@@ -45,3 +45,4 @@ build/
 ### Seguranca - ficheiros de configuracao local com credenciais ###
 **/application-local.properties
 **/application-local.yml
+.mcp.json

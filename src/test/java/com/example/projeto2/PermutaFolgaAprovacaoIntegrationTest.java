@@ -93,8 +93,11 @@ class PermutaFolgaAprovacaoIntegrationTest extends FluxosCriticosTestSupport {
         Utilizador func2 = fixture.colaboradores().get(1);
 
         Turno turnoManha = criarTurnoTeste("manha", LocalTime.of(10, 0), LocalTime.of(19, 0));
-        LocalDate diaD = LocalDate.now().plusDays(10);
-        LocalDate diaY = LocalDate.now().plusDays(12);
+        // Usar dias do próximo mês para garantir que ficam sempre no mesmo mês
+        // e que não cruzam a fronteira de fim de mês (ex: 29 Jun / 1 Jul).
+        java.time.YearMonth proximoMes = java.time.YearMonth.now().plusMonths(1);
+        LocalDate diaD = proximoMes.atDay(5);
+        LocalDate diaY = proximoMes.atDay(8);
 
         Horario horarioD = criarHorarioPublicadoSemProposta(func1, diaD, turnoManha);
         Horario horarioY = criarHorarioPublicadoSemProposta(func2, diaY, turnoManha);

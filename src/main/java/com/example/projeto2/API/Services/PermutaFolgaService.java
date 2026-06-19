@@ -3,16 +3,17 @@ package com.example.projeto2.API.Services;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.PermutaFolga;
+import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Repositories.HorarioRepository;
 import com.example.projeto2.API.Repositories.PermutaFolgaRepository;
 import com.example.projeto2.API.Repositories.PermutaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
 
@@ -25,15 +26,18 @@ public class PermutaFolgaService {
     private final HorarioRepository horarioRepository;
     private final PermutaRepository permutaRepository;
     private final LojautilizadorHelper lojautilizadorHelper;
+    private final HorarioValidatorService horarioValidatorService;
 
     public PermutaFolgaService(PermutaFolgaRepository permutaFolgaRepository,
                                HorarioRepository horarioRepository,
                                PermutaRepository permutaRepository,
-                               LojautilizadorHelper lojautilizadorHelper) {
-        this.permutaFolgaRepository = permutaFolgaRepository;
-        this.horarioRepository      = horarioRepository;
-        this.permutaRepository      = permutaRepository;
-        this.lojautilizadorHelper   = lojautilizadorHelper;
+                               LojautilizadorHelper lojautilizadorHelper,
+                               HorarioValidatorService horarioValidatorService) {
+        this.permutaFolgaRepository  = permutaFolgaRepository;
+        this.horarioRepository       = horarioRepository;
+        this.permutaRepository       = permutaRepository;
+        this.lojautilizadorHelper    = lojautilizadorHelper;
+        this.horarioValidatorService = horarioValidatorService;
     }
 
     // ── Consultas ────────────────────────────────────────────────────────────
@@ -50,7 +54,28 @@ public class PermutaFolgaService {
 
     @Transactional(readOnly = true)
     public List<Horario> listarTurnosElegiveisCompensacao(Integer idFunc1, Integer idHorarioD) {
-        return horarioRepository.findTurnosElegiveisParaPermutaFolga(idFunc1, idHorarioD);
+        // A query base já restringe a: mesma loja do turno a ceder, colegas com turno ativo,
+        // dias em que o solicitante está de folga, turnos futuros e sem permutas pendentes.
+        List<Horario> elegiveis = horarioRepository.findTurnosElegiveisParaPermutaFolga(idFunc1, idHorarioD);
+
+        // Regra das 24h de antecedência (timeline): a query base usa dataTurno >= CURRENT_DATE,
+        // que ainda INCLUI hoje. Um turno de compensação a decorrer hoje nunca cumpre as 24h,
+        // por isso exigimos estritamente datas FUTURAS (> hoje) — mantém o dropdown 100% exato.
+        LocalDate hoje = LocalDate.now();
+        elegiveis = elegiveis.stream()
+                .filter(h -> h.getDataTurno() != null && h.getDataTurno().isAfter(hoje))
+                .toList();
+
+        // Reforço da regra de mesmo mês/ano (RN2): o dropdown só pode oferecer compensações
+        // no mesmo mês do turno a ceder, mantendo a coerência com a validação de submissão.
+        Horario horarioD = horarioRepository.findById(idHorarioD).orElse(null);
+        if (horarioD == null || horarioD.getDataTurno() == null) {
+            return elegiveis;
+        }
+        YearMonth mesD = YearMonth.from(horarioD.getDataTurno());
+        return elegiveis.stream()
+                .filter(h -> YearMonth.from(h.getDataTurno()).equals(mesD))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -192,6 +217,12 @@ public class PermutaFolgaService {
             throw new IllegalArgumentException("Os dois turnos nao podem ser no mesmo dia.");
         }
 
+        // RN2 — Mesmo mês e ano: preserva o cálculo de horas contratuais mensais.
+        if (!YearMonth.from(diaD).equals(YearMonth.from(diaY))) {
+            throw new IllegalArgumentException(
+                    "Ambos os turnos devem pertencer ao mesmo mes e ano para preservar o calculo de horas contratuais.");
+        }
+
         // Func2 não pode ter turno aprovado no dia D (deve ter folga)
         if (temTurnoNoDia(idDonoY, diaD, Set.of())) {
             throw new IllegalArgumentException(
@@ -215,11 +246,11 @@ public class PermutaFolgaService {
                     "O turno de compensacao precisa de ter pelo menos 24 horas de antecedencia.");
         }
 
-        // Regra dos 11 h de descanso após a troca. Os dois horários permutados são
-        // ignorados nos vizinhos: depois da troca deixam de pertencer ao colaborador.
-        Set<Integer> idsPermutados = Set.of(horarioD.getId(), horarioY.getId());
-        validarDescanso(idDonoY, horarioD.getIdTurno(), diaD, idsPermutados); // Func2 passa a trabalhar no dia D
-        validarDescanso(idFunc1, horarioY.getIdTurno(), diaY, idsPermutados); // Func1 passa a trabalhar no dia Y
+        // RN3 — Guarda de pré-validação SIMULADA: constrói conceptualmente o estado
+        // pós-troca (Func2 assume o turno do dia D, Func1 assume o turno do dia Y) e
+        // corre-o pelas guardas do sistema — sobreposição (Allen, inclui entre lojas)
+        // e descanso mínimo de 11h via HorarioValidatorService. Falha = exceção limpa.
+        simularEValidarTroca(idFunc1, horarioD, horarioY);
 
         // Sem permutas pendentes nos mesmos horários
         if (permutaRepository.existsPedidoPendentePorHorario(horarioD.getId())
@@ -259,8 +290,8 @@ public class PermutaFolgaService {
                             + " — o horario mudou desde que o pedido foi feito.");
         }
 
-        validarDescanso(idFunc2, horarioD.getIdTurno(), diaD, idsPermutados);
-        validarDescanso(idFunc1, horarioY.getIdTurno(), diaY, idsPermutados);
+        validarDescanso(idFunc2, horarioD.getIdTurno(), diaD, idsPermutados, nomeColaborador(horarioY));
+        validarDescanso(idFunc1, horarioY.getIdTurno(), diaY, idsPermutados, nomeColaborador(horarioD));
     }
 
     private boolean temTurnoNoDia(Integer idColaborador, LocalDate dia, Set<Integer> idsHorariosAIgnorar) {
@@ -268,40 +299,89 @@ public class PermutaFolgaService {
                 .anyMatch(h -> !idsHorariosAIgnorar.contains(h.getId()));
     }
 
-    private void validarDescanso(Integer idColaborador,
-                                 com.example.projeto2.API.Modules.Turno turnoNovo,
-                                 LocalDate data,
-                                 Set<Integer> idsHorariosAIgnorar) {
+    /**
+     * Guarda de pré-validação simulada (RN3). Modela o estado pós-troca — Func2 assume o
+     * turno do dia D e Func1 assume o turno do dia Y — e corre cada colaborador pelas
+     * guardas do sistema, sem persistir nada:
+     *   • Sobreposição de turnos (Allen), incluindo turnos noutras lojas.
+     *   • Descanso mínimo de 11h entre dias adjacentes (via HorarioValidatorService).
+     * Lança IllegalArgumentException com texto limpo identificando o colaborador afetado.
+     */
+    private void simularEValidarTroca(Integer idFunc1, Horario horarioD, Horario horarioY) {
+        Integer idFunc2 = horarioY.getIdLojautilizador().getIdUtilizador().getId();
+        String nomeFunc1 = nomeColaborador(horarioD);
+        String nomeFunc2 = nomeColaborador(horarioY);
+        LocalDate diaD = horarioD.getDataTurno();
+        LocalDate diaY = horarioY.getDataTurno();
+        // Os dois horários permutados deixam de pertencer aos donos originais após a troca,
+        // por isso são ignorados ao avaliar os vizinhos de cada colaborador.
+        Set<Integer> idsPermutados = Set.of(horarioD.getId(), horarioY.getId());
+
+        // Func2 passa a trabalhar o turno do dia D; Func1 passa a trabalhar o turno do dia Y.
+        validarSemSobreposicao(idFunc2, horarioD.getIdTurno(), diaD, nomeFunc2);
+        validarSemSobreposicao(idFunc1, horarioY.getIdTurno(), diaY, nomeFunc1);
+
+        validarDescanso(idFunc2, horarioD.getIdTurno(), diaD, idsPermutados, nomeFunc2);
+        validarDescanso(idFunc1, horarioY.getIdTurno(), diaY, idsPermutados, nomeFunc1);
+    }
+
+    /**
+     * Guarda de sobreposição (Allen's Interval Algebra) sobre o estado simulado: confirma que
+     * o colaborador não fica com dois turnos a sobreporem-se no mesmo dia — mesmo entre lojas,
+     * porque countGlobalOverlappingShifts não filtra por loja.
+     */
+    private void validarSemSobreposicao(Integer idColaborador, Turno turno, LocalDate dia, String nome) {
+        if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null) return;
+        long sobreposicoes = horarioRepository.countGlobalOverlappingShifts(
+                idColaborador, dia, turno.getHoraInicio(), turno.getHoraFim());
+        if (sobreposicoes > 0) {
+            throw new IllegalArgumentException(
+                    "Esta troca criaria uma sobreposicao de turnos para " + nome
+                            + " no dia " + dia + " (incluindo turnos noutras lojas).");
+        }
+    }
+
+    /**
+     * Descanso mínimo de 11h entre o turno assumido e os turnos dos dias adjacentes,
+     * delegando o cálculo das horas de descanso ao HorarioValidatorService (RFS06).
+     */
+    private void validarDescanso(Integer idColaborador, Turno turnoNovo, LocalDate data,
+                                 Set<Integer> idsHorariosAIgnorar, String nomeColaborador) {
         if (turnoNovo == null || turnoNovo.getHoraInicio() == null || turnoNovo.getHoraFim() == null) return;
 
+        // Véspera (data-1) → turno novo
         for (Horario h : horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
                 idColaborador, data.minusDays(1), data.minusDays(1))) {
-            if (idsHorariosAIgnorar.contains(h.getId())) continue;
-            if (h.getIdTurno() == null || h.getIdTurno().getHoraFim() == null) continue;
-            long gap = Duration.between(
-                    LocalDateTime.of(data.minusDays(1), h.getIdTurno().getHoraFim()),
-                    LocalDateTime.of(data, turnoNovo.getHoraInicio())
-            ).toHours();
-            if (gap < DESCANSO_MINIMO_HORAS) {
-                throw new IllegalArgumentException(
-                        "Esta permuta viola o descanso minimo de " + DESCANSO_MINIMO_HORAS
-                        + "h entre turnos consecutivos (gap: " + gap + "h).");
+            if (idsHorariosAIgnorar.contains(h.getId()) || h.getIdTurno() == null) continue;
+            if (!horarioValidatorService.respeitaDescansoMinimo(
+                    data.minusDays(1), h.getIdTurno(), data, turnoNovo, DESCANSO_MINIMO_HORAS)) {
+                throw descansoViolado(nomeColaborador);
             }
         }
 
+        // Turno novo → dia seguinte (data+1)
         for (Horario h : horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
                 idColaborador, data.plusDays(1), data.plusDays(1))) {
-            if (idsHorariosAIgnorar.contains(h.getId())) continue;
-            if (h.getIdTurno() == null || h.getIdTurno().getHoraInicio() == null) continue;
-            long gap = Duration.between(
-                    LocalDateTime.of(data, turnoNovo.getHoraFim()),
-                    LocalDateTime.of(data.plusDays(1), h.getIdTurno().getHoraInicio())
-            ).toHours();
-            if (gap < DESCANSO_MINIMO_HORAS) {
-                throw new IllegalArgumentException(
-                        "Esta permuta viola o descanso minimo de " + DESCANSO_MINIMO_HORAS
-                        + "h entre turnos consecutivos (gap: " + gap + "h).");
+            if (idsHorariosAIgnorar.contains(h.getId()) || h.getIdTurno() == null) continue;
+            if (!horarioValidatorService.respeitaDescansoMinimo(
+                    data, turnoNovo, data.plusDays(1), h.getIdTurno(), DESCANSO_MINIMO_HORAS)) {
+                throw descansoViolado(nomeColaborador);
             }
+        }
+    }
+
+    private IllegalArgumentException descansoViolado(String nome) {
+        return new IllegalArgumentException(
+                "Esta troca viola o descanso minimo de " + DESCANSO_MINIMO_HORAS
+                        + "h entre turnos consecutivos para " + nome + ".");
+    }
+
+    private String nomeColaborador(Horario h) {
+        try {
+            String nome = h.getIdLojautilizador().getIdUtilizador().getNome();
+            return (nome != null && !nome.isBlank()) ? nome : "o colaborador";
+        } catch (Exception e) {
+            return "o colaborador";
         }
     }
 

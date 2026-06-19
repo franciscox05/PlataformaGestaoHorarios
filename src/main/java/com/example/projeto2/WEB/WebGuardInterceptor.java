@@ -43,11 +43,15 @@ public class WebGuardInterceptor implements HandlerInterceptor {
     }
 
     private boolean podeAcederAoModulo(String path, Integer idUtilizador, Integer idLoja) {
-        if (path.startsWith("/web/gestao-loja")) {
+        // Gestao de loja e relatorios sao modulos administrativos exclusivos da Aplicacao
+        // Desktop; o portal web so os expoe como placeholders, mas o acesso direto por URL
+        // tem de ficar restrito ao mesmo cargo (gerente/subgerente) que ja governa estas
+        // capacidades no resto da aplicacao.
+        if (path.startsWith("/web/modulos/gestao-loja")) {
             return webAppService.obterPermissoes(idUtilizador, idLoja).podeGerirLoja();
         }
 
-        if (path.startsWith("/web/relatorios")) {
+        if (path.startsWith("/web/modulos/relatorios")) {
             return webAppService.obterPermissoes(idUtilizador, idLoja).podeVerRelatorios();
         }
 

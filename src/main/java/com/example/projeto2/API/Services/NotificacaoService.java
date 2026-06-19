@@ -61,6 +61,18 @@ public class NotificacaoService {
     }
 
     @Transactional
+    public boolean arquivarNotificacao(Integer id, Integer utilizadorId) {
+        if (id == null || utilizadorId == null) return false;
+        return notificacaoRepository.arquivar(id, utilizadorId) > 0;
+    }
+
+    @Transactional
+    public boolean desarquivarNotificacao(Integer id, Integer utilizadorId) {
+        if (id == null || utilizadorId == null) return false;
+        return notificacaoRepository.desarquivar(id, utilizadorId) > 0;
+    }
+
+    @Transactional
     public void criarNotificacao(Integer utilizadorId, String mensagem) {
         criarNotificacao(utilizadorId, mensagem, null);
     }

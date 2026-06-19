@@ -102,11 +102,16 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
 
         Horario horarioOrigem = horariosDia.get(0);
         Horario horarioDestino = horariosDia.stream()
-                .filter(horario -> !horario.getId().equals(horarioOrigem.getId()))
-                .filter(horario -> !horario.getIdLojautilizador().getIdUtilizador().getId()
+                .filter(h -> !h.getId().equals(horarioOrigem.getId()))
+                .filter(h -> !h.getIdLojautilizador().getIdUtilizador().getId()
                         .equals(horarioOrigem.getIdLojautilizador().getIdUtilizador().getId()))
+                // A permuta exige turnos com horários diferentes (nova validação)
+                .filter(h -> h.getIdTurno() != null && horarioOrigem.getIdTurno() != null
+                        && !java.util.Objects.equals(h.getIdTurno().getHoraInicio(),
+                                horarioOrigem.getIdTurno().getHoraInicio()))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() -> new IllegalStateException(
+                        "Não há dois turnos com horários diferentes no dia " + diaAnalise));
 
         Utilizador colaboradorFolga = fixture.lojaFixture().colaboradores().get(2);
         DayOff pedidoFolga = new DayOff();

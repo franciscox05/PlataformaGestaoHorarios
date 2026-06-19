@@ -79,6 +79,8 @@ public class WebComplementaresController {
         model.addAttribute("minhasPermutasFolga", minhasPermutasFolga);
 
         model.addAttribute("tiposPreferencia", TIPOS_PREFERENCIA);
+        // Limite inferior para os date-pickers — impede a escolha de datas passadas no browser.
+        model.addAttribute("hoje", LocalDate.now());
         Integer idLoja = webAppService.obterLojaAtual(session);
         try {
             model.addAttribute("colegasDaLoja", preferenciaBLL.listarColegasDaLoja(utilizadorId, idLoja));
@@ -117,8 +119,12 @@ public class WebComplementaresController {
             redirectAttributes.addFlashAttribute("sucesso", "Pedido de folga submetido com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(WebComplementaresController.class)
+                    .error("Erro inesperado ao registar pedido de folga", ex);
+            redirectAttributes.addFlashAttribute("erro", "Ocorreu um erro inesperado. Tenta novamente.");
         }
-        return "redirect:/web/complementares";
+        return "redirect:/web/complementares?tab=folgas";
     }
 
     @PostMapping("/preferencias")
