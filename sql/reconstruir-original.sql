@@ -94,7 +94,7 @@ SELECT setval('public.lojautilizador_id_lojautilizador_seq', 8, true);
 
 -- REGRAS DA LOJA 1
 INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifico, observacoes, ativo) OVERRIDING SYSTEM VALUE VALUES
-    (1,  1,  1, 3,   'Loja principal com maior afluencia.', true),
+    (1,  1,  1, 1,   'Loja principal com maior afluencia.', true),
     (2,  1,  2, 12,  'Horario mensal antes da segunda semana.', true),
     (3,  1,  3, 8,   'Limite padrao para turnos longos.', true),
     (4,  1,  4, 176, 'Carga mensal gerencia.', true),

@@ -111,6 +111,12 @@ public final class AvaliadorAtribuicao {
     // normais o hard-check podeReceber já bloqueia estes candidatos.
     private static final double PENALIZACAO_JANELA_FDS = 180.0;
 
+    // Penalização forte para FT/gestão que receberia um primeiro turno PT sem complemento
+    // consecutivo disponível (ex.: Manhã PT 10:00-14:30 quando nada começa às 14:30).
+    // Não é um bloqueio absoluto (para não impedir cobertura quando não há alternativa),
+    // mas é suficientemente grande para que o motor prefira turnos FT de 9h ou pares PT.
+    private static final double PENALIZACAO_PT_SOLO_FT = 600.0;
+
     private final HorarioValidatorService validator;
 
     public AvaliadorAtribuicao(HorarioValidatorService validator) {
@@ -403,6 +409,12 @@ public final class AvaliadorAtribuicao {
                     && estado.capacidadeRestanteMinutos() - minutos < (long) sabadosReservados * minutos) {
                 pontuacao += PROTECAO_CHEFIA_SABADO;
             }
+        }
+
+        // Penalização forte para FT/gestão que receberia um PT sem complemento consecutivo.
+        // Usa turnosDia antes de qualquer atribuição — a guarda só se aplica ao 1º turno do dia.
+        if (estado.ehPrimeiroPTSemComplemento(data, turno, minutos, pedido.turnos())) {
+            pontuacao += PENALIZACAO_PT_SOLO_FT;
         }
 
         return pontuacao;

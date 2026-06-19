@@ -147,6 +147,23 @@ public final class EstadoColaborador {
     /** Máximo de turnos por dia para este colaborador (2 para full-time, 1 para part-time). */
     public int maxTurnosPorDia() { return maxTurnosPorDia; }
 
+    /**
+     * True se este colaborador é FT/gestão (maxTurnosPorDia ≥ 2) e o turno proposto seria
+     * um primeiro turno PT (< 8h) sem complemento consecutivo disponível — o que criaria
+     * um dia de apenas 4.5h sem possibilidade de completar o par.
+     * Usado pelo avaliador para penalizar fortemente este padrão sem bloqueio absoluto.
+     */
+    public boolean ehPrimeiroPTSemComplemento(LocalDate data, Turno turno, long minutosTurno,
+                                               List<Turno> turnosDisponiveis) {
+        if (maxTurnosPorDia < 2) return false;
+        if (contagemTurnosPorDia.getOrDefault(data, 0) != 0) return false;
+        if (minutosTurno >= PerfilContratual.DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS) return false;
+        if (turno.getHoraFim() == null) return false;
+        return turnosDisponiveis.stream().noneMatch(outro ->
+                outro != turno && outro.getHoraInicio() != null
+                && outro.getHoraInicio().equals(turno.getHoraFim()));
+    }
+
     /** Número de turnos já atribuídos neste dia. */
     public int turnosDia(LocalDate data) { return contagemTurnosPorDia.getOrDefault(data, 0); }
 

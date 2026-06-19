@@ -272,7 +272,7 @@ public final class AnaliseCumprimentoHorario {
                 }
             }
 
-            // ── Fins de semana (≥1 livre no mês) ───────────────────────────
+            // ── Fins de semana (rotação configurada) ────────────────────────
             Item finsDeSemana = null;
             if (totalSabados > 0) {
                 Set<LocalDate> fdsTrabalhados = new LinkedHashSet<>();
@@ -290,11 +290,18 @@ public final class AnaliseCumprimentoHorario {
                             + " (isento de rotação)", Estado.INFORMATIVO);
                 } else {
                     fdsAvaliados++;
-                    boolean ok = livres >= 1;
+                    int janela = criterios.janelaRotacaoFimDeSemana();
+                    // A regra exige FDS livre apenas quando o período tem >= janela FDS.
+                    // Ex.: janela=7 e mês com 5 FDS → 5 < 7 → sem obrigação neste mês.
+                    boolean obrigatorio = totalSabados >= janela;
+                    boolean ok = livres >= 1 || !obrigatorio;
                     if (ok) fdsComFolga++;
-                    finsDeSemana = new Item("trabalhou " + trab + " de " + totalSabados
-                            + " — " + livres + " livre(s)",
-                            ok ? Estado.CUMPRIDO : Estado.NAO_CUMPRIDO);
+                    Estado estadoFds = (obrigatorio && livres == 0) ? Estado.NAO_CUMPRIDO
+                            : (livres >= 1 ? Estado.CUMPRIDO : Estado.INFORMATIVO);
+                    String textoFds = (livres == 0 && !obrigatorio)
+                            ? "trabalhou " + trab + " de " + totalSabados + " — ok (janela: " + janela + " sem.)"
+                            : "trabalhou " + trab + " de " + totalSabados + " — " + livres + " livre(s)";
+                    finsDeSemana = new Item(textoFds, estadoFds);
                 }
             }
 
@@ -369,9 +376,8 @@ public final class AnaliseCumprimentoHorario {
         Set<String> tipos = new LinkedHashSet<>();
         String n = normalizar(descricao);
         if (n.contains("manha")) tipos.add("manha");
-        if (n.contains("tarde")) tipos.add("tarde");
+        if (n.contains("tarde") || n.contains("intermedio")) tipos.add("intermedio");
         if (n.contains("noite")) tipos.add("noite");
-        if (n.contains("intermedio")) tipos.add("intermedio");
         return tipos;
     }
 

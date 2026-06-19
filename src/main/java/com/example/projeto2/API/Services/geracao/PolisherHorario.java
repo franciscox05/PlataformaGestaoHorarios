@@ -85,6 +85,17 @@ public final class PolisherHorario {
      */
     private static final double PESO_ROTACAO_INVERTIDA = 6.0;
 
+    /** Penalização por colaborador não-isento (não gerente/subgerente/reforço) sem nenhum FDS livre. */
+    private static final double PESO_SEM_FDS_LIVRE = 800.0;
+
+    /**
+     * Penalização por FT/gestão com total de horas num dia abaixo de 8h (turno PT solo).
+     * Mantida acima de PESO_SEM_FDS_LIVRE para que o polisher nunca aceite trocar um
+     * trabalhador FT para um turno de 4,5h como forma de libertar um FDS — o custo
+     * dessa troca excede sempre o benefício da libertação do FDS.
+     */
+    private static final double PESO_FT_TURNO_CURTO = 1000.0;
+
     private final HorarioValidatorService validator;
     private final MetricasPlaneamentoCalculator metricas = new MetricasPlaneamentoCalculator();
     private final AvaliadorAtribuicao avaliador;
@@ -312,7 +323,94 @@ public final class PolisherHorario {
     private double custo(List<Horario> plano, PedidoGeracao pedido) {
         Map<Integer, CargaColaborador> cargas = construirCargas(plano, pedido);
         MetricasPlaneamento m = metricas.calcular(plano, cargas, pedido.politica());
-        return m.pontuacao() + penalizacaoPreferencias(plano, pedido) + penalizacaoRotacao(plano);
+        return m.pontuacao() + penalizacaoPreferencias(plano, pedido)
+                + penalizacaoRotacao(plano)
+                + penalizacaoFdsLivre(plano, pedido)
+                + penalizacaoFtTurnoCurto(plano);
+    }
+
+    /**
+     * Penaliza colaboradores não-isentos que trabalham todos os fins de semana do período.
+     * O greedy já aplica 3500 pts no momento da atribuição, mas o padrão de bloqueio de
+     * rotação pode tornar esse custo inevitável. Ao incluir este termo no custo global do
+     * polisher, o hill-climbing consegue encontrar trocas (ex.: Ana Sab-29 ↔ Fabio Seg-27)
+     * que libertam um FDS sem violar nenhuma regra hard.
+     */
+    private double penalizacaoFdsLivre(List<Horario> plano, PedidoGeracao pedido) {
+        int totalFds = contarSabadosDoPeriodo(pedido.dataInicio(), pedido.dataFim());
+        if (totalFds <= 1) return 0;
+        // Não penalizar se o período não tem FDS suficientes para obrigar a uma folga
+        // de FDS (regra: 1 livre por cada janelaRotacaoFimDeSemana semanas).
+        if (totalFds < pedido.janelaRotacaoFimDeSemana()) return 0;
+
+        Map<Integer, Set<LocalDate>> fdsPorColab = new HashMap<>();
+        for (Horario h : plano) {
+            Integer id = idColab(h);
+            if (id == null || h.getDataTurno() == null) continue;
+            if (validator.ehFimDeSemana(h.getDataTurno())) {
+                fdsPorColab.computeIfAbsent(id, k -> new HashSet<>())
+                        .add(validator.inicioFimDeSemana(h.getDataTurno()));
+            }
+        }
+
+        Set<Integer> chefiasSabado = pedido.chefiasSabadoIds();
+        double total = 0;
+        for (Lojautilizador lig : pedido.colaboradores()) {
+            Integer id = idDe(lig);
+            if (id == null) continue;
+            if (chefiasSabado.contains(id)) continue; // gerente/subgerente: isento
+            if (lig.getIdCargo() != null && lig.getIdCargo().getTipo() != null
+                    && "reforco_parttime".equalsIgnoreCase(lig.getIdCargo().getTipo().trim())) {
+                continue; // reforço parttime: isento
+            }
+            int fdsDistintos = fdsPorColab.getOrDefault(id, Set.of()).size();
+            if (fdsDistintos >= totalFds) {
+                total += PESO_SEM_FDS_LIVRE;
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Penaliza dias em que um colaborador FT/gestão tem menos de 8h de trabalho totais
+     * (turno PT solo sem complemento). Alinha o polisher com o greedy, que aplica
+     * PENALIZACAO_PT_SOLO_FT para o mesmo padrão. Mantida > PESO_SEM_FDS_LIVRE para que
+     * uma troca FT→PT nunca seja rentável apenas por libertar um fim de semana.
+     */
+    private double penalizacaoFtTurnoCurto(List<Horario> plano) {
+        Map<String, Long> minutosPorColabDia = new HashMap<>();
+        for (Horario h : plano) {
+            Integer id = idColab(h);
+            if (id == null || h.getIdTurno() == null || h.getDataTurno() == null) continue;
+            if (!ehFtOuGestao(h)) continue;
+            String chave = id + "_" + h.getDataTurno();
+            long minutos = validator.calcularDuracaoEmMinutos(h.getIdTurno());
+            minutosPorColabDia.merge(chave, minutos, Long::sum);
+        }
+        double total = 0;
+        for (long totalDia : minutosPorColabDia.values()) {
+            if (totalDia < PerfilContratual.DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS) {
+                total += PESO_FT_TURNO_CURTO;
+            }
+        }
+        return total;
+    }
+
+    private static boolean ehFtOuGestao(Horario h) {
+        if (h.getIdLojautilizador() == null || h.getIdLojautilizador().getIdCargo() == null) return false;
+        String tipo = h.getIdLojautilizador().getIdCargo().getTipo();
+        if (tipo == null) return false;
+        tipo = tipo.trim();
+        return "fulltime".equalsIgnoreCase(tipo) || "gerente".equalsIgnoreCase(tipo)
+                || "subgerente".equalsIgnoreCase(tipo) || "supervisor".equalsIgnoreCase(tipo);
+    }
+
+    private static int contarSabadosDoPeriodo(LocalDate inicio, LocalDate fim) {
+        int count = 0;
+        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {
+            if (d.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) count++;
+        }
+        return count;
     }
 
     /**

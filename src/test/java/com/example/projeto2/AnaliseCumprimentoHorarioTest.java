@@ -146,16 +146,41 @@ class AnaliseCumprimentoHorarioTest {
     }
 
     @Test
-    void semFimDeSemanaLivreEhNaoCumprido() {
-        // Trabalha todos os 5 sábados de agosto 2026 (1,8,15,22,29) → 0 FDS livres.
+    void semFimDeSemanaLivreComJanelaAlargadaNaoEhViolacao() {
+        // Trabalha todos os 5 sábados de agosto 2026 (janela=7 sem.) → 5 < 7 → não viola.
         List<HorarioLinha> linhas = new ArrayList<>();
         LocalDate sabado = primeiroDiaMes.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
         while (sabado.getMonthValue() == 8) {
             linhas.add(linha(1, "Gabriel", "Assistente FT", sabado, "manha", "08:00 - 16:00"));
             sabado = sabado.plusWeeks(1);
         }
+        // Helper usa janelaRotacaoFimDeSemana=7; 5 FDS < 7 → período não obriga a folga.
         var c = criterios(List.of("Gabriel — Assistente FT, 176h/mês"),
                 List.of(), List.of(), List.of(), Map.of());
+
+        var resultado = AnaliseCumprimentoHorario.analisar(linhas, c, ANO);
+        ColaboradorCumprimento gabriel = porNome(resultado, "Gabriel");
+        assertNotNull(gabriel);
+        assertNotNull(gabriel.finsDeSemana());
+        assertEquals(Estado.INFORMATIVO, gabriel.finsDeSemana().estado());
+        // Conta como "ok" no resumo porque a regra de rotação não é violada neste mês.
+        assertEquals(1, resultado.resumo().fdsComFolga());
+    }
+
+    @Test
+    void semFimDeSemanaLivreComJanelaAplicavelEhNaoCumprido() {
+        // Trabalha todos os 5 sábados de agosto 2026 com janela=4 → 5 >= 4 → violação.
+        List<HorarioLinha> linhas = new ArrayList<>();
+        LocalDate sabado = primeiroDiaMes.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
+        while (sabado.getMonthValue() == 8) {
+            linhas.add(linha(1, "Gabriel", "Assistente FT", sabado, "manha", "08:00 - 16:00"));
+            sabado = sabado.plusWeeks(1);
+        }
+        var c = new com.example.projeto2.API.Services.geracao.dto.CriteriosGeracao(
+                11, 5, 1, 4, true,
+                List.of(), List.of(), 0, 0,
+                List.of("Gabriel — Assistente FT, 176h/mês"),
+                List.of(), List.of(), List.of(), List.of(), List.of(), Map.of());
 
         var resultado = AnaliseCumprimentoHorario.analisar(linhas, c, ANO);
         ColaboradorCumprimento gabriel = porNome(resultado, "Gabriel");

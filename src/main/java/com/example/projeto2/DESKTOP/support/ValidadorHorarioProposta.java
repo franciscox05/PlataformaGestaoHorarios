@@ -39,7 +39,7 @@ public final class ValidadorHorarioProposta {
         categorias.add(validarDescansoMinimo(porColaborador, regras.descansoMinimoHoras()));
         categorias.add(validarDiasConsecutivos(porColaborador, regras.maxDiasConsecutivos()));
         categorias.add(validarFolgasSemanais(porColaborador, regras.descansoSemanalMinimoDias()));
-        categorias.add(validarFinsDeSemanaLivres(porColaborador));
+        categorias.add(validarFinsDeSemanaLivres(porColaborador, regras));
         if (regras.exigirChefiaAoSabado()) {
             categorias.add(validarChefiaAoSabado(linhas));
         }
@@ -124,16 +124,18 @@ public final class ValidadorHorarioProposta {
         int maxDiasTrabalhados = 7 - minFolgas;
         List<String> violacoes = new ArrayList<>();
         for (List<HorarioLinha> turnos : porColaborador.values()) {
-            Map<LocalDate, Long> porSemana = turnos.stream()
-                    .collect(Collectors.groupingBy(
-                            l -> l.data().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
-                            Collectors.counting()));
-            for (Map.Entry<LocalDate, Long> entry : porSemana.entrySet()) {
-                if (entry.getValue() > maxDiasTrabalhados) {
+            Map<LocalDate, java.util.Set<LocalDate>> porSemana = new java.util.LinkedHashMap<>();
+            for (HorarioLinha l : turnos) {
+                LocalDate inicioSemana = l.data().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                porSemana.computeIfAbsent(inicioSemana, k -> new java.util.LinkedHashSet<>()).add(l.data());
+            }
+            for (Map.Entry<LocalDate, java.util.Set<LocalDate>> entry : porSemana.entrySet()) {
+                int diasUnicos = entry.getValue().size();
+                if (diasUnicos > maxDiasTrabalhados) {
                     violacoes.add(String.format("%s: semana de %s — %d dias trabalhados (máx. %d)",
                             turnos.getFirst().colaborador(),
                             DATA_FMT.format(entry.getKey()),
-                            entry.getValue(), maxDiasTrabalhados));
+                            diasUnicos, maxDiasTrabalhados));
                 }
             }
         }
@@ -147,16 +149,15 @@ public final class ValidadorHorarioProposta {
     }
 
     /**
-     * Fins de semana livres: cada colaborador deve ter <b>pelo menos um fim de semana
-     * livre</b> no mês. A regra de rotação da loja (ex.: 1 FDS livre a cada 7 semanas)
-     * só é verificável ao longo de vários meses; num horário mensal (4-5 fins de semana)
-     * o que se garante é que ninguém trabalha todos os fins de semana do mês.
+     * Fins de semana livres: verifica a regra de rotação configurada (janela de N semanas).
+     * Dentro de um único mês (4-5 FDS), a violação só é possível quando o mês tem pelo menos
+     * tantos fins de semana quanto a janela configurada. Ex.: janela=7 e mês com 5 FDS nunca
+     * viola (5 < 7) — o trabalhador pode compensar no mês seguinte.
      *
-     * <p>Isenta gerência/subgerência e reforço parttime (este último é contratado
-     * precisamente para cobrir os fins de semana).
+     * <p>Isenta gerência/subgerência e reforço parttime.
      */
     private static ValidacaoHorarioResultado.CategoriaValidacao validarFinsDeSemanaLivres(
-            Map<Integer, List<HorarioLinha>> porColaborador) {
+            Map<Integer, List<HorarioLinha>> porColaborador, CriteriosGeracao regras) {
 
         // Fins de semana (âncora = sábado) existentes no período.
         java.util.Set<LocalDate> todosFds = porColaborador.values().stream()
@@ -166,9 +167,12 @@ public final class ValidadorHorarioProposta {
                 .map(l -> l.data().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY)))
                 .collect(Collectors.toCollection(java.util.TreeSet::new));
         int totalFds = todosFds.size();
+        int janela = regras.janelaRotacaoFimDeSemana();
 
         List<String> violacoes = new ArrayList<>();
-        if (totalFds >= 2) {
+        // Só é possível violar a regra de rotação num único mês se o mês tiver
+        // pelo menos tantos FDS quanto a janela configurada.
+        if (totalFds >= 2 && totalFds >= janela) {
             for (List<HorarioLinha> turnos : porColaborador.values()) {
                 if (turnos.isEmpty()) continue;
                 String nome = turnos.getFirst().colaborador();
@@ -187,19 +191,27 @@ public final class ValidadorHorarioProposta {
                         .map(l -> l.data().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY)))
                         .distinct().count();
                 if (fdsTrabalhados >= totalFds) {
-                    violacoes.add(String.format("%s: trabalhou os %d fins de semana do mês — sem fim de semana livre",
-                            nome, totalFds));
+                    violacoes.add(String.format(
+                            "%s: trabalhou os %d fins de semana do período sem folga (janela configurada: %d sem.)",
+                            nome, totalFds, janela));
                 }
             }
         }
 
-        String resumo = totalFds < 2
-                ? "Período com menos de 2 fins de semana — sem rotação a verificar"
-                : (violacoes.isEmpty()
-                    ? "Todos os colaboradores têm pelo menos um fim de semana livre no mês"
-                    : violacoes.size() + " colaborador(es) sem nenhum fim de semana livre");
+        String titulo = "Fins de semana livres (rotação: 1 livre/" + janela + " sem.)";
+        String resumo;
+        if (totalFds < 2) {
+            resumo = "Período com menos de 2 fins de semana — sem rotação a verificar";
+        } else if (totalFds < janela) {
+            resumo = "Período com " + totalFds + " FDS < janela de " + janela
+                    + " sem. — nenhum colaborador pode violar a regra neste mês";
+        } else {
+            resumo = violacoes.isEmpty()
+                    ? "Todos os colaboradores têm pelo menos um fim de semana livre no período"
+                    : violacoes.size() + " colaborador(es) sem nenhum fim de semana livre";
+        }
         return new ValidacaoHorarioResultado.CategoriaValidacao(
-                "Fins de semana livres",
+                titulo,
                 violacoes.isEmpty() ? ValidacaoHorarioResultado.Estado.OK : ValidacaoHorarioResultado.Estado.VIOLACAO,
                 resumo, violacoes);
     }

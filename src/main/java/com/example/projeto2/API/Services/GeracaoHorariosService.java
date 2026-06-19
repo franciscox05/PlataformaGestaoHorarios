@@ -658,9 +658,19 @@ public class GeracaoHorariosService {
 
         List<String> detalheFolgasPreferidas = new ArrayList<>();
         diasFolgaPreferidos.forEach((id, dias) -> {
-            if (!nomesPorId.containsKey(id)) return;
-            dias.stream().sorted().forEach(dia ->
-                    detalheFolgasPreferidas.add(nomesPorId.get(id) + " — " + dia.format(formatoDia)));
+            if (!nomesPorId.containsKey(id) || dias.isEmpty()) return;
+            String nome = nomesPorId.get(id);
+            dias.stream()
+                .map(java.time.LocalDate::getDayOfWeek)
+                .distinct()
+                .sorted()
+                .forEach(dow -> {
+                    java.time.LocalDate rep = dias.stream()
+                            .filter(d -> d.getDayOfWeek() == dow).findFirst().orElse(null);
+                    if (rep != null) {
+                        detalheFolgasPreferidas.add(nome + " — " + HorarioFormatters.nomeDiaSemana(rep));
+                    }
+                });
         });
         detalheFolgasPreferidas.sort(String::compareTo);
 
