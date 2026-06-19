@@ -3,7 +3,6 @@ package com.example.projeto2.DESKTOP;
 import com.example.projeto2.API.Services.PerfilService;
 import com.example.projeto2.API.Services.UtilizadorService;
 import com.example.projeto2.API.Modules.Utilizador;
-import com.example.projeto2.UIConstants;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;

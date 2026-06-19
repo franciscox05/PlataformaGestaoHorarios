@@ -1,4 +1,4 @@
-package com.example.projeto2.service;
+package com.example.projeto2.WEB;
 
 import com.example.projeto2.API.Modules.Horario;
 import org.apache.pdfbox.pdmodel.PDDocument;

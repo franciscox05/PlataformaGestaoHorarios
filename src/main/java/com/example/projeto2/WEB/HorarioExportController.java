@@ -1,11 +1,8 @@
-package com.example.projeto2.controller;
+package com.example.projeto2.WEB;
 
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.API.Services.GeracaoHorariosService;
-import com.example.projeto2.WEB.WebAppService;
-import com.example.projeto2.WEB.WebSession;
-import com.example.projeto2.service.PdfExportService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

@@ -1,5 +1,6 @@
 package com.example.projeto2;
 
+import com.example.projeto2.DESKTOP.UIConstants;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import javafx.application.Application;
 import javafx.application.Platform;

@@ -10,7 +10,6 @@ import com.example.projeto2.DESKTOP.support.DashboardPesquisaHelper;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.TabelaHelper;
 import com.example.projeto2.API.Modules.Utilizador;
-import com.example.projeto2.UIConstants;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
