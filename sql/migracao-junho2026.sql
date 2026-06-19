@@ -58,4 +58,8 @@ CREATE INDEX IF NOT EXISTS idx_pf_horario_d ON public.permutas_folga(id_horario_
 CREATE INDEX IF NOT EXISTS idx_pf_horario_y ON public.permutas_folga(id_horario_y);
 CREATE INDEX IF NOT EXISTS idx_pf_estado    ON public.permutas_folga(estado);
 
+-- 7. Flag de ativo/inativo nos turnos (entidade Turno.java, commit 3fc24a8)
+ALTER TABLE public.turnos
+    ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+
 COMMIT;

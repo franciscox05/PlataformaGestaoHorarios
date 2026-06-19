@@ -97,7 +97,7 @@ class WebFluxosCriticosE2ETest extends FluxosCriticosTestSupport {
 
         mockMvc.perform(post("/web/complementares/preferencias")
                         .session(sessaoColaborador)
-                        .param("tipo", "folgas")
+                        .param("tipo", "turnos")
                         .param("dataInicio", fixture.referencia().plusDays(14).toString())
                         .param("dataFim", fixture.referencia().plusDays(15).toString())
                         .param("prioridade", "5")
