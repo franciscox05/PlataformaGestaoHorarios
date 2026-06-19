@@ -239,10 +239,13 @@ INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifi
     (13, 2,  9, 2,   'Rotacao de fins de semana.'),
     (14, 2, 10, 1,   'Chefia obrigatoria ao sabado.');
 
-INSERT INTO public.turnos (id_turno, tipo, nome, hora_inicio, hora_fim) VALUES
-    (1, 'manha', 'Manhã',  '10:00', '14:00'),
-    (2, 'tarde', 'Tarde',  '14:00', '18:00'),
-    (3, 'noite', 'Noite',  '19:00', '23:00');
+INSERT INTO public.turnos (id_turno, tipo, nome, hora_inicio, hora_fim, ativo) VALUES
+    (1, 'manha',      'Manha FT',        '10:00', '19:00', true),
+    (2, 'intermedio', 'Intermedio FT',   '12:00', '21:00', true),
+    (3, 'noite',      'Noite FT',        '14:00', '23:00', true),
+    (4, 'manha',      'Manha PT',        '10:00', '14:30', true),
+    (5, 'intermedio', 'Intermedio PT',   '14:00', '18:30', true),
+    (6, 'noite',      'Noite PT',        '18:30', '23:00', true);
 
 INSERT INTO public.utilizadores (id_utilizador, nome, email, telemovel, password_hash, estado) VALUES
     (1, 'Francisco Gomes', 'francisco.gomes@levis.com', '912000001', '123456', 'ativo'),
