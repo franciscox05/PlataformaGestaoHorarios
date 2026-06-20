@@ -7,6 +7,7 @@ import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.API.Services.UtilizadorService;
 import com.example.projeto2.API.Modules.Utilizador;
+import com.example.projeto2.API.Repositories.UtilizadorRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -20,6 +21,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,6 +56,9 @@ class WebAccessIntegrationTest {
 
     @MockitoBean
     private HorarioService horarioBLL;
+
+    @MockitoBean
+    private UtilizadorRepository utilizadorRepository;
 
     @Test
     void loginPageSemSessaoDeveResponderOk() throws Exception {
@@ -127,6 +132,7 @@ class WebAccessIntegrationTest {
         utilizador.setId(10);
         utilizador.setNome("Teste");
         when(utilizadorBLL.efetuarLogin("teste@ipvc.pt", "123456")).thenReturn(utilizador);
+        when(utilizadorRepository.findById(10)).thenReturn(Optional.of(utilizador));
 
         HttpClient client = clientComCookies();
         client.send(postForm("/web/login", "email=teste%40ipvc.pt&password=123456"), HttpResponse.BodyHandlers.ofString());
@@ -146,6 +152,7 @@ class WebAccessIntegrationTest {
         utilizador.setId(10);
         utilizador.setNome("Teste");
         when(utilizadorBLL.efetuarLogin("teste@ipvc.pt", "123456")).thenReturn(utilizador);
+        when(utilizadorRepository.findById(10)).thenReturn(Optional.of(utilizador));
 
         HttpClient client = clientComCookies();
         client.send(postForm("/web/login", "email=teste%40ipvc.pt&password=123456"), HttpResponse.BodyHandlers.ofString());

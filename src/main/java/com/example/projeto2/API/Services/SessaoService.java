@@ -21,7 +21,12 @@ public class SessaoService {
     }
 
     public synchronized void iniciarSessao(Utilizador utilizador) {
+        // Preserva a loja ativa: definirLojaAtiva() é chamado pelo LoginController
+        // ou SelecionarLojaController ANTES de DashboardController.setUtilizadorLogado()
+        // chamar este método — limparSessaoInterna() não deve apagá-la.
+        Integer lojaAtiva = this.idLojaAtiva;
         limparSessaoInterna();
+        this.idLojaAtiva = lojaAtiva;
 
         if (utilizador == null || utilizador.getId() == null) {
             throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");

@@ -269,7 +269,8 @@ INSERT INTO public.lojautilizador (id_lojautilizador, id_utilizador, id_loja, id
     (7, 7, 1, 3, CURRENT_DATE - 20, NULL),
     (8, 8, 2, 3, CURRENT_DATE - 120, NULL),
     (9, 9, 3, 2, CURRENT_DATE - 90, NULL),
-    (10, 10, 1, 5, CURRENT_DATE - 140, CURRENT_DATE - 30);
+    (10, 10, 1, 5, CURRENT_DATE - 140, CURRENT_DATE - 30),
+    (11, 1, 2, 1, CURRENT_DATE - 5, NULL);
 
 INSERT INTO public.horarios (id_horario, id_lojautilizador, id_turno, data_turno, estado) VALUES
     (1,  7, 2, CURRENT_DATE + 1, 'aprovado'),
