@@ -6,6 +6,7 @@ import com.example.projeto2.API.Enums.EstadoUtilizador;
 import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Preferencia;
+import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Modules.Utilizador;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -271,9 +272,16 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         Utilizador colegaOutroDia = lojaFixture.colaboradores().get(2);
         LocalDate diaTroca = fixture.referencia().plusDays(12);
 
-        Horario origem = criarHorarioPublicadoSemProposta(colaboradorOrigem, diaTroca, fixture.turnos().get(0));
-        Horario destino = criarHorarioPublicadoSemProposta(colegaElegivel, diaTroca, fixture.turnos().get(1));
-        criarHorarioPublicadoSemProposta(colegaOutroDia, diaTroca.plusDays(1), fixture.turnos().get(2));
+        // Ambiente de testes partilhado: a tabela 'turnos' acumula registos de
+        // execucoes/demos anteriores, pelo que fixture.turnos() pode conter
+        // varios turnos com horas IDENTICAS antes de turnos com horas distintas
+        // (a query so ordena por hora_inicio, sem desempate). Filtramos primeiro
+        // por horas unicas para garantir que origem/destino sao genuinamente
+        // diferentes — PermutaService rejeita permutar para horas iguais.
+        List<Turno> turnosComHorasUnicas = turnosComHorasUnicas(fixture.turnos());
+        Horario origem = criarHorarioPublicadoSemProposta(colaboradorOrigem, diaTroca, turnosComHorasUnicas.get(0));
+        Horario destino = criarHorarioPublicadoSemProposta(colegaElegivel, diaTroca, turnosComHorasUnicas.get(1));
+        criarHorarioPublicadoSemProposta(colegaOutroDia, diaTroca.plusDays(1), turnosComHorasUnicas.get(2));
 
         List<Horario> elegiveis = horarioBLL.listarTurnosElegiveisParaPermuta(
                 colaboradorOrigem.getId(),
@@ -284,5 +292,21 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         assertEquals(destino.getId(), elegiveis.get(0).getId());
 
         assertNotNull(permutaBLL.registarPedidoTroca(colaboradorOrigem.getId(), origem, destino).getId());
+    }
+
+    /**
+     * Devolve, da lista de turnos da fixture, apenas um representante por
+     * combinacao (horaInicio, horaFim), preservando a ordem original. Protege
+     * testes que indexam posicionalmente (get(0), get(1), ...) contra a
+     * acumulacao de turnos com horas duplicadas na base de dados partilhada
+     * de desenvolvimento/testes.
+     */
+    private static List<Turno> turnosComHorasUnicas(List<Turno> turnos) {
+        java.util.LinkedHashMap<String, Turno> porHoras = new java.util.LinkedHashMap<>();
+        for (Turno turno : turnos) {
+            String chave = turno.getHoraInicio() + "-" + turno.getHoraFim();
+            porHoras.putIfAbsent(chave, turno);
+        }
+        return new java.util.ArrayList<>(porHoras.values());
     }
 }

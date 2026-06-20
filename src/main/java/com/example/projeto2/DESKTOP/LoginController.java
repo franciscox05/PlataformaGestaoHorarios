@@ -1,7 +1,10 @@
 package com.example.projeto2.DESKTOP;
 
+import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.API.Services.PerfilService;
+import com.example.projeto2.API.Services.SessaoService;
 import com.example.projeto2.API.Services.UtilizadorService;
+import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 @Component
 public class LoginController {
@@ -50,13 +54,19 @@ public class LoginController {
 
     private final UtilizadorService userBll;
     private final PerfilService perfilBLL;
+    private final SessaoService sessaoBLL;
+    private final LojautilizadorRepository lojautilizadorRepository;
     private final ApplicationContext applicationContext;
 
     public LoginController(UtilizadorService userBll,
                            PerfilService perfilBLL,
+                           SessaoService sessaoBLL,
+                           LojautilizadorRepository lojautilizadorRepository,
                            ApplicationContext applicationContext) {
         this.userBll = userBll;
         this.perfilBLL = perfilBLL;
+        this.sessaoBLL = sessaoBLL;
+        this.lojautilizadorRepository = lojautilizadorRepository;
         this.applicationContext = applicationContext;
     }
 
@@ -194,7 +204,52 @@ public class LoginController {
         }
     }
 
+    /**
+     * Decide a rota pós-login espelhando {@code WebLoginController#autenticar}:
+     * mais de 1 vínculo ativo → ecrã intermédio de seleção de loja; exatamente
+     * 1 → tranca-a diretamente na sessão e segue para o dashboard. Ver
+     * Revisao.md, ponto 17 (Fase 2 &amp; 3).
+     */
     private void abrirDashboard(Utilizador logado) {
+        List<Lojautilizador> ligacoesAtivas = lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(logado.getId());
+
+        if (ligacoesAtivas.size() > 1) {
+            abrirEcraSelecaoLoja(logado, ligacoesAtivas);
+            return;
+        }
+
+        if (ligacoesAtivas.size() == 1) {
+            sessaoBLL.definirLojaAtiva(ligacoesAtivas.get(0).getIdLoja().getId());
+        }
+
+        abrirDashboardDireto(logado);
+    }
+
+    private void abrirEcraSelecaoLoja(Utilizador logado, List<Lojautilizador> ligacoesAtivas) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/projeto2/login/selecionar-loja-view.fxml"));
+            loader.setControllerFactory(applicationContext::getBean);
+            Parent root = loader.load();
+
+            SelecionarLojaController selecionarLojaController = loader.getController();
+            selecionarLojaController.inicializarComLigacoes(logado, ligacoesAtivas);
+
+            Stage stage = (Stage) txtEmail.getScene().getWindow();
+            stage.setScene(new Scene(root, UIConstants.APP_WIDTH, UIConstants.APP_HEIGHT));
+            stage.setTitle("Levi's Staff Portal - Selecionar Loja");
+            stage.setMinWidth(UIConstants.APP_MIN_WIDTH);
+            stage.setMinHeight(UIConstants.APP_MIN_HEIGHT);
+            stage.setResizable(false);
+            stage.setFullScreenExitHint("");
+            stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+            stage.setFullScreen(true);
+        } catch (Exception e) {
+            LOGGER.error("Erro ao abrir o ecrã de seleção de loja.", e);
+            mostrarErro("Não foi possível abrir a seleção de loja em segurança. Mantivemos-te no login para evitares entrar numa página vazia.");
+        }
+    }
+
+    private void abrirDashboardDireto(Utilizador logado) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/projeto2/dashboard/dashboard-view.fxml"));
             loader.setControllerFactory(applicationContext::getBean);

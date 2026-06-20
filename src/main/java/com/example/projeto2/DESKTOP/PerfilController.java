@@ -1,7 +1,10 @@
 package com.example.projeto2.DESKTOP;
 
 import com.example.projeto2.API.Services.PerfilService;
+import com.example.projeto2.API.Services.SessaoService;
+import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
+import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -20,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @Scope("prototype")
@@ -70,11 +75,18 @@ public class PerfilController {
     private Label lblPerfilAvatar;
 
     private final PerfilService perfilBLL;
+    private final SessaoService sessaoBLL;
+    private final LojautilizadorRepository lojautilizadorRepository;
     private final ApplicationContext applicationContext;
     private Utilizador utilizadorLogado;
 
-    public PerfilController(PerfilService perfilBLL, ApplicationContext applicationContext) {
+    public PerfilController(PerfilService perfilBLL,
+                            SessaoService sessaoBLL,
+                            LojautilizadorRepository lojautilizadorRepository,
+                            ApplicationContext applicationContext) {
         this.perfilBLL = perfilBLL;
+        this.sessaoBLL = sessaoBLL;
+        this.lojautilizadorRepository = lojautilizadorRepository;
         this.applicationContext = applicationContext;
     }
 
@@ -87,7 +99,16 @@ public class PerfilController {
         }
 
         try {
-            PerfilService.PerfilResumo resumo = perfilBLL.obterResumoPerfil(utilizadorLogado);
+            Integer idLojaAtiva = sessaoBLL.obterLojaAtiva();
+            // idLoja é uma serial do Postgres (começa em 1) — null ou <= 0 nunca é válido.
+            if (idLojaAtiva == null || idLojaAtiva <= 0) {
+                // Rede de segurança: não deveria acontecer depois da Fase 2/3
+                // (LoginController/SelecionarLojaController trancam sempre a
+                // loja ativa antes do dashboard abrir), mas evita regressão
+                // para qualquer caminho de entrada futuro que ainda não o faça.
+                idLojaAtiva = resolverLojaAtivaFallback(utilizadorLogado.getId());
+            }
+            PerfilService.PerfilResumo resumo = perfilBLL.obterResumoPerfil(utilizadorLogado, idLojaAtiva);
 
             if (lblPerfilAvatar != null && resumo.nome() != null && !resumo.nome().isBlank()) {
                 lblPerfilAvatar.setText(String.valueOf(resumo.nome().charAt(0)).toUpperCase());
@@ -110,6 +131,18 @@ public class PerfilController {
             lblEstadoPerfil.setText("Dados indisponíveis");
             lblProximoTurno.setText(e.getMessage());
         }
+    }
+
+    /**
+     * Rede de segurança (ver Revisao.md, pontos 16 e 17): só é usada se,
+     * excecionalmente, {@code sessaoBLL.obterLojaAtiva()} ainda não tiver
+     * sido definida. Agarra a primeira ligação ativa do utilizador, em vez
+     * de deixar o overload sem idLoja tentar adivinhar uma única linha onde
+     * podem existir 2 ou mais.
+     */
+    private Integer resolverLojaAtivaFallback(Integer idUtilizador) {
+        List<Lojautilizador> ligacoesAtivas = lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(idUtilizador);
+        return ligacoesAtivas.isEmpty() ? null : ligacoesAtivas.get(0).getIdLoja().getId();
     }
 
     @FXML

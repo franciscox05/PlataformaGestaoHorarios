@@ -15,6 +15,7 @@ public class SessaoService {
     private Utilizador utilizadorAutenticado;
     private Instant ultimaAtividade;
     private String identificadorSessao;
+    private Integer idLojaAtiva;
 
     public SessaoService() {
     }
@@ -71,9 +72,23 @@ public class SessaoService {
         return utilizadorAutenticado;
     }
 
+    /**
+     * Tranca a loja ativa escolhida pelo utilizador para o resto da sessão
+     * Desktop — equivalente direto ao {@code WebSession.LOJA_ID} usado pela
+     * Web. Ver Revisao.md, ponto 17 (Fase 1).
+     */
+    public synchronized void definirLojaAtiva(Integer idLoja) {
+        this.idLojaAtiva = idLoja;
+    }
+
+    public synchronized Integer obterLojaAtiva() {
+        return idLojaAtiva;
+    }
+
     private void limparSessaoInterna() {
         this.utilizadorAutenticado = null;
         this.ultimaAtividade = null;
         this.identificadorSessao = null;
+        this.idLojaAtiva = null;
     }
 }

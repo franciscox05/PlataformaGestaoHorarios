@@ -6,6 +6,7 @@ import com.example.projeto2.API.Services.GestaoLojaService;
 import com.example.projeto2.API.Services.PermutaService;
 import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.API.Services.SessaoService;
+import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.DESKTOP.support.DashboardPesquisaHelper;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.TabelaHelper;
@@ -107,6 +108,9 @@ public class DashboardController implements DashboardNavigator {
     private Label lblCargoSidebar;
 
     @FXML
+    private Label lblLojaAtivaSidebar;
+
+    @FXML
     private Button btnTopoVisaoGeral;
 
     @FXML
@@ -152,6 +156,7 @@ public class DashboardController implements DashboardNavigator {
     private final DayOffService dayOffBLL;
     private final PermutaService permutaBLL;
     private final PreferenciaService preferenciaBLL;
+    private final LojautilizadorRepository lojautilizadorRepository;
     private final EventHandler<MouseEvent> handlerMouse = event -> registarAtividadeSessao();
     private final EventHandler<KeyEvent> handlerTeclado = event -> registarAtividadeSessao();
     private final EventHandler<ScrollEvent> handlerScroll = event -> registarAtividadeSessao();
@@ -168,7 +173,8 @@ public class DashboardController implements DashboardNavigator {
                                SessaoService sessaoBLL,
                                DayOffService dayOffBLL,
                                PermutaService permutaBLL,
-                               PreferenciaService preferenciaBLL) {
+                               PreferenciaService preferenciaBLL,
+                               LojautilizadorRepository lojautilizadorRepository) {
         this.applicationContext = applicationContext;
         this.gestaoLojaBLL = gestaoLojaBLL;
         this.geracaoHorariosBLL = geracaoHorariosBLL;
@@ -176,6 +182,7 @@ public class DashboardController implements DashboardNavigator {
         this.dayOffBLL = dayOffBLL;
         this.permutaBLL = permutaBLL;
         this.preferenciaBLL = preferenciaBLL;
+        this.lojautilizadorRepository = lojautilizadorRepository;
     }
 
     @FXML
@@ -593,6 +600,26 @@ public class DashboardController implements DashboardNavigator {
                 lblCargoSidebar.setText("VER PERFIL");
             }
         }
+
+        // Loja ativa fixa na sidebar (ver Revisao.md, ponto 17 — Fase 4)
+        if (lblLojaAtivaSidebar != null) {
+            lblLojaAtivaSidebar.setText(obterNomeLojaAtiva(utilizadorLogado.getId()));
+        }
+    }
+
+    /**
+     * Resolve o nome da loja trancada em {@code sessaoBLL.obterLojaAtiva()}
+     * para exibição fixa na sidebar. Ver Revisao.md, ponto 17 (Fase 4).
+     */
+    private String obterNomeLojaAtiva(Integer idUtilizador) {
+        Integer idLojaAtiva = sessaoBLL.obterLojaAtiva();
+        // idLoja é uma serial do Postgres (começa em 1) — null ou <= 0 nunca é válido.
+        if (idLojaAtiva == null || idLojaAtiva <= 0) {
+            return "";
+        }
+        return lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(idUtilizador, idLojaAtiva)
+                .map(ligacao -> ligacao.getIdLoja().getNome())
+                .orElse("");
     }
 
     private void configurarMonitorizacaoSessao() {

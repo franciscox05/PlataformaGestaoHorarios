@@ -1,5 +1,6 @@
 package com.example.projeto2;
 
+import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.WEB.WebSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,8 +79,12 @@ class WebFluxosCriticosE2ETest extends FluxosCriticosTestSupport {
         var gerente = fixture.lojaFixture().gerente();
         LocalDate diaPermuta = fixture.referencia().plusDays(12);
 
-        var turnoOrigem = criarHorarioPublicadoSemProposta(colaborador, diaPermuta, fixture.turnos().get(0));
-        var turnoDestino = criarHorarioPublicadoSemProposta(colega, diaPermuta, fixture.turnos().get(1));
+        // Ver FluxosCriticosIntegrationTest.turnosComHorasUnicas: a tabela 'turnos'
+        // partilhada acumula duplicados de execucoes/demos anteriores, pelo que
+        // get(0)/get(1) podem calhar no mesmo horario — filtramos por horas unicas.
+        List<Turno> turnosComHorasUnicas = turnosComHorasUnicas(fixture.turnos());
+        var turnoOrigem = criarHorarioPublicadoSemProposta(colaborador, diaPermuta, turnosComHorasUnicas.get(0));
+        var turnoDestino = criarHorarioPublicadoSemProposta(colega, diaPermuta, turnosComHorasUnicas.get(1));
 
         MvcResult login = mockMvc.perform(post("/web/login")
                         .param("email", colaborador.getEmail())
@@ -138,8 +144,9 @@ class WebFluxosCriticosE2ETest extends FluxosCriticosTestSupport {
         var gerente = fixture.lojaFixture().gerente();
         LocalDate diaPermuta = fixture.referencia().plusDays(16);
 
-        var turnoOrigem = criarHorarioPublicadoSemProposta(colaborador, diaPermuta, fixture.turnos().get(0));
-        var turnoDestino = criarHorarioPublicadoSemProposta(colega, diaPermuta, fixture.turnos().get(1));
+        List<Turno> turnosComHorasUnicas = turnosComHorasUnicas(fixture.turnos());
+        var turnoOrigem = criarHorarioPublicadoSemProposta(colaborador, diaPermuta, turnosComHorasUnicas.get(0));
+        var turnoDestino = criarHorarioPublicadoSemProposta(colega, diaPermuta, turnosComHorasUnicas.get(1));
 
         Integer turnoOrigemInicial = turnoOrigem.getIdTurno().getId();
         Integer turnoDestinoInicial = turnoDestino.getIdTurno().getId();
@@ -265,5 +272,18 @@ class WebFluxosCriticosE2ETest extends FluxosCriticosTestSupport {
                 .orElseThrow()
                 .getEstado();
         assertEquals("aprovado", estadoAtual.toLowerCase());
+    }
+
+    /**
+     * Ver FluxosCriticosIntegrationTest.turnosComHorasUnicas — mesma protecao
+     * contra duplicados de horas acumulados na tabela 'turnos' partilhada.
+     */
+    private static List<Turno> turnosComHorasUnicas(List<Turno> turnos) {
+        java.util.LinkedHashMap<String, Turno> porHoras = new java.util.LinkedHashMap<>();
+        for (Turno turno : turnos) {
+            String chave = turno.getHoraInicio() + "-" + turno.getHoraFim();
+            porHoras.putIfAbsent(chave, turno);
+        }
+        return new java.util.ArrayList<>(porHoras.values());
     }
 }

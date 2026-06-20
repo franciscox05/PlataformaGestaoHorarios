@@ -109,6 +109,7 @@
                                        styleClass="sidebar-user-greeting"
                                        text="Ol&#225;, Staff!" />
                                 <Label fx:id="lblCargoSidebar" styleClass="sidebar-subtitulo" text="VER PERFIL" />
+                                <Label fx:id="lblLojaAtivaSidebar" styleClass="sidebar-subtitulo" text="" />
                             </VBox>
                         </HBox>
                     </HBox>
