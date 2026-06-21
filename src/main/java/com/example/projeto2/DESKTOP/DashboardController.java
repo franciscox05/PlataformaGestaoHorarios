@@ -529,16 +529,20 @@ public class DashboardController implements DashboardNavigator {
     private void atualizarBadgesSidebar() {
         if (utilizadorLogado == null) return;
         int idUtilizador = utilizadorLogado.getId();
+        // Badges contam apenas pendentes da loja activa da sessão — sem isto, um gestor
+        // multi-loja via os pendentes das duas lojas somados numa só bolinha.
+        Integer idLojaAtiva = sessaoBLL.obterLojaAtiva();
+        Integer idLoja = (idLojaAtiva != null && idLojaAtiva > 0) ? idLojaAtiva : null;
         Platform.runLater(() -> {
             try {
-                atualizarBadge(badgeFolgas, dayOffBLL.contarPendentesParaAprovacao(idUtilizador));
-                atualizarBadge(badgePermutas, permutaBLL.contarPendentesParaAprovacao(idUtilizador));
-                atualizarBadge(badgePreferencias, preferenciaBLL.contarPendentesParaAprovacao(idUtilizador));
-                atualizarBadge(badgeHorarios, geracaoHorariosBLL.contarHorariosPendentesValidacao(idUtilizador));
-                int totalGerente = dayOffBLL.contarPendentesParaAprovacao(idUtilizador)
-                        + permutaBLL.contarPendentesParaAprovacao(idUtilizador)
-                        + preferenciaBLL.contarPendentesParaAprovacao(idUtilizador);
-                atualizarBadge(badgePainelGerente, totalGerente);
+                int folgas = dayOffBLL.contarPendentesParaAprovacao(idUtilizador, idLoja);
+                int permutas = permutaBLL.contarPendentesParaAprovacao(idUtilizador, idLoja);
+                int preferencias = preferenciaBLL.contarPendentesParaAprovacao(idUtilizador, idLoja);
+                atualizarBadge(badgeFolgas, folgas);
+                atualizarBadge(badgePermutas, permutas);
+                atualizarBadge(badgePreferencias, preferencias);
+                atualizarBadge(badgeHorarios, geracaoHorariosBLL.contarHorariosPendentesValidacao(idUtilizador, idLoja));
+                atualizarBadge(badgePainelGerente, folgas + permutas + preferencias);
             } catch (Exception e) {
                 LOGGER.debug("Nao foi possivel atualizar badges do sidebar: {}", e.getMessage());
             }

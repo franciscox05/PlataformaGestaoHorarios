@@ -796,6 +796,21 @@ Decisão do Francisco: **manter** a regra de mesma-loja em `PermutaService`
 apresentar "permutas inter-lojas" como visão do Projeto 3. Nenhuma alteração de
 código — apenas a apresentação precisa de ajuste.
 
+### 18.6b — 🔴 Bug das badges (bolinhas de pendentes) a "vazar" entre lojas
+Reportado pelo Francisco no teste manual: na NorteShopping a bolinha da aba
+"Pedidos" mostrava 5, mas o painel (já store-scoped) só tinha 1; ao aprovar,
+a bolinha descia para 4 — e esses 4 eram afinal os pendentes de Braga Parque.
+Causa: `DashboardController.atualizarBadgesSidebar` chamava
+`contarPendentesParaAprovacao(idUtilizador)` (sem `idLoja`), que conta sempre a
+primeira loja, enquanto o painel passou a contar a loja activa — daí a
+discrepância e a sensação de "notificações a passar de loja para loja".
+`[Correcção]` Adicionados overloads `contar...(idUtilizador, idLoja)` em
+`DayOffService`, `PermutaService`, `PreferenciaService` e
+`GeracaoHorariosService` (default `null` → primeira loja, sem regressão Web —
+o `WebPainelController` continua a usar a versão sem `idLoja`). O
+`DashboardController` passa `sessaoBLL.obterLojaAtiva()` a todas as contagens.
+Agora a bolinha de cada loja reflecte exactamente os pendentes dessa loja.
+
 ### 18.7 — Estado final
 - **6 serviços de gestão + 1 controller de colaborador + `SessaoService`** tornados
   store-aware; **2 entidades** com optimistic locking.

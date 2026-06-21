@@ -118,6 +118,16 @@ public class PermutaService {
                 .orElse(0);
     }
 
+    /** Store-scoped badge count — conta apenas os pendentes da loja activa da sessão. */
+    @Transactional(readOnly = true)
+    public int contarPendentesParaAprovacao(Integer idUtilizador, Integer idLoja) {
+        if (idLoja == null) return contarPendentesParaAprovacao(idUtilizador);
+        return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, idLoja, LojautilizadorHelper.APROVACAO)
+                .map(lu -> (int) permutaRepository.countPedidosPendentesDaLoja(
+                        lu.getIdLoja().getId(), idUtilizador))
+                .orElse(0);
+    }
+
     @Transactional
     public Permuta aprovarPedidoPermuta(Integer idPermuta, Integer idUtilizadorAprovador) {
         return aprovarPedidoPermuta(idPermuta, idUtilizadorAprovador, null);

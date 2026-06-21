@@ -180,6 +180,16 @@ public class GeracaoHorariosService {
                 .orElse(0);
     }
 
+    /** Store-scoped badge count — conta apenas as propostas pendentes da loja activa da sessão. */
+    @Transactional(readOnly = true)
+    public int contarHorariosPendentesValidacao(Integer idUtilizador, Integer idLoja) {
+        if (idLoja == null) return contarHorariosPendentesValidacao(idUtilizador);
+        return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, idLoja, LojautilizadorHelper.VALIDACAO)
+                .map(lu -> (int) propostaHorarioMensalRepository.countByIdLojaIdAndEstadoIgnoreCase(
+                        lu.getIdLoja().getId(), ESTADO_PENDENTE))
+                .orElse(0);
+    }
+
     @Transactional(readOnly = true)
     public GeracaoContexto obterContexto(Integer idUtilizador) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComAcessoAoPainel(idUtilizador);

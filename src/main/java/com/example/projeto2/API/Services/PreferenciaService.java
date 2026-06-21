@@ -106,6 +106,16 @@ public class PreferenciaService {
                 .orElse(0);
     }
 
+    /** Store-scoped badge count — conta apenas as pendentes da loja activa da sessão. */
+    @Transactional(readOnly = true)
+    public int contarPendentesParaAprovacao(Integer idUtilizador, Integer idLoja) {
+        if (idLoja == null) return contarPendentesParaAprovacao(idUtilizador);
+        return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, idLoja, LojautilizadorHelper.GESTAO)
+                .map(lu -> (int) preferenciaRepository.countPreferenciasPendentesDaLoja(
+                        lu.getIdLoja().getId(), idUtilizador))
+                .orElse(0);
+    }
+
     @Transactional(readOnly = true)
     public List<Preferencia> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador) {
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(

@@ -247,6 +247,15 @@ public class DayOffService {
                 .orElse(0);
     }
 
+    /** Store-scoped badge count — conta apenas os pendentes da loja activa da sessão. */
+    @Transactional(readOnly = true)
+    public int contarPendentesParaAprovacao(Integer idUtilizador, Integer idLoja) {
+        if (idLoja == null) return contarPendentesParaAprovacao(idUtilizador);
+        return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, idLoja, LojautilizadorHelper.APROVACAO)
+                .map(lu -> (int) dayOffRepository.countPedidosPendentesDaLoja(lu.getIdLoja().getId()))
+                .orElse(0);
+    }
+
     @Transactional(readOnly = true)
     public Map<Integer, String> listarNomesUtilizadores(Collection<Integer> idsUtilizadores) {
         if (idsUtilizadores == null || idsUtilizadores.isEmpty()) {
