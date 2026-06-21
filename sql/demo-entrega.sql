@@ -262,7 +262,12 @@ INSERT INTO public.utilizadores (id_utilizador, nome, email, telemovel, password
     (7, 'Francisco (Tu)', 'francisco@levis.com', '912000007', '123456', 'ativo'),
     (8, 'Ana Sousa', 'ana@levis.com', '912000008', '123456', 'ativo'),
     (9, 'Carlos Pereira', 'carlos@levis.com', '912000009', '123456', 'ativo'),
-    (10, 'Beatriz Santos', 'beatriz@levis.com', '912000010', '123456', 'inativo');
+    (10, 'Beatriz Santos', 'beatriz@levis.com', '912000010', '123456', 'inativo'),
+    -- Equipa da Levi's NorteShopping (loja 2) — para ter equipa testavel de geracao/preferencias
+    (11, 'Sofia Marques', 'sofia.marques@levis.com', '912000011', '123456', 'ativo'),
+    (12, 'Diogo Faria', 'diogo.faria@levis.com', '912000012', '123456', 'ativo'),
+    (13, 'Marta Pinto', 'marta.pinto@levis.com', '912000013', '123456', 'ativo'),
+    (14, 'Rui Castro', 'rui.castro@levis.com', '912000014', '123456', 'ativo');
 
 INSERT INTO public.lojautilizador (id_lojautilizador, id_utilizador, id_loja, id_cargo, data_inicio, data_fim) VALUES
     (1, 1, 1, 1, CURRENT_DATE - 400, NULL),
@@ -275,7 +280,13 @@ INSERT INTO public.lojautilizador (id_lojautilizador, id_utilizador, id_loja, id
     (8, 8, 2, 3, CURRENT_DATE - 120, NULL),
     (9, 9, 3, 2, CURRENT_DATE - 90, NULL),
     (10, 10, 1, 5, CURRENT_DATE - 140, CURRENT_DATE - 30),
-    (11, 1, 2, 1, CURRENT_DATE - 5, NULL);
+    (11, 1, 2, 1, CURRENT_DATE - 5, NULL),
+    -- Equipa ativa da NorteShopping (loja 2): subgerente Ana (id 8) + gerente Francisco (id 1)
+    -- + supervisor + 2 fulltime + 1 parttime, dando chefia e cobertura para gerar horarios.
+    (12, 11, 2, 2, CURRENT_DATE - 200, NULL),
+    (13, 12, 2, 4, CURRENT_DATE - 180, NULL),
+    (14, 13, 2, 4, CURRENT_DATE - 150, NULL),
+    (15, 14, 2, 5, CURRENT_DATE - 120, NULL);
 
 INSERT INTO public.horarios (id_horario, id_lojautilizador, id_turno, data_turno, estado) VALUES
     (1,  7, 2, CURRENT_DATE + 1, 'aprovado'),
