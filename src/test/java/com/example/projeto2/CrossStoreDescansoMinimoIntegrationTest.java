@@ -48,22 +48,14 @@ class CrossStoreDescansoMinimoIntegrationTest extends FluxosCriticosTestSupport 
     private PropostaHorarioMensalRepository propostaRepository;
 
     /**
-     * <b>BUG REAL CONFIRMADO POR EXECUÇÃO (ver Revisao.md, secção 1 — topo da
-     * lista de prioridades):</b> este teste foi escrito assumindo, por inferência
-     * da auditoria de código anterior, que {@code HorarioService.adicionarTurno}
-     * validava o descanso mínimo de 11h entre lojas. Ao CORRER o teste contra a
-     * base de dados real, a asserção falhou: {@code adicionarTurno}
-     * (HorarioService.java:300-346) só chama
-     * {@code horarioRepository.countGlobalOverlappingShifts} — que deteta
-     * SOBREPOSIÇÃO literal de horário no mesmo dia — e NUNCA valida o gap de 11h
-     * entre turnos de dias adjacentes. Um gestor pode, hoje, atribuir
-     * manualmente (ou a app gerar) um turno em Guimarães que, combinado com um
-     * turno já existente em Braga Parque no dia anterior, viola o descanso
-     * mínimo legal (Código do Trabalho, art. 214.º) — e o sistema aceita sem
-     * qualquer aviso. Desativado para não bloquear a suite; o bug é real.
+     * <b>BUG CORRIGIDO (ver Revisao.md, secções 1 e 22):</b> {@code HorarioService.adicionarTurno}
+     * passou a validar o descanso mínimo de 11h GLOBALMENTE por colaborador (não só a
+     * sobreposição literal no mesmo dia), via {@code validarDescansoMinimoGlobal}. Este
+     * teste — que sempre asseverou o comportamento <i>desejado</i> — passa agora a guardar
+     * a regressão: atribuir manualmente em Guimarães um turno que respeita menos de 11h face
+     * a um turno já publicado em Braga Parque no dia anterior é rejeitado, mesmo sendo lojas
+     * diferentes (o descanso é um direito da pessoa, não da loja — Código do Trabalho, art. 214.º).
      */
-    @org.junit.jupiter.api.Disabled("BUG REAL CONFIRMADO, NAO CORRIGIDO -- adicionarTurno nao valida "
-            + "descanso minimo de 11h entre lojas, so sobreposicao literal. Ver Revisao.md seccao 1.")
     @Test
     void atribuicaoEmGuimaraesFalhaQuandoViolaDescansoDeTurnoEmBragaParque() {
         LocalDate dia = LocalDate.now().plusDays(45);

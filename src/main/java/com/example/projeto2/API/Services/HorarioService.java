@@ -392,6 +392,11 @@ public class HorarioService {
                 throw new IllegalArgumentException(
                         "O colaborador já possui um turno atribuído noutra loja que se sobrepõe a este horário.");
             }
+            // Descanso mínimo de 11h (Código do Trabalho, art. 214.º) calculado GLOBALMENTE
+            // por colaborador — o descanso é um direito da pessoa, não da loja. Sem isto, um
+            // gestor podia atribuir um turno numa loja que viola o descanso face a um turno já
+            // publicado noutra loja do mesmo colaborador (ver Revisao.md, ponto 1).
+            validarDescansoMinimoGlobal(lojautilizador.getIdUtilizador().getId(), turno, data);
         }
 
         Horario novo = new Horario();
@@ -405,6 +410,50 @@ public class HorarioService {
             novo.setEstado(EstadoHorario.pendente);
         }
         return horarioRepository.save(novo);
+    }
+
+    /**
+     * Valida o descanso mínimo de 11h entre o turno novo (em {@code data}) e os turnos
+     * publicados do colaborador nos dias adjacentes — GLOBAL, sobre todas as lojas do
+     * colaborador. Espelha {@code PermutaService.validarDescansoMinimoPosPermuta}, mas
+     * para o caminho de atribuição direta ({@code adicionarTurno}), que era a única via
+     * cross-store sem esta guarda (Revisao.md, ponto 1).
+     */
+    private void validarDescansoMinimoGlobal(Integer idColaborador, Turno turnoNovo, LocalDate data) {
+        final int DESCANSO_MINIMO_HORAS = 11;
+        if (turnoNovo == null || turnoNovo.getHoraInicio() == null || turnoNovo.getHoraFim() == null) {
+            return;
+        }
+
+        List<Horario> turnosDiaAnterior = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                idColaborador, data.minusDays(1), data.minusDays(1));
+        for (Horario h : turnosDiaAnterior) {
+            if (h.getIdTurno() == null || h.getIdTurno().getHoraFim() == null) continue;
+            long horasGap = Duration.between(
+                    LocalDateTime.of(data.minusDays(1), h.getIdTurno().getHoraFim()),
+                    LocalDateTime.of(data, turnoNovo.getHoraInicio())).toHours();
+            if (horasGap < DESCANSO_MINIMO_HORAS) {
+                throw new IllegalArgumentException(
+                        "Esta atribuição viola o descanso mínimo de " + DESCANSO_MINIMO_HORAS
+                                + "h entre turnos de dias consecutivos do colaborador (gap atual: "
+                                + horasGap + "h), mesmo entre lojas diferentes.");
+            }
+        }
+
+        List<Horario> turnosDiaSeguinte = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
+                idColaborador, data.plusDays(1), data.plusDays(1));
+        for (Horario h : turnosDiaSeguinte) {
+            if (h.getIdTurno() == null || h.getIdTurno().getHoraInicio() == null) continue;
+            long horasGap = Duration.between(
+                    LocalDateTime.of(data, turnoNovo.getHoraFim()),
+                    LocalDateTime.of(data.plusDays(1), h.getIdTurno().getHoraInicio())).toHours();
+            if (horasGap < DESCANSO_MINIMO_HORAS) {
+                throw new IllegalArgumentException(
+                        "Esta atribuição viola o descanso mínimo de " + DESCANSO_MINIMO_HORAS
+                                + "h entre turnos de dias consecutivos do colaborador (gap atual: "
+                                + horasGap + "h), mesmo entre lojas diferentes.");
+            }
+        }
     }
 
     /**

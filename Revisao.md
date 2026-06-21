@@ -1189,3 +1189,65 @@ estritamente as regras válidas da loja. Sem impacto no backend (apenas apresent
 - Ficheiros tocados: `API/Services/GestaoLojaService.java`, `DESKTOP/GestaoLojaController.java`,
   `test/.../SistemaMultiLojaStressEndToEndTest.java`,
   `test/.../FluxosTotaisPersonaEndToEndTest.java`.
+
+---
+
+## 22. ✅ FECHO DOS BUGS ABERTOS: 4 testes `@Disabled` reconciliados + último bug corrigido
+
+Após o merge do trabalho do Tiago (commit `5c9ced7`), a integração na máquina do
+Francisco expôs uma **inconsistência factual**: a suite tinha **4 testes `@Disabled`**
+a afirmar *"BUG REAL CONFIRMADO, NÃO CORRIGIDO"* — mas **3 desses bugs já tinham sido
+corrigidos** nas rondas 17–18 (e as correções sobreviveram intactas ao merge):
+`@Version` em `DayOff`/`Permuta` (pontos 2, 3, 11) e `PainelGerenteService` store-aware
+(ponto 14.2). Os testes continuavam a asseverar o comportamento *antigo* (com bug) e por
+isso estavam desativados. Resolvido tudo nesta ronda.
+
+### 22.1 — 🔴 Último bug aberto CORRIGIDO: descanso mínimo cross-store em `adicionarTurno`
+`HorarioService.adicionarTurno` (atribuição manual de turno pelo gestor) só validava
+**sobreposição literal** no mesmo dia (`countGlobalOverlappingShifts`), nunca o gap de 11h
+entre turnos de dias adjacentes — a única via cross-store sem essa guarda (ponto 1).
+`[Correção]` Novo `validarDescansoMinimoGlobal(idColaborador, turno, data)`, que espelha
+`PermutaService.validarDescansoMinimoPosPermuta`: verifica os turnos publicados do
+colaborador em `data-1` e `data+1` (GLOBAL, sobre todas as lojas) e rejeita se o gap < 11h.
+Corre **depois** do check de sobreposição. O `MultiStoreComplianceTests.T3` (sobreposição
+mesmo-dia) mantém-se verde — a nova guarda olha só dias adjacentes.
+
+### 22.2 — 4 testes `@Disabled` → guardas de regressão que PROVAM as correções
+| Teste | Antes (@Disabled) | Agora |
+|---|---|---|
+| `CrossStoreDescansoMinimoIntegrationTest` | "adicionarTurno não valida descanso" | ✅ prova a rejeição (22.1) |
+| `SistemaMultiLojaStressEndToEndTest.duasLojasDecidemAMesmaFolgaConcorrentemente` | "lost update na folga" | ✅ prova que **exatamente uma** decisão sobrevive (`@Version`) |
+| `FluxosTotaisPersonaEndToEndTest.gerenteESubgerente...permuta` | "dupla aprovação de permuta" | ✅ prova XOR via `@Version` |
+| `FluxosTotaisPersonaEndToEndTest.desktopPainel...AprovaGerente...` | "rejeita gerente multi-loja" | ✅ com a loja trancada na sessão (`definirLojaAtiva`), **aprova** |
+
+Detalhes: os testes de concorrência passaram a asseverar que a decisão *perdedora* falha por
+proteção de concorrência (mensagem contém `tratado`/`optimistic`/`row count`/...), e o
+`tentarAprovar` passou a apanhar `RuntimeException` (a `OptimisticLockingFailureException` não
+é `IllegalArgumentException`). O teste do bug 14.2 passou a trancar a loja secundária na
+sessão via `sessaoBLL.definirLojaAtiva(lojaB)` (replicando o ecrã de seleção de loja do
+Desktop) e a repor `null` no `finally` para não vazar para outros testes.
+
+### 22.3 — Nova regressão para o crash `/web/painel` (ponto 19)
+`MultiStoreComplianceTests.T6` (`listarEquipaDeHojeNaoRebentaParaUtilizadorMultiLoja`):
+cria um utilizador com 2 lojas ativas e confirma que `listarEquipaDeHoje` não rebenta —
+guarda contra a regressão da subquery escalar multi-linha.
+
+### 22.4 — Paridade Web↔Desktop confirmada (sem trabalho necessário)
+- **Regras "000":** o filtro vive no `GestaoLojaController` (Desktop). A Web **não tem editor
+  de loja** (só usa `utilizadorPodeGerirLoja`), por isso as regras "000" nunca chegam à UI
+  Web — nada a replicar.
+- **Isolamento da Equipa:** o crash real do display da equipa multi-loja na Web (`/web/painel`)
+  já foi corrigido no ponto 19; o `HomeController` Desktop foi isolado pelo Tiago (21.7).
+- **Gap conhecido (Tiago, baixa prioridade):** `WebEquipaController` (gestão de funcionários
+  na Web) ainda resolve a primeira loja para um gerente multi-loja — mesmo comportamento de
+  sempre, sem regressão; é domínio do Tiago e não bloqueia a demo.
+
+### Validação final (ronda 22)
+- `.\mvnw.cmd clean test` — **[x] 185 testes, 0 falhas, 0 erros, 0 skipped, BUILD SUCCESS**.
+  (Antes: 184 testes / 4 skipped. Agora **zero testes desativados** — todos os bugs
+  confirmados estão corrigidos e guardados por regressão.)
+- Ficheiros tocados: `API/Services/HorarioService.java` (fix descanso),
+  `test/.../CrossStoreDescansoMinimoIntegrationTest.java`,
+  `test/.../SistemaMultiLojaStressEndToEndTest.java`,
+  `test/.../FluxosTotaisPersonaEndToEndTest.java`,
+  `test/.../MultiStoreComplianceTests.java`. Backend Web e geração **intactos**.

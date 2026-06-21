@@ -127,6 +127,9 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
     private PainelGerenteService painelGerenteBLL;
 
     @Autowired
+    private com.example.projeto2.API.Services.SessaoService sessaoBLL;
+
+    @Autowired
     private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     @BeforeEach
@@ -445,19 +448,13 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
      * pendente} antes de agir) resiste a duas aprovações concorrentes do
      * mesmo pedido por dois aprovadores legítimos diferentes.
      *
-     * <p><b>@Disabled — BUG REAL CONFIRMADO POR EXECUÇÃO (ver Revisao.md):</b>
-     * este teste foi corrido contra o PostgreSQL real com 2 threads/transações
-     * efetivas e CONFIRMOU que gerente e subgerente da MESMA loja conseguem
-     * ambos aprovar a mesma permuta concorrentemente — nenhum dos dois recebe
-     * o erro "pedido já tratado". É a mesma classe de race condition (lost
-     * update por ausência de lock/@Version) já documentada para DayOff
-     * cross-store, mas agora em {@code PermutaService.aprovarPedidoPermuta} /
-     * {@code obterPedidoPendenteGerivel}, dentro de uma única loja. Conforme
-     * instrução explícita, NÃO foi corrigido nenhum ficheiro em
-     * {@code src/main/} — apenas documentado.
+     * <p><b>CORRIGIDO (ver Revisao.md, ponto 22):</b> foi adicionado {@code @Version}
+     * (optimistic locking) a {@code Permuta}. Este teste passou de "documenta o bug"
+     * para "guarda a regressão": prova que, das duas aprovações concorrentes do mesmo
+     * pedido por dois aprovadores legítimos da mesma loja, EXATAMENTE UMA sobrevive — a
+     * outra é bloqueada (pelo guard "já tratado" ou por OptimisticLockingFailureException
+     * no commit). Nunca mais há dupla aprovação silenciosa.
      */
-    @Disabled("BUG REAL CONFIRMADO, NAO CORRIGIDO -- gerente e subgerente da mesma loja podem "
-            + "aprovar a mesma permuta concorrentemente (lost update). Ver Revisao.md.")
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void gerenteESubgerenteDaMesmaLojaTentamAprovarAMesmaPermutaConcorrentemente() throws Exception {
@@ -510,18 +507,13 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
                 boolean sucessoGerente = resultadoGerente.get(10, TimeUnit.SECONDS);
                 boolean sucessoSubgerente = resultadoSubgerente.get(10, TimeUnit.SECONDS);
 
-                // Dentro da MESMA loja, exatamente UM dos dois aprovadores deve
-                // conseguir — o outro tem de encontrar o pedido já "tratado".
-                // Se ambos sucederem, é o mesmo tipo de lost-update já confirmado
-                // para DayOff cross-store, mas agora dentro da mesma loja.
-                if (sucessoGerente && sucessoSubgerente) {
-                    fail("RACE CONDITION CONFIRMADA DENTRO DA MESMA LOJA: gerente e subgerente "
-                            + "aprovaram a mesma permuta concorrentemente sem nenhum dos dois "
-                            + "receber erro de 'pedido ja tratado'. Ver Revisao.md.");
-                }
-                assertTrue(sucessoGerente || sucessoSubgerente,
-                        "Pelo menos um dos dois aprovadores legitimos tem de ter conseguido "
-                                + "aprovar a permuta.");
+                // Com @Version em Permuta, dentro da MESMA loja exatamente UM dos dois
+                // aprovadores sobrevive — o outro é bloqueado (guard "já tratado" ou
+                // OptimisticLockingFailureException). Nunca dupla aprovação silenciosa.
+                assertTrue(sucessoGerente ^ sucessoSubgerente,
+                        "Exatamente um dos dois aprovadores concorrentes deve conseguir aprovar "
+                                + "a permuta (o outro bloqueado por @Version/guard). gerente="
+                                + sucessoGerente + " subgerente=" + sucessoSubgerente);
             } finally {
                 executor.shutdownNow();
             }
@@ -613,33 +605,17 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
     }
 
     /**
-     * <b>🔴 DESCOBERTA — BUG REAL CONFIRMADO POR EXECUÇÃO (ver Revisao.md):</b>
-     * {@code PainelGerenteService.aprovarFolga(Integer idPedido, Integer
-     * idUtilizadorGestor)} chama o overload de {@code dayOffBLL
-     * .aprovarPedidoFolga} SEM {@code idLoja} — diferente da Web, que sempre
-     * passa o {@code idLoja} da sessão ativa. Para um gerente com vínculo
-     * ativo a DUAS lojas, esse overload resolve a loja "ativa" via
-     * {@code LojautilizadorHelper.obterLigacaoAtiva} → primeira ligação
-     * encontrada (ordenada por nome da loja), <b>não necessariamente a loja
-     * onde o pedido pendente está</b>. Resultado: um gerente legítimo de
-     * ambas as lojas, ao usar o Desktop (que nunca pergunta "para qual loja
-     * estás a agir"), pode ser REJEITADO ao tentar aprovar um pedido pendente
-     * da sua loja "secundária" (a que não foi escolhida arbitrariamente).
-     *
-     * <p>Confirmei isto por execução: um gerente com ligação ativa a "Loja A"
-     * (nome alfabeticamente anterior) e "Loja B", com um pedido pendente
-     * exclusivamente em Loja B, recebe "Nao tens permissao para gerir este
-     * pedido" ao chamar {@code painelGerenteBLL.aprovarFolga(...)} — a MESMA
-     * chamada que o botão "Aprovar" do Desktop dispara — apesar de ser
-     * gerente legítimo de Loja B. Na Web este problema não existe porque
-     * {@code WebEquipaController} sempre passa o {@code idLoja} da sessão
-     * (loja ativa escolhida explicitamente pelo utilizador).
+     * <b>CORRIGIDO (bug 14.2 — ver Revisao.md, pontos 17/18 e 22):</b>
+     * {@code PainelGerenteService} passou a injectar {@code SessaoService} e a resolver
+     * a loja activa da sessão Desktop ({@code obterLojaAtivaSegura()}), propagando-a aos
+     * overloads store-scoped de {@code dayOffBLL.aprovarPedidoFolga}. Este teste passou de
+     * "documenta o bug" para "guarda a regressão": um gerente multi-loja que escolheu a
+     * Loja B no login (loja trancada na sessão, exactamente como o ecrã de seleção de loja
+     * do Desktop faz) consegue aprovar um pedido pendente da Loja B — antes era
+     * arbitrariamente rejeitado por o serviço resolver a primeira loja alfabética (Loja A).
      */
-    @Disabled("BUG REAL CONFIRMADO, NAO CORRIGIDO -- PainelGerenteService.aprovarFolga (Desktop) "
-            + "nao aceita idLoja e resolve a loja do gerente multi-loja arbitrariamente, podendo "
-            + "rejeitar uma aprovacao legitima na loja 'secundaria'. Ver Revisao.md.")
     @Test
-    void desktopPainelGerentePedidos_AprovarFolga_RejeitaGerenteMultiLojaNaLojaSecundaria() {
+    void desktopPainelGerentePedidos_AprovarFolga_AprovaGerenteMultiLojaNaLojaActivaSecundaria() {
         String uid = novoUuidLocal();
         Loja lojaA = criarLojaSimples("AAA Loja Primaria " + uid); // nome cedo no alfabeto, de propósito
         Loja lojaB = criarLojaSimples("ZZZ Loja Secundaria " + uid);
@@ -661,15 +637,20 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
                 novoPedidoFolga(colaboradorLojaB, LocalDate.now().plusDays(14)));
         flushAndClear();
 
-        // Chamada exata do botao "Aprovar" do Desktop — sem nenhuma forma de indicar
-        // "estou a agir como gerente da Loja B" porque o metodo nao aceita idLoja.
-        painelGerenteBLL.aprovarFolga(pedidoNaLojaB.getIdDayoff(), gerenteMultiLoja.getId());
+        try {
+            // O gerente escolheu a Loja B no login — o ecrã de seleção tranca-a na sessão.
+            // É exactamente isto que o botão "Aprovar" do Desktop tem por trás agora.
+            sessaoBLL.definirLojaAtiva(lojaB.getId());
+            painelGerenteBLL.aprovarFolga(pedidoNaLojaB.getIdDayoff(), gerenteMultiLoja.getId());
+        } finally {
+            sessaoBLL.definirLojaAtiva(null); // não vazar a loja activa para outros testes
+        }
 
         flushAndClear();
         DayOff estadoFinal = dayOffRepository.findById(pedidoNaLojaB.getIdDayoff()).orElseThrow();
         assertEquals("aprovado", estadoFinal.getEstado(),
-                "Um gerente legitimo de Loja B deveria conseguir aprovar este pedido pelo Desktop, "
-                        + "independentemente de ter tambem ligacao a Loja A.");
+                "Um gerente legitimo de Loja B, com a Loja B trancada na sessao, deve conseguir "
+                        + "aprovar este pedido pelo Desktop, independentemente de ter tambem ligacao a Loja A.");
     }
 
     // =========================================================================
@@ -818,7 +799,9 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
         try {
             permutaBLL.aprovarPedidoPermuta(idPermuta, idAprovador, idLoja);
             return true;
-        } catch (IllegalArgumentException bloqueado) {
+        } catch (RuntimeException bloqueado) {
+            // Bloqueado por guard "já tratado" (IllegalArgumentException) OU por optimistic
+            // locking (@Version em Permuta → OptimisticLockingFailureException no commit).
             return false;
         }
     }

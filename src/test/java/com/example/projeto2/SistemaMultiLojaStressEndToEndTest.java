@@ -346,16 +346,13 @@ class SistemaMultiLojaStressEndToEndTest extends FluxosCriticosTestSupport {
      * (nenhuma lança excepção), e o estado final na base de dados é
      * indeterminístico — exactamente o "lost update" classico.
      *
-     * <p><b>@Disabled deliberado:</b> este teste FOI corrido contra a base de
-     * dados PostgreSQL real e CONFIRMOU a race condition (ambas as decisões
-     * retornaram sucesso; a aprovação "venceu" e a rejeição foi silenciosamente
-     * perdida). Para não deixar a suite vermelha antes da defesa de dia 25,
-     * desativei-o — mas o bug é real e NÃO está corrigido. Ver Revisao.md,
-     * secção 7, para a correção proposta. Remover o {@code @Disabled} assim
-     * que {@code DayOffService}/{@code DayOff} tiverem proteção de concorrência.
+     * <p><b>CORRIGIDO (ver Revisao.md, ponto 22):</b> foi adicionado {@code @Version}
+     * (optimistic locking) a {@code DayOff}. Este teste passou de "documenta o bug"
+     * para "guarda a regressão": prova que, das duas decisões concorrentes, EXATAMENTE
+     * UMA sobrevive — a outra é bloqueada (OptimisticLockingFailureException no commit,
+     * ou o guard "já foi tratado" se viu a primeira já comitada). Nunca mais há lost
+     * update silencioso.
      */
-    @org.junit.jupiter.api.Disabled("BUG REAL CONFIRMADO, NAO CORRIGIDO -- ver Revisao.md seccao 7. "
-            + "Desativado so para nao bloquear a suite antes da defesa de 25/06.")
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void duasLojasDecidemAMesmaFolgaConcorrentemente() throws Exception {
@@ -401,32 +398,34 @@ class SistemaMultiLojaStressEndToEndTest extends FluxosCriticosTestSupport {
 
                 DayOff estadoFinal = dayOffRepository.findById(pedido.getIdDayoff()).orElseThrow();
 
-                // O ponto central a documentar: NÃO afirmamos que isto está "correto" — estamos
-                // a PROVAR a ausência de proteção. Se, no futuro, alguém adicionar @Version ou
-                // um SELECT FOR UPDATE, este teste passa a falhar na asserção abaixo (uma das
-                // duas chamadas começará a lançar OptimisticLockingFailureException) — sinal de
-                // que a correção foi aplicada e este teste deve ser atualizado.
-                boolean ambasSucederam = decisaoA.sucesso() && decisaoB.sucesso();
-                boolean estadoFinalEhUmDosDois = "aprovado".equalsIgnoreCase(estadoFinal.getEstado())
-                        || "rejeitado".equalsIgnoreCase(estadoFinal.getEstado());
+                // Com @Version em DayOff (optimistic locking), das duas decisões concorrentes
+                // EXATAMENTE UMA sobrevive — nunca mais há lost update silencioso.
+                boolean exatamenteUmaSucedeu = decisaoA.sucesso() ^ decisaoB.sucesso();
+                assertTrue(exatamenteUmaSucedeu,
+                        "Com @Version, exatamente uma das decisões concorrentes deve sobreviver "
+                                + "(a outra bloqueada). A.sucesso=" + decisaoA.sucesso()
+                                + " B.sucesso=" + decisaoB.sucesso()
+                                + " | erroA=" + decisaoA.mensagemErro()
+                                + " | erroB=" + decisaoB.mensagemErro());
 
-                assertTrue(estadoFinalEhUmDosDois,
-                        "O estado final tem de ser um dos dois decididos (não corrompido): " + estadoFinal.getEstado());
+                // A decisão perdedora tem de falhar por proteção de concorrência — não em silêncio.
+                ResultadoDecisao perdedora = decisaoA.sucesso() ? decisaoB : decisaoA;
+                String msgPerdedora = perdedora.mensagemErro() == null
+                        ? "" : perdedora.mensagemErro().toLowerCase();
+                assertTrue(
+                        msgPerdedora.contains("tratado") || msgPerdedora.contains("optimistic")
+                                || msgPerdedora.contains("lock") || msgPerdedora.contains("row was updated")
+                                || msgPerdedora.contains("concurr") || msgPerdedora.contains("staleobject")
+                                || msgPerdedora.contains("row count"),
+                        "A decisão perdedora deve falhar por proteção de concorrência (optimistic "
+                                + "lock ou guard 'já foi tratado'), não silenciosamente. Mensagem: "
+                                + perdedora.mensagemErro());
 
-                if (ambasSucederam) {
-                    // Esta é a falha de negócio real: os DOIS gerentes recebem confirmação de
-                    // sucesso, mas só uma decisão sobrevive. O gerente "perdedor" fica convencido
-                    // de que a sua decisão foi aplicada quando não foi.
-                    fail("RACE CONDITION CONFIRMADA: ambas as decisões concorrentes (aprovar/rejeitar) "
-                            + "retornaram sucesso sem excepção, mas o estado final na base de dados é "
-                            + "'" + estadoFinal.getEstado() + "' — a outra decisão foi silenciosamente "
-                            + "perdida (lost update). Ver Revisao.md secção 7 para a correção proposta "
-                            + "(SELECT ... FOR UPDATE ou @Version em DayOff). Este teste DEVE falhar "
-                            + "(e está documentado para tal) até essa correção ser implementada.");
-                }
-                // Se uma das duas tiver lançado excepção (ex.: por sorte de timing ter visto o
-                // "ja foi tratado"), está tudo bem — não há bug a reportar nesse caso específico,
-                // mas a corrida ainda É possível noutra ordem de timing.
+                // O estado final tem de corresponder à decisão que sobreviveu (A=aprovar, B=rejeitar).
+                String estadoEsperado = decisaoA.sucesso() ? "aprovado" : "rejeitado";
+                assertTrue(estadoEsperado.equalsIgnoreCase(estadoFinal.getEstado()),
+                        "O estado final deve corresponder à decisão vencedora (" + estadoEsperado
+                                + "), não a um estado corrompido. Atual: " + estadoFinal.getEstado());
             } finally {
                 executor.shutdownNow();
             }

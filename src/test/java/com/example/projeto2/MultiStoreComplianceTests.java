@@ -174,6 +174,30 @@ class MultiStoreComplianceTests extends FluxosCriticosTestSupport {
                         + "turno 14-19 em Loja B quando colaborador ja tem turno 10-15 em Loja A");
     }
 
+    // ── T6: regressão do crash HTTP 500 em /web/painel para gerente multi-loja ─
+
+    @Test
+    void listarEquipaDeHojeNaoRebentaParaUtilizadorMultiLoja() {
+        // Regressão do crash HTTP 500 em /web/painel (Revisao.md, ponto 19): a query antiga
+        // findEquipaDeHojeNaLojaDoUtilizador resolvia a loja com uma SUBQUERY ESCALAR que
+        // devolvia 2 linhas para um utilizador com vínculo ativo a 2 lojas ("more than one
+        // row returned by a subquery used as an expression"). A query passou a receber idLoja
+        // explícito; o overload de 1 argumento resolve a primeira ligação activa — nunca mais
+        // a subquery multi-linha. Antes do fix, esta chamada lançava DataIntegrityViolation.
+        String uid = novoUuid();
+        Loja lojaA = criarLoja("T6-A-" + uid);
+        Loja lojaB = criarLoja("T6-B-" + uid);
+        Utilizador multiLoja = criarUtilizadorHashado("Multi-T6", "multi-t6-" + uid, "Pass123");
+        criarLigacaoAtiva(multiLoja, lojaA, obterOuCriarCargo("gerente", "Gerente de Loja"));
+        criarLigacaoAtiva(multiLoja, lojaB, obterOuCriarCargo("gerente", "Gerente de Loja"));
+        flushAndClear();
+
+        List<Horario> equipa = horarioBLL.listarEquipaDeHoje(multiLoja.getId());
+        assertTrue(equipa != null,
+                "listarEquipaDeHoje deve devolver uma lista (vazia ou nao), nunca rebentar com "
+                        + "'more than one row returned by a subquery' para um utilizador multi-loja.");
+    }
+
     // ── T4: HorarioValidatorService rejeita gap de 9h (< 11h legal) ──────────
 
     @Test
