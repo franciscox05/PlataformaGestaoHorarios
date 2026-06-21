@@ -216,6 +216,54 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
     }
 
     @Test
+    void todasAsViewsNavegaveisCarregamSemFalhasDeBinding() throws Exception {
+        // Smoke test de carregamento FXML para TODAS as views navegáveis do Desktop que
+        // não têm cobertura dedicada acima. Carregar a FXML via FXMLLoader com a Spring
+        // controller-factory exercita: todos os fx:id ligados a campos do controller,
+        // todos os onAction ligados a métodos, literais FontIcon válidos e injecção de
+        // dependências do controller. Um binding partido (ex.: renomear um fx:id, ou um
+        // controller que ganhou uma nova dependência) faria a view rebentar ao abrir —
+        // este teste apanha isso sem precisar de clicar na UI (T2.1 do guião manual).
+        String[] views = {
+                "/com/example/projeto2/dashboard/gestao-loja-view.fxml",
+                "/com/example/projeto2/dashboard/gestao-funcionarios-view.fxml",
+                "/com/example/projeto2/dashboard/perfil-view.fxml",
+                "/com/example/projeto2/dashboard/pedir-folga-view.fxml",
+                "/com/example/projeto2/dashboard/preferencias-view.fxml",
+                "/com/example/projeto2/dashboard/permutas-view.fxml",
+                "/com/example/projeto2/dashboard/relatorios-horas-view.fxml",
+                "/com/example/projeto2/login/selecionar-loja-view.fxml",
+                "/com/example/projeto2/dashboard/editar-nome-view.fxml",
+                "/com/example/projeto2/dashboard/editar-email-view.fxml",
+                "/com/example/projeto2/dashboard/editar-telemovel-view.fxml",
+                "/com/example/projeto2/dashboard/alterar-password-view.fxml"
+        };
+
+        for (String view : views) {
+            AtomicReference<Throwable> erro = new AtomicReference<>();
+            AtomicReference<Parent> rootRef = new AtomicReference<>();
+            CountDownLatch latch = new CountDownLatch(1);
+
+            Platform.runLater(() -> {
+                try {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource(view));
+                    loader.setControllerFactory(applicationContext::getBean);
+                    rootRef.set(loader.load());
+                } catch (Throwable throwable) {
+                    erro.set(throwable);
+                } finally {
+                    latch.countDown();
+                }
+            });
+
+            assertTrue(latch.await(45, TimeUnit.SECONDS), () -> "Timeout a carregar " + view);
+            assertNull(erro.get(), () -> "Falha a carregar " + view + ": "
+                    + (erro.get() == null ? "" : erro.get().toString()));
+            assertNotNull(rootRef.get(), () -> "Root nulo para " + view);
+        }
+    }
+
+    @Test
     void dashboardInicialNaoFicaComCentroVazioDepoisDoLogin() throws Exception {
         GeracaoFixture fixture = criarContextoGeracao("dashboard-login");
         AtomicReference<Throwable> erro = new AtomicReference<>();
