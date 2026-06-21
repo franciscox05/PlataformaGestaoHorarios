@@ -811,11 +811,57 @@ o `WebPainelController` continua a usar a versão sem `idLoja`). O
 `DashboardController` passa `sessaoBLL.obterLojaAtiva()` a todas as contagens.
 Agora a bolinha de cada loja reflecte exactamente os pendentes dessa loja.
 
-### 18.7 — Estado final
+### 18.7 — Estado intermédio
 - **6 serviços de gestão + 1 controller de colaborador + `SessaoService`** tornados
   store-aware; **2 entidades** com optimistic locking.
 - `mvnw clean test` = **151 testes, 0 falhas, 0 erros, BUILD SUCCESS**.
-- Nenhuma alteração à camada Web (confirmado: caminhos Desktop-only ou
-  SessaoService sempre null no processo Web).
-- Pendente de validação manual pelo Francisco: T1.2 (aprovação multi-loja no
-  Painel) e reconfirmação do T1.1 com a sidebar/Perfil corrigidos.
+- T1.1 e T1.2 + badges confirmados manualmente pelo Francisco. Commits
+  `e0ed382`, `b971d61`, `5c30278` em `origin/main`.
+
+---
+
+## 19. 🔴 BUG WEB CRÍTICO encontrado em verificação E2E ao vivo: `/web/painel` rebenta para gerente multi-loja
+
+Pedido do Francisco: "percorre tudo e garante que está tudo a funcionar". Como
+a app Desktop JavaFX não se consegue automatizar, foi feita verificação ao vivo
+do módulo **Web**: empacotou-se o jar (`mvnw package`), arrancou-se o servidor
+real e percorreram-se os fluxos T3.x por HTTP com sessão/cookies reais contra o
+PostgreSQL de demo. Isto **apanhou um bug que os 18 testes de integração Web não
+cobriam** (nenhum testava `/web/painel` com um utilizador multi-loja).
+
+**Sintoma:** login com `francisco.gomes@levis.com` → seleção de loja
+(NorteShopping) → abrir o Painel → **HTTP 500**.
+```
+org.postgresql.util.PSQLException: ERROR: more than one row returned by a
+subquery used as an expression
+  at WebPainelController.painel(WebPainelController.java:54)
+```
+**Causa raiz:** `HorarioRepository.findEquipaDeHojeNaLojaDoUtilizador` resolvia
+a loja do utilizador com uma **subquery escalar**:
+```sql
+AND l.id = (SELECT luAtivo.idLoja.id FROM Lojautilizador luAtivo
+            WHERE luAtivo.idUtilizador.id = :idUtilizador AND luAtivo.dataFim IS NULL)
+```
+Para um utilizador com 2 ligações activas, a subquery devolve 2 linhas → o
+PostgreSQL recusa-a como expressão escalar. É a MESMA classe de bug do crash
+original do Perfil (ponto 16), mas do lado Web e dentro de uma query.
+
+**Correcção:**
+- A query passou a receber `idLoja` explícito (`AND l.id = :idLoja`), eliminando
+  a subquery — renomeada para `findEquipaDeHojeNaLoja(idLoja)`.
+- `HorarioService.listarEquipaDeHoje` ganhou overload `(idUtilizador, idLoja)`:
+  usa a loja da sessão se fornecida, senão resolve a primeira ligação activa via
+  `LojautilizadorHelper` (loja única) — nunca mais a subquery que rebentava.
+- `WebPainelController` passa `webAppService.obterLojaAtual(session)`.
+
+**Verificado ao vivo no jar corrigido:** `/web/painel` devolve **200** para o
+gerente multi-loja tanto em NorteShopping como em Braga Parque, refletindo a
+loja escolhida. Auditoria adicional: confirmado por `grep` que as outras
+subqueries escalares nos repositórios são lookups por chave primária
+(`hd.id = :idHorarioD`) → 1 linha, seguras. Esta era a única mina multi-loja.
+
+**Restante do E2E Web validado ao vivo (T3.x):** login colaborador single-store
+→ `/web/horarios`; login gerente multi-loja → `/web/selecionar-loja` com as 2
+lojas; submissão de folga válida persiste; folga inválida (hoje) → erro tratado
+sem crash; bloqueio de preferência duplicada por tipo = regra de negócio
+correcta (não bug). `mvnw test` = **151 testes, 0 falhas** após a correcção.

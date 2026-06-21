@@ -48,10 +48,11 @@ public class WebPainelController {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
         webAppService.preencherModeloBase(model, session, "painel");
 
+        Integer idLojaSessao = webAppService.obterLojaAtual(session);
         List<Horario> proximosTurnos = horarioBLL.listarProximosTurnos(utilizadorId).stream()
                 .limit(5)
                 .toList();
-        List<Horario> equipaHoje = horarioBLL.listarEquipaDeHoje(utilizadorId).stream()
+        List<Horario> equipaHoje = horarioBLL.listarEquipaDeHoje(utilizadorId, idLojaSessao).stream()
                 .limit(10)
                 .toList();
 

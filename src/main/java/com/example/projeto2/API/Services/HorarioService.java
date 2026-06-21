@@ -93,7 +93,31 @@ public class HorarioService {
 
     @Transactional(readOnly = true)
     public List<Horario> listarEquipaDeHoje(Integer idUtilizadorLogado) {
-        return horarioRepository.findEquipaDeHojeNaLojaDoUtilizador(idUtilizadorLogado);
+        return listarEquipaDeHoje(idUtilizadorLogado, null);
+    }
+
+    /**
+     * Equipa escalada hoje na loja indicada. Store-scoped — a query antiga resolvia a
+     * loja com uma subquery escalar {@code (SELECT idLoja ... WHERE idUtilizador=? AND
+     * dataFim IS NULL)} que rebentava com "more than one row" para um utilizador
+     * multi-loja (ex.: gerente em 2 lojas). Agora a loja é explícita: a Web passa a loja
+     * activa da sessão; sem ela, resolve-se a primeira ligação activa (loja única).
+     */
+    @Transactional(readOnly = true)
+    public List<Horario> listarEquipaDeHoje(Integer idUtilizadorLogado, Integer idLoja) {
+        if (idUtilizadorLogado == null) {
+            return List.of();
+        }
+        Integer idLojaEfetiva = idLoja;
+        if (idLojaEfetiva == null) {
+            idLojaEfetiva = lojautilizadorHelper.findLigacaoAtiva(idUtilizadorLogado)
+                    .map(lu -> lu.getIdLoja().getId())
+                    .orElse(null);
+        }
+        if (idLojaEfetiva == null) {
+            return List.of();
+        }
+        return horarioRepository.findEquipaDeHojeNaLoja(idLojaEfetiva);
     }
 
     @Transactional(readOnly = true)
