@@ -4,6 +4,7 @@ import com.example.projeto2.API.Services.DayOffService;
 import com.example.projeto2.API.Services.GestaoLojaService;
 import com.example.projeto2.API.Services.HorarioService;
 import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.SessaoService;
 import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
 import com.example.projeto2.DESKTOP.support.DetalheDiaDialog;
@@ -77,6 +78,7 @@ public class HomeController {
     private final GestaoLojaService gestaoLojaBLL;
     private final DayOffService dayOffBLL;
     private final PermutaService permutaBLL;
+    private final SessaoService sessaoBLL;
 
     private Utilizador utilizadorLogado;
     private DashboardNavigator dashboardNavigation;
@@ -88,11 +90,29 @@ public class HomeController {
     public HomeController(HorarioService horarioBll,
                           GestaoLojaService gestaoLojaBLL,
                           DayOffService dayOffBLL,
-                          PermutaService permutaBLL) {
+                          PermutaService permutaBLL,
+                          SessaoService sessaoBLL) {
         this.horarioBll = horarioBll;
         this.gestaoLojaBLL = gestaoLojaBLL;
         this.dayOffBLL = dayOffBLL;
         this.permutaBLL = permutaBLL;
+        this.sessaoBLL = sessaoBLL;
+    }
+
+    /**
+     * Resolve a loja activa da sessão aplicando a guarda de segurança partilhada
+     * (ver Revisao.md, pontos 17–18): {@code idLoja <= 0} ou {@code null} nunca é
+     * uma loja válida (serial do Postgres começa em 1; o Mockito devolve 0 para
+     * Integer não esboçado). Devolve {@code null} quando não há loja activa válida,
+     * sinalizando às vistas store-scoped que devem mostrar-se vazias em vez de
+     * vazarem dados de outra loja.
+     */
+    private Integer obterLojaAtivaSegura() {
+        Integer idLojaAtiva = sessaoBLL.obterLojaAtiva();
+        if (idLojaAtiva == null || idLojaAtiva <= 0) {
+            return null;
+        }
+        return idLojaAtiva;
     }
 
     @FXML
@@ -292,8 +312,13 @@ public class HomeController {
         if (utilizadorLogado == null || comboBox == null) return;
         try {
             ColaboradorFiltroOption anterior = comboBox.getValue();
-            List<ColaboradorFiltroOption> opcoes = horarioBll
-                    .listarColaboradoresAtivosDaLojaDoUtilizador(utilizadorLogado.getId()).stream()
+            // Mesmo isolamento da listagem de turnos: o filtro de colaborador só
+            // lista colegas da loja activa da sessão.
+            Integer idLojaAtiva = obterLojaAtivaSegura();
+            List<ColaboradorFiltroOption> opcoes = (idLojaAtiva == null)
+                    ? List.of()
+                    : horarioBll
+                    .listarColaboradoresAtivosDaLojaDoUtilizador(utilizadorLogado.getId(), idLojaAtiva).stream()
                     .sorted(Comparator.comparing(HorarioService.ColaboradorLoja::nome,
                             String.CASE_INSENSITIVE_ORDER))
                     .map(c -> new ColaboradorFiltroOption(c.idUtilizador(), c.etiqueta()))
@@ -336,8 +361,19 @@ public class HomeController {
             String etiquetaColaborador = cbColaboradorHorarioMensal.getValue() != null
                     ? cbColaboradorHorarioMensal.getValue().label() : "Toda a equipa";
 
+            // Isolamento estrito por loja activa: a Equipa só pode listar turnos da
+            // loja onde o utilizador está logado em sessão. Sem loja activa válida,
+            // mostra-se vazio (nunca a equipa de outra loja).
+            Integer idLojaAtiva = obterLojaAtivaSegura();
+            if (idLojaAtiva == null) {
+                renderizarCalendarioMensalLoja(periodo, List.of());
+                lblResumoHorarioMensal.setText(
+                        "Sem loja activa na sessão. Entra numa loja para veres o horário da equipa.");
+                return;
+            }
+
             List<Horario> horarios = horarioBll.listarHorarioPublicadoDaLojaDoUtilizador(
-                    utilizadorLogado.getId(), periodo.atDay(1), periodo.atEndOfMonth(), idColaborador);
+                    utilizadorLogado.getId(), periodo.atDay(1), periodo.atEndOfMonth(), idColaborador, idLojaAtiva);
 
             renderizarCalendarioMensalLoja(periodo, horarios);
 

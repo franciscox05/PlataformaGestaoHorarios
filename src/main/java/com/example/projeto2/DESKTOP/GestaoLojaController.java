@@ -29,14 +29,19 @@ import org.springframework.stereotype.Component;
 
 import com.example.projeto2.DESKTOP.support.ClassificadorRegra;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -50,8 +55,8 @@ public class GestaoLojaController {
     @FXML private Label lblNomeLoja;
     @FXML private Label lblLocalizacao;
     @FXML private Label lblCargoGestor;
-    @FXML private Label lblHoraAbertura;
-    @FXML private Label lblHoraFecho;
+    @FXML private ComboBox<String> cbHoraAberturaLoja;
+    @FXML private ComboBox<String> cbHoraFechoLoja;
     @FXML private Label lblMensagem;
     @FXML private VBox regrasContainer;
 
@@ -105,6 +110,8 @@ public class GestaoLojaController {
         popularComboBoxesHoraExcecoes();
         cbHoraInicioTurno.getItems().setAll(OPCOES_HORA);
         cbHoraFimTurno.getItems().setAll(OPCOES_HORA);
+        cbHoraAberturaLoja.getItems().setAll(OPCOES_HORA);
+        cbHoraFechoLoja.getItems().setAll(OPCOES_HORA);
         configurarOcultacaoFeedback();
         configurarTabelaHorariosEspeciais();
         configurarFormularioEncerrada();
@@ -125,17 +132,28 @@ public class GestaoLojaController {
                 throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
             }
 
+            LocalTime horaAbertura = parseHoraOpcionalComboBox(cbHoraAberturaLoja.getValue(), "abertura da loja");
+            LocalTime horaFecho = parseHoraOpcionalComboBox(cbHoraFechoLoja.getValue(), "fecho da loja");
+            if (horaAbertura == null) horaAbertura = horaAberturaAtual;
+            if (horaFecho == null) horaFecho = horaFechoAtual;
+
+            boolean horasAlteraram = !Objects.equals(horaAbertura, horaAberturaAtual)
+                    || !Objects.equals(horaFecho, horaFechoAtual);
+
+            // Quando o horário de funcionamento muda, o aviso de confirmação explica
+            // dinamicamente em que mês a alteração entra em vigor (regra de corte).
+            String conteudoConfirmacao = horasAlteraram
+                    ? construirAlertaCorteHorario()
+                    : "As regras ficam ativas na próxima geração de horários.";
+
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     "Guardar configuração",
-                    "Deseja guardar as regras da loja?",
-                    "As regras ficam ativas na próxima geração de horários."
+                    horasAlteraram ? "Deseja alterar o horário de funcionamento?" : "Deseja guardar as regras da loja?",
+                    conteudoConfirmacao
             )) {
                 return;
             }
-
-            LocalTime horaAbertura = horaAberturaAtual;
-            LocalTime horaFecho = horaFechoAtual;
 
             List<GestaoLojaService.ConfiguracaoRegraRequest> regras = new ArrayList<>();
             for (Map.Entry<Integer, TextField> entry : camposValor.entrySet()) {
@@ -157,7 +175,18 @@ public class GestaoLojaController {
             mostrarMensagem("Configuração da loja guardada com sucesso.", true);
             carregarDados();
         } catch (IllegalArgumentException e) {
-            mostrarMensagem(e.getMessage(), false);
+            String msg = e.getMessage();
+            // A violação de cobertura (turnos fora da janela da loja) é impeditiva —
+            // mostra um alerta modal dedicado em vez da mensagem inline.
+            if (msg != null && msg.contains("ficam fora da nova janela da loja")) {
+                DialogosHelper.mostrarErro(
+                        obterJanela(),
+                        "Horário incompatível com os turnos",
+                        "Não é possível aplicar este horário de funcionamento.",
+                        msg);
+            } else {
+                mostrarMensagem(msg, false);
+            }
         } catch (Exception e) {
             mostrarMensagem("Não foi possível guardar a configuração da loja.", false);
         }
@@ -261,8 +290,8 @@ public class GestaoLojaController {
             lblNomeLoja.setText(resumo.nomeLoja());
             lblLocalizacao.setText(resumo.localizacao());
             lblCargoGestor.setText(resumo.cargoGestor());
-            lblHoraAbertura.setText(resumo.horaAbertura().isBlank() ? "-" : resumo.horaAbertura());
-            lblHoraFecho.setText(resumo.horaFecho().isBlank() ? "-" : resumo.horaFecho());
+            cbHoraAberturaLoja.setValue(resumo.horaAbertura().isBlank() ? null : resumo.horaAbertura());
+            cbHoraFechoLoja.setValue(resumo.horaFecho().isBlank() ? null : resumo.horaFecho());
             try {
                 horaAberturaAtual = resumo.horaAbertura().isBlank() ? null
                         : LocalTime.parse(resumo.horaAbertura(), DateTimeFormatter.ofPattern("HH:mm"));
@@ -280,8 +309,8 @@ public class GestaoLojaController {
             lblNomeLoja.setText("-");
             lblLocalizacao.setText("-");
             lblCargoGestor.setText("-");
-            lblHoraAbertura.setText("-");
-            lblHoraFecho.setText("-");
+            cbHoraAberturaLoja.setValue(null);
+            cbHoraFechoLoja.setValue(null);
             horaAberturaAtual = null;
             horaFechoAtual = null;
             preencherRegras(List.of());
@@ -291,12 +320,30 @@ public class GestaoLojaController {
         }
     }
 
+    /**
+     * Os registos cuja descrição começa por "000" são templates/valores padrão
+     * globais da tabela {@code regras} (convenção de seeding), que vazavam para a
+     * UI ao lado das regras específicas da loja ({@code regras_loja}). Alterá-los
+     * era ignorado pelo backend — por isso são escondidos, deixando o gestor
+     * editar estritamente as regras válidas da loja.
+     */
+    private static boolean ehTemplateGlobalDuplicado(GestaoLojaService.RegraLojaResumo regra) {
+        return regra != null
+                && regra.descricao() != null
+                && regra.descricao().trim().startsWith("000");
+    }
+
     private void preencherRegras(List<GestaoLojaService.RegraLojaResumo> regras) {
         regrasContainer.getChildren().clear();
         camposValor.clear();
         camposBooleanos.clear();
         camposObservacoes.clear();
-        this.todasRegras = regras != null ? regras : List.of();
+        // Filtra os templates globais "000" (valores padrão da tabela 'regras' que
+        // vazavam para a UI duplicando as regras da loja); editá-los não tinha efeito.
+        this.todasRegras = (regras != null ? regras : List.<GestaoLojaService.RegraLojaResumo>of())
+                .stream()
+                .filter(regra -> !ehTemplateGlobalDuplicado(regra))
+                .toList();
 
         if (todasRegras.isEmpty()) {
             Label semRegras = new Label("Não existem regras base configuradas para apresentar nesta loja.");
@@ -765,10 +812,26 @@ public class GestaoLojaController {
             LocalTime horaInicio = parseHoraOpcionalComboBox(cbHoraInicioTurno.getValue(), "início do turno");
             LocalTime horaFim = parseHoraOpcionalComboBox(cbHoraFimTurno.getValue(), "fim do turno");
 
-            if (idTurnoEmEdicao == null) {
-                if (horaInicio == null || horaFim == null) {
-                    throw new IllegalArgumentException("Indica a hora de início e a hora de fim do turno.");
-                }
+            boolean aCriar = idTurnoEmEdicao == null;
+            if (aCriar && (horaInicio == null || horaFim == null)) {
+                throw new IllegalArgumentException("Indica a hora de início e a hora de fim do turno.");
+            }
+
+            if (!DialogosHelper.confirmarAcao(
+                    obterJanela(),
+                    aCriar ? "Criar turno" : "Editar turno",
+                    aCriar ? "Deseja criar este turno?" : "Deseja guardar as alterações ao turno?",
+                    aCriar
+                            ? "O turno fica disponível para futuras gerações de horário desta loja. "
+                              + "Não são permitidos turnos com o mesmo nome ou o mesmo intervalo de horas."
+                            : "As alterações aplicam-se a futuras gerações. Turnos com horários já atribuídos "
+                              + "não permitem alterar as horas.",
+                    aCriar ? "Criar turno" : "Guardar alterações"
+            )) {
+                return;
+            }
+
+            if (aCriar) {
                 gestaoLojaBLL.criarTurno(utilizadorLogado.getId(), txtNomeTurno.getText(), horaInicio, horaFim);
                 mostrarMensagemTurnos("Turno criado com sucesso.", true);
             } else {
@@ -789,6 +852,43 @@ public class GestaoLojaController {
     public void onCancelarTurnoClick() {
         ocultarPainelTurno();
         esconderMensagemTurnos();
+    }
+
+    /**
+     * Constrói o aviso dinâmico de corte para alterações ao horário de
+     * funcionamento, com base na regra "Dia limite de lancamento do horario
+     * mensal" da loja. Se hoje já passou o dia de corte, a alteração só pode
+     * afetar o mês seguinte ao próximo (o próximo já foi lançado); caso
+     * contrário, afeta o próximo mês.
+     */
+    private String construirAlertaCorteHorario() {
+        int diaCorte;
+        try {
+            diaCorte = gestaoLojaBLL.obterDiaLimiteLancamento(utilizadorLogado.getId());
+        } catch (Exception e) {
+            diaCorte = 15;
+        }
+        LocalDate hoje = LocalDate.now();
+        boolean passouCorte = hoje.getDayOfMonth() > diaCorte;
+        YearMonth mesAplicacao = YearMonth.from(hoje).plusMonths(passouCorte ? 2 : 1);
+
+        if (passouCorte) {
+            YearMonth mesIntermedio = YearMonth.from(hoje).plusMonths(1);
+            return "Como já passámos o dia de corte (dia " + diaCorte + "), esta alteração só entrará em vigor "
+                    + "na geração do horário do mês de " + nomeMesCapitalizado(mesAplicacao)
+                    + ". O histórico passado e o mês de " + nomeMesCapitalizado(mesIntermedio)
+                    + " mantêm-se inalterados.";
+        }
+        return "Esta alteração entrará em vigor na geração do próximo mês ("
+                + nomeMesCapitalizado(mesAplicacao) + ").";
+    }
+
+    private static String nomeMesCapitalizado(YearMonth anoMes) {
+        String nome = anoMes.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-PT"));
+        if (nome.isEmpty()) {
+            return nome;
+        }
+        return Character.toUpperCase(nome.charAt(0)) + nome.substring(1);
     }
 
     private void onEditarTurnoClick(GestaoLojaService.TurnoResumo turno) {

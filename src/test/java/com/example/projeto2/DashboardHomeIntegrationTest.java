@@ -78,7 +78,9 @@ class DashboardHomeIntegrationTest extends FluxosCriticosTestSupport {
         when(horarioBLL.listarHorarioPublicadoDoUtilizador(anyInt(), any(), any())).thenReturn(List.of());
         when(horarioBLL.listarEquipaDeHoje(anyInt())).thenReturn(List.of());
         when(horarioBLL.listarColaboradoresAtivosDaLojaDoUtilizador(anyInt())).thenReturn(List.of());
+        when(horarioBLL.listarColaboradoresAtivosDaLojaDoUtilizador(anyInt(), any())).thenReturn(List.of());
         when(horarioBLL.listarHorarioPublicadoDaLojaDoUtilizador(anyInt(), any(), any(), any())).thenReturn(List.of());
+        when(horarioBLL.listarHorarioPublicadoDaLojaDoUtilizador(anyInt(), any(), any(), any(), any())).thenReturn(List.of());
 
         when(snapshotOperacionalLojaBLL.carregarSnapshot(anyInt(), any(), any())).thenReturn(
                 new SnapshotOperacionalLojaService.SnapshotOperacionalLoja(

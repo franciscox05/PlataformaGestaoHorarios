@@ -268,6 +268,30 @@
     -fx-text-fill: #ffffff;
 }
 
+/* Alternar de loja: ação de destaque (não destrutiva) no rodapé da sidebar.
+   Só visível para utilizadores com mais do que uma ligação ativa. */
+.botao-alterar-loja {
+    -fx-background-color: rgba(201,20,40,0.16);
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 10px 14px;
+    -fx-cursor: hand;
+    -fx-background-radius: 11px;
+    -fx-border-radius: 11px;
+    -fx-border-color: rgba(201,20,40,0.42);
+    -fx-border-width: 1px;
+}
+
+.botao-alterar-loja:hover {
+    -fx-background-color: rgba(201,20,40,0.92);
+    -fx-border-color: transparent;
+}
+
+.botao-alterar-loja-icon {
+    -fx-icon-color: #ffffff;
+}
+
 /* ── TOPBAR — header de vidro flutuante ─────────────────────── */
 .top-header {
     -fx-background-color: rgba(255,255,255,0.72);

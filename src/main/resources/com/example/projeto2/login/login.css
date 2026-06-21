@@ -207,6 +207,51 @@
     -fx-background-color: #111010;
 }
 
+/* ── LISTA DE SELEÇÃO DE LOJA ──────────────────────────────────────── */
+/* Substitui o look Modena por defeito (zebra cinzenta + foco azul) pela
+   identidade institucional Levi's: cartão branco, hover rosa suave e seleção
+   no vermelho do design system, ecoando o botão "CONTINUAR" (.botao-login). */
+.lista-lojas {
+    -fx-background-color: #ffffff;
+    -fx-background-insets: 0;
+    -fx-background-radius: 12px;
+    -fx-border-color: #e7dcdc;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-padding: 6px;
+}
+
+.lista-lojas:focused {
+    -fx-border-color: #c91428;
+}
+
+/* O viewport interno do ListView também precisa de ficar transparente,
+   senão reaparece o fundo branco/cinza Modena por baixo das células. */
+.lista-lojas .virtual-flow,
+.lista-lojas .clipped-container,
+.lista-lojas .sheet {
+    -fx-background-color: transparent;
+}
+
+.lista-lojas .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2a2424;
+    -fx-font-size: 15px;
+    -fx-font-weight: 600;
+    -fx-padding: 14px 18px;
+    -fx-background-radius: 8px;
+}
+
+.lista-lojas .list-cell:filled:hover {
+    -fx-background-color: #f7eef0;
+    -fx-text-fill: #93001d;
+}
+
+.lista-lojas .list-cell:filled:selected {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #e11d2e 0%, #9f0018 100%);
+    -fx-text-fill: #ffffff;
+}
+
 /* ── SEPARADOR ─────────────────────────────────────────────────────── */
 .login-divider {
     -fx-background-color: #ede4e4;

@@ -136,18 +136,39 @@ public class HorarioService {
                                                                   LocalDate dataInicio,
                                                                   LocalDate dataFim,
                                                                   Integer idColaborador) {
+        return listarHorarioPublicadoDaLojaDoUtilizador(
+                idUtilizadorGestor, dataInicio, dataFim, idColaborador, null);
+    }
+
+    /**
+     * Variante store-explicit do horário publicado da equipa. O Desktop passa a
+     * loja activa da sessão ({@code sessaoBLL.obterLojaAtiva()}) para garantir
+     * isolamento estrito por loja na vista da Equipa — sem ela, um utilizador
+     * multi-loja via a equipa da primeira ligação activa (ex.: Braga Parque) em
+     * vez da loja onde está realmente logado (ex.: NorteShopping). Quando
+     * {@code idLoja} é {@code null} ou inválido ({@code <= 0}), resolve-se a
+     * primeira ligação activa — comportamento legado para loja única. Espelha o
+     * padrão de {@link #listarEquipaDeHoje(Integer, Integer)}.
+     */
+    @Transactional(readOnly = true)
+    public List<Horario> listarHorarioPublicadoDaLojaDoUtilizador(Integer idUtilizadorGestor,
+                                                                  LocalDate dataInicio,
+                                                                  LocalDate dataFim,
+                                                                  Integer idColaborador,
+                                                                  Integer idLoja) {
         if (idUtilizadorGestor == null || dataInicio == null || dataFim == null || dataFim.isBefore(dataInicio)) {
             return List.of();
         }
 
-        return obterLigacaoAtiva(idUtilizadorGestor)
-                .map(ligacao -> horarioRepository.findHorariosPublicadosDaLojaEntreDatas(
-                        ligacao.getIdLoja().getId(),
-                        dataInicio,
-                        dataFim,
-                        idColaborador
-                ))
-                .orElse(List.of());
+        Integer idLojaEfetiva = (idLoja != null && idLoja > 0)
+                ? idLoja
+                : obterLigacaoAtiva(idUtilizadorGestor).map(l -> l.getIdLoja().getId()).orElse(null);
+        if (idLojaEfetiva == null) {
+            return List.of();
+        }
+
+        return horarioRepository.findHorariosPublicadosDaLojaEntreDatas(
+                idLojaEfetiva, dataInicio, dataFim, idColaborador);
     }
 
     @Transactional(readOnly = true)
@@ -169,22 +190,39 @@ public class HorarioService {
 
     @Transactional(readOnly = true)
     public List<ColaboradorLoja> listarColaboradoresAtivosDaLojaDoUtilizador(Integer idUtilizadorGestor) {
+        return listarColaboradoresAtivosDaLojaDoUtilizador(idUtilizadorGestor, null);
+    }
+
+    /**
+     * Variante store-explicit dos colaboradores activos — alimenta o filtro de
+     * colaborador da vista mensal da Equipa. Tem de respeitar a mesma loja activa
+     * da sessão que a listagem de turnos, senão o filtro mostra colegas de outra
+     * loja. Quando {@code idLoja} é {@code null}/inválido, resolve a primeira
+     * ligação activa (loja única / legado).
+     */
+    @Transactional(readOnly = true)
+    public List<ColaboradorLoja> listarColaboradoresAtivosDaLojaDoUtilizador(Integer idUtilizadorGestor, Integer idLoja) {
         if (idUtilizadorGestor == null) {
             return List.of();
         }
 
-        return obterLigacaoAtiva(idUtilizadorGestor)
-                .map(ligacao -> lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(ligacao.getIdLoja().getId()).stream()
-                        .filter(item -> item.getDataFim() == null)
-                        .filter(item -> item.getIdUtilizador() != null && item.getIdUtilizador().getId() != null)
-                        .map(item -> new ColaboradorLoja(
-                                item.getIdUtilizador().getId(),
-                                item.getIdUtilizador().getNome(),
-                                item.getIdCargo() != null ? item.getIdCargo().getNome() : "-"
-                        ))
-                        .distinct()
-                        .toList())
-                .orElse(List.of());
+        Integer idLojaEfetiva = (idLoja != null && idLoja > 0)
+                ? idLoja
+                : obterLigacaoAtiva(idUtilizadorGestor).map(l -> l.getIdLoja().getId()).orElse(null);
+        if (idLojaEfetiva == null) {
+            return List.of();
+        }
+
+        return lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(idLojaEfetiva).stream()
+                .filter(item -> item.getDataFim() == null)
+                .filter(item -> item.getIdUtilizador() != null && item.getIdUtilizador().getId() != null)
+                .map(item -> new ColaboradorLoja(
+                        item.getIdUtilizador().getId(),
+                        item.getIdUtilizador().getNome(),
+                        item.getIdCargo() != null ? item.getIdCargo().getNome() : "-"
+                ))
+                .distinct()
+                .toList();
     }
 
     private java.util.Optional<Lojautilizador> obterLigacaoAtiva(Integer idUtilizador) {

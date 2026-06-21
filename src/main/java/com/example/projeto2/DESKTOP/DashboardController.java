@@ -10,6 +10,7 @@ import com.example.projeto2.API.Repositories.LojautilizadorRepository;
 import com.example.projeto2.DESKTOP.support.DashboardPesquisaHelper;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.TabelaHelper;
+import com.example.projeto2.API.Modules.Lojautilizador;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
@@ -126,6 +127,9 @@ public class DashboardController implements DashboardNavigator {
     private Button btnFecharAplicacao;
 
     @FXML
+    private Button btnAlterarLoja;
+
+    @FXML
     private HBox boxPesquisa;
 
     @FXML
@@ -240,6 +244,7 @@ public class DashboardController implements DashboardNavigator {
         sessaoBLL.iniciarSessao(utilizador);
         atualizarIdentidadeUtilizador();
         configurarPermissoesMenu();
+        configurarBotaoAlterarLoja();
         configurarMonitorizacaoSessao();
         atualizarBadgesSidebar();
 
@@ -408,6 +413,84 @@ public class DashboardController implements DashboardNavigator {
         Stage stage = obterStageAtual();
         if (stage != null) {
             stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+        }
+    }
+
+    /**
+     * O ponto de entrada "Alternar de loja" só faz sentido — e só aparece — se
+     * o utilizador tiver mais do que uma ligação ativa. Espelha exatamente a
+     * condição que o {@code LoginController} usa para decidir se mostra o ecrã
+     * de seleção; quem tem uma única loja não tem para onde mudar.
+     */
+    private void configurarBotaoAlterarLoja() {
+        if (btnAlterarLoja == null) {
+            return;
+        }
+        boolean multiLoja = utilizadorLogado != null
+                && lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(utilizadorLogado.getId()).size() > 1;
+        btnAlterarLoja.setVisible(multiLoja);
+        btnAlterarLoja.setManaged(multiLoja);
+    }
+
+    /**
+     * Abre o ecrã de seleção de loja em modo {@link ContextoSelecao#DASHBOARD},
+     * mantendo a sessão viva. Pára os temporizadores/listeners deste controlador
+     * (que vai ser descartado com a scene), mas <b>não</b> termina a sessão nem
+     * limpa a loja ativa — se o utilizador desistir, "Voltar ao painel" devolve-o
+     * exatamente onde estava.
+     */
+    @FXML
+    public void onAlterarLojaClick() {
+        if (utilizadorLogado == null) {
+            return;
+        }
+
+        List<Lojautilizador> ligacoesAtivas =
+                lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(utilizadorLogado.getId());
+        if (ligacoesAtivas.size() <= 1) {
+            return; // Salvaguarda: sem alternativa de loja, não há nada a fazer.
+        }
+
+        // Mitiga cliques acidentais: só prossegue mediante confirmação explícita,
+        // espelhando o padrão usado no logout.
+        if (!DialogosHelper.confirmarAcao(
+                obterJanelaAtual(),
+                "Alterar loja",
+                "Deseja mudar de loja?",
+                "Vais sair da loja atual e escolher outra. A tua sessão mantém-se ativa.",
+                "Alterar loja"
+        )) {
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/projeto2/login/selecionar-loja-view.fxml"));
+            loader.setControllerFactory(applicationContext::getBean);
+            Parent root = loader.load();
+
+            SelecionarLojaController selecionarLojaController = loader.getController();
+            selecionarLojaController.inicializarComLigacoes(utilizadorLogado, ligacoesAtivas, ContextoSelecao.DASHBOARD);
+
+            // Desligar os recursos deste dashboard antes de trocar a scene — a
+            // sessão (sessaoBLL) mantém-se intacta, só paramos os timers locais.
+            encerrarMonitorizacaoSessao();
+            pararAutoRefreshBadges();
+
+            Stage stage = (Stage) mainContainer.getScene().getWindow();
+            stage.setScene(new Scene(root, UIConstants.APP_WIDTH, UIConstants.APP_HEIGHT));
+            stage.setTitle("Levi's Staff Portal - Selecionar Loja");
+            stage.setMinWidth(UIConstants.APP_MIN_WIDTH);
+            stage.setMinHeight(UIConstants.APP_MIN_HEIGHT);
+            stage.setResizable(false);
+            stage.setFullScreenExitHint("");
+            stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+            stage.setFullScreen(true);
+        } catch (Exception e) {
+            LOGGER.error("Erro ao abrir a seleção de loja a partir do dashboard.", e);
+            mostrarErro(
+                    "Não foi possível abrir a troca de loja.",
+                    "Tenta novamente ou continua na loja atual."
+            );
         }
     }
 

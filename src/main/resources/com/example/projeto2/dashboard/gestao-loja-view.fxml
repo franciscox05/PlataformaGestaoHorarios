@@ -83,7 +83,7 @@
                         </HBox>
                     </VBox>
 
-                    <!-- Horário de funcionamento (só leitura) -->
+                    <!-- Horário de funcionamento (editável — gravado com "Guardar configuração") -->
                 <VBox spacing="16.0" styleClass="bento-card, bento-card-destacado" HBox.hgrow="ALWAYS">
                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                             <StackPane styleClass="stat-icon-wrap-blue" minWidth="40.0" minHeight="40.0">
@@ -97,16 +97,16 @@
                             </VBox>
                         </HBox>
                         <Label styleClass="bento-card-subtitulo"
-                               text="Hor&#225;rio definido na configura&#231;&#227;o inicial da loja. Para qualquer altera&#231;&#227;o contacta o administrador do sistema."
+                               text="Ajusta as horas de abertura e fecho da loja. Ao guardar, o sistema indica em que m&#234;s a altera&#231;&#227;o entra em vigor (regra de corte mensal). O hist&#243;rico passado nunca &#233; alterado."
                                wrapText="true" />
                         <HBox spacing="20.0">
                             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                 <Label styleClass="meta-etiqueta" text="Hora de abertura" />
-                                <Label fx:id="lblHoraAbertura" styleClass="meta-valor" text="-" />
+                                <ComboBox fx:id="cbHoraAberturaLoja" maxWidth="Infinity" promptText="--:--" />
                             </VBox>
                             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                                 <Label styleClass="meta-etiqueta" text="Hora de fecho" />
-                                <Label fx:id="lblHoraFecho" styleClass="meta-valor" text="-" />
+                                <ComboBox fx:id="cbHoraFechoLoja" maxWidth="Infinity" promptText="--:--" />
                             </VBox>
                         </HBox>
                     </VBox>

@@ -176,6 +176,10 @@ public final class DialogosHelper {
         card.getStyleClass().add("dialogo-loading-card");
         card.setAlignment(Pos.CENTER);
         card.setMaxWidth(420.0);
+        // Trava a altura ao conteúdo: sem isto, o overlay (StackPane em ecrã
+        // inteiro) estica o card verticalmente (maxHeight default = MAX_VALUE),
+        // deixando-o gigante em vez de um modal compacto centrado.
+        card.setMaxHeight(Region.USE_PREF_SIZE);
         card.setFillWidth(true);
 
         ProgressIndicator spinner = new ProgressIndicator(-1.0);
@@ -234,6 +238,9 @@ public final class DialogosHelper {
         card.getStyleClass().add("dialogo-notificacao-card");
         card.setAlignment(Pos.CENTER);
         card.setMaxWidth(520.0);
+        // Ver nota em mostrarCarregamento: trava a altura ao conteúdo para o
+        // modal ficar compacto em vez de esticado pela altura do overlay.
+        card.setMaxHeight(Region.USE_PREF_SIZE);
         card.setFillWidth(true);
 
         // Ícone circular

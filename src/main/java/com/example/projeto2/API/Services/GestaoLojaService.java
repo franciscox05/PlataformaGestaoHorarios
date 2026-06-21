@@ -146,6 +146,24 @@ public class GestaoLojaService {
                 || !request.horaFecho().equals(loja.getHoraFecho());
 
         if (horasAlteraram) {
+            // Consistência operacional: a nova janela da loja tem de conter todos os
+            // turnos ativos. Bloqueia se algum turno começa antes da abertura ou
+            // termina depois do fecho — o gestor tem de o ajustar/desativar primeiro.
+            List<Turno> foraDaJanela = turnoRepository.findAllAtivosOrderByHoraInicioAsc().stream()
+                    .filter(t -> t.getHoraInicio() != null && t.getHoraFim() != null)
+                    .filter(t -> t.getHoraInicio().isBefore(request.horaAbertura())
+                            || t.getHoraFim().isAfter(request.horaFecho()))
+                    .toList();
+            if (!foraDaJanela.isEmpty()) {
+                String listaTurnos = foraDaJanela.stream()
+                        .map(t -> nomeDisplayTurno(t) + " (" + formatarHora(t.getHoraInicio())
+                                + "-" + formatarHora(t.getHoraFim()) + ")")
+                        .reduce((a, b) -> a + ", " + b).orElse("");
+                throw new IllegalArgumentException(
+                        "Não é possível aplicar este horário de funcionamento. Existem turnos ativos que "
+                        + "ficam fora da nova janela da loja. Deves alterar ou desativar os seguintes turnos "
+                        + "primeiro: " + listaTurnos + ".");
+            }
             loja.setHoraAbertura(request.horaAbertura());
             loja.setHoraFecho(request.horaFecho());
             lojaRepository.save(loja);
@@ -352,13 +370,8 @@ public class GestaoLojaService {
         if (!horaFim.isAfter(horaInicio)) {
             throw new IllegalArgumentException("A hora de fim deve ser posterior à hora de início.");
         }
-        List<Turno> sobrepostos = turnoRepository.findSobrepostos(horaInicio, horaFim, null);
-        if (!sobrepostos.isEmpty()) {
-            String nomes = sobrepostos.stream()
-                    .map(t -> nomeDisplayTurno(t) + " (" + formatarHora(t.getHoraInicio()) + "-" + formatarHora(t.getHoraFim()) + ")")
-                    .reduce((a, b) -> a + ", " + b).orElse("outro turno");
-            throw new IllegalArgumentException("O horário do novo turno sobrepõe-se a: " + nomes + ".");
-        }
+        validarNomeTurnoUnico(nomeLimpo, null);
+        validarIntervaloTurnoUnico(horaInicio, horaFim, null);
         Turno turno = new Turno();
         turno.setNome(nomeLimpo);
         turno.setHoraInicio(horaInicio);
@@ -378,6 +391,7 @@ public class GestaoLojaService {
                 .orElseThrow(() -> new IllegalArgumentException("Turno não encontrado."));
         String nomeLimpo = limparTexto(nome);
         if (nomeLimpo == null) throw new IllegalArgumentException("Indica um nome para o turno.");
+        validarNomeTurnoUnico(nomeLimpo, idTurno);
         turno.setNome(nomeLimpo);
 
         boolean horasAlteraram = horaInicio != null && horaFim != null
@@ -391,13 +405,7 @@ public class GestaoLojaService {
             if (!horaFim.isAfter(horaInicio)) {
                 throw new IllegalArgumentException("A hora de fim deve ser posterior à hora de início.");
             }
-            List<Turno> sobrepostos = turnoRepository.findSobrepostos(horaInicio, horaFim, idTurno);
-            if (!sobrepostos.isEmpty()) {
-                String nomes = sobrepostos.stream()
-                        .map(t -> nomeDisplayTurno(t) + " (" + formatarHora(t.getHoraInicio()) + "-" + formatarHora(t.getHoraFim()) + ")")
-                        .reduce((a, b) -> a + ", " + b).orElse("outro turno");
-                throw new IllegalArgumentException("O horário sobrepõe-se a: " + nomes + ".");
-            }
+            validarIntervaloTurnoUnico(horaInicio, horaFim, idTurno);
             turno.setHoraInicio(horaInicio);
             turno.setHoraFim(horaFim);
             turno.setTipo(derivarTipo(horaInicio));
@@ -442,6 +450,54 @@ public class GestaoLojaService {
                     "Não é possível eliminar um turno com horários atribuídos. Desativa-o em vez de eliminar.");
         }
         turnoRepository.deleteById(idTurno);
+    }
+
+    /** Política estrita: nenhum turno ativo pode partilhar o mesmo nome. */
+    private void validarNomeTurnoUnico(String nomeLimpo, Integer idExcluir) {
+        if (!turnoRepository.findAtivosPorNome(nomeLimpo, idExcluir).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Já existe um turno ativo com o nome \"" + nomeLimpo + "\". Escolhe um nome diferente.");
+        }
+    }
+
+    /** Política estrita: nenhum turno pode partilhar o intervalo de tempo EXATO (mesma hora de início e fim). */
+    private void validarIntervaloTurnoUnico(LocalTime horaInicio, LocalTime horaFim, Integer idExcluir) {
+        if (!turnoRepository.findByIntervaloExato(horaInicio, horaFim, idExcluir).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Já existe um turno com o intervalo " + formatarHora(horaInicio) + "-" + formatarHora(horaFim)
+                    + ". Turnos com o mesmo horário exato não são permitidos.");
+        }
+    }
+
+    /**
+     * Dia de corte para o lançamento do horário mensal da loja (regra
+     * "Dia limite de lancamento do horario mensal"): resolve o override
+     * específico da loja, depois o valor padrão da regra, e por fim o
+     * fallback 15. Usado pela UI para calcular em que mês uma alteração de
+     * horário de funcionamento entra em vigor.
+     */
+    @Transactional(readOnly = true)
+    public int obterDiaLimiteLancamento(Integer idUtilizador) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Loja loja = ligacaoAtiva.getIdLoja();
+        final int fallback = 15;
+
+        Regra regra = regraRepository.findAll().stream()
+                .filter(r -> r.getDescricao() != null
+                        && r.getDescricao().toLowerCase(Locale.ROOT).contains("dia limite de lancamento"))
+                .findFirst()
+                .orElse(null);
+        if (regra == null) {
+            return fallback;
+        }
+
+        Integer valor = regrasLojaRepository.findByIdLojaIdAndIdRegraId(loja.getId(), regra.getId())
+                .map(RegrasLoja::getValorEspecifico)
+                .orElse(null);
+        if (valor == null) {
+            valor = regra.getValorPadrao();
+        }
+        return (valor != null && valor >= 1 && valor <= 28) ? valor : fallback;
     }
 
     private String derivarTipo(LocalTime horaInicio) {

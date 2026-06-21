@@ -282,6 +282,15 @@
                     <Label styleClass="sidebar-footer-copy"
                            text="Centraliza hor&#225;rios, equipa, pedidos e auditoria."
                            wrapText="true" />
+                    <Button fx:id="btnAlterarLoja"
+                            onAction="#onAlterarLojaClick"
+                            managed="false" visible="false"
+                            maxWidth="Infinity"
+                            graphicTextGap="10.0"
+                            styleClass="botao-alterar-loja"
+                            text="Alterar loja">
+                        <graphic><FontIcon iconLiteral="mdi2s-swap-horizontal" iconSize="16" styleClass="botao-alterar-loja-icon" /></graphic>
+                    </Button>
                     <Button fx:id="btnFecharAplicacao"
                             onAction="#onFecharAplicacaoClick"
                             maxWidth="Infinity"

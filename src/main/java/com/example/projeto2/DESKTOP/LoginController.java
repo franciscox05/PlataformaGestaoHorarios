@@ -232,7 +232,7 @@ public class LoginController {
             Parent root = loader.load();
 
             SelecionarLojaController selecionarLojaController = loader.getController();
-            selecionarLojaController.inicializarComLigacoes(logado, ligacoesAtivas);
+            selecionarLojaController.inicializarComLigacoes(logado, ligacoesAtivas, ContextoSelecao.LOGIN);
 
             Stage stage = (Stage) txtEmail.getScene().getWindow();
             stage.setScene(new Scene(root, UIConstants.APP_WIDTH, UIConstants.APP_HEIGHT));

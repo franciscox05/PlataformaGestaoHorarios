@@ -11,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import org.slf4j.Logger;
@@ -38,12 +39,22 @@ public class SelecionarLojaController {
     private Button btnConfirmarLoja;
 
     @FXML
+    private Button btnVoltar;
+
+    @FXML
     private Label lblErroSelecao;
 
     private final SessaoService sessaoBLL;
     private final ApplicationContext applicationContext;
 
     private Utilizador utilizadorLogado;
+
+    /**
+     * Origem da navegação. Por defeito {@link ContextoSelecao#LOGIN} — o caso
+     * mais comum (pós-login) e o mais seguro caso algum chamador futuro se
+     * esqueça de o definir explicitamente.
+     */
+    private ContextoSelecao contexto = ContextoSelecao.LOGIN;
 
     public SelecionarLojaController(SessaoService sessaoBLL, ApplicationContext applicationContext) {
         this.sessaoBLL = sessaoBLL;
@@ -69,13 +80,33 @@ public class SelecionarLojaController {
     }
 
     /**
-     * Chamado pelo {@code LoginController} imediatamente depois do
-     * carregamento do FXML, com o utilizador autenticado e as suas ligações
-     * ativas (já sabemos, nesse ponto, que são 2 ou mais).
+     * Chamado pelo {@code LoginController} (contexto {@link ContextoSelecao#LOGIN})
+     * ou pelo {@code DashboardController} (contexto {@link ContextoSelecao#DASHBOARD})
+     * imediatamente depois do carregamento do FXML, com o utilizador autenticado
+     * e as suas ligações ativas (já sabemos, nesse ponto, que são 2 ou mais).
      */
-    public void inicializarComLigacoes(Utilizador utilizador, List<Lojautilizador> ligacoesAtivas) {
+    public void inicializarComLigacoes(Utilizador utilizador,
+                                       List<Lojautilizador> ligacoesAtivas,
+                                       ContextoSelecao contexto) {
         this.utilizadorLogado = utilizador;
+        this.contexto = (contexto != null) ? contexto : ContextoSelecao.LOGIN;
         listaLojas.getItems().setAll(ligacoesAtivas);
+        configurarBotaoRecuo();
+    }
+
+    /**
+     * Adapta o botão de recuo à origem da navegação: devolver ao login (quando
+     * vem do login) ou cancelar a troca e voltar ao painel (quando vem do
+     * dashboard). É um único botão cujo texto muda — evita duplicar nós no FXML
+     * para o mesmo slot visual.
+     */
+    private void configurarBotaoRecuo() {
+        if (btnVoltar == null) {
+            return;
+        }
+        btnVoltar.setText(contexto == ContextoSelecao.DASHBOARD
+                ? "Voltar ao painel"
+                : "Voltar ao login");
     }
 
     @FXML
@@ -95,6 +126,48 @@ public class SelecionarLojaController {
         Stage stage = (Stage) listaLojas.getScene().getWindow();
         if (stage != null) {
             stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+        }
+    }
+
+    /**
+     * Recuo dependente do contexto:
+     * <ul>
+     *   <li>{@link ContextoSelecao#LOGIN} → regressa ao ecrã de login (o
+     *       utilizador enganou-se na conta ou quer trocar de utilizador).</li>
+     *   <li>{@link ContextoSelecao#DASHBOARD} → cancela a troca e regressa ao
+     *       painel, mantendo a loja já ativa na sessão.</li>
+     * </ul>
+     */
+    @FXML
+    public void onVoltarClick() {
+        if (contexto == ContextoSelecao.DASHBOARD) {
+            abrirDashboard(utilizadorLogado);
+        } else {
+            abrirLogin();
+        }
+    }
+
+    private void abrirLogin() {
+        // Ainda não há sessão trancada neste ponto do fluxo de login, mas
+        // limpamos qualquer loja residual por robustez antes de regressar.
+        sessaoBLL.definirLojaAtiva(null);
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/projeto2/login/login-view.fxml"));
+            loader.setControllerFactory(applicationContext::getBean);
+            Parent root = loader.load();
+
+            Stage stage = (Stage) listaLojas.getScene().getWindow();
+            stage.setScene(new Scene(root, UIConstants.APP_WIDTH, UIConstants.APP_HEIGHT));
+            stage.setTitle("Levi's Staff Portal - Autenticação");
+            stage.setMinWidth(UIConstants.APP_MIN_WIDTH);
+            stage.setMinHeight(UIConstants.APP_MIN_HEIGHT);
+            stage.setResizable(false);
+            stage.setFullScreenExitHint("");
+            stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+            stage.setFullScreen(true);
+        } catch (Exception e) {
+            LOGGER.error("Erro ao regressar ao login a partir da seleção de loja.", e);
+            mostrarErro("Não foi possível regressar ao login. Tenta novamente.");
         }
     }
 

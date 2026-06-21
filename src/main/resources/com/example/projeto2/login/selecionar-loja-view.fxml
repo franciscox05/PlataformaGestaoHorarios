@@ -14,7 +14,7 @@
         <Region styleClass="login-backdrop-image" />
         <Region styleClass="login-backdrop-overlay" />
 
-        <VBox alignment="CENTER" maxWidth="500.0" prefWidth="500.0" spacing="22.0" styleClass="login-card">
+        <VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="500.0" prefWidth="500.0" spacing="22.0" styleClass="login-card" StackPane.alignment="CENTER">
             <padding>
                 <Insets bottom="42.0" left="56.0" right="56.0" top="42.0" />
             </padding>
@@ -36,11 +36,17 @@
                     </children>
                 </VBox>
 
-                <ListView fx:id="listaLojas" prefHeight="220.0" maxWidth="420.0" />
+                <ListView fx:id="listaLojas" prefHeight="220.0" maxWidth="420.0" styleClass="lista-lojas" />
 
                 <Label fx:id="lblErroSelecao" managed="false" maxWidth="420.0" styleClass="erro-login" visible="false" wrapText="true" />
 
                 <Button fx:id="btnConfirmarLoja" defaultButton="true" disable="true" maxWidth="420.0" onAction="#onConfirmarClick" styleClass="botao-login" text="CONTINUAR" />
+
+                <HBox alignment="CENTER" maxWidth="420.0">
+                    <children>
+                        <Button fx:id="btnVoltar" onAction="#onVoltarClick" styleClass="login-forgot-btn" text="Voltar ao login" />
+                    </children>
+                </HBox>
             </children>
         </VBox>
 

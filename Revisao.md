@@ -928,3 +928,264 @@ feito a pedido.
 
 **Estado:** `mvnw test` = **152 testes, 0 falhas**. Apenas a camada Web (template
 + controller) foi alterada nesta ronda; o backend partilhado ficou intacto.
+
+---
+
+## 21. 🧭 NAVEGAÇÃO MULTI-LOJA DO DESKTOP: eliminação dos dois "becos sem saída"
+
+Continuação directa dos pontos 17–18. Com o fluxo multi-loja funcional, a
+validação em runtime do Tiago expôs dois becos sem saída de UX no ecrã de
+seleção de loja (`selecionar-loja-view.fxml`), além de a `ListView` ainda usar o
+look Modena por defeito. Resolvidos os três de uma vez, **sem tocar no backend**.
+
+### 21.1 — 🔴 Beco sem saída pós-login: não havia regresso ao login
+Um utilizador multi-loja (ex.: `francisco.gomes@levis.com`) que se enganasse na
+conta ficava preso no ecrã de seleção — era obrigado a escolher uma loja para
+avançar, sem botão para voltar ao login e trocar de utilizador.
+
+### 21.2 — 🔴 Beco sem saída no painel: trocar de loja exigia logout/login
+Depois de entrar no dashboard, a única forma de operar outra loja da qual o
+utilizador também é funcionário/gerente era terminar sessão e voltar a entrar.
+A Web já resolvia isto com um "Alterar Loja" na sidebar; o Desktop não tinha
+equivalente.
+
+### 21.3 — Solução: contexto de navegação via enum + botão de recuo polimórfico
+- Novo `DESKTOP/ContextoSelecao.java` (enum `{ LOGIN, DASHBOARD }`) — injetado no
+  ecrã de seleção para que ele saiba quem o chamou, em vez de o inferir.
+- `SelecionarLojaController.inicializarComLigacoes(...)` ganhou um 3.º parâmetro
+  `ContextoSelecao`. Um único botão de recuo (`btnVoltar`) muda de texto e de
+  comportamento conforme o contexto:
+  - `LOGIN` → **"Voltar ao login"**: recarrega `login-view.fxml`. Como
+    `definirLojaAtiva(...)` ainda **não** foi chamado neste ponto do fluxo (só
+    acontece em `onConfirmarClick`), não há sessão a terminar — é uma simples
+    troca de scene. Por robustez, limpa qualquer loja residual com
+    `definirLojaAtiva(null)`.
+  - `DASHBOARD` → **"Voltar ao painel"**: recarrega `dashboard-view.fxml`
+    reaproveitando a loja já trancada. Apoia-se diretamente no fix do ponto 18.1
+    (`iniciarSessao` preserva `idLojaAtiva`) — cancelar a troca devolve o
+    utilizador exatamente onde estava.
+- `LoginController` passa agora `ContextoSelecao.LOGIN` na sua única chamada.
+
+### 21.4 — Ponto de entrada "Alterar loja" na sidebar do Dashboard
+- Novo `btnAlterarLoja` no `<bottom>` da sidebar (`dashboard-view.fxml`), acima do
+  "Fechar aplicação" — coeso com a identidade/loja já fixada no topo da sidebar
+  (`lblLojaAtivaSidebar`, ponto 17 Fase 4) e separado das ações de saída.
+- `DashboardController.onAlterarLojaClick()` reabre o ecrã de seleção em modo
+  `DASHBOARD`, **sem** terminar a sessão; apenas chama `encerrarMonitorizacaoSessao()`
+  + `pararAutoRefreshBadges()` para libertar os timers/listeners do controlador
+  que vai ser descartado com a scene.
+- **Visibilidade condicionada:** `configurarBotaoAlterarLoja()` (chamado em
+  `setUtilizadorLogado`) só mostra o botão se
+  `findLigacoesAtivasByIdUtilizador(...).size() > 1` — espelha a condição que o
+  `LoginController` usa para decidir se mostra o ecrã de seleção. Quem tem uma só
+  loja nunca vê o botão. (Seguro nos testes: para `List`, o Mockito devolve lista
+  vazia, não dispara a query JDBC real do ponto 17.)
+
+### 21.5 — Estética: `ListView` integrada no design system institucional
+Adicionados a `login.css` os seletores `.lista-lojas` (+ `.list-cell`,
+`:filled:hover`, `:filled:selected`, e o viewport transparente), substituindo a
+zebra cinzenta + foco azul do Modena por: cartão branco com borda `#e7dcdc`
+(igual aos campos), hover rosa suave `#f7eef0`, e seleção no gradiente vermelho
+do design system — o **mesmo** do botão "CONTINUAR" (`.botao-login`), criando
+associação visual direta entre "loja selecionada" e "ação de confirmar ativa".
+O botão de recuo reutiliza `.login-forgot-btn` (link ghost vermelho já existente);
+o "Alterar loja" da sidebar usa a nova classe `.botao-alterar-loja` (vermelho
+institucional translúcido, hover sólido) no `dashboard.css`.
+
+### Critério de aceitação
+1. `.\mvnw.cmd clean compile` — **[x] BUILD SUCCESS** (189 ficheiros, +1 `ContextoSelecao`).
+2. `.\mvnw.cmd test` — **[x] 184 testes, 0 falhas, 0 erros, 4 skipped, BUILD SUCCESS**
+   (contagem idêntica à baseline; zero regressões, sem hang no `DashboardHomeIntegrationTest`).
+3. Ficheiros tocados: `ContextoSelecao.java` (novo), `SelecionarLojaController.java`,
+   `LoginController.java`, `DashboardController.java`, `selecionar-loja-view.fxml`,
+   `dashboard-view.fxml`, `login.css`, `dashboard.css`. **Backend intacto.**
+
+### 21.6 — Polimento pós-validação: confirmação ao alterar loja + estabilização de layouts verticais
+Validado em runtime, o Tiago pediu dois acabamentos finais.
+
+**(a) Confirmação ao "Alterar loja" (mitigar cliques acidentais).**
+`DashboardController.onAlterarLojaClick()` passou a exigir confirmação explícita
+antes de desviar a Scene, via `DialogosHelper.confirmarAcao(...)` (o mesmo padrão
+do logout), com o botão de ação rotulado "Alterar loja". Se o utilizador cancelar,
+permanece no dashboard atual sem qualquer efeito colateral (a guarda corre **depois**
+de validar `size() > 1`, antes do `try` de troca de scene).
+
+**(b) 🔴 Bug de layout: cards centrais esticados verticalmente.**
+Causa raiz (a mesma em três sítios): um `VBox`-card dentro de um pai que preenche
+o ecrã (`StackPane`) **sem `maxHeight` definido**. Em JavaFX, o default
+`USE_COMPUTED_SIZE` faz `Region.computeMaxHeight()` devolver `Double.MAX_VALUE` —
+ou seja, o pai estica o card até à altura toda da Scene, e o `alignment=CENTER`
+centra o conteúdo deixando enormes vazios verticais em cima e em baixo. A correção
+**não** é `USE_COMPUTED_SIZE` (que *é* a causa) mas sim `USE_PREF_SIZE`, que trava
+`maxHeight = prefHeight` (altura do conteúdo).
+- `selecionar-loja-view.fxml`: card `login-card` ganhou `maxHeight="-Infinity"`
+  (= `USE_PREF_SIZE`) + `StackPane.alignment="CENTER"` explícito → o card encolhe ao
+  conteúdo, compacto e centrado.
+- `DialogosHelper.mostrarCarregamento` (overlay de carregamento do motor de horários)
+  e `mostrarNotificacaoGeracao` (notificação de sucesso/erro): cada `card` ganhou
+  `setMaxHeight(Region.USE_PREF_SIZE)` — passam a ser modais compactos centrados em
+  vez de esticados pela altura do overlay full-screen. (Feito em Java porque o CSS
+  de JavaFX não tem keyword para `USE_PREF_SIZE` em `-fx-max-height`.)
+
+**Validação deste polimento:**
+- `.\mvnw.cmd clean compile` — **[x] BUILD SUCCESS**.
+- `.\mvnw.cmd test` — **[x] 184 testes, 0 falhas, 0 erros, 4 skipped, BUILD SUCCESS**.
+- Ficheiros adicionais tocados nesta ronda: `DashboardController.java`,
+  `selecionar-loja-view.fxml`, `DESKTOP/support/DialogosHelper.java`. **Backend intacto.**
+
+### 21.7 — 🛑 Isolamento de dados na secção de Horários (Individual unificado vs. Equipa filtrada por loja activa)
+Validação em runtime expôs uma fuga de dados multi-loja na Home (`HomeController` +
+`home-view.fxml`): ao entrar na **Levi's NorteShopping**, o Horário Mensal **da Equipa**
+mostrava turnos da equipa de **Braga Parque**. A causa é a mesma família dos pontos
+17–18: a query da equipa resolvia a loja pela **primeira ligação activa** do utilizador
+(`HorarioService.obterLigacaoAtiva`), ignorando a loja trancada na sessão.
+
+**Distinção de negócio confirmada e respeitada (duas regras opostas, de propósito):**
+
+**(a) Horário INDIVIDUAL — mantém-se unificado por utilizador (cross-store).**
+`carregarHorarioPublicado` usa `listarHorarioPublicadoDoUtilizador(idUtilizador, …)`,
+cuja query (`findHorariosPublicadosPorUtilizadorEntreDatas`) filtra apenas por
+`u.id = :idUtilizador` (sem filtro de loja) e faz `JOIN FETCH lu.idLoja`. O render
+(`renderizarCalendarioHorarioPublicado`) já mostra `período | nomeLoja` por turno —
+ou seja, o calendário pessoal lista os turnos de **todas** as lojas do funcionário com
+o nome da loja associado (ex.: dia 15 em Braga Parque, dia 17 em NorteShopping).
+**Conforme a diretiva, esta query NÃO foi alterada** — já funcionava assim.
+
+**(b) Horário da EQUIPA — passa a isolamento estrito pela loja activa da sessão.**
+- `HorarioService`: adicionados overloads store-explicit, espelhando o padrão de
+  `listarEquipaDeHoje(id, idLoja)`:
+  - `listarHorarioPublicadoDaLojaDoUtilizador(idGestor, inicio, fim, idColaborador, **idLoja**)`
+  - `listarColaboradoresAtivosDaLojaDoUtilizador(idGestor, **idLoja**)`
+  Os métodos antigos (sem `idLoja`) mantêm-se e delegam nos novos com `null`
+  (fallback à primeira ligação activa — loja única / chamadores legados).
+- `HomeController`: passou a injectar `SessaoService` e a resolver a loja via novo
+  helper `obterLojaAtivaSegura()`, que aplica a guarda partilhada
+  `if (idLojaAtiva == null || idLojaAtiva <= 0) return null;` (serial Postgres começa
+  em 1; o Mockito devolve 0 para `Integer` não esboçado — ponto 17). Tanto
+  `carregarHorarioMensalLoja` (turnos da equipa) como `carregarColaboradoresParaComboBox`
+  (filtro de colaborador) passam agora `obterLojaAtivaSegura()` ao serviço; se devolver
+  `null`, a vista renderiza **vazia** (com mensagem) em vez de vazar a equipa de outra loja.
+
+**Porque é seguro nos testes (sem regressão de concorrência/Mockito):** no
+`DashboardHomeIntegrationTest`, `sessaoBLL.obterLojaAtiva()` não está esboçado e devolve
+`0`; a guarda `<= 0` curto-circuita para vazio **sem** chamar o serviço nem o repositório
+real — exactamente o que evita o hang da JavaFX thread documentado no ponto 17. Stubs dos
+novos overloads adicionados ao teste para cobrir toda a superfície da API.
+
+**Validação:**
+- `.\mvnw.cmd clean compile` — **[x] BUILD SUCCESS**.
+- `.\mvnw.cmd test` — **[x] 184 testes, 0 falhas, 0 erros, 4 skipped, BUILD SUCCESS**.
+- Ficheiros tocados: `API/Services/HorarioService.java`, `DESKTOP/HomeController.java`,
+  `test/.../DashboardHomeIntegrationTest.java`. Query individual e backend Web **intactos**.
+
+---
+
+## 21.8 — 🧹 Política estrita de turnos + edição de horário de funcionamento com corte mensal
+
+Decisão do Tiago após o parecer de viabilidade (ponto 21 anterior): rejeitar o soft-delete
+para o lixo de testes e expor a edição do horário de funcionamento. Implementado em lote,
+com os 184 testes a manterem-se 100% verdes.
+
+### 21.8.1 — Política estrita de turnos (criar/editar) — serviço
+Substituída a antiga validação de **sobreposição** (`findSobrepostos`, que rejeitava
+turnos legitimamente sobrepostos como Manhã 10-19 + Intermédio 12-21) por uma política
+mais correta operacionalmente, em `GestaoLojaService.criarTurno`/`editarTurno`:
+- **Bloqueia nome duplicado** entre turnos **ativos** (`findAtivosPorNome`, case-insensitive).
+- **Bloqueia intervalo de tempo exatamente igual** (`findByIntervaloExato` — mesma
+  `hora_inicio` E `hora_fim`), permitindo agora turnos que se sobrepõem parcialmente.
+- Novos métodos no `TurnoRepository`; helpers `validarNomeTurnoUnico` /
+  `validarIntervaloTurnoUnico` no serviço. As guardas de eliminação (`existeEmHorarios`)
+  e o soft-delete (`desativarTurno`) mantêm-se intactos.
+- **Implementado na camada de serviço, não como UNIQUE constraint na BD** — porque
+  `turnos` é global (sem `id_loja`) e já continha duplicados exatos, pelo que um UNIQUE
+  falharia a aplicar-se. Os testes E2E que persistem turnos gravam via `turnoRepository`
+  direto (bypass do serviço), por isso a validação não os afeta.
+
+### 21.8.2 — Diálogos de confirmação na UI (Loja e Regras)
+`GestaoLojaController`: o **Guardar turno** (Criar/Editar) passou a exigir confirmação
+via `DialogosHelper.confirmarAcao`, com texto distinto para criação vs. edição. Eliminar
+e Desativar turno **já** tinham confirmação. Resultado: as três ações de turno
+(Criar/Editar/Eliminar) confirmam explicitamente antes de executar.
+
+### 21.8.3 — Edição do horário de funcionamento + alerta de corte dinâmico (o trunfo de UX)
+- As horas de abertura/fecho deixaram de ser `Label` só-leitura e passaram a `ComboBox`
+  editáveis (`cbHoraAberturaLoja`/`cbHoraFechoLoja`) no `gestao-loja-view.fxml`, gravadas
+  com o botão "Guardar configuração" já existente (`guardarConfiguracao` já aceitava horas).
+- Novo `GestaoLojaService.obterDiaLimiteLancamento(idUtilizador)`: resolve a regra
+  **"Dia limite de lancamento do horario mensal"** (override `regras_loja` → valor padrão
+  da regra → fallback 15).
+- `GestaoLojaController.construirAlertaCorteHorario()` calcula dinamicamente o mês de
+  aplicação com `LocalDate.now()`:
+  - Se `hoje.dia > diaCorte` (ex.: hoje 21 > 15): *"Como já passámos o dia de corte (dia 15),
+    esta alteração só entrará em vigor na geração do horário do mês de **Agosto**. O histórico
+    passado e o mês de Julho mantêm-se inalterados."*
+  - Se `hoje.dia <= diaCorte`: *"Esta alteração entrará em vigor na geração do próximo mês (Julho)."*
+  O aviso é mostrado **dentro do diálogo de confirmação** quando as horas mudam.
+
+### 21.8.4 — 🧹 Purga física dos turnos duplicados (BD local)
+Executada na BD local `gestaohorarios` (PostgreSQL 17), em transação:
+- **Merge por intervalo exato:** cada `horario` agarrado a um turno duplicado foi
+  repontado para o turno **canónico** do mesmo intervalo (preferindo o nomeado / menor id)
+  — preserva exatamente a semântica do histórico (mesmas horas). **6817 horários repontados.**
+- **DELETE físico dos duplicados órfãos:** **110 turnos eliminados**; restam **8 turnos,
+  um por intervalo distinto**, todos nomeados e ativos. Integridade verificada: 0 horários órfãos.
+- Os turnos canónicos sem nome (13-21, 15-23) foram nomeados (Intermédio / Noite).
+
+✅ **Caveat ELIMINADO — limpeza agora automatizada (ver 21.8.5).** O leak deixou de ser
+sistemático: os dois testes E2E que persistem sem rollback passaram a purgar os próprios
+turnos no fim de cada teste.
+
+### Validação (ronda inicial)
+- `.\mvnw.cmd clean compile` — **[x] BUILD SUCCESS**.
+- `.\mvnw.cmd test` — **[x] 184 testes, 0 falhas, 0 erros, 4 skipped, BUILD SUCCESS**.
+
+---
+
+## 21.8.5 — 🔒 Versão de ouro: leak permanente eliminado + consistência loja↔turnos + fix regras "000"
+
+Fecho final da aba "Loja e Regras", em três frentes.
+
+### Task 1 — Leak de turnos nos testes E2E: limpeza automatizada (caveat 21.8.4 resolvido)
+- `salvarTurnoLocal` (em `SistemaMultiLojaStressEndToEndTest` e
+  `FluxosTotaisPersonaEndToEndTest`) passou a **registar o id de cada turno criado** num
+  campo `idsTurnosLocais`.
+- Os métodos de limpeza dos testes Grupo B (`limparGrupoB` / `limparEntidades`, executados no
+  `finally` de cada teste que persiste fora da transação) ganharam, **no fim**, uma purga
+  **orphan-safe**: para cada turno registado, só faz `turnoRepository.deleteById(...)` se
+  `existsById && !existeEmHorarios` — ou seja, depois de os horários do teste já terem sido
+  apagados, e nunca violando a FK `fk_horario_turno`.
+- **Efeito medido:** o run da suite deixou de acumular ~100+ turnos-lixo. Um `mvnw test`
+  completo passou de **118 → 10 turnos** (redução de 98%), e os poucos restantes são
+  duplicados de intervalo exato cujos horários ficam entrelaçados em cadeias de permuta/
+  histórico (não-órfãos), consolidados pela purga de merge idempotente (passo seguinte).
+
+### Task 1.2 — Purga física final (idempotente): tabela trancada nos 8 canónicos
+Merge transacional por intervalo exato (repontar horários → canónico nomeado/menor id →
+`DELETE` dos órfãos). Resultado final: **exatamente 8 turnos canónicos**, todos nomeados e
+ativos, **0 horários órfãos**. Esta purga de merge é **idempotente** — pode ser re-executada
+sem efeito se já estiver limpa — e nunca faz crescer o conjunto canónico.
+
+### Task 2 — Consistência operacional: janela da loja tem de conter os turnos ativos
+- **Backend (blocker):** `GestaoLojaService.guardarConfiguracao` passou a, **antes de
+  persistir** novas `horaAbertura`/`horaFecho`, varrer todos os turnos ativos
+  (`findAllAtivosOrderByHoraInicioAsc`). Se algum tiver `horaInicio` ANTES da nova abertura
+  ou `horaFim` DEPOIS do novo fecho, lança `IllegalArgumentException` listando nome e
+  intervalo de cada turno infrator. A persistência é abortada.
+- **UI (alerta impeditivo):** `GestaoLojaController.onGuardarClick` deteta esta exceção
+  (pela assinatura da mensagem) e mostra um **`DialogosHelper.mostrarErro`** dedicado, em vez
+  da mensagem inline, instruindo o gestor a ajustar/desativar os turnos primeiro.
+
+### Task 3 — Regras "000" duplicadas a vazar para a UI
+Os registos cuja descrição começa por **"000"** são templates/valores padrão globais da
+tabela `regras` (convenção de seeding) que apareciam na UI ao lado das regras específicas da
+loja — e alterá-los era ignorado pelo backend. `GestaoLojaController.preencherRegras` passou
+a **filtrar** esses registos (helper `ehTemplateGlobalDuplicado`), deixando o gestor editar
+estritamente as regras válidas da loja. Sem impacto no backend (apenas apresentação).
+
+### Validação final
+- `.\mvnw.cmd clean compile` — **[x] BUILD SUCCESS**.
+- `.\mvnw.cmd test` — **[x] 184 testes, 0 falhas, 0 erros, 4 skipped, BUILD SUCCESS**.
+- BD local pós-suite + purga: **8 turnos canónicos, 0 órfãos**.
+- Ficheiros tocados: `API/Services/GestaoLojaService.java`, `DESKTOP/GestaoLojaController.java`,
+  `test/.../SistemaMultiLojaStressEndToEndTest.java`,
+  `test/.../FluxosTotaisPersonaEndToEndTest.java`.
