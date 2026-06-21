@@ -260,11 +260,12 @@ sessão do colaborador que está a pedir a folga.
 
 ## 5. O pitch promete "permutas cruzadas inter-lojas" — o código bloqueia-as
 
-(Mantido da ronda anterior.) `PermutaService.java:295-296` e
-`PermutaFolgaService.java:210-212` exigem mesma loja entre origem e destino.
-**Ação sugerida:** decidir, antes do dia 25, se o Slide 3 de
-`guiao_apresentacoes_25junho.txt` deve ser reformulado, ou se "cross-store" deve
-ser apresentado explicitamente como visão de Projeto 3.
+`PermutaService.java:295-296` e `PermutaFolgaService.java:210-212` exigem mesma
+loja entre origem e destino. **DECIDIDO (Francisco):** manter o bloqueio (é o
+correto a nível legal/operacional — o turno e o descanso são da loja) e
+**reformular o Slide 3 como visão de Projeto 3**. O código fica inalterado.
+Texto de reformulação pronto a colar na apresentação em
+`docs/pitch-slide3-permutas-projeto3.md`.
 
 ---
 
