@@ -1251,3 +1251,39 @@ guarda contra a regressão da subquery escalar multi-linha.
   `test/.../SistemaMultiLojaStressEndToEndTest.java`,
   `test/.../FluxosTotaisPersonaEndToEndTest.java`,
   `test/.../MultiStoreComplianceTests.java`. Backend Web e geração **intactos**.
+
+---
+
+## 23. 🎬 PREPARAÇÃO DA DEMO (dry-run + dados demonstráveis)
+
+Preparação da defesa de 25/06. Dry-run da Web **verificado ao vivo** contra o
+servidor real + PostgreSQL; guião escrito em `Guiao_Demo_Defesa.md`.
+
+### 23.1 — 🧹 Lixo de testes na BD de dev (resolvido por reset)
+A auditoria à BD viva revelou **~1900 horários e lojas-lixo** acumulados dos testes
+E2E de stress (Grupo B/F, `Propagation.NOT_SUPPORTED`, sem rollback): lojas
+`"Loja Teste saldos-natal-*"`, `"grupo-f-desktop-*"`, `"Race Dup Permuta *"`.
+O `demo-entrega.sql` faz `TRUNCATE ... CASCADE`, por isso **um reset limpa tudo** —
+é o procedimento de pré-demo. (A limpeza automática dos testes apanha os turnos,
+mas não as lojas/horários dessas suites; irrelevante para a demo porque se reseta.)
+
+### 23.2 — NorteShopping tornada totalmente demonstrável
+Após o reset, a NorteShopping (loja-vitrine do multi-loja) tinha equipa mas
+**nenhuma escala** — folgas/permutas/equipa não eram demonstráveis lá. Adicionados
+ao `demo-entrega.sql`:
+- **14 turnos publicados** (escala dos 6 membros nos próximos dias).
+- **1 folga pendente** (Diogo), **1 permuta pendente** (h27↔h28), **1 preferência
+  pendente** (Marta) — para o gerente multi-loja **aprovar pedidos da NorteShopping
+  ao vivo**, provando o fix do bug 14.2 na demo.
+
+### 23.3 — Dry-run Web ao vivo (verificado)
+Como `francisco.gomes` com NorteShopping activa: `/web/painel`, `/web/horarios`,
+`/web/complementares`, `/web/equipa` → **todos HTTP 200**, sem crash. A página de
+Equipa mostra os pendentes da NorteShopping (Diogo/Marta). **Aprovar a folga do
+Diogo via Web → sucesso** (pendente → aprovado, HTTP 200): confirma que o
+`WebEquipaController` passa o `idLoja` da sessão em todas as aprovações
+(`aprovarPedidoFolga(idDayOff, idGestor, idLoja)`). Estado pristino reposto após o teste.
+
+### 23.4 — Entregável
+`Guiao_Demo_Defesa.md` — roteiro passo-a-passo (preparação, Desktop, Web, pontos
+técnicos para perguntas, armadilhas). Dados de demo garantidos por `demo-entrega.sql`.

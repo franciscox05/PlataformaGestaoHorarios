@@ -306,7 +306,24 @@ INSERT INTO public.horarios (id_horario, id_lojautilizador, id_turno, data_turno
     (15, 7, 2, CURRENT_DATE + 4, 'aprovado'),
     (16, 3, 3, CURRENT_DATE + 4, 'aprovado'),
     (17, 4, 2, CURRENT_DATE + 6, 'aprovado'),
-    (18, 5, 3, CURRENT_DATE + 6, 'aprovado');
+    (18, 5, 3, CURRENT_DATE + 6, 'aprovado'),
+    -- Escala publicada da Levi's NorteShopping (loja 2) — para a demo multi-loja ter
+    -- equipa, horario individual e validacao de folgas tambem nesta loja.
+    -- id_lojautilizador: 8=Ana(subg) 11=Francisco(ger) 12=Sofia(sup) 13=Diogo(FT) 14=Marta(FT) 15=Rui(PT)
+    (19,  8, 2, CURRENT_DATE,     'aprovado'),
+    (20, 11, 1, CURRENT_DATE,     'aprovado'),
+    (21, 12, 3, CURRENT_DATE,     'aprovado'),
+    (22, 13, 1, CURRENT_DATE + 1, 'aprovado'),
+    (23, 14, 2, CURRENT_DATE + 1, 'aprovado'),
+    (24, 15, 4, CURRENT_DATE + 1, 'aprovado'),
+    (25,  8, 1, CURRENT_DATE + 2, 'aprovado'),
+    (26, 12, 2, CURRENT_DATE + 2, 'aprovado'),
+    (27, 13, 3, CURRENT_DATE + 3, 'aprovado'),
+    (28, 14, 1, CURRENT_DATE + 3, 'aprovado'),
+    (29, 15, 5, CURRENT_DATE + 3, 'aprovado'),
+    (30, 11, 2, CURRENT_DATE + 4, 'aprovado'),
+    (31,  8, 3, CURRENT_DATE + 4, 'aprovado'),
+    (32, 13, 2, CURRENT_DATE + 5, 'aprovado');
 
 INSERT INTO public.day_offs (id_dayoff, id_utilizador, data_ausencia, motivo, tipo, estado) VALUES
     (1, 7, CURRENT_DATE + 10, 'Fim de semana prolongado com a familia.', 'ferias', 'pendente'),
@@ -314,7 +331,10 @@ INSERT INTO public.day_offs (id_dayoff, id_utilizador, data_ausencia, motivo, ti
     (3, 4, CURRENT_DATE + 8, 'Recuperacao fisica.', 'baixa', 'recusado'),
     (4, 1, CURRENT_DATE + 15, 'Necessidade pessoal.', 'folgas', 'pendente'),
     (5, 7, CURRENT_DATE + 2, 'Assunto pessoal urgente.', 'folgas', 'aprovado'),
-    (6, 5, CURRENT_DATE - 10, 'Baixa medica curta.', 'baixa', 'aprovado');
+    (6, 5, CURRENT_DATE - 10, 'Baixa medica curta.', 'baixa', 'aprovado'),
+    -- Pedido pendente de um colaborador da NorteShopping (Diogo, id 12) — para o gerente
+    -- multi-loja poder APROVAR um pedido da loja secundaria ao vivo (prova do bug 14.2 corrigido).
+    (7, 12, CURRENT_DATE + 3, 'Compromisso pessoal na NorteShopping.', 'folgas', 'pendente');
 
 INSERT INTO public.preferencias (
     id_preferencia,
@@ -332,14 +352,18 @@ INSERT INTO public.preferencias (
     (1, 7, 'Preferencia por dois dias consecutivos para compromisso familiar.', 'folgas', CURRENT_DATE + 20, CURRENT_DATE + 21, 5, 'pendente', NULL, NULL, NULL),
     (2, 3, 'Preferencia por turnos da manha durante a semana.', 'turnos', NULL, NULL, 3, 'aprovado', 'Aprovado para equilibrar a distribuicao dos turnos da equipa.', 7, CURRENT_TIMESTAMP - INTERVAL '2 days'),
     (3, 4, 'Preferencia para trabalhar com Afonso Barbosa no proximo periodo.', 'colegas', NULL, NULL, 2, 'rejeitado', 'Nao foi possivel acomodar esta preferencia sem comprometer a cobertura da loja.', 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
-    (4, 5, 'Pedido de ferias para ponte familiar do proximo mes.', 'ferias', CURRENT_DATE + 25, CURRENT_DATE + 27, 4, 'pendente', NULL, NULL, NULL);
+    (4, 5, 'Pedido de ferias para ponte familiar do proximo mes.', 'ferias', CURRENT_DATE + 25, CURRENT_DATE + 27, 4, 'pendente', NULL, NULL, NULL),
+    (5, 13, 'Preferencia por turnos da manha na NorteShopping.', 'turnos', NULL, NULL, 3, 'pendente', NULL, NULL, NULL);
 
 INSERT INTO public.horarios_especiais_loja (id_horario_especial, id_loja, descricao, data_inicio, data_fim, loja_encerrada, observacoes) VALUES
     (1, 1, 'Encerramento para inventario anual', CURRENT_DATE + 30, CURRENT_DATE + 30, TRUE, 'Encerramento total para contagem de stock.');
 
 INSERT INTO public.permutas (id_permuta, id_horario_origem, id_horario_destino, estado, data_pedido) VALUES
     (1, 15, 16, 'pendente', CURRENT_TIMESTAMP - INTERVAL '1 day'),
-    (2, 17, 18, 'aprovada', CURRENT_TIMESTAMP - INTERVAL '3 days');
+    (2, 17, 18, 'aprovada', CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    -- Permuta pendente na NorteShopping (Diogo h27 <-> Marta h28, CURRENT_DATE+3) — para o
+    -- gerente multi-loja aprovar uma permuta da loja secundaria ao vivo na demo.
+    (3, 27, 28, 'pendente', CURRENT_TIMESTAMP - INTERVAL '2 hours');
 
 INSERT INTO public.notificacao (id, id_utilizador, mensagem, lida, data_envio) VALUES
     (1, 7, 'O teu pedido de folga para ' || (CURRENT_DATE + 10)::text || ' foi recebido e esta pendente de aprovacao.', false, CURRENT_TIMESTAMP - INTERVAL '2 hours'),
