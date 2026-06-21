@@ -161,6 +161,11 @@ ALTER TABLE public.turnos ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
 ALTER TABLE public.regras_loja ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE public.regras ADD COLUMN IF NOT EXISTS id_loja_privada INTEGER REFERENCES public.lojas(id_loja);
 
+-- Optimistic locking (#2, #3, #11): coluna de versao para deteccao de escritas
+-- concorrentes em decisoes de folga e permuta. Hibernate @Version mapeia esta coluna.
+ALTER TABLE public.day_offs ADD COLUMN IF NOT EXISTS versao INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.permutas ADD COLUMN IF NOT EXISTS versao INTEGER NOT NULL DEFAULT 0;
+
 CREATE TABLE IF NOT EXISTS public.permutas_folga (
     id_permuta_folga  SERIAL PRIMARY KEY,
     id_horario_d      INTEGER NOT NULL REFERENCES public.horarios(id_horario),

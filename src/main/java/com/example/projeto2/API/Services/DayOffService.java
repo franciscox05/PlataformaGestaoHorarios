@@ -473,6 +473,16 @@ public class DayOffService {
         return dayOffRepository.findDecididosDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
+    /** Store-scoped variant — uses the explicit idLoja from the session. */
+    @Transactional(readOnly = true)
+    public List<DayOff> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador, Integer idLoja) {
+        if (idLoja == null) return listarHistoricoDecisoesDaLoja(idUtilizadorAprovador);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para ver o historico de folgas.");
+        return dayOffRepository.findDecididosDaLoja(ligacaoAtiva.getIdLoja().getId());
+    }
+
     /** Projection used by the employee "who is off today" endpoint — motivo intentionally excluded. */
     public record FolgaResumida(String nome, String tipo) {}
 

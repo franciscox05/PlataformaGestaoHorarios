@@ -44,19 +44,22 @@ public class GestaoLojaService {
     private final RegrasLojaRepository regrasLojaRepository;
     private final HorarioEspecialLojaRepository horarioEspecialLojaRepository;
     private final TurnoRepository turnoRepository;
+    private final SessaoService sessaoBLL;
 
     public GestaoLojaService(LojautilizadorHelper lojautilizadorHelper,
                          LojaRepository lojaRepository,
                          RegraRepository regraRepository,
                          RegrasLojaRepository regrasLojaRepository,
                          HorarioEspecialLojaRepository horarioEspecialLojaRepository,
-                         TurnoRepository turnoRepository) {
+                         TurnoRepository turnoRepository,
+                         SessaoService sessaoBLL) {
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.lojaRepository = lojaRepository;
         this.regraRepository = regraRepository;
         this.regrasLojaRepository = regrasLojaRepository;
         this.horarioEspecialLojaRepository = horarioEspecialLojaRepository;
         this.turnoRepository = turnoRepository;
+        this.sessaoBLL = sessaoBLL;
     }
 
     @Transactional(readOnly = true)
@@ -554,9 +557,19 @@ public class GestaoLojaService {
         horarioEspecialLojaRepository.delete(horarioEspecial);
     }
 
+    /**
+     * Resolve a ligação de gestão na loja activa trancada na sessão Desktop (escolhida
+     * no ecrã de seleção pós-login). Todos os métodos de configuração da loja são
+     * exclusivos do Desktop — a Web só usa {@code utilizadorPodeGerirLoja}, que não passa
+     * por aqui. Se não houver loja válida na sessão (loja única, ou testes), cai na
+     * primeira loja de gestão. A guarda {@code > 0} protege contra o Mockito devolver
+     * {@code 0} para {@code Integer} não esboçado (ver Revisao.md, ponto 17).
+     */
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
+        Integer idLoja = sessaoBLL.obterLojaAtiva();
+        Integer idLojaSegura = (idLoja != null && idLoja > 0) ? idLoja : null;
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizador, LojautilizadorHelper.GESTAO,
+                idUtilizador, idLojaSegura, LojautilizadorHelper.GESTAO,
                 "Nao tens permissao para gerir a configuracao da loja.");
     }
 

@@ -3,6 +3,7 @@ package com.example.projeto2.DESKTOP;
 import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Modules.Utilizador;
 import com.example.projeto2.API.Services.PreferenciaService;
+import com.example.projeto2.API.Services.SessaoService;
 import com.example.projeto2.DESKTOP.support.DialogosHelper;
 import com.example.projeto2.DESKTOP.support.PreferenciaDescricaoBuilder;
 import com.example.projeto2.DESKTOP.support.PreferenciaFormatters;
@@ -91,14 +92,16 @@ public class PreferenciasController {
     // ── State ────────────────────────────────────────────────────────────────────
 
     private final PreferenciaService preferenciaBLL;
+    private final SessaoService sessaoBLL;
     private PreferenciaDescricaoBuilder descricaoBuilder;
 
     private Utilizador utilizadorLogado;
     private Preferencia preferenciaEmEdicao;
     private List<String> colegasDaLoja = List.of();
 
-    public PreferenciasController(PreferenciaService preferenciaBLL) {
+    public PreferenciasController(PreferenciaService preferenciaBLL, SessaoService sessaoBLL) {
         this.preferenciaBLL = preferenciaBLL;
+        this.sessaoBLL = sessaoBLL;
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────────
@@ -401,7 +404,9 @@ public class PreferenciasController {
             cbColega2.setItems(lista);
             return;
         }
-        colegasDaLoja = new ArrayList<>(preferenciaBLL.listarColegasDaLoja(utilizadorLogado.getId()));
+        Integer idLojaAtiva = sessaoBLL.obterLojaAtiva();
+        Integer idLojaSegura = (idLojaAtiva != null && idLojaAtiva > 0) ? idLojaAtiva : null;
+        colegasDaLoja = new ArrayList<>(preferenciaBLL.listarColegasDaLoja(utilizadorLogado.getId(), idLojaSegura));
         var lista = FXCollections.observableArrayList(colegasDaLoja);
         cbColega1.setItems(lista);
         cbColega2.setItems(lista);

@@ -29,15 +29,18 @@ public class RelatorioHorasService {
     private final LojautilizadorHelper lojautilizadorHelper;
     private final HorarioRepository horarioRepository;
     private final DayOffRepository dayOffRepository;
+    private final SessaoService sessaoBLL;
 
     public RelatorioHorasService(LojautilizadorRepository lojautilizadorRepository,
                              LojautilizadorHelper lojautilizadorHelper,
                              HorarioRepository horarioRepository,
-                             DayOffRepository dayOffRepository) {
+                             DayOffRepository dayOffRepository,
+                             SessaoService sessaoBLL) {
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
         this.dayOffRepository = dayOffRepository;
+        this.sessaoBLL = sessaoBLL;
     }
 
     @Transactional(readOnly = true)
@@ -186,9 +189,17 @@ public class RelatorioHorasService {
         );
     }
 
+    /**
+     * Resolve a ligação de gestão na loja activa trancada na sessão Desktop. A geração
+     * de relatórios é exclusiva do Desktop — a Web só usa {@code utilizadorPodeConsultarRelatorios}.
+     * Se não houver loja válida na sessão, cai na primeira loja de gestão. A guarda
+     * {@code > 0} protege contra o Mockito devolver {@code 0} (ver Revisao.md, ponto 17).
+     */
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
+        Integer idLoja = sessaoBLL.obterLojaAtiva();
+        Integer idLojaSegura = (idLoja != null && idLoja > 0) ? idLoja : null;
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizador, LojautilizadorHelper.GESTAO,
+                idUtilizador, idLojaSegura, LojautilizadorHelper.GESTAO,
                 "Nao tens permissao para consultar relatorios mensais.");
     }
 

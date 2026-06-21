@@ -100,6 +100,16 @@ public class PermutaService {
         return permutaRepository.findDecididosDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
+    /** Store-scoped variant — uses the explicit idLoja from the session. */
+    @Transactional(readOnly = true)
+    public List<Permuta> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador, Integer idLoja) {
+        if (idLoja == null) return listarHistoricoDecisoesDaLoja(idUtilizadorAprovador);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
+                "Este utilizador nao tem permissao para ver o historico de permutas.");
+        return permutaRepository.findDecididosDaLoja(ligacaoAtiva.getIdLoja().getId());
+    }
+
     @Transactional(readOnly = true)
     public int contarPendentesParaAprovacao(Integer idUtilizador) {
         return lojautilizadorHelper.findLigacaoAtivaComCargo(idUtilizador, LojautilizadorHelper.APROVACAO)

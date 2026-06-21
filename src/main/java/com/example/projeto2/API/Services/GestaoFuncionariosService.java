@@ -32,17 +32,20 @@ public class GestaoFuncionariosService {
     private final UtilizadorRepository utilizadorRepository;
     private final CargoRepository cargoRepository;
     private final SegurancaService segurancaBLL;
+    private final SessaoService sessaoBLL;
 
     public GestaoFuncionariosService(LojautilizadorRepository lojautilizadorRepository,
                                  LojautilizadorHelper lojautilizadorHelper,
                                  UtilizadorRepository utilizadorRepository,
                                  CargoRepository cargoRepository,
-                                 SegurancaService segurancaBLL) {
+                                 SegurancaService segurancaBLL,
+                                 SessaoService sessaoBLL) {
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.utilizadorRepository = utilizadorRepository;
         this.cargoRepository = cargoRepository;
         this.segurancaBLL = segurancaBLL;
+        this.sessaoBLL = sessaoBLL;
     }
 
     @Transactional(readOnly = true)
@@ -403,9 +406,19 @@ public class GestaoFuncionariosService {
         return utilizadorAtivo && ligacaoAtiva ? "ativo" : "inativo";
     }
 
+    /**
+     * Resolve a ligação de gestão na loja activa trancada na sessão Desktop. No processo
+     * Web este serviço é partilhado, mas a Web nunca popula {@link SessaoService} (usa
+     * {@code HttpSession}) e os processos são distintos — por isso {@code obterLojaAtiva()}
+     * é sempre {@code null} no Web → cai na primeira loja de gestão (comportamento Web
+     * inalterado). No Desktop, garante que o gestor multi-loja gere a loja que escolheu.
+     * A guarda {@code > 0} protege contra o Mockito devolver {@code 0} (ver Revisao.md, ponto 17).
+     */
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizadorGestor) {
+        Integer idLoja = sessaoBLL.obterLojaAtiva();
+        Integer idLojaSegura = (idLoja != null && idLoja > 0) ? idLoja : null;
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizadorGestor, LojautilizadorHelper.GESTAO,
+                idUtilizadorGestor, idLojaSegura, LojautilizadorHelper.GESTAO,
                 "Nao tens permissao para gerir colaboradores.");
     }
 

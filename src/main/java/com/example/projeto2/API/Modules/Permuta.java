@@ -32,6 +32,17 @@ public class Permuta {
     @Column(name = "data_pedido")
     private Instant dataPedido;
 
+    /**
+     * Optimistic locking — impede o lost update quando dois aprovadores (ex.: gerente e
+     * subgerente da mesma loja) decidem a mesma permuta em simultâneo. A segunda
+     * transação a comitar recebe OptimisticLockingFailureException em vez de processar
+     * a troca de turnos duas vezes. Ver Revisao.md, pontos 3 e 11.
+     */
+    @Version
+    @ColumnDefault("0")
+    @Column(name = "versao", nullable = false)
+    private Integer versao;
+
 
     public Integer getId() {
         return id;
@@ -71,6 +82,14 @@ public class Permuta {
 
     public void setDataPedido(Instant dataPedido) {
         this.dataPedido = dataPedido;
+    }
+
+    public Integer getVersao() {
+        return versao;
+    }
+
+    public void setVersao(Integer versao) {
+        this.versao = versao;
     }
 
 }

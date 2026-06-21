@@ -22,17 +22,32 @@ public class PainelGerenteService {
     private final PreferenciaService preferenciaBLL;
     private final SnapshotOperacionalLojaService snapshotOperacionalLojaBLL;
     private final LojautilizadorHelper lojautilizadorHelper;
+    private final SessaoService sessaoBLL;
 
     public PainelGerenteService(DayOffService dayOffBLL,
                             PermutaService permutaBLL,
                             PreferenciaService preferenciaBLL,
                             SnapshotOperacionalLojaService snapshotOperacionalLojaBLL,
-                            LojautilizadorHelper lojautilizadorHelper) {
+                            LojautilizadorHelper lojautilizadorHelper,
+                            SessaoService sessaoBLL) {
         this.dayOffBLL = dayOffBLL;
         this.permutaBLL = permutaBLL;
         this.preferenciaBLL = preferenciaBLL;
         this.snapshotOperacionalLojaBLL = snapshotOperacionalLojaBLL;
         this.lojautilizadorHelper = lojautilizadorHelper;
+        this.sessaoBLL = sessaoBLL;
+    }
+
+    /**
+     * Loja activa trancada na sessão Desktop (escolhida no ecrã de seleção de loja
+     * pós-login). Devolve {@code null} se não houver loja válida — nesse caso os
+     * overloads dos serviços caem na resolução por primeira loja (compatível com
+     * loja única e com testes). A guarda {@code > 0} protege contra o Mockito
+     * devolver {@code 0} para {@code Integer} não esboçado (ver Revisao.md, ponto 17).
+     */
+    private Integer obterLojaAtivaSegura() {
+        Integer idLoja = sessaoBLL.obterLojaAtiva();
+        return (idLoja != null && idLoja > 0) ? idLoja : null;
     }
 
     @Transactional(readOnly = true)
@@ -40,16 +55,17 @@ public class PainelGerenteService {
         if (idUtilizador == null) {
             return false;
         }
-        return lojautilizadorHelper.temCargo(idUtilizador, LojautilizadorHelper.GESTAO);
+        return lojautilizadorHelper.temCargo(idUtilizador, obterLojaAtivaSegura(), LojautilizadorHelper.GESTAO);
     }
 
     @Transactional(readOnly = true)
     public PainelGerenteSnapshot carregarPainel(Integer idUtilizadorGestor) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizadorGestor);
+        Integer idLoja = obterLojaAtivaSegura();
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizadorGestor, idLoja);
 
-        List<DayOff> folgasPendentes = dayOffBLL.listarPedidosPendentesParaAprovacao(idUtilizadorGestor);
-        List<Permuta> permutasPendentes = permutaBLL.listarPedidosPendentesParaAprovacao(idUtilizadorGestor);
-        List<Preferencia> preferenciasPendentes = preferenciaBLL.listarPreferenciasPendentesParaAprovacao(idUtilizadorGestor);
+        List<DayOff> folgasPendentes = dayOffBLL.listarPedidosPendentesParaAprovacao(idUtilizadorGestor, idLoja);
+        List<Permuta> permutasPendentes = permutaBLL.listarPedidosPendentesParaAprovacao(idUtilizadorGestor, idLoja);
+        List<Preferencia> preferenciasPendentes = preferenciaBLL.listarPreferenciasPendentesParaAprovacao(idUtilizadorGestor, idLoja);
 
         Map<Integer, String> nomesFolgas = dayOffBLL.listarNomesUtilizadores(
                 folgasPendentes.stream()
@@ -97,61 +113,61 @@ public class PainelGerenteService {
     @Transactional
     public void aprovarFolga(Integer idPedido, Integer idUtilizadorGestor) {
         validarAcesso(idUtilizadorGestor);
-        dayOffBLL.aprovarPedidoFolga(idPedido, idUtilizadorGestor);
+        dayOffBLL.aprovarPedidoFolga(idPedido, idUtilizadorGestor, obterLojaAtivaSegura());
     }
 
     @Transactional
     public void rejeitarFolga(Integer idPedido, Integer idUtilizadorGestor) {
         validarAcesso(idUtilizadorGestor);
-        dayOffBLL.rejeitarPedidoFolga(idPedido, idUtilizadorGestor);
+        dayOffBLL.rejeitarPedidoFolga(idPedido, idUtilizadorGestor, obterLojaAtivaSegura());
     }
 
     @Transactional
     public void rejeitarFolga(Integer idPedido, Integer idUtilizadorGestor, String motivoDecisao) {
         validarAcesso(idUtilizadorGestor);
-        dayOffBLL.rejeitarPedidoFolga(idPedido, idUtilizadorGestor, motivoDecisao);
+        dayOffBLL.rejeitarPedidoFolga(idPedido, idUtilizadorGestor, obterLojaAtivaSegura(), motivoDecisao);
     }
 
     @Transactional
     public void aprovarPermuta(Integer idPermuta, Integer idUtilizadorGestor) {
         validarAcesso(idUtilizadorGestor);
-        permutaBLL.aprovarPedidoPermuta(idPermuta, idUtilizadorGestor);
+        permutaBLL.aprovarPedidoPermuta(idPermuta, idUtilizadorGestor, obterLojaAtivaSegura());
     }
 
     @Transactional
     public void rejeitarPermuta(Integer idPermuta, Integer idUtilizadorGestor) {
         validarAcesso(idUtilizadorGestor);
-        permutaBLL.rejeitarPedidoPermuta(idPermuta, idUtilizadorGestor);
+        permutaBLL.rejeitarPedidoPermuta(idPermuta, idUtilizadorGestor, obterLojaAtivaSegura());
     }
 
     @Transactional
     public void aprovarPreferencia(Integer idPreferencia, Integer idUtilizadorGestor, String decisao) {
         validarAcesso(idUtilizadorGestor);
-        preferenciaBLL.aprovarPreferencia(idPreferencia, idUtilizadorGestor, decisao);
+        preferenciaBLL.aprovarPreferencia(idPreferencia, idUtilizadorGestor, decisao, obterLojaAtivaSegura());
     }
 
     @Transactional
     public void rejeitarPreferencia(Integer idPreferencia, Integer idUtilizadorGestor, String decisao) {
         validarAcesso(idUtilizadorGestor);
-        preferenciaBLL.rejeitarPreferencia(idPreferencia, idUtilizadorGestor, decisao);
+        preferenciaBLL.rejeitarPreferencia(idPreferencia, idUtilizadorGestor, decisao, obterLojaAtivaSegura());
     }
 
     @Transactional(readOnly = true)
     public List<DayOff> listarHistoricoFolgas(Integer idGestor) {
         validarAcesso(idGestor);
-        return dayOffBLL.listarHistoricoDecisoesDaLoja(idGestor);
+        return dayOffBLL.listarHistoricoDecisoesDaLoja(idGestor, obterLojaAtivaSegura());
     }
 
     @Transactional(readOnly = true)
     public List<Permuta> listarHistoricoPermutas(Integer idGestor) {
         validarAcesso(idGestor);
-        return permutaBLL.listarHistoricoDecisoesDaLoja(idGestor);
+        return permutaBLL.listarHistoricoDecisoesDaLoja(idGestor, obterLojaAtivaSegura());
     }
 
     @Transactional(readOnly = true)
     public List<Preferencia> listarHistoricoPreferencias(Integer idGestor) {
         validarAcesso(idGestor);
-        return preferenciaBLL.listarHistoricoDecisoesDaLoja(idGestor);
+        return preferenciaBLL.listarHistoricoDecisoesDaLoja(idGestor, obterLojaAtivaSegura());
     }
 
     private void validarAcesso(Integer idUtilizadorGestor) {
@@ -160,9 +176,9 @@ public class PainelGerenteService {
         }
     }
 
-    private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
+    private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador, Integer idLoja) {
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizador, LojautilizadorHelper.GESTAO,
+                idUtilizador, idLoja, LojautilizadorHelper.GESTAO,
                 "Nao tens permissao para aceder ao painel do gerente.");
     }
 

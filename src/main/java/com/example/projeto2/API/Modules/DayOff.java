@@ -1,6 +1,7 @@
 package com.example.projeto2.API.Modules;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
 
@@ -12,6 +13,17 @@ public class DayOff {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_dayoff", nullable = false)
     private Integer idDayoff;
+
+    /**
+     * Optimistic locking — impede o lost update quando dois gestores (ex.: de duas
+     * lojas onde o colaborador trabalha) decidem o mesmo pedido em simultâneo. A
+     * segunda transação a comitar recebe OptimisticLockingFailureException em vez de
+     * sobrescrever silenciosamente a primeira decisão. Ver Revisao.md, ponto 2.
+     */
+    @Version
+    @ColumnDefault("0")
+    @Column(name = "versao", nullable = false)
+    private Integer versao;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_utilizador", nullable = false)
@@ -87,5 +99,13 @@ public class DayOff {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public Integer getVersao() {
+        return versao;
+    }
+
+    public void setVersao(Integer versao) {
+        this.versao = versao;
     }
 }

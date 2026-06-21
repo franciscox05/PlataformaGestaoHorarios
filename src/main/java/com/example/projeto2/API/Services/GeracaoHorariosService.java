@@ -97,6 +97,7 @@ public class GeracaoHorariosService {
     private final HorarioGeneratorEngine engine;
     private final PedidoGeracaoMontador pedidoMontador;
     private final NotificacaoService notificacaoService;
+    private final SessaoService sessaoBLL;
 
     public GeracaoHorariosService(LojautilizadorRepository lojautilizadorRepository,
                               LojautilizadorHelper lojautilizadorHelper,
@@ -115,7 +116,8 @@ public class GeracaoHorariosService {
                               HorarioValidatorService validator,
                               HorarioGeneratorEngine engine,
                               PedidoGeracaoMontador pedidoMontador,
-                              NotificacaoService notificacaoService) {
+                              NotificacaoService notificacaoService,
+                              SessaoService sessaoBLL) {
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
@@ -134,6 +136,20 @@ public class GeracaoHorariosService {
         this.engine = engine;
         this.pedidoMontador = pedidoMontador;
         this.notificacaoService = notificacaoService;
+        this.sessaoBLL = sessaoBLL;
+    }
+
+    /**
+     * Loja activa trancada na sessão Desktop. Todo o workflow de geração/proposta é
+     * exclusivo do Desktop — a Web só usa {@code obterMeusHorarios} (já store-scoped) e
+     * os checks de permissão. Se não houver loja válida na sessão (loja única, ou testes,
+     * ou processo Web onde {@link SessaoService} nunca é populado), devolve {@code null} →
+     * os resolvers caem na primeira loja de gestão. A guarda {@code > 0} protege contra o
+     * Mockito devolver {@code 0} para {@code Integer} não esboçado (ver Revisao.md, ponto 17).
+     */
+    private Integer idLojaAtivaSegura() {
+        Integer idLoja = sessaoBLL.obterLojaAtiva();
+        return (idLoja != null && idLoja > 0) ? idLoja : null;
     }
 
     @Transactional(readOnly = true)
@@ -980,19 +996,19 @@ public class GeracaoHorariosService {
 
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizador, LojautilizadorHelper.GESTAO,
+                idUtilizador, idLojaAtivaSegura(), LojautilizadorHelper.GESTAO,
                 "Nao tens permissao para gerar propostas de horario.");
     }
 
     private Lojautilizador obterLigacaoAtivaComAcessoAoPainel(Integer idUtilizador) {
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizador, LojautilizadorHelper.APROVACAO,
+                idUtilizador, idLojaAtivaSegura(), LojautilizadorHelper.APROVACAO,
                 "Nao tens permissao para consultar o painel de horarios da loja.");
     }
 
     private Lojautilizador obterLigacaoAtivaComPermissaoDeValidacao(Integer idUtilizador) {
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizador, LojautilizadorHelper.VALIDACAO,
+                idUtilizador, idLojaAtivaSegura(), LojautilizadorHelper.VALIDACAO,
                 "Nao tens permissao para validar a proposta mensal.");
     }
 

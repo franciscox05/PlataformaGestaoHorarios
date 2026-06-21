@@ -115,6 +115,16 @@ public class PreferenciaService {
         return preferenciaRepository.findHistoricoDecisoesDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
+    /** Store-scoped variant — uses the explicit idLoja from the session. */
+    @Transactional(readOnly = true)
+    public List<Preferencia> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador, Integer idLoja) {
+        if (idLoja == null) return listarHistoricoDecisoesDaLoja(idUtilizadorAprovador);
+        Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizadorAprovador, idLoja, LojautilizadorHelper.GESTAO,
+                "Nao tens permissao para aprovar preferencias.");
+        return preferenciaRepository.findHistoricoDecisoesDaLoja(ligacaoAtiva.getIdLoja().getId());
+    }
+
     /** Backward-compatible 1-arg overload — delegates with null store context. */
     @Transactional(readOnly = true)
     public List<String> listarColegasDaLoja(Integer idUtilizador) {
@@ -318,7 +328,7 @@ public class PreferenciaService {
             String decisaoLabel = "aprovado".equalsIgnoreCase(novoEstado) ? "Aprovada" : "Rejeitada";
             notificacaoService.criarNotificacao(idFuncionario,
                     "A tua preferência de horário (" + tipoFormatado + ") foi " + decisaoLabel + " pela gerência.",
-                    idLoja);
+                    ligacaoAtiva.getIdLoja().getId());
         }
 
         String tipoEvento = "aprovado".equalsIgnoreCase(novoEstado) ? "PREFERENCIA_APROVADA" : "PREFERENCIA_REJEITADA";

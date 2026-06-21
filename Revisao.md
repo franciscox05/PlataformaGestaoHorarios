@@ -707,3 +707,100 @@ Validado por `jstack` + reexecução: `DashboardHomeIntegrationTest` voltou a
 3. Reprodução manual com `francisco.gomes@levis.com`: login → ecrã de
    seleção de loja aparece → escolher uma loja → Dashboard mostra essa loja
    fixa na UI → Perfil abre sem nenhum erro, com os dados da loja escolhida.
+
+---
+
+## 18. 🛡️ BLINDAGEM MULTI-LOJA COMPLETA DO DESKTOP + OPTIMISTIC LOCKING (sessão Francisco)
+
+Continuação directa do ponto 17. Depois de validar manualmente o T1.1, o
+Francisco reportou dois defeitos visuais (sidebar sem loja; Perfil a mostrar a
+loja errada). A investigação revelou uma causa raiz no `SessaoService` e abriu
+uma auditoria sistemática a TODO o módulo Desktop em busca do mesmo padrão
+(serviços que resolvem a loja pela "primeira ligação" em vez da loja activa da
+sessão). **Tudo validado por `mvnw clean test` = 151 testes, 0 falhas a cada
+passo.**
+
+### 18.1 — 🔴 Bug corrigido: `iniciarSessao` apagava a loja activa
+`DashboardController.setUtilizadorLogado` chama `sessaoBLL.iniciarSessao(...)`
+DEPOIS de `LoginController`/`SelecionarLojaController` já terem chamado
+`definirLojaAtiva(...)`. O `iniciarSessao` chamava `limparSessaoInterna()` que
+repunha `idLojaAtiva = null` → a escolha do utilizador era destruída
+milissegundos depois de ser feita, e tudo caía no fallback "primeira loja
+alfabética" (Braga Parque).
+`[Correcção]` `SessaoService.iniciarSessao` agora preserva `idLojaAtiva` antes
+de limpar e repõe-no a seguir. Corrige a sidebar vazia E o Perfil a mostrar a
+loja errada de uma só vez. (commit `e0ed382`)
+
+### 18.2 — 🔴 Bug 14.2 RESOLVIDO: aprovações do Painel do Gerente multi-loja
+O `PainelGerenteService` era totalmente cego à loja — nenhum método aceitava
+`idLoja`, todos resolviam pela primeira loja. Para `francisco.gomes`, o painel
+só mostrava/aprovava pedidos de Braga Parque; pedidos de NorteShopping nunca
+apareciam, e a aprovação falhava com "Não tens permissão...".
+`[Correcção]` `PainelGerenteService` passou a injectar `SessaoService` e a
+resolver `idLoja = obterLojaAtivaSegura()` internamente, propagando-o para os
+overloads store-scoped (já existentes) de `DayOff`/`Permuta`/`Preferencia`
+(aprovar, rejeitar, listar pendentes, snapshot). Adicionados os overloads
+`listarHistoricoDecisoesDaLoja(idGestor, idLoja)` em falta nas 3 services.
+**Zero alterações ao `PainelGerentePedidosController` nem às support sections** —
+toda a correcção é interna ao serviço, por isso todos os call-sites existentes
+ficaram store-aware automaticamente.
+
+### 18.3 — Auditoria sistemática: TODOS os serviços de gestão Desktop blindados
+Aplicado o mesmo padrão (resolver a loja activa da sessão, com guarda `> 0`
+contra o Mockito-devolve-0 do ponto 17) aos 6 serviços que servem ecrãs de
+gerência no Desktop. Confirmado por `grep` que NENHUM destes caminhos é
+alcançado pela Web (a Web usa `HttpSession` + overloads `idLoja` próprios, e
+nunca popula `SessaoService`; processos distintos = singletons distintos), por
+isso a injecção de `SessaoService` é segura e não altera o comportamento Web:
+
+| Serviço | Ecrã Desktop | Como ficou store-aware |
+|---|---|---|
+| `PainelGerenteService` | Painel do Gerente | injecta SessaoService → idLoja nos 3 fluxos de aprovação |
+| `SnapshotOperacionalLojaService` | contexto operacional do painel | resolver `obterLigacaoAtivaComPermissao` lê loja activa |
+| `GestaoLojaService` | Gestão de Loja (regras/turnos/exceções) | resolver store-aware (Desktop-only; Web só usa `utilizadorPodeGerirLoja`) |
+| `RelatorioHorasService` | Relatórios de Horas | resolver store-aware (Desktop-only) |
+| `GestaoFuncionariosService` | Gestão de Funcionários | resolver store-aware (partilhado, mas Web nunca popula SessaoService) |
+| `GeracaoHorariosService` | Geração de Horários | 3 resolvers (GESTÃO/APROVAÇÃO/VALIDAÇÃO) store-aware via `idLojaAtivaSegura()` |
+
+Resultado: `francisco.gomes`, depois de escolher NorteShopping no login, vê e
+gere SEMPRE a NorteShopping em todos os ecrãs (Perfil, Painel, Gestão de Loja,
+Funcionários, Relatórios, Geração) — nunca mais cai silenciosamente em Braga
+Parque.
+
+### 18.4 — Lado do colaborador: dropdown de colegas + limitações documentadas
+`PreferenciasController` (Desktop) passou a passar a loja activa a
+`listarColegasDaLoja(idUtilizador, idLoja)` — o gerente multi-loja vê os colegas
+da loja onde está, não da primeira.
+**Limitação conhecida (NÃO corrigida — exige mudança de schema):** a submissão
+do PRÓPRIO pedido de folga de um utilizador multi-loja (`registarPedidoFolga` →
+`validarMesPublicado`) ainda resolve a primeira loja, porque `DayOff` não tem
+coluna `idLoja` (mesma causa estrutural do ponto 4). Afecta apenas um gerente a
+pedir a sua própria folga (não o fluxo central da demo, que é o gerente a
+APROVAR pedidos de outros). Adicionar `DayOff.idLoja` fica para Projeto 3.
+
+### 18.5 — 🔴 Race conditions RESOLVIDAS (pontos 2, 3, 11): `@Version`
+Adicionada coluna `versao` (optimistic locking JPA `@Version`) às entidades
+`DayOff` e `Permuta`. Agora, se dois gestores decidem a mesma folga/permuta em
+simultâneo, a segunda transação a comitar recebe
+`OptimisticLockingFailureException` em vez de sobrescrever silenciosamente a
+primeira decisão (lost update). A coluna foi adicionada à BD viva e ao
+`sql/demo-entrega.sql` (`versao INTEGER NOT NULL DEFAULT 0`); `ddl-auto=update`
++ `@ColumnDefault("0")` garantem-na em qualquer ambiente. Os 151 testes
+continuam 100% verdes (o `@Version` é transparente para escritas não
+concorrentes). Nota: o "perdedor" da corrida recebe um erro genérico tratado
+(sem crash); a tradução para uma mensagem amigável fica como melhoria de UX.
+
+### 18.6 — Permutas cross-store: decisão de manter o bloqueio (ponto 5)
+Decisão do Francisco: **manter** a regra de mesma-loja em `PermutaService`
+(é o correcto a nível legal/operacional) e reformular o Slide 3 do pitch para
+apresentar "permutas inter-lojas" como visão do Projeto 3. Nenhuma alteração de
+código — apenas a apresentação precisa de ajuste.
+
+### 18.7 — Estado final
+- **6 serviços de gestão + 1 controller de colaborador + `SessaoService`** tornados
+  store-aware; **2 entidades** com optimistic locking.
+- `mvnw clean test` = **151 testes, 0 falhas, 0 erros, BUILD SUCCESS**.
+- Nenhuma alteração à camada Web (confirmado: caminhos Desktop-only ou
+  SessaoService sempre null no processo Web).
+- Pendente de validação manual pelo Francisco: T1.2 (aprovação multi-loja no
+  Painel) e reconfirmação do T1.1 com a sidebar/Perfil corrigidos.

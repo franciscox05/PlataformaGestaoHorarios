@@ -36,19 +36,22 @@ public class SnapshotOperacionalLojaService {
     private final DayOffRepository dayOffRepository;
     private final PermutaRepository permutaRepository;
     private final PreferenciaRepository preferenciaRepository;
+    private final SessaoService sessaoBLL;
 
     public SnapshotOperacionalLojaService(LojautilizadorRepository lojautilizadorRepository,
                                       LojautilizadorHelper lojautilizadorHelper,
                                       HorarioRepository horarioRepository,
                                       DayOffRepository dayOffRepository,
                                       PermutaRepository permutaRepository,
-                                      PreferenciaRepository preferenciaRepository) {
+                                      PreferenciaRepository preferenciaRepository,
+                                      SessaoService sessaoBLL) {
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.horarioRepository = horarioRepository;
         this.dayOffRepository = dayOffRepository;
         this.permutaRepository = permutaRepository;
         this.preferenciaRepository = preferenciaRepository;
+        this.sessaoBLL = sessaoBLL;
     }
 
     @Transactional(readOnly = true)
@@ -508,9 +511,17 @@ public class SnapshotOperacionalLojaService {
         return new IntervaloOperacional(dataInicio, dataFim, dataInicio.equals(dataFim));
     }
 
+    /**
+     * Resolve a ligação de gestão na loja activa trancada na sessão Desktop. Se não
+     * houver loja válida na sessão (loja única, ou testes sem sessão), cai na primeira
+     * loja de gestão do utilizador. A guarda {@code > 0} protege contra o Mockito
+     * devolver {@code 0} para {@code Integer} não esboçado (ver Revisao.md, ponto 17).
+     */
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
+        Integer idLoja = sessaoBLL.obterLojaAtiva();
+        Integer idLojaSegura = (idLoja != null && idLoja > 0) ? idLoja : null;
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
-                idUtilizador, LojautilizadorHelper.GESTAO,
+                idUtilizador, idLojaSegura, LojautilizadorHelper.GESTAO,
                 "Nao tens permissao para consultar o snapshot operacional da loja.");
     }
 
