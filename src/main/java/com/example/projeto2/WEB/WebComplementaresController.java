@@ -95,6 +95,7 @@ public class WebComplementaresController {
 
     @PostMapping("/folgas")
     public String registarFolga(@RequestParam(value = "dataAusencia", required = false) String dataAusencia,
+                                @RequestParam(value = "dataFim", required = false) String dataFim,
                                 @RequestParam(value = "tipo", required = false) String tipo,
                                 @RequestParam(value = "motivo", required = false) String motivo,
                                 HttpSession session,
@@ -108,13 +109,26 @@ public class WebComplementaresController {
             if (motivo != null && motivo.strip().length() > 500) {
                 throw new IllegalArgumentException("O motivo nao pode ter mais de 500 caracteres.");
             }
-            DayOff pedido = new DayOff();
+            String tipoNorm = normalizarTipoFolga(tipo);
             Utilizador utilizadorProxy = new Utilizador();
             utilizadorProxy.setId(utilizadorId);
+            String motivoLimpo = motivo != null && !motivo.isBlank() ? motivo.strip() : null;
+
+            // Férias = intervalo de datas (paridade com o Desktop: registarPedidoFeriasIntervalo
+            // cria uma ausência por cada dia do período). Folgas/Baixa = dia isolado.
+            if ("ferias".equals(tipoNorm) && dataFim != null && !dataFim.isBlank()) {
+                java.time.LocalDate inicio = parseData(dataAusencia, "inicio das ferias");
+                java.time.LocalDate fim = parseData(dataFim, "fim das ferias");
+                dayOffBLL.registarPedidoFeriasIntervalo(utilizadorProxy, inicio, fim, motivoLimpo);
+                redirectAttributes.addFlashAttribute("sucesso", "Pedido de ferias submetido com sucesso.");
+                return "redirect:/web/complementares?tab=folgas";
+            }
+
+            DayOff pedido = new DayOff();
             pedido.setIdUtilizador(utilizadorProxy);
             pedido.setDataAusencia(parseData(dataAusencia, "ausencia"));
-            pedido.setTipo(normalizarTipoFolga(tipo));
-            pedido.setMotivo(motivo != null ? motivo.strip() : null);
+            pedido.setTipo(tipoNorm);
+            pedido.setMotivo(motivoLimpo);
             dayOffBLL.registarPedidoFolga(pedido);
             redirectAttributes.addFlashAttribute("sucesso", "Pedido de folga submetido com sucesso.");
         } catch (IllegalArgumentException ex) {

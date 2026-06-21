@@ -48,19 +48,28 @@
             </div>
             <form id="folga-form" method="post" action="/web/complementares/folgas" data-guard class="flex flex-col gap-4 p-5 flex-1">
                 <div class="flex flex-col gap-1.5">
-                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</label>
-                    <input id="folga-data" name="dataAusencia" type="date" required th:attr="min=${hoje}"
-                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
-                    <div id="folga-data-feedback" class="rounded-xl px-3.5 py-2.5 font-body text-[12.5px] flex items-center gap-2 mt-2 hidden"></div>
-                </div>
-                <div class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</label>
-                    <select name="tipo" required
+                    <select id="folga-tipo" name="tipo" required
                             class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                         <option value="ferias">Férias</option>
                         <option value="folgas">Folgas</option>
                         <option value="baixa">Baixa</option>
                     </select>
+                    <p id="folga-tipo-ajuda" class="font-body text-[11px] text-on-surface-variant">
+                        Férias: intervalo de datas · Folgas: dia isolado · Baixa: só hoje ou amanhã (motivo obrigatório).
+                    </p>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label id="folga-data-label" class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data</label>
+                    <input id="folga-data" name="dataAusencia" type="date" required th:attr="min=${hoje}"
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
+                    <div id="folga-data-feedback" class="rounded-xl px-3.5 py-2.5 font-body text-[12.5px] flex items-center gap-2 mt-2 hidden"></div>
+                </div>
+                <!-- Data fim — só para Férias (intervalo), paridade com o Desktop -->
+                <div id="folga-data-fim-panel" class="flex flex-col gap-1.5" style="display:none">
+                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Data fim</label>
+                    <input id="folga-data-fim" name="dataFim" type="date" th:attr="min=${hoje}"
+                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
                 </div>
                 <div class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Motivo (opcional)</label>
@@ -135,7 +144,7 @@
                               class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 font-body text-[13px] text-on-surface resize-none" style="outline:none"></textarea>
                 </div>
 
-                <!-- ── Painel de colegas (UC-F01c) ── -->
+                <!-- ── Painel de colegas preferidos (alinhado com o Desktop: até 2, sem "evitar") ── -->
                 <div id="pref-colegas-panel" class="flex flex-col gap-3" style="display:none"
                      th:if="${colegasDaLoja != null}">
                     <!-- Mensagem de erro inline -->
@@ -144,54 +153,32 @@
                         <span class="material-symbols-outlined text-[14px]">error_outline</span>
                         <span id="pref-colegas-erro-txt">Seleciona pelo menos um colega.</span>
                     </p>
-                    <!-- Duas colunas: preferidos / evitados -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- Coluna: Trabalhar com -->
-                        <div class="flex flex-col gap-2">
-                            <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-[13px]" style="color:#059669">thumb_up</span>
-                                Trabalhar com
-                            </p>
-                            <div class="bg-surface-container-low rounded-xl border border-outline-variant p-3 flex flex-col gap-2 overflow-y-auto" style="max-height:9rem">
-                                <label th:each="colega : ${colegasDaLoja}"
-                                       class="flex items-center gap-2 cursor-pointer select-none group">
-                                    <input type="checkbox" class="pref-cb-prefer" th:value="${colega}"
-                                           style="accent-color:#c0001f;width:14px;height:14px;flex-shrink:0">
-                                    <span class="font-body text-[12px] text-on-surface group-hover:text-primary-container transition-colors"
-                                          th:text="${colega}">Colega</span>
-                                </label>
-                                <p th:if="${#lists.isEmpty(colegasDaLoja)}"
-                                   class="font-body text-[11px] text-on-surface-variant italic">Sem colegas disponíveis.</p>
-                            </div>
-                        </div>
-                        <!-- Coluna: Evitar -->
-                        <div class="flex flex-col gap-2">
-                            <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-[13px] text-on-surface-variant">thumb_down</span>
-                                Evitar
-                            </p>
-                            <div class="bg-surface-container-low rounded-xl border border-outline-variant p-3 flex flex-col gap-2 overflow-y-auto" style="max-height:9rem">
-                                <label th:each="colega : ${colegasDaLoja}"
-                                       class="flex items-center gap-2 cursor-pointer select-none group">
-                                    <input type="checkbox" class="pref-cb-avoid" th:value="${colega}"
-                                           style="accent-color:#906f6d;width:14px;height:14px;flex-shrink:0">
-                                    <span class="font-body text-[12px] text-on-surface group-hover:text-primary-container transition-colors"
-                                          th:text="${colega}">Colega</span>
-                                </label>
-                                <p th:if="${#lists.isEmpty(colegasDaLoja)}"
-                                   class="font-body text-[11px] text-on-surface-variant italic">Sem colegas disponíveis.</p>
-                            </div>
+                    <div class="flex flex-col gap-2">
+                        <p class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[13px]" style="color:#059669">thumb_up</span>
+                            Colegas preferidos (até 2)
+                        </p>
+                        <div class="bg-surface-container-low rounded-xl border border-outline-variant p-3 flex flex-col gap-2 overflow-y-auto" style="max-height:11rem">
+                            <label th:each="colega : ${colegasDaLoja}"
+                                   class="flex items-center gap-2 cursor-pointer select-none group">
+                                <input type="checkbox" class="pref-cb-prefer" th:value="${colega}"
+                                       style="accent-color:#c0001f;width:14px;height:14px;flex-shrink:0">
+                                <span class="font-body text-[12px] text-on-surface group-hover:text-primary-container transition-colors"
+                                      th:text="${colega}">Colega</span>
+                            </label>
+                            <p th:if="${#lists.isEmpty(colegasDaLoja)}"
+                               class="font-body text-[11px] text-on-surface-variant italic">Sem colegas disponíveis.</p>
                         </div>
                     </div>
                     <p class="font-body text-[11px] text-on-surface-variant">
-                        As preferências de colegas são tidas em conta na geração do horário, mediante aprovação da gerência.
+                        O gerador tenta escalar-te com estes colegas sempre que possível, mediante aprovação da gerência.
                     </p>
                 </div>
 
                 <button type="submit" id="pref-submit-btn"
                         class="mt-auto bg-primary-container text-white font-body font-bold text-[13px] py-3 rounded-xl hover:bg-primary transition-colors flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-[17px]">save</span>
-                    Guardar preferência
+                    <span class="material-symbols-outlined text-[17px]">send</span>
+                    Submeter preferência
                 </button>
             </form>
         </section>
@@ -1077,6 +1064,9 @@ document.addEventListener('keydown', function (e) {
         if (diaSemanaPanel)  diaSemanaPanel.style.display  = isFolgaPreferida ? '' : 'none';
         if (colPanel)        colPanel.style.display        = isColegas ? 'flex' : 'none';
         if (erroDiv)         erroDiv.style.display         = 'none';
+        // Para "colegas" a descrição é construída a partir dos nomes selecionados — o
+        // textarea fica escondido, logo não pode continuar 'required' (bloquearia o submit).
+        if (descArea)        descArea.required             = !isColegas;
 
         // Datas obrigatórias só para tipos com período (não colegas nem folga_preferida)
         const precisaDatas = !isColegas && !isFolgaPreferida;
@@ -1094,11 +1084,26 @@ document.addEventListener('keydown', function (e) {
 
     if (!form) return;
 
+    // Limite de 2 colegas preferidos (paridade com o Desktop: cbColega1 + cbColega2)
+    document.querySelectorAll('.pref-cb-prefer').forEach(cb => {
+        cb.addEventListener('change', function () {
+            const marcados = document.querySelectorAll('.pref-cb-prefer:checked');
+            if (marcados.length > 2) {
+                this.checked = false;
+                if (erroDiv && erroTxt) {
+                    erroTxt.textContent = 'Podes escolher no máximo 2 colegas preferidos.';
+                    erroDiv.style.display = 'flex';
+                }
+            } else if (erroDiv) {
+                erroDiv.style.display = 'none';
+            }
+        });
+    });
+
     form.addEventListener('submit', function (e) {
         if (tipoSel.value !== 'colegas') return;
 
         const preferidos = [...document.querySelectorAll('.pref-cb-prefer:checked')].map(cb => cb.value);
-        const evitados   = [...document.querySelectorAll('.pref-cb-avoid:checked')].map(cb => cb.value);
 
         function mostrarErro(msg) {
             if (!erroDiv || !erroTxt) return;
@@ -1106,25 +1111,21 @@ document.addEventListener('keydown', function (e) {
             erroDiv.style.display = 'flex';
         }
 
-        if (preferidos.length === 0 && evitados.length === 0) {
+        if (preferidos.length === 0) {
             e.preventDefault();
-            mostrarErro('Seleciona pelo menos um colega em qualquer das colunas.');
+            mostrarErro('Seleciona pelo menos um colega com quem queres trabalhar.');
+            return;
+        }
+        if (preferidos.length > 2) {
+            e.preventDefault();
+            mostrarErro('Podes escolher no máximo 2 colegas preferidos.');
             return;
         }
 
-        const conflito = preferidos.some(n => evitados.includes(n));
-        if (conflito) {
-            e.preventDefault();
-            mostrarErro('O mesmo colega não pode estar em ambas as colunas.');
-            return;
-        }
-
-        let desc = '';
-        if (preferidos.length > 0) desc += 'Prefere trabalhar com: ' + preferidos.join(', ');
-        if (preferidos.length > 0 && evitados.length > 0) desc += ' | ';
-        if (evitados.length > 0)   desc += 'Prefere evitar: ' + evitados.join(', ');
-
-        if (descArea) descArea.value = desc;
+        // Codificação alinhada com o Desktop (PreferenciaDescricaoBuilder): apenas os
+        // nomes separados por vírgula — é o formato que o motor de geração lê em
+        // PreferenciasGeracaoBuilder.construirParesPreferidos.
+        if (descArea) descArea.value = preferidos.join(', ');
     });
 })();
 
@@ -1170,6 +1171,22 @@ function atualizarContainerFeedback(container, btn, msg, tipo) {
     const submitBtn  = document.getElementById('folga-submit-btn');
     const form       = document.getElementById('folga-form');
     if (!dataInput || !form) return;
+
+    // Férias = intervalo (mostra data fim e renomeia o 1.º campo para "Data início"),
+    // alinhado com o Desktop. Folgas/Baixa = dia isolado.
+    const tipoSelF   = document.getElementById('folga-tipo');
+    const dataFimPanel = document.getElementById('folga-data-fim-panel');
+    const dataFimInput = document.getElementById('folga-data-fim');
+    const dataLabel  = document.getElementById('folga-data-label');
+    function atualizarTipoFolga() {
+        const isFerias = tipoSelF && tipoSelF.value === 'ferias';
+        if (dataFimPanel) dataFimPanel.style.display = isFerias ? '' : 'none';
+        if (dataFimInput) dataFimInput.required = isFerias;
+        if (dataLabel)   dataLabel.textContent = isFerias ? 'Data início' : 'Data';
+        if (!isFerias && dataFimInput) dataFimInput.value = '';
+    }
+    if (tipoSelF) tipoSelF.addEventListener('change', atualizarTipoFolga);
+    atualizarTipoFolga();
 
     const HOJE = new Date(); HOJE.setHours(0, 0, 0, 0);
     let meusTurnosFolga = [];

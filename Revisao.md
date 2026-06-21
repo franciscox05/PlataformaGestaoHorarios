@@ -865,3 +865,66 @@ subqueries escalares nos repositórios são lookups por chave primária
 lojas; submissão de folga válida persiste; folga inválida (hoje) → erro tratado
 sem crash; bloqueio de preferência duplicada por tipo = regra de negócio
 correcta (não bug). `mvnw test` = **151 testes, 0 falhas** após a correcção.
+
+---
+
+## 20. 🔗 ALINHAMENTO Web ↔ Desktop dos Complementares (pedido do Francisco)
+
+Pedido: "a Web não está a seguir estritamente a mesma lógica do Desktop nos
+pedidos e preferências; analisa tudo e põe a Web a funcionar e em ligação com o
+Desktop". Auditados os três módulos contra o canónico (Desktop).
+
+### 20.1 — 🔴 Preferência de "Colegas" na Web tinha conceito "Evitar" partido
+A Web tinha **duas colunas** — "Trabalhar com" (`.pref-cb-prefer`) e "Evitar"
+(`.pref-cb-avoid`) — e codificava a descrição como
+`"Prefere trabalhar com: X. Prefere evitar: Y"`. O Desktop **não tem "evitar"**
+e codifica apenas `"Nome1, Nome2"` (até 2 colegas).
+
+**Pior — o "evitar" estava ativamente partido:** o parser do motor
+(`PreferenciasGeracaoBuilder.construirParesPreferidos`) divide a descrição por
+`[,;\n]` e faz match de nomes por **contains** (substring). Como o nome do colega
+"evitado" aparece na string, o algoritmo tratava-o como **preferido** — o oposto
+do pretendido.
+
+**Correção (alinhada com o Desktop):**
+- Removida a coluna "Evitar" do template.
+- Coluna única "Colegas preferidos (até 2)"; JS impõe mín. 1 / máx. 2 (paridade
+  com `cbColega1` + `cbColega2` do Desktop).
+- A descrição passou a ser `nomes.join(', ')` — o mesmo formato do Desktop, que o
+  parser lê corretamente.
+- Botão "Guardar preferência" → **"Submeter preferência"** (é um pedido como os
+  outros, ícone `send`).
+- Corrigido também: o textarea de descrição deixava de ser `required` quando o
+  tipo é "colegas" (estava escondido + required → bloqueava o submit em HTML5).
+
+**Verificado ao vivo:** submeter colegas na Web grava
+`descricao = "Afonso Barbosa, Francisco (Tu)"` na BD — formato Desktop exato.
+
+### 20.2 — Folgas: "Férias" na Web não suportava intervalo de datas
+O Desktop trata "Férias" como **intervalo** (início + fim →
+`registarPedidoFeriasIntervalo`, uma ausência por dia); a Web só tinha uma data
+e submetia um único dia.
+
+**Correção:** adicionado campo "Data fim" (visível só quando tipo=Férias, com o
+1.º campo renomeado para "Data início"); `WebComplementaresController.registarFolga`
+aceita `dataFim` e, para férias com intervalo, chama
+`registarPedidoFeriasIntervalo` — exatamente como o Desktop. Folgas/Baixa
+continuam dia isolado. Adicionada a legenda de ajuda igual à do tooltip do Desktop.
+
+**Verificado ao vivo:** férias de 3 dias na Web → 3 registos `day_offs` (um por dia).
+
+### 20.3 — Permutas: já alinhadas
+Confirmado que Web e Desktop usam o **mesmo backend** (`registarPedidoTroca`,
+`listarTurnosElegiveisParaPermuta`, `PermutaFolgaService`) e o mesmo conceito de
+fluxo (turno próprio → turno elegível de colega da mesma loja). Sem divergência.
+
+### 20.4 — Divergência menor deixada documentada (não corrigida)
+A preferência de **"Turnos"** na Web usa texto livre (descrição), enquanto o
+Desktop tem checkboxes estruturadas (Manhã/Intermédio/Noite + duração). **Não é
+um bug** — o motor infere os turnos por palavras-chave
+(`inferirTurnosAPartirDoContexto`), por isso o texto livre funciona. Alinhar a UI
+(replicar as checkboxes) é melhoria de UX, fora do âmbito desta ronda; pode ser
+feito a pedido.
+
+**Estado:** `mvnw test` = **152 testes, 0 falhas**. Apenas a camada Web (template
++ controller) foi alterada nesta ronda; o backend partilhado ficou intacto.
