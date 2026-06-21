@@ -149,7 +149,8 @@ public class GestaoLojaService {
             // Consistência operacional: a nova janela da loja tem de conter todos os
             // turnos ativos. Bloqueia se algum turno começa antes da abertura ou
             // termina depois do fecho — o gestor tem de o ajustar/desativar primeiro.
-            List<Turno> foraDaJanela = turnoRepository.findAllAtivosOrderByHoraInicioAsc().stream()
+            List<Turno> turnosAtivos = turnoRepository.findAllAtivosOrderByHoraInicioAsc();
+            List<Turno> foraDaJanela = turnosAtivos.stream()
                     .filter(t -> t.getHoraInicio() != null && t.getHoraFim() != null)
                     .filter(t -> t.getHoraInicio().isBefore(request.horaAbertura())
                             || t.getHoraFim().isAfter(request.horaFecho()))
@@ -164,6 +165,30 @@ public class GestaoLojaService {
                         + "ficam fora da nova janela da loja. Deves alterar ou desativar os seguintes turnos "
                         + "primeiro: " + listaTurnos + ".");
             }
+
+            // Cobertura obrigatória de abertura e fecho: tem de existir pelo menos um turno
+            // ativo com horaInicio == nova abertura e um com horaFim == novo fecho.
+            // Sem esta guarda, alargar o horário criaria uma janela sem cobertura operacional.
+            boolean coberturaAbertura = turnosAtivos.stream()
+                    .anyMatch(t -> request.horaAbertura().equals(t.getHoraInicio()));
+            boolean coberturaFecho = turnosAtivos.stream()
+                    .anyMatch(t -> request.horaFecho().equals(t.getHoraFim()));
+            if (!coberturaAbertura || !coberturaFecho) {
+                String detalhe;
+                if (!coberturaAbertura && !coberturaFecho) {
+                    detalhe = "a abertura (" + formatarHora(request.horaAbertura())
+                            + ") e o fecho (" + formatarHora(request.horaFecho()) + ")";
+                } else if (!coberturaAbertura) {
+                    detalhe = "a abertura (" + formatarHora(request.horaAbertura()) + ")";
+                } else {
+                    detalhe = "o fecho (" + formatarHora(request.horaFecho()) + ")";
+                }
+                throw new IllegalArgumentException(
+                        "Inconsistência operacional: o novo horário da loja exige a existência de turnos "
+                        + "ativos que cubram exatamente " + detalhe + ". "
+                        + "Cria ou ajusta um turno para cobrir esse período antes de alterar o horário da loja.");
+            }
+
             loja.setHoraAbertura(request.horaAbertura());
             loja.setHoraFecho(request.horaFecho());
             lojaRepository.save(loja);
@@ -452,20 +477,22 @@ public class GestaoLojaService {
         turnoRepository.deleteById(idTurno);
     }
 
-    /** Política estrita: nenhum turno ativo pode partilhar o mesmo nome. */
+    /** Política estrita: nenhum turno (ativo ou inativo) pode partilhar o mesmo nome — protege o histórico. */
     private void validarNomeTurnoUnico(String nomeLimpo, Integer idExcluir) {
-        if (!turnoRepository.findAtivosPorNome(nomeLimpo, idExcluir).isEmpty()) {
+        if (!turnoRepository.findTodosPorNome(nomeLimpo, idExcluir).isEmpty()) {
             throw new IllegalArgumentException(
-                    "Já existe um turno ativo com o nome \"" + nomeLimpo + "\". Escolhe um nome diferente.");
+                    "Erro: Já existe um turno registado com o nome \"" + nomeLimpo
+                    + "\" (Ativo ou Inativo). Escolhe um nome exclusivo para proteger o histórico.");
         }
     }
 
-    /** Política estrita: nenhum turno pode partilhar o intervalo de tempo EXATO (mesma hora de início e fim). */
+    /** Política estrita: nenhum turno (ativo ou inativo) pode partilhar o intervalo de tempo EXATO. */
     private void validarIntervaloTurnoUnico(LocalTime horaInicio, LocalTime horaFim, Integer idExcluir) {
         if (!turnoRepository.findByIntervaloExato(horaInicio, horaFim, idExcluir).isEmpty()) {
             throw new IllegalArgumentException(
-                    "Já existe um turno com o intervalo " + formatarHora(horaInicio) + "-" + formatarHora(horaFim)
-                    + ". Turnos com o mesmo horário exato não são permitidos.");
+                    "Erro: Já existe um turno configurado exatamente para o intervalo "
+                    + formatarHora(horaInicio) + " - " + formatarHora(horaFim)
+                    + ". Altera o intervalo proposto.");
         }
     }
 

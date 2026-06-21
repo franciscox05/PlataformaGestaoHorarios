@@ -693,6 +693,24 @@
     -fx-border-radius: 8px;
     -fx-cursor: hand;
 }
+.botao-perigo {
+    -fx-background-color: rgba(201,20,40,0.08);
+    -fx-text-fill: -levis-red-dark;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-padding: 11px 20px;
+    -fx-background-radius: 12px;
+    -fx-border-radius: 12px;
+    -fx-border-color: rgba(201,20,40,0.30);
+    -fx-border-width: 1.5px;
+    -fx-cursor: hand;
+}
+.botao-perigo:hover {
+    -fx-background-color: rgba(201,20,40,0.16);
+    -fx-border-color: -levis-red-dark;
+    -fx-text-fill: -levis-red-dark;
+}
+
 .botao-iconico {
     -fx-background-color: -surface-soft;
     -fx-border-color: -border-soft;
@@ -753,6 +771,32 @@
 .chip-ok     { -fx-background-color: rgba(5,150,105,0.12); -fx-text-fill: #047857; }
 .chip-pause  { -fx-background-color: rgba(217,119,6,0.12); -fx-text-fill: #b45309; }
 .chip-erro   { -fx-background-color: rgba(186,26,26,0.12); -fx-text-fill: #93000a; }
+
+/* Chips da coluna "Qualidade" (tabela de Alternativas) — contraste garantido mesmo com a linha selecionada */
+.chip-qualidade-alta {
+    -fx-background-color: rgba(5,150,105,0.14);
+    -fx-text-fill: #047857;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 3px 10px;
+    -fx-background-radius: 999px;
+}
+.chip-qualidade-media {
+    -fx-background-color: rgba(217,119,6,0.14);
+    -fx-text-fill: #b45309;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 3px 10px;
+    -fx-background-radius: 999px;
+}
+.chip-qualidade-baixa {
+    -fx-background-color: rgba(107,114,128,0.16);
+    -fx-text-fill: #374151;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 3px 10px;
+    -fx-background-radius: 999px;
+}
 
 /* ── CAMPOS DE FORMULÁRIO — filled moderno ──────────────────── */
 .campo-input,
@@ -2514,6 +2558,15 @@
 .modulo-com-abas { -fx-background-color: -surface-app; }
 .aba-conteudo { -fx-background-color: transparent; }
 
+/* Remoção do anel de foco azul nativo do TabPane/Tab — aplicado globalmente a todas as páginas */
+.tab-pane,
+.tab-pane .tab,
+.tab-pane .tab-header-area,
+.tab-pane .tab-header-area .headers-region .tab {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    BLOCO CSS-09 — DIÁLOGOS MODAIS (DialogosHelper)
    Todas as classes dialogo-* — OBRIGATÓRIO para DialogosHelper funcionar
@@ -3355,6 +3408,9 @@
     -fx-background-radius: 8px;
     -fx-cursor: hand;
     -fx-border-width: 0;
+    -fx-alignment: CENTER;
+    -fx-content-display: LEFT;
+    -fx-min-height: 30px;
 }
 .btn-vista-ativo {
     -fx-background-color: #ffffff;
@@ -3910,6 +3966,13 @@
 .grelha-dia-cell-hoje {
     -fx-background-color: #fff5f5;
 }
+
+/* Célula alterada manualmente nesta sessão de revisão (destaque amarelo/âmbar) */
+.grelha-dia-cell-destaque {
+    -fx-background-color: #fffbeb;
+    -fx-border-color: #f59e0b;
+    -fx-border-width: 3px;
+}
 .grelha-header-hoje-circulo {
     -fx-background-color: #dc2626;
     -fx-background-radius: 999px;
@@ -4000,6 +4063,7 @@
 }
 .grelha-compacta-tile-fds      { -fx-background-color: #fafafa; }
 .grelha-compacta-tile-hoje     { -fx-background-color: #fef9c3; }
+.grelha-compacta-tile-destaque { -fx-background-color: #fffbeb; -fx-border-color: #f59e0b; -fx-border-width: 3px; }
 .grelha-compacta-tile-clicavel { -fx-cursor: hand; }
 .grelha-compacta-tile-clicavel:hover { -fx-background-color: rgba(201,20,40,0.06); }
 

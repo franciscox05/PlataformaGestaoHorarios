@@ -53,4 +53,13 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
             """)
     List<Turno> findAtivosPorNome(@Param("nome") String nome,
                                   @Param("idExcluir") Integer idExcluir);
+
+    /** Todos os turnos (ativos ou inativos) com o mesmo nome — protege o histórico de duplicados. */
+    @Query("""
+            SELECT t FROM Turno t
+            WHERE LOWER(TRIM(t.nome)) = LOWER(TRIM(:nome))
+              AND (:idExcluir IS NULL OR t.id <> :idExcluir)
+            """)
+    List<Turno> findTodosPorNome(@Param("nome") String nome,
+                                 @Param("idExcluir") Integer idExcluir);
 }

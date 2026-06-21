@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -67,6 +68,15 @@ public final class VistaGrelhaHorarioRender {
      */
     public void renderizar(boolean vistaSemanais, LocalDate dataInicio,
                            List<HorarioLinha> linhas) {
+        renderizar(vistaSemanais, dataInicio, linhas, null);
+    }
+
+    /**
+     * @param celulasDestacadas chaves (ver {@link GrelhaHorarioRenderer#chaveCelula}) de células
+     *                          a destacar por terem sido alteradas manualmente nesta sessão.
+     */
+    public void renderizar(boolean vistaSemanais, LocalDate dataInicio,
+                           List<HorarioLinha> linhas, Set<String> celulasDestacadas) {
         if (grelhaContainer == null) return;
 
         LocalDate inicio;
@@ -121,10 +131,10 @@ public final class VistaGrelhaHorarioRender {
 
         if (!vistaSemanais) {
             ajustarScrollParaCompacto();
-            GrelhaHorarioRenderer.renderizarCompacto(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
+            GrelhaHorarioRenderer.renderizarCompacto(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia, celulasDestacadas);
         } else {
             restaurarScrollPadrão();
-            GrelhaHorarioRenderer.renderizar(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia);
+            GrelhaHorarioRenderer.renderizar(grelhaContainer, dias, linhasGrelha, LocalDate.now(), aoAbrirDia, celulasDestacadas);
         }
     }
 

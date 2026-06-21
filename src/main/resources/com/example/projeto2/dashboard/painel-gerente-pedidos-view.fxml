@@ -97,15 +97,11 @@
 
             <Region minHeight="28.0" />
 
-            <!-- Main two-column body -->
-            <GridPane hgap="24.0">
-                <columnConstraints>
-                    <ColumnConstraints hgrow="ALWAYS" percentWidth="44.0" />
-                    <ColumnConstraints hgrow="ALWAYS" percentWidth="56.0" />
-                </columnConstraints>
+            <!-- Main body: TabPane with the three request types, context panel below -->
+            <VBox spacing="24.0">
 
-                <!-- LEFT: TabPane with the three request types -->
-                <VBox GridPane.columnIndex="0" GridPane.rowIndex="0">
+                <!-- TOP: TabPane with the three request types -->
+                <VBox>
                     <TabPane styleClass="modulo-tabs" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
 
                         <!-- Tab: Folgas -->
@@ -223,9 +219,8 @@
                     </TabPane>
                 </VBox>
 
-                <!-- RIGHT: Operational context panel -->
-                <VBox fx:id="painelContextoOperacional" spacing="20.0" styleClass="info-card"
-                      GridPane.columnIndex="1" GridPane.rowIndex="0">
+                <!-- BOTTOM: Operational context panel -->
+                <VBox fx:id="painelContextoOperacional" spacing="20.0" styleClass="info-card">
 
                     <HBox alignment="CENTER_LEFT" spacing="12.0">
                         <SVGPath fill="#c41230" styleClass="card-icon"
@@ -239,7 +234,7 @@
                                wrapText="true" />
                         <Label fx:id="lblContextoPeriodo" styleClass="texto-ajuda" text="-" wrapText="true" />
                         <Label fx:id="lblContextoResumo"  styleClass="meta-valor"
-                               text="Aqui v&#227;o aparecer os colaboradores envolvidos e a escala da loja no per&#237;odo relevante."
+                               text="Aqui v&#227;o aparecer os colaboradores envolvidos no per&#237;odo relevante."
                                wrapText="true" />
                         <Label fx:id="lblContextoMotivoCompleto" styleClass="meta-valor"
                                text="-" wrapText="true" />
@@ -284,19 +279,9 @@
                         </TableView>
                     </VBox>
 
-                    <VBox spacing="8.0">
-                        <Label styleClass="campo-titulo" text="ESCALA DA LOJA &#8212; PER&#205;ODO DO PEDIDO" />
-                        <ScrollPane fitToWidth="true" hbarPolicy="AS_NEEDED" vbarPolicy="AS_NEEDED"
-                                    minHeight="120.0" maxHeight="320.0">
-                            <content>
-                                <VBox fx:id="gradeHorario" spacing="4.0" />
-                            </content>
-                        </ScrollPane>
-                    </VBox>
-
                 </VBox>
 
-            </GridPane>
+            </VBox>
 
         </VBox>
     </content>

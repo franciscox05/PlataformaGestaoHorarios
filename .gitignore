@@ -46,3 +46,8 @@ build/
 **/application-local.properties
 **/application-local.yml
 .mcp.json
+
+### Ferramentas locais / artefactos de entrega (nao fazem parte do codigo) ###
+.claude/
+Entrega_Projeto2_*.zip
+Entrega_Projeto2_*/

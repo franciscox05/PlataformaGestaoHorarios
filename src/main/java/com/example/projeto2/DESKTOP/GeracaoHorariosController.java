@@ -155,6 +155,8 @@ public class GeracaoHorariosController {
     @FXML private Button btnVistaGrelha;
     @FXML private Button btnVerificarHorario;
     @FXML private Button btnExpandirGrelha;
+    @FXML private Button btnDesfazerAlteracao;
+    @FXML private Button btnExpandirComparacao;
     @FXML private VBox painelVerificacaoHorario;
     @FXML private Label lblVerificacaoTitulo;
     @FXML private Button btnExportarVerificacaoPdf;
@@ -196,6 +198,19 @@ public class GeracaoHorariosController {
     private DiagnosticoGeracaoPanel diagnosticoGeracaoPanel;
     private GeracaoStepperPanel stepperPanel;
 
+    /**
+     * Histórico de alterações manuais de turno feitas nesta sessão de revisão, para permitir desfazer.
+     * {@code idHorario} é o id da linha de horário existente DEPOIS da alteração (null se a alteração
+     * deixou o colaborador de folga nesse dia — nesse caso o desfazer recria o turno via
+     * {@code adicionarTurno}, usando {@code idLojautilizador}).
+     */
+    private record AlteracaoManualTurno(Integer idHorario, Integer idLojautilizador, LocalDate data,
+                                        com.example.projeto2.API.Modules.Turno turnoAnterior, Integer idColaborador) {
+    }
+
+    private final java.util.Deque<AlteracaoManualTurno> historicoAlteracoes = new java.util.ArrayDeque<>();
+    private final java.util.Set<String> celulasAlteradas = new java.util.HashSet<>();
+
     public GeracaoHorariosController(GeracaoHorariosService geracaoHorariosBLL,
                                      ExportacaoPdfService exportacaoPdfBLL,
                                      HorarioService horarioBLL) {
@@ -209,6 +224,7 @@ public class GeracaoHorariosController {
         vistaGrelhaRender = new VistaGrelhaHorarioRender(
                 grelhaContainer, grelhaScrollPane, emptyStateGrelha, lblGrelhaPeriodo,
                 this::abrirDetalheDia);
+        atualizarEstadoBotaoDesfazer();
         diagnosticoGeracaoPanel = new DiagnosticoGeracaoPanel(
                 painelDiagnosticoGeracao, lblDiagnosticoTitulo, lblDiagnosticoResumo,
                 lblDiagnosticoPerfilRecomendado, boxDiagnosticoMotivos, boxDiagnosticoSugestoes,
@@ -437,14 +453,21 @@ public class GeracaoHorariosController {
                 item.getChildren().addAll(chip, txt);
                 legenda.getChildren().add(item);
             }
-            header.getChildren().addAll(lblTitulo, esp, legenda);
+
+            javafx.stage.Stage janela = new javafx.stage.Stage();
+            javafx.scene.control.Button btnFechar = new javafx.scene.control.Button("✕ Fechar");
+            btnFechar.setStyle("-fx-background-color: rgba(255,255,255,0.15); -fx-text-fill: white; "
+                    + "-fx-font-weight: 700; -fx-font-size: 12px; -fx-padding: 6 14 6 14; -fx-background-radius: 6; "
+                    + "-fx-cursor: hand;");
+            btnFechar.setOnAction(e -> janela.close());
+            header.getChildren().addAll(lblTitulo, esp, legenda, btnFechar);
 
             // ── Grelha detalhada (chip colorido + horas, coluna fixa) ────────
             javafx.scene.layout.VBox grelha = new javafx.scene.layout.VBox();
             grelha.setStyle("-fx-background-color: white;");
             // null: sem callback de clique — evita abrir painéis na app de fundo
             com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
-                    .renderizarDetalhado(grelha, dias, linhasGrelha, LocalDate.now(), null);
+                    .renderizarDetalhado(grelha, dias, linhasGrelha, LocalDate.now(), null, celulasAlteradas);
 
             javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(grelha);
             sp.setFitToWidth(true);
@@ -460,16 +483,78 @@ public class GeracaoHorariosController {
             if (obterJanela() != null && obterJanela().getScene() != null) {
                 cena.getStylesheets().addAll(obterJanela().getScene().getStylesheets());
             }
-            javafx.stage.Stage janela = new javafx.stage.Stage();
             janela.setTitle("Horário — " + mes + " " + spAno.getValue());
             janela.setScene(cena);
-            janela.initModality(javafx.stage.Modality.NONE);
+            janela.initModality(javafx.stage.Modality.APPLICATION_MODAL);
             if (obterJanela() != null) janela.initOwner(obterJanela());
             janela.show();
             // setMaximized depois de show() garante que funciona no Windows/JavaFX
             javafx.application.Platform.runLater(() -> janela.setMaximized(true));
         } catch (Exception e) {
             mostrarErro("Não foi possível abrir a vista em detalhe.");
+        }
+    }
+
+    @FXML
+    public void onExpandirComparacaoClick() {
+        if (tabelaComparacao == null) return;
+        try {
+            javafx.scene.Parent paiOriginal = tabelaComparacao.getParent();
+            if (!(paiOriginal instanceof javafx.scene.layout.VBox paiVBox)) return;
+            int indiceTabela = paiVBox.getChildren().indexOf(tabelaComparacao);
+
+            javafx.scene.layout.VBox root = new javafx.scene.layout.VBox(0);
+            root.setStyle("-fx-background-color: white;");
+
+            javafx.scene.layout.HBox header = new javafx.scene.layout.HBox(12);
+            header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            header.setPadding(new javafx.geometry.Insets(16, 24, 14, 24));
+            header.setStyle("-fx-background-color: #7f1d1d; -fx-border-color: transparent;");
+
+            PropostaResumo base = cbComparacaoBase.getValue();
+            PropostaResumo alvo = cbComparacaoAlvo.getValue();
+            javafx.scene.control.Label lblTitulo = new javafx.scene.control.Label(
+                    "Comparação de alternativas"
+                    + (base != null && alvo != null ? "  —  " + base.rotulo() + " vs " + alvo.rotulo() : ""));
+            lblTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: white;");
+
+            javafx.scene.layout.Region esp = new javafx.scene.layout.Region();
+            javafx.scene.layout.HBox.setHgrow(esp, javafx.scene.layout.Priority.ALWAYS);
+
+            javafx.stage.Stage janela = new javafx.stage.Stage();
+            javafx.scene.control.Button btnFechar = new javafx.scene.control.Button("✕ Fechar");
+            btnFechar.setStyle("-fx-background-color: rgba(255,255,255,0.15); -fx-text-fill: white; "
+                    + "-fx-font-weight: 700; -fx-font-size: 12px; -fx-padding: 6 14 6 14; -fx-background-radius: 6; "
+                    + "-fx-cursor: hand;");
+            header.getChildren().addAll(lblTitulo, esp, btnFechar);
+
+            javafx.scene.layout.VBox corpo = new javafx.scene.layout.VBox(16);
+            corpo.setPadding(new javafx.geometry.Insets(24));
+            corpo.setStyle("-fx-background-color: white;");
+            javafx.scene.layout.VBox.setVgrow(tabelaComparacao, javafx.scene.layout.Priority.ALWAYS);
+            corpo.getChildren().addAll(lblResumoComparacao, tabelaComparacao);
+
+            // Ao fechar a janela, devolver a tabela (e o seu vgrow) ao painel de origem na aba Alternativas.
+            janela.setOnHidden(e -> {
+                corpo.getChildren().remove(tabelaComparacao);
+                javafx.scene.layout.VBox.setVgrow(tabelaComparacao, javafx.scene.layout.Priority.ALWAYS);
+                paiVBox.getChildren().add(indiceTabela, tabelaComparacao);
+            });
+
+            root.getChildren().addAll(header, corpo);
+
+            javafx.scene.Scene cena = new javafx.scene.Scene(root, 1400, 800);
+            if (obterJanela() != null && obterJanela().getScene() != null) {
+                cena.getStylesheets().addAll(obterJanela().getScene().getStylesheets());
+            }
+            janela.setTitle("Comparação de alternativas");
+            janela.setScene(cena);
+            janela.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            if (obterJanela() != null) janela.initOwner(obterJanela());
+            janela.show();
+            javafx.application.Platform.runLater(() -> janela.setMaximized(true));
+        } catch (Exception e) {
+            mostrarErro("Não foi possível abrir a comparação em detalhe.");
         }
     }
 
@@ -752,16 +837,15 @@ public class GeracaoHorariosController {
             btnGrelhaMes.getStyleClass().removeAll("btn-grelha-sub-ativo", "btn-grelha-sub-inativo");
             btnGrelhaMes.getStyleClass().add(grelhaVistaSemanais ? "btn-grelha-sub-inativo" : "btn-grelha-sub-ativo");
         }
-        // Mostrar botão de expandir apenas na vista de mês
         if (btnExpandirGrelha != null) {
-            btnExpandirGrelha.setVisible(!grelhaVistaSemanais);
-            btnExpandirGrelha.setManaged(!grelhaVistaSemanais);
+            btnExpandirGrelha.setVisible(true);
+            btnExpandirGrelha.setManaged(true);
         }
     }
 
     private void construirVistaGrelha() {
         List<HorarioLinha> linhas = propostaAtual != null ? propostaAtual.linhas() : null;
-        vistaGrelhaRender.renderizar(grelhaVistaSemanais, grelhaDataInicio, linhas);
+        vistaGrelhaRender.renderizar(grelhaVistaSemanais, grelhaDataInicio, linhas, celulasAlteradas);
     }
 
     // ── Calendário Mensal ─────────────────────────────────────────────────────
@@ -862,15 +946,19 @@ public class GeracaoHorariosController {
             if (owner != null) dialogo.initOwner(owner);
             dialogo.showAndWait().ifPresent(turnoSelecionado -> {
                 try {
-                    horarioBLL.adicionarTurno(
+                    com.example.projeto2.API.Modules.Horario novoHorario = horarioBLL.adicionarTurno(
                             propostaAtual.idProposta(),
                             template.idLojautilizador(),
                             data,
                             turnoSelecionado.getId(),
                             utilizadorLogado != null ? utilizadorLogado.getId() : null);
                     if (owner instanceof javafx.stage.Stage s) s.close();
-                    mostrarSucesso("Turno " + conv.toString(turnoSelecionado) + " adicionado a "
-                            + (template.colaborador() != null ? template.colaborador() : "-") + ".");
+                    mostrarSucesso("Troca de turno efetuada com sucesso.");
+                    historicoAlteracoes.push(new AlteracaoManualTurno(
+                            novoHorario != null ? novoHorario.getId() : null,
+                            template.idLojautilizador(), data, null, template.idColaborador()));
+                    marcarCelulaAlterada(template.idColaborador(), data);
+                    atualizarEstadoBotaoDesfazer();
                     if (propostaAtual.idProposta() != null) {
                         carregarPropostaPorIdEmSegundoPlano(propostaAtual.idProposta(), false);
                     }
@@ -1621,16 +1709,86 @@ public class GeracaoHorariosController {
     }
 
     private void abrirEdicaoTurno(HorarioLinha linha, Window owner) {
+        com.example.projeto2.API.Modules.Turno turnoAnterior = resolverTurnoDaLinha(linha);
         EdicaoTurnoDialog.abrir(
                 linha, owner, horarioBLL,
                 utilizadorLogado != null ? utilizadorLogado.getId() : null,
-                this::mostrarSucesso, this::mostrarErro,
+                (mensagem, turnoEscolhido, folga) -> {
+                    if (turnoAnterior != null) {
+                        historicoAlteracoes.push(new AlteracaoManualTurno(
+                                folga ? null : linha.idHorario(),
+                                linha.idLojautilizador(), linha.data(), turnoAnterior, linha.idColaborador()));
+                        marcarCelulaAlterada(linha.idColaborador(), linha.data());
+                        atualizarEstadoBotaoDesfazer();
+                    }
+                    mostrarSucesso(mensagem);
+                },
+                this::mostrarErro,
                 () -> {
                     if (propostaAtual != null && propostaAtual.idProposta() != null) {
                         carregarPropostaPorIdEmSegundoPlano(propostaAtual.idProposta(), false);
                     }
                 }
         );
+    }
+
+    /** Resolve a {@link com.example.projeto2.API.Modules.Turno} concreto que corresponde aos campos
+     * de exibição (tipo + período) de uma {@link HorarioLinha}, usada para restaurar o estado anterior no desfazer. */
+    private com.example.projeto2.API.Modules.Turno resolverTurnoDaLinha(HorarioLinha linha) {
+        if (linha == null || linha.turno() == null) return null;
+        try {
+            for (com.example.projeto2.API.Modules.Turno t : horarioBLL.listarTodosOsTurnos()) {
+                if (com.example.projeto2.API.Services.geracao.HorarioFormatters.formatarTurno(t).equals(linha.turno())
+                        && com.example.projeto2.API.Services.geracao.HorarioFormatters.formatarPeriodo(t).equals(linha.periodo())) {
+                    return t;
+                }
+            }
+        } catch (Exception ignored) {
+            // sem turnos disponíveis ou erro ao listar — desfazer fica indisponível para esta alteração
+        }
+        return null;
+    }
+
+    private void marcarCelulaAlterada(Integer idColaborador, LocalDate data) {
+        celulasAlteradas.add(com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer.chaveCelula(idColaborador, data));
+    }
+
+    @FXML
+    public void onDesfazerAlteracaoClick() {
+        AlteracaoManualTurno alteracao = historicoAlteracoes.poll();
+        if (alteracao == null) {
+            mostrarInformacao("Não há alterações manuais para desfazer.");
+            return;
+        }
+        try {
+            Integer idUtilizador = utilizadorLogado != null ? utilizadorLogado.getId() : null;
+            if (alteracao.turnoAnterior() == null) {
+                // a alteração tinha criado um turno novo (estava de folga antes) → desfazer = remover
+                horarioBLL.removerTurno(alteracao.idHorario(), idUtilizador);
+            } else if (alteracao.idHorario() != null) {
+                // a alteração editou um turno existente → desfazer = restaurar o turno anterior na mesma linha
+                horarioBLL.editarTurnoPublicado(alteracao.idHorario(), alteracao.turnoAnterior().getId(), idUtilizador, null);
+            } else if (propostaAtual != null) {
+                // a alteração tinha removido o turno (ficou de folga) → desfazer = readicionar o turno anterior
+                horarioBLL.adicionarTurno(propostaAtual.idProposta(), alteracao.idLojautilizador(),
+                        alteracao.data(), alteracao.turnoAnterior().getId(), idUtilizador);
+            }
+            celulasAlteradas.remove(com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
+                    .chaveCelula(alteracao.idColaborador(), alteracao.data()));
+            mostrarSucesso("Alteração desfeita — turno restaurado.");
+            atualizarEstadoBotaoDesfazer();
+            if (propostaAtual != null && propostaAtual.idProposta() != null) {
+                carregarPropostaPorIdEmSegundoPlano(propostaAtual.idProposta(), false);
+            }
+        } catch (Exception e) {
+            mostrarErro("Não foi possível desfazer a alteração.");
+        }
+    }
+
+    private void atualizarEstadoBotaoDesfazer() {
+        if (btnDesfazerAlteracao != null) {
+            btnDesfazerAlteracao.setDisable(historicoAlteracoes.isEmpty());
+        }
     }
 
     // ── Records privados ──────────────────────────────────────────────────────

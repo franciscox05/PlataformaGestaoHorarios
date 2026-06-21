@@ -241,8 +241,11 @@ INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifi
     (8,  1,  8, 2,   'Dois dias de descanso por semana.'),
     (9,  1,  9, 2,   'Rotacao de fins de semana a cada 2 semanas.'),
     (10, 1, 10, 1,   'Garantir presenca de gerente ou subgerente aos sabados com loja aberta.'),
-    -- Loja 2 (NorteShopping) — configuracao base
-    (11, 2,  1, 2,   'Configuracao base para loja secundaria.'),
+    -- Loja 2 (NorteShopping) — configuracao base. Minimo de 1 colaborador/turno (em vez de 2):
+    -- a equipa de 6 pessoas tem 976h/mes de capacidade contratual; com minimo de 2/turno nos
+    -- 3 turnos diarios o motor exige ~1674h/mes (cobertura impossivel, faltam ~698h). Com 1/turno
+    -- a exigencia cai para ~837h, dentro da capacidade da equipa e a geracao tem sucesso.
+    (11, 2,  1, 1,   'Loja secundaria com equipa reduzida; minimo de 1 colaborador por turno para viabilizar cobertura mensal.'),
     (12, 2,  8, 2,   'Descanso semanal minimo.'),
     (13, 2,  9, 2,   'Rotacao de fins de semana.'),
     (14, 2, 10, 1,   'Chefia obrigatoria ao sabado.');

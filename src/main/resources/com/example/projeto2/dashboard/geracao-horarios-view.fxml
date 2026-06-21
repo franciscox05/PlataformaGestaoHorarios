@@ -339,6 +339,8 @@
                                                       promptText="Alternativa a comparar" styleClass="campo-combo"/>
                                             <Button fx:id="btnCompararPropostas" onAction="#onCompararPropostasClick"
                                                     styleClass="botao-acao" text="Comparar"/>
+                                            <Button fx:id="btnExpandirComparacao" onAction="#onExpandirComparacaoClick"
+                                                    styleClass="botao-nav" text="&#8599;"/>
                                         </HBox>
                                         <Label fx:id="lblResumoComparacao" styleClass="bento-card-subtitulo"
                                                text="Seleciona duas alternativas para comparar distribui&#231;&#227;o, carga hor&#225;ria e impacto por colaborador."
@@ -688,6 +690,12 @@
                                                         styleClass="botao-nav"
                                                         text="&#8599;"
                                                         managed="false" visible="false"/>
+                                                <Region minWidth="4.0"/>
+                                                <Button fx:id="btnDesfazerAlteracao"
+                                                        onAction="#onDesfazerAlteracaoClick"
+                                                        styleClass="botao-nav"
+                                                        text="&#8634; Desfazer"
+                                                        disable="true"/>
                                             </HBox>
                                             <Label styleClass="bento-card-subtitulo"
                                                    text="Vista matricial: colaboradores em linha, dias em coluna."

@@ -1,0 +1,278 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[portuguese]{babel}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+
+\geometry{a4paper, margin=2.5cm}
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codeframe}{RGB}{200,200,200}
+\definecolor{perguntacor}{RGB}{120,0,0}
+\definecolor{respostacor}{RGB}{0,70,120}
+
+\lstset{
+    backgroundcolor=\color{codebg},
+    rulecolor=\color{codeframe},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    columns=fullflexible,
+    literate=
+        {á}{{\'a}}1 {ã}{{\~a}}1 {ç}{{\c{c}}}1 {ó}{{\'o}}1
+        {é}{{\'e}}1 {í}{{\'i}}1 {ê}{{\^e}}1 {_}{{\_}}1
+}
+
+\titleformat{\section}{\Large\bfseries\color{black}}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Guião de Simulação de Defesa}
+\fancyhead[R]{PlataformaGestaoHorarios}
+\fancyfoot[C]{\thepage}
+
+\newcommand{\pergunta}[1]{\par\medskip\noindent\textbf{\textcolor{perguntacor}{Pergunta do Professor:}} #1}
+\newenvironment{respostaAluno}{\noindent\textbf{\textcolor{respostacor}{Resposta do Aluno (Tiago/Francisco):}}\par\nobreak\vspace{0.1cm}}{\par\vspace{0.4cm}}
+
+\title{\textbf{Guião de Simulação de Perguntas e Respostas com Júri de Defesa} \\[0.3cm]
+\large Projeto PlataformaGestaoHorarios --- Plataforma de Gestão de Horários (Levi's Store)}
+\author{Tiago \and Francisco}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent Este documento constitui um guião de preparação para a defesa pública do projeto \textit{PlataformaGestaoHorarios}, um sistema híbrido desktop (JavaFX) e web (Spring MVC + Thymeleaf) que partilha uma camada de lógica de negócio comum sobre uma base de dados PostgreSQL. As perguntas e respostas aqui simuladas resultam de uma análise exaustiva e atual do código-fonte do repositório, cobrindo arquitetura, mapeamento ecrã-backend, auditoria de segurança (OWASP) e evolução de schema de base de dados.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =====================================================================
+\section{Introdução à Arquitetura}
+% =====================================================================
+
+\pergunta{Vocês têm uma aplicação desktop em JavaFX e uma aplicação web em Spring MVC. Isso obriga-vos a duplicar toda a lógica de negócio duas vezes, uma para cada interface?}
+
+\begin{respostaAluno}
+Não. A nossa arquitetura assenta num único projeto Maven dividido em três módulos: \texttt{API/}, \texttt{DESKTOP/} e \texttt{WEB/}. O módulo \texttt{API/} contém toda a lógica de negócio --- as entidades JPA em \texttt{Modules/}, os repositórios Spring Data em \texttt{Repositories/} e, sobretudo, os serviços em \texttt{Services/}, onde reside a totalidade das regras de negócio. Tanto os controllers do \texttt{DESKTOP/} como os do \texttt{WEB/} injetam exatamente as mesmas classes \texttt{@Service}. Isto significa que uma regra como a validação de descanso mínimo entre turnos, implementada uma única vez em \texttt{HorarioValidatorService}, é automaticamente respeitada quer o pedido venha do ecrã desktop quer venha do portal web.
+\end{respostaAluno}
+
+\pergunta{Mas então como é que o JavaFX, que corre num processo desktop, acede aos mesmos serviços Spring que o servidor web expõe via HTTP? Isso implica uma API REST interna?}
+
+\begin{respostaAluno}
+Não existe nenhuma fronteira REST entre o desktop e a base de dados. O ponto de entrada do desktop, a classe \texttt{AppLauncher}, arranca o próprio contexto Spring com \texttt{WebApplicationType.NONE} --- ou seja, sobe um contexto de aplicação Spring completo, com todos os \texttt{@Service} e \texttt{@Repository} disponíveis para injeção, mas sem nunca iniciar um servidor HTTP. Os controllers JavaFX, como o \texttt{DashboardController}, recebem os serviços diretamente por injeção de dependências do Spring, tal como um controller MVC receberia. Chamam métodos Java normais, dentro do mesmo processo e da mesma JVM, sem serialização, sem rede e sem latência de rede. O módulo \texttt{WEB/}, por sua vez, arranca um contexto Spring Boot completo com servidor embutido (porta 8081) através de \texttt{Projeto2WebApplication}, expondo Thymeleaf para HTML e alguns \texttt{@RestController} só para chamadas AJAX internas do próprio browser --- nunca para comunicação entre desktop e servidor.
+\end{respostaAluno}
+
+\pergunta{Qual é a vantagem real desta decisão de arquitetura, comparada com teres duas aplicações totalmente independentes com a sua própria cópia da lógica de negócio?}
+
+\begin{respostaAluno}
+A vantagem principal é a garantia de consistência de comportamento. Se corrigirmos um bug de regra de negócio --- por exemplo, na geração de horários, dentro do motor \texttt{HorarioGeneratorEngine} em \texttt{API/Services/geracao/} --- essa correção propaga-se automaticamente a ambas as interfaces, porque ambas chamam a mesma instância de serviço gerida pelo Spring. Isto elimina o risco clássico de \textit{drift} entre duas implementações duplicadas, reduz a superfície de testes (testamos a lógica de negócio uma única vez, em \texttt{src/test/java}, e essa cobertura vale para as duas interfaces) e simplifica a manutenção a longo prazo de um projeto académico com prazo apertado.
+\end{respostaAluno}
+
+% =====================================================================
+\section{O Dicionário de Ecrãs}
+% =====================================================================
+
+\noindent Nesta secção respondemos, ecrã a ecrã, à pergunta típica de júri: \textit{``Se eu clicar aqui, o que acontece no código?''}
+
+\subsection{Ecrã de Login}
+
+\pergunta{Eu clico no botão de login no vosso portal web. Mostrem-me exatamente onde está esse HTML, qual o Controller que recebe o pedido, e onde é validada a password.}
+
+\begin{respostaAluno}
+\begin{description}
+    \item[Vista HTML:] \texttt{src/main/resources/templates/web/login.html}.
+    \item[Controller:] \texttt{WEB/WebLoginController.java}, anotado com \texttt{@RequestMapping("/web")}.
+    \item[Rota GET (mostrar página):] \texttt{GET /web/login}, método \texttt{loginPage(...)}.
+    \item[Rota POST (submeter credenciais):] \texttt{POST /web/login}, método \texttt{autenticar(...)}, que recebe \texttt{email} e \texttt{password} via \texttt{@RequestParam}.
+    \item[Service:] o controller delega de imediato em \texttt{UtilizadorService.efetuarLogin(email, password)}. Esse método, por sua vez, usa o \texttt{SegurancaService} para normalizar o email (\texttt{normalizarEmailLogin}) e para comparar a password fornecida com o hash guardado (\texttt{passwordCorresponde}).
+    \item[Pós-login:] se a autenticação for válida, o \texttt{WebLoginController} consulta \texttt{LojautilizadorRepository.findLigacoesAtivasByIdUtilizador} para decidir se o utilizador tem acesso a uma única loja --- e segue direto para \texttt{/web/horarios} --- ou a múltiplas lojas, sendo nesse caso redirecionado para \texttt{GET /web/selecionar-loja}.
+\end{description}
+\end{respostaAluno}
+
+\pergunta{E a password, está guardada em texto simples na base de dados? Isso seria gravíssimo.}
+
+\begin{respostaAluno}
+Não. Toda a manipulação de passwords passa pelo \texttt{SegurancaService}, que centraliza o hashing (\texttt{gerarHash}), a verificação de correspondência (\texttt{passwordCorresponde}) e inclusive a deteção de passwords antigas ainda não migradas para hash (\texttt{precisaMigrarParaHash}), o que demonstra uma estratégia de migração progressiva de segurança sem obrigar a um \textit{reset} em massa de credenciais de utilizadores existentes.
+\end{respostaAluno}
+
+\subsection{Dashboard de Horários}
+
+\pergunta{O ecrã de horários tem um calendário interativo. Isso implica reload de página a cada clique, ou têm algum mecanismo assíncrono?}
+
+\begin{respostaAluno}
+\begin{description}
+    \item[Vista HTML:] \texttt{src/main/resources/templates/web/horarios.html}.
+    \item[Controller da página:] \texttt{WEB/WebHorariosController.java}, em \texttt{@RequestMapping("/web/horarios")}, com a rota \texttt{GET /web/horarios} a carregar a grelha mensal inicial e \texttt{GET /web/horarios/exportar.pdf} a gerar o PDF do horário do mês.
+    \item[Controller AJAX:] o calendário interativo, sem reload, é alimentado pelo \texttt{WEB/WebHorariosApiController.java}, que expõe \texttt{GET /api/horarios/mes} e \texttt{GET /api/horarios/detalhe-dia} para o JavaScript do lado do cliente consultar dados pontuais sem recarregar a página inteira.
+    \item[Service:] ambos os controllers delegam em \texttt{GeracaoHorariosService.obterMeusHorarios(idUtilizador, idLoja, ano, mes)}, que por sua vez consulta o \texttt{HorarioRepository}.
+    \item[Exportação PDF:] a rota de exportação delega em \texttt{WebPdfService}, que reutiliza o mesmo \texttt{PdfExportService} (Apache PDFBox) usado pelo desktop --- outra prova concreta da partilha de lógica entre módulos.
+\end{description}
+\end{respostaAluno}
+
+\pergunta{E o algoritmo que efetivamente gera o horário, onde é invocado e que tipo de algoritmo é?}
+
+\begin{respostaAluno}
+A geração de propostas é despoletada por \texttt{GeracaoHorariosService.gerarPropostas(...)}, um método \texttt{@Transactional} que prepara os dados de entrada (\texttt{prepararDadosGeracao}) e invoca o motor \texttt{HorarioGeneratorEngine}, localizado em \texttt{API/Services/geracao/}. Trata-se de um algoritmo de \textit{backtracking} com restrições (\textit{constraint solver}), apoiado por classes auxiliares especializadas como \texttt{PlaneadorFinsDeSemana}, \texttt{PlaneadorFolgasPreferidas}, \texttt{AvaliadorAtribuicao} e \texttt{PolisherHorario}, que aplicam, por esta ordem, a alocação inicial de turnos, a otimização de preferências e um refinamento final de equidade entre colaboradores.
+\end{respostaAluno}
+
+\subsection{Gestão de Equipa / Turnos}
+
+\pergunta{Como gerente de loja, eu preciso de aprovar pedidos de folga dos meus subordinados. Mostrem-me o caminho completo desse fluxo.}
+
+\begin{respostaAluno}
+\begin{description}
+    \item[Vista HTML:] \texttt{src/main/resources/templates/web/equipa.html}.
+    \item[Controller:] \texttt{WEB/WebEquipaController.java}, em \texttt{@RequestMapping("/web/equipa")}.
+    \item[Rotas de listagem e detalhe:] \texttt{GET /web/equipa} (listagem geral) e \texttt{GET /web/equipa/\{idUtilizador\}} (detalhe individual de um colaborador).
+    \item[Rota de aprovação:] \texttt{POST /web/equipa/\{idUtilizador\}/folgas/\{idDayOff\}/aprovar} e o seu equivalente \texttt{/rejeitar}.
+    \item[Service:] a decisão é persistida através de \texttt{DayOffService}, que valida regras como o aviso mínimo de antecedência e se o mês já se encontra publicado antes de permitir a alteração de estado.
+    \item[Rotas análogas:] o mesmo controller expõe ainda \texttt{.../preferencias/\{id\}/aprovar|rejeitar} e \texttt{.../permutas/\{id\}/aprovar|rejeitar}, delegando respetivamente em \texttt{PreferenciaService} e \texttt{PermutaService}, e \texttt{.../reset-password} para reposição administrativa de credenciais.
+\end{description}
+\end{respostaAluno}
+
+\subsection{Preferências, Folgas e Permutas (Complementares)}
+
+\pergunta{Um colaborador quer pedir uma troca de turno com um colega. Onde é que isso acontece e que validações de negócio existem para impedir abusos?}
+
+\begin{respostaAluno}
+\begin{description}
+    \item[Vista HTML:] \texttt{src/main/resources/templates/web/complementares.html}.
+    \item[Controller da página:] \texttt{WEB/WebComplementaresController.java}, em \texttt{@RequestMapping("/web/complementares")}, com a rota \texttt{GET /web/complementares} a carregar as listagens de folgas, preferências e permutas do próprio utilizador.
+    \item[Rota de submissão de pedido de folga:] \texttt{POST /web/complementares/folgas}.
+    \item[Rota de submissão de preferência:] \texttt{POST /web/complementares/preferencias}, restrita por validação a três tipos: \texttt{folga\_preferida}, \texttt{colegas} e \texttt{turnos}.
+    \item[Rota de submissão de permuta:] \texttt{POST /web/complementares/permutas}, com aprovação em \texttt{POST /web/complementares/permutas/\{idPermuta\}/aprovar}.
+    \item[APIs AJAX de permuta de turno:] \texttt{WEB/WebPermutasApiController.java}, expondo \texttt{GET /api/permutas/turnos-elegiveis} para listar dinamicamente apenas os turnos compatíveis para troca.
+    \item[APIs AJAX de permuta de folga:] \texttt{WEB/WebPermutaFolgaApiController.java}, com \texttt{POST /api/permuta-folga/submeter} e \texttt{POST /api/permuta-folga/cancelar}.
+    \item[Service e validações de negócio:] \texttt{PermutaFolgaService} e \texttt{PermutaService} impõem, entre outras, a regra de descanso mínimo de 11 horas entre turnos trocados, a restrição de a troca ocorrer dentro do mesmo mês de calendário, e uma guarda de \textit{cross-store} que impede a troca de turnos entre colaboradores associados a lojas diferentes.
+    \item[Histórico do colaborador:] \texttt{PreferenciaService.listarColegasDaLoja(idUtilizador, idLoja)} garante ainda que as listas de colegas disponíveis para preferências de equipa respeitam o âmbito (\textit{scope}) da loja atual, e não toda a organização.
+\end{description}
+\end{respostaAluno}
+
+% =====================================================================
+\section{Auditoria OWASP e Segurança}
+% =====================================================================
+
+\pergunta{Vocês afirmam ter implementado controlo de acesso. Mas eu, como qualquer utilizador autenticado de nível mais baixo, consigo simplesmente escrever \texttt{/web/gestao-loja} na barra de endereços e aceder a um módulo administrativo? Expliquem-me, com sinceridade, se isso já aconteceu no vosso código.}
+
+\begin{respostaAluno}
+Sim, e assumimos isso de forma transparente: foi um bug real, identificado e corrigido no commit \texttt{ceeac2f}, classificado como \textit{Broken Access Control}, categoria A01:2021 do OWASP Top 10. A causa raiz não foi ausência de lógica de autorização --- a lógica sempre existiu --- mas sim um \textit{drift} entre essa lógica e uma renomeação de rotas ocorrida num \textit{pull request} anterior (PR\#111). As rotas administrativas foram migradas de \texttt{/web/modulos/gestao-loja} para \texttt{/web/gestao-loja}, e de forma equivalente para \texttt{relatorios}, mas o \texttt{WebGuardInterceptor} não foi atualizado em conjunto, ficando a comparar contra o prefixo antigo, que deixou de existir em qualquer rota real.
+\end{respostaAluno}
+
+\pergunta{Mostrem-me o código exato. Onde estava o erro, linha a linha?}
+
+\begin{respostaAluno}
+O \texttt{WebGuardInterceptor} regista-se em \texttt{WebMvcConfig} sobre o padrão \texttt{addPathPatterns("/web/**")}, com exclusão apenas de \texttt{/web}, \texttt{/web/login}, \texttt{/web/logout} e recursos estáticos. Dentro do método \texttt{preHandle}, depois de confirmar que existe sessão autenticada, era chamado o método privado \texttt{podeAcederAoModulo(path, idUtilizador, idLoja)}. Antes da correção, esse método continha:
+
+\begin{lstlisting}[language=Java]
+if (path.startsWith("/web/modulos/gestao-loja")) {
+    return webAppService.obterPermissoes(idUtilizador, idLoja)
+                         .podeGerirLoja();
+}
+if (path.startsWith("/web/modulos/relatorios")) {
+    return webAppService.obterPermissoes(idUtilizador, idLoja)
+                         .podeVerRelatorios();
+}
+return true;
+\end{lstlisting}
+
+Como nenhuma rota real começava por \texttt{/web/modulos/...} após a migração, ambas as condições \texttt{startsWith} avaliavam sempre para \texttt{false}, e a execução caía diretamente no \texttt{return true} final --- ou seja, qualquer utilizador autenticado, independentemente do seu cargo, era autorizado a aceder a \texttt{/web/gestao-loja} e \texttt{/web/relatorios} apenas por possuir sessão válida.
+\end{respostaAluno}
+
+\pergunta{Qual foi o impacto real deste bug se tivesse chegado a produção? Não me dêem uma resposta vaga, quantifiquem o risco.}
+
+\begin{respostaAluno}
+O impacto real seria a exposição de funcionalidades de gestão de loja e de relatórios --- tipicamente reservadas a gerentes e subgerentes --- a qualquer colaborador comum apenas com sessão iniciada. Tratando-se de um sistema de gestão de horários de uma loja Levi's, isto poderia permitir a um colaborador sem privilégios visualizar ou, dependendo da extensão futura desses módulos, alterar dados sensíveis de gestão operacional da loja, como relatórios de desempenho ou configurações administrativas. É um exemplo de manual de como a segurança por \textit{routing} é fragiliza quando depende de \textit{strings} de URL duplicadas em vez de uma fonte única de verdade, e por isso destacamos este caso de forma proativa nesta defesa --- a transparência sobre o erro faz parte do nosso processo de qualidade.
+\end{respostaAluno}
+
+\pergunta{E a correção? Garantiram que não volta a acontecer, ou apenas corrigiram a string?}
+
+\begin{respostaAluno}
+A correção imediata foi o realinhamento dos prefixos comparados com os \textit{paths} reais:
+
+\begin{lstlisting}[language=Java]
+if (path.startsWith("/web/gestao-loja")) {
+    return webAppService.obterPermissoes(idUtilizador, idLoja)
+                         .podeGerirLoja();
+}
+if (path.startsWith("/web/relatorios")) {
+    return webAppService.obterPermissoes(idUtilizador, idLoja)
+                         .podeVerRelatorios();
+}
+return true;
+\end{lstlisting}
+
+Em conjunto, atualizámos o teste de integração \texttt{WebAcessoPerfisIntegrationTest} para usar os novos URLs, garantindo que o caso de teste passa a falhar caso o \textit{path} volte a ficar desalinhado da regra de autorização. Reconhecemos, contudo, que a mitigação estrutural ideal --- que identificámos como trabalho futuro --- seria eliminar a duplicação de \textit{strings} literais de rota entre o \texttt{@RequestMapping} dos controllers e o \texttt{WebGuardInterceptor}, centralizando-as em constantes partilhadas, de forma a que uma futura renomeação de rota provoque um erro de compilação em vez de uma falha silenciosa de autorização.
+\end{respostaAluno}
+
+% =====================================================================
+\section{Evolução e Schema de Base de Dados}
+% =====================================================================
+
+\pergunta{Vocês usam \texttt{spring.jpa.hibernate.ddl-auto=update}. Isso é, em geral, considerado perigoso ou inadequado para produção. Expliquem-me por que escolheram esta configuração e que problema concreto isso vos causou.}
+
+\begin{respostaAluno}
+Assumimos que \texttt{ddl-auto=update} é uma opção adequada para o ritmo de um projeto académico em desenvolvimento ativo, mas reconhecemos as suas limitações: o Hibernate, com esta configuração, consegue \textbf{adicionar} colunas novas a tabelas existentes quando deteta uma entidade com um campo novo, mas não garante que essa adição ocorra de forma consistente em todos os ambientes, nem lida bem com alterações de tipo de coluna ou com bases de dados que já tinham sido populadas antes da entidade ser alterada. Foi exatamente isto que aconteceu: a entidade \texttt{Turno.java} foi atualizada para incluir o campo \texttt{ativo}, mas em ambientes de base de dados já existentes e populados com dados de demonstração, essa coluna não estava garantidamente presente, criando um \textit{drift} entre o modelo de dados em código e o schema real em PostgreSQL --- manifestado como falhas em testes de integração que dependiam dessa coluna.
+\end{respostaAluno}
+
+\pergunta{Mostrem-me exatamente onde, no código Java, esse campo \texttt{ativo} está definido, e expliquem-me a diferença entre as duas ocorrências que encontrámos --- uma em \texttt{Turno} e outra em \texttt{RegrasLoja}.}
+
+\begin{respostaAluno}
+Em \texttt{API/Modules/Turno.java}, o campo está definido como:
+
+\begin{lstlisting}[language=Java]
+@Column(name = "ativo", nullable = false)
+private Boolean ativo = true;
+\end{lstlisting}
+
+e serve para marcar um turno-tipo (por exemplo, ``Manhã'' ou ``Noite'') como ativo ou descontinuado, sem necessidade de o eliminar e perder o histórico de horários que já o referenciam por chave estrangeira.
+
+Em \texttt{API/Modules/RegrasLoja.java}, o campo é estruturalmente idêntico:
+
+\begin{lstlisting}[language=Java]
+@Column(name = "ativo", nullable = false)
+private Boolean ativo = true;
+\end{lstlisting}
+
+mas a sua finalidade de negócio é distinta: permite desativar uma regra de negócio específica para uma loja em concreto --- por exemplo, uma exceção temporária a uma política de escala --- sem apagar o registo, preservando rastreabilidade e auditoria. Ambos os casos seguem o mesmo padrão de \textit{soft-delete} via flag booleana, em vez de eliminação física de linhas, que é a prática recomendada quando outras tabelas têm chaves estrangeiras a apontar para esses registos.
+\end{respostaAluno}
+
+\pergunta{E como é que resolveram, de forma definitiva, o problema do \texttt{ddl-auto=update} não ser fiável para introduzir esta coluna em ambientes já existentes?}
+
+\begin{respostaAluno}
+Criámos o script \texttt{sql/migracao-junho2026.sql}, que aplica explicitamente, via SQL idempotente, todas as alterações de schema necessárias, independentemente do que o Hibernate tenha ou não conseguido sincronizar automaticamente. O passo relevante para a coluna \texttt{ativo} em \texttt{turnos} é:
+
+\begin{lstlisting}[language=SQL]
+ALTER TABLE public.turnos
+    ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+\end{lstlisting}
+
+e o passo equivalente para \texttt{regras\_loja} é:
+
+\begin{lstlisting}[language=SQL]
+ALTER TABLE public.regras_loja
+    ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+\end{lstlisting}
+
+A cláusula \texttt{IF NOT EXISTS} garante que o script pode ser executado repetidamente, em qualquer ambiente --- de desenvolvimento, de testes ou, hipoteticamente, de produção --- sem provocar erro caso a coluna já exista, e sem necessidade de inspecionar manualmente o estado atual de cada base de dados antes de o correr. O script inclui ainda, num passo anterior, um bloco \texttt{DO \$\$ ... END \$\$} que verifica condicionalmente, via \texttt{information\_schema.columns}, se a coluna \texttt{turnos.tipo} ainda é do tipo enum antes de a converter para \texttt{VARCHAR(50)}, evitando reexecutar uma conversão de tipo já efetuada. Todo o script está encapsulado numa única transação (\texttt{BEGIN ... COMMIT}), garantindo atomicidade: ou todas as alterações de schema são aplicadas, ou nenhuma é, prevenindo estados intermédios inconsistentes.
+\end{respostaAluno}
+
+\pergunta{Porque não confiaram inteiramente no \texttt{ddl-auto=update} e deixaram o Hibernate sincronizar tudo sozinho, já que é a opção configurada em \texttt{application.properties}?}
+
+\begin{respostaAluno}
+Porque o \texttt{ddl-auto=update} do Hibernate é deliberadamente conservador e aditivo: nunca remove colunas, nunca altera tipos de coluna existentes, e em alguns casos --- nomeadamente perante mudanças de tipo, como a nossa conversão de \texttt{tipo\_turno\_enum} para \texttt{VARCHAR(50)} --- simplesmente não atua, exigindo intervenção manual via SQL. Confiar apenas nesta configuração para um ambiente com dados de demonstração já carregados teria deixado a base de dados num estado parcialmente migrado, sem aviso explícito de falha. Por isso optámos por uma estratégia híbrida e disciplinada: o Hibernate continua a tratar do mapeamento corrente em ambientes novos, mas qualquer alteração estrutural que afete bases de dados já existentes é formalizada e versionada num script SQL explícito, idempotente e auditável, que documenta a própria razão da alteração no seu comentário inicial --- inclusive referenciando o commit de código que motivou a mudança, o que consideramos uma boa prática de rastreabilidade entre o histórico do código e o histórico do schema.
+\end{respostaAluno}
+
+\end{document}

@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -62,6 +63,11 @@ public final class GrelhaHorarioRenderer {
     private GrelhaHorarioRenderer() {
     }
 
+    /** Chave estável (idColaborador|data ISO) usada para marcar uma célula como recém-alterada manualmente. */
+    public static String chaveCelula(Integer idColaborador, LocalDate dia) {
+        return idColaborador + "|" + dia;
+    }
+
     /**
      * Reconstrói a grelha dentro de {@code container}. Se não houver linhas, limpa-o
      * e não desenha nada (o empty-state é responsabilidade do chamador).
@@ -73,6 +79,19 @@ public final class GrelhaHorarioRenderer {
                                   List<LinhaGrelha> linhas,
                                   LocalDate hoje,
                                   Consumer<LocalDate> aoAbrirDia) {
+        renderizar(container, dias, linhas, hoje, aoAbrirDia, null);
+    }
+
+    /**
+     * @param celulasDestacadas chaves (ver {@link #chaveCelula}) de células a destacar
+     *                          visualmente por terem sido alteradas manualmente nesta sessão de revisão.
+     */
+    public static void renderizar(VBox container,
+                                  List<LocalDate> dias,
+                                  List<LinhaGrelha> linhas,
+                                  LocalDate hoje,
+                                  Consumer<LocalDate> aoAbrirDia,
+                                  Set<String> celulasDestacadas) {
         if (container == null) {
             return;
         }
@@ -130,7 +149,9 @@ public final class GrelhaHorarioRenderer {
 
             for (LocalDate dia : dias) {
                 CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
-                linhaDias.getChildren().add(construirCelulaDia(celula, dia, hoje, aoAbrirDia));
+                boolean destacada = celulasDestacadas != null
+                        && celulasDestacadas.contains(chaveCelula(linha.idColaborador(), dia));
+                linhaDias.getChildren().add(construirCelulaDia(celula, dia, hoje, aoAbrirDia, destacada));
             }
 
             sincronizarHover(celulaColab, linhaDias);
@@ -220,7 +241,8 @@ public final class GrelhaHorarioRenderer {
     private static StackPane construirCelulaDia(CelulaTurno celula,
                                                 LocalDate dia,
                                                 LocalDate hoje,
-                                                Consumer<LocalDate> aoAbrirDia) {
+                                                Consumer<LocalDate> aoAbrirDia,
+                                                boolean destacada) {
         StackPane cell = new StackPane();
         cell.getStyleClass().add("grelha-dia-cell");
 
@@ -230,6 +252,9 @@ public final class GrelhaHorarioRenderer {
         }
         if (dia.equals(hoje)) {
             cell.getStyleClass().add("grelha-dia-cell-hoje");
+        }
+        if (destacada) {
+            cell.getStyleClass().add("grelha-dia-cell-destaque");
         }
 
         String tipoTurno = celula != null ? celula.tipo() : null;
@@ -330,6 +355,15 @@ public final class GrelhaHorarioRenderer {
                                            List<LinhaGrelha> linhas,
                                            LocalDate hoje,
                                            Consumer<LocalDate> aoAbrirDia) {
+        renderizarDetalhado(container, dias, linhas, hoje, aoAbrirDia, null);
+    }
+
+    public static void renderizarDetalhado(VBox container,
+                                           List<LocalDate> dias,
+                                           List<LinhaGrelha> linhas,
+                                           LocalDate hoje,
+                                           Consumer<LocalDate> aoAbrirDia,
+                                           Set<String> celulasDestacadas) {
         if (container == null) return;
         container.getChildren().clear();
         if (dias == null || dias.isEmpty() || linhas == null || linhas.isEmpty()) return;
@@ -409,9 +443,11 @@ public final class GrelhaHorarioRenderer {
 
             for (LocalDate dia : dias) {
                 CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
+                boolean destacada = celulasDestacadas != null
+                        && celulasDestacadas.contains(chaveCelula(linha.idColaborador(), dia));
                 rowDias.getChildren().add(construirCelulaDetalhada(
                         celula, dia, hoje, chipH, chipW, fntLetra, fntHoras,
-                        larguraDia, mostrarHoras, aoAbrirDia));
+                        larguraDia, mostrarHoras, aoAbrirDia, destacada));
             }
 
             sincronizarHoverDet(nomeCell, rowDias);
@@ -515,7 +551,8 @@ public final class GrelhaHorarioRenderer {
                                                        double fntHoras,
                                                        double larguraDia,
                                                        boolean mostrarHoras,
-                                                       Consumer<LocalDate> aoAbrirDia) {
+                                                       Consumer<LocalDate> aoAbrirDia,
+                                                       boolean destacada) {
         StackPane cell = new StackPane();
         fixarLargura(cell, larguraDia);
         cell.setMaxHeight(Double.MAX_VALUE);
@@ -531,6 +568,10 @@ public final class GrelhaHorarioRenderer {
         String[] cores = CORES_DET.getOrDefault(chave, CORES_DET.get("outro"));
         String bgCell = fds ? cores[3] : (eHoje ? "#fef2f2" : cores[2]);
         String bordaTop = eHoje ? "-fx-border-color: #dc2626; -fx-border-width: 2 1 1 0;" : "-fx-border-color: #f1f5f9; -fx-border-width: 0 1 1 0;";
+        if (destacada) {
+            bordaTop = "-fx-border-color: #f59e0b; -fx-border-width: 3;";
+            bgCell = "#fffbeb";
+        }
         cell.setStyle("-fx-background-color: " + bgCell + "; " + bordaTop + " -fx-cursor: hand;");
 
         if (ehFolga) {
@@ -605,6 +646,15 @@ public final class GrelhaHorarioRenderer {
                                           List<LinhaGrelha> linhas,
                                           LocalDate hoje,
                                           Consumer<LocalDate> aoAbrirDia) {
+        renderizarCompacto(container, dias, linhas, hoje, aoAbrirDia, null);
+    }
+
+    public static void renderizarCompacto(VBox container,
+                                          List<LocalDate> dias,
+                                          List<LinhaGrelha> linhas,
+                                          LocalDate hoje,
+                                          Consumer<LocalDate> aoAbrirDia,
+                                          Set<String> celulasDestacadas) {
         if (container == null) return;
         container.getChildren().clear();
         if (dias == null || dias.isEmpty() || linhas == null || linhas.isEmpty()) return;
@@ -677,7 +727,9 @@ public final class GrelhaHorarioRenderer {
             // Tiles de dia
             for (LocalDate dia : dias) {
                 CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
-                StackPane tile = construirTileCompacto(celula, dia, hoje, aoAbrirDia);
+                boolean destacada = celulasDestacadas != null
+                        && celulasDestacadas.contains(chaveCelula(linha.idColaborador(), dia));
+                StackPane tile = construirTileCompacto(celula, dia, hoje, aoAbrirDia, destacada);
                 HBox.setHgrow(tile, Priority.ALWAYS);
                 tile.setMaxWidth(Double.MAX_VALUE);
                 row.getChildren().add(tile);
@@ -689,12 +741,14 @@ public final class GrelhaHorarioRenderer {
     private static StackPane construirTileCompacto(CelulaTurno celula,
                                                    LocalDate dia,
                                                    LocalDate hoje,
-                                                   Consumer<LocalDate> aoAbrirDia) {
+                                                   Consumer<LocalDate> aoAbrirDia,
+                                                   boolean destacada) {
         StackPane tile = new StackPane();
         tile.getStyleClass().add("grelha-compacta-tile");
         boolean fds = dia.getDayOfWeek() == DayOfWeek.SATURDAY || dia.getDayOfWeek() == DayOfWeek.SUNDAY;
         if (fds)         tile.getStyleClass().add("grelha-compacta-tile-fds");
         if (dia.equals(hoje)) tile.getStyleClass().add("grelha-compacta-tile-hoje");
+        if (destacada)   tile.getStyleClass().add("grelha-compacta-tile-destaque");
 
         String tipo  = celula != null ? celula.tipo() : null;
         String chave = turnoChave(tipo != null ? tipo : "folga");

@@ -515,7 +515,6 @@ public class PainelGerentePedidosController {
             lblContextoPedidosPendentes.setText(String.valueOf(contexto.snapshotRelacionada().resumo().totalPedidosPendentes()));
 
             tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList(contexto.colaboradoresEnvolvidos()));
-            renderizarGradeHorario(contexto.snapshotRelacionada());
 
         } catch (IllegalArgumentException e) {
             lblContextoPedidoSelecionado.setText("Não foi possível carregar o contexto operacional.");
@@ -523,105 +522,19 @@ public class PainelGerentePedidosController {
             lblContextoResumo.setText(e.getMessage());
             lblContextoMotivoCompleto.setText("-");
             tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList());
-            gradeHorario.getChildren().clear();
         }
     }
 
     private void limparContextoOperacional() {
         lblContextoPedidoSelecionado.setText("Seleciona um pedido pendente para veres o contexto operacional.");
         lblContextoPeriodo.setText("-");
-        lblContextoResumo.setText("Aqui vão aparecer os colaboradores envolvidos e a escala da loja no período relevante.");
+        lblContextoResumo.setText("Aqui vão aparecer os colaboradores envolvidos no período relevante.");
         lblContextoMotivoCompleto.setText("-");
         lblContextoColaboradoresEscalados.setText("0");
         lblContextoTurnosPlaneados.setText("0");
         lblContextoAusencias.setText("0");
         lblContextoPedidosPendentes.setText("0");
         tabelaColaboradoresEnvolvidos.setItems(FXCollections.observableArrayList());
-        gradeHorario.getChildren().clear();
-    }
-
-    // ── Schedule grid ─────────────────────────────────────────────────────────────
-
-    private void renderizarGradeHorario(SnapshotOperacionalLojaService.SnapshotOperacionalLoja snapshot) {
-        gradeHorario.getChildren().clear();
-
-        if (snapshot == null || snapshot.equipaEscalada().isEmpty()) {
-            Label vazio = new Label("Sem turnos publicados no período.");
-            vazio.getStyleClass().add("texto-ajuda");
-            gradeHorario.getChildren().add(vazio);
-            return;
-        }
-
-        List<LocalDate> datas = snapshot.equipaEscalada().stream()
-                .flatMap(c -> c.turnos().stream())
-                .map(SnapshotOperacionalLojaService.TurnoPlaneado::data)
-                .filter(Objects::nonNull)
-                .distinct()
-                .sorted()
-                .toList();
-
-        if (datas.isEmpty()) {
-            Label vazio = new Label("Sem turnos publicados no período.");
-            vazio.getStyleClass().add("texto-ajuda");
-            gradeHorario.getChildren().add(vazio);
-            return;
-        }
-
-        GridPane grade = new GridPane();
-        grade.setHgap(4);
-        grade.setVgap(3);
-        grade.setPadding(new Insets(4));
-
-        ColumnConstraints colNome = new ColumnConstraints(110, 130, 160);
-        grade.getColumnConstraints().add(colNome);
-        for (int i = 0; i < datas.size(); i++) {
-            ColumnConstraints col = new ColumnConstraints(60, 72, Double.MAX_VALUE);
-            col.setHgrow(Priority.SOMETIMES);
-            grade.getColumnConstraints().add(col);
-        }
-
-        Label cabNome = new Label("Colaborador");
-        cabNome.getStyleClass().addAll("campo-titulo");
-        cabNome.setMaxWidth(Double.MAX_VALUE);
-        grade.add(cabNome, 0, 0);
-
-        DateTimeFormatter fmtCab = DateTimeFormatter.ofPattern("dd/MM\nEEE", Locale.forLanguageTag("pt-PT"));
-        for (int c = 0; c < datas.size(); c++) {
-            Label lblDia = new Label(datas.get(c).format(fmtCab));
-            lblDia.getStyleClass().add("campo-titulo");
-            lblDia.setAlignment(Pos.CENTER);
-            lblDia.setMaxWidth(Double.MAX_VALUE);
-            grade.add(lblDia, c + 1, 0);
-        }
-
-        int row = 1;
-        for (SnapshotOperacionalLojaService.ColaboradorEscala colaborador : snapshot.equipaEscalada()) {
-            Label lblNome = new Label(colaborador.nome());
-            lblNome.getStyleClass().add("texto-ajuda");
-            lblNome.setWrapText(true);
-            lblNome.setMaxWidth(Double.MAX_VALUE);
-            grade.add(lblNome, 0, row);
-
-            Map<LocalDate, List<SnapshotOperacionalLojaService.TurnoPlaneado>> porDia = new LinkedHashMap<>();
-            for (SnapshotOperacionalLojaService.TurnoPlaneado t : colaborador.turnos()) {
-                porDia.computeIfAbsent(t.data(), k -> new ArrayList<>()).add(t);
-            }
-
-            for (int c = 0; c < datas.size(); c++) {
-                List<SnapshotOperacionalLojaService.TurnoPlaneado> turnos = porDia.getOrDefault(datas.get(c), List.of());
-                String texto = turnos.isEmpty() ? "-"
-                        : turnos.stream().map(SnapshotOperacionalLojaService.TurnoPlaneado::periodo).collect(Collectors.joining("\n"));
-                Label lblCel = new Label(texto);
-                lblCel.getStyleClass().add("texto-ajuda");
-                lblCel.setAlignment(Pos.CENTER);
-                lblCel.setWrapText(true);
-                lblCel.setMaxWidth(Double.MAX_VALUE);
-                grade.add(lblCel, c + 1, row);
-            }
-            row++;
-        }
-
-        gradeHorario.getChildren().add(grade);
     }
 
     // ── Selection coordination ────────────────────────────────────────────────────

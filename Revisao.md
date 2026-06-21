@@ -1183,6 +1183,47 @@ loja — e alterá-los era ignorado pelo backend. `GestaoLojaController.preenche
 a **filtrar** esses registos (helper `ehTemplateGlobalDuplicado`), deixando o gestor editar
 estritamente as regras válidas da loja. Sem impacto no backend (apenas apresentação).
 
+## 21.9 — 🖥️ Três melhorias de UX "elite" na revisão/comparação do Desktop (sessão para o júri)
+
+Três adições cirúrgicas em `GeracaoHorariosController`, `GrelhaHorarioRenderer`,
+`VistaGrelhaHorarioRender` e `dashboard.css`, pensadas para a apresentação ao júri: nenhuma
+toca em entidades do núcleo nem no motor de geração (`HorarioGeneratorEngine`).
+
+### Task 1 — Vista expandida em modal dedicado (não maximizar a janela principal)
+- `onExpandirGrelhaClick()` (aba **Rever**) e o novo `onExpandirComparacaoClick()` (aba
+  **Alternativas → Comparação**) abrem um `Stage` **próprio**, com
+  `initModality(Modality.APPLICATION_MODAL)` e `setMaximized(true)` (aplicado via
+  `Platform.runLater`, depois do `show()`, para funcionar de forma fiável no Windows).
+- Cabeçalho dedicado (nome/contexto + mês ou par de propostas comparadas) e botão **"✕
+  Fechar"** sempre visível — sem depender de fechar a janela principal da app.
+- A janela de comparação **reaproveita o `TableView` vivo** (`tabelaComparacao`) em vez de o
+  duplicar: é destacado do `VBox` original e devolvido ao mesmo índice quando a janela fecha
+  (`setOnHidden`), preservando bindings e seleção sem duplicar estado.
+
+### Task 2 — Feedback visual da troca manual de turno
+- `EdicaoTurnoDialog` já emitia a mensagem exata **"Troca de turno efetuada com sucesso"**
+  (com sufixo "— colaborador fica de folga." quando aplicável); o controlador
+  (`abrirEdicaoTurno`) e o fluxo de adição (`abrirAdicionarTurno`) passaram a invocar
+  `mostrarSucesso(mensagem)` consistentemente nos dois casos.
+- Cada célula alterada manualmente nesta sessão é registada num `Set<String> celulasAlteradas`
+  (chave `idColaborador|data`, via `GrelhaHorarioRenderer.chaveCelula`) e destacada com um
+  contorno âmbar (`#f59e0b`, 3px) sobre fundo `#fffbeb` — aplicado nas três variantes de
+  grelha (`renderizar`, `renderizarCompacto`, `renderizarDetalhado`) através de novos overloads
+  com `Set<String> celulasDestacadas`, mantendo total compatibilidade com as assinaturas
+  antigas (que delegam com `null`).
+
+### Task 3 — Desfazer alterações manuais (undo)
+- Histórico simples em pilha: `Deque<AlteracaoManualTurno> historicoAlteracoes`, onde cada
+  registo guarda `idHorario` (linha após a alteração, `null` se ficou de folga),
+  `idLojautilizador`, `data`, `turnoAnterior` (`null` se estava de folga antes) e
+  `idColaborador` — suficiente para inverter qualquer uma das três ações possíveis
+  (adicionar/editar/remover turno) usando apenas os métodos já existentes em
+  `HorarioService` (`adicionarTurno`, `editarTurnoPublicado`, `removerTurno`).
+- Botão **"↺ Desfazer"** na barra de ações da aba Rever (`onDesfazerAlteracaoClick`), que
+  desativa automaticamente quando o histórico fica vazio (`atualizarEstadoBotaoDesfazer`).
+  Ao desfazer, remove também a chave da célula de `celulasAlteradas`, limpando o destaque
+  visual e recarregando a proposta.
+
 ### Validação final
 - `.\mvnw.cmd clean compile` — **[x] BUILD SUCCESS**.
 - `.\mvnw.cmd test` — **[x] 184 testes, 0 falhas, 0 erros, 4 skipped, BUILD SUCCESS**.

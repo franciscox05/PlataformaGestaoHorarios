@@ -154,7 +154,7 @@ Escola Superior de Tecnologia e Gestão
 
 \vspace{1\baselineskip}
 \begin{center}
-{\Large Unidade curricular de}
+{\Large Unidade Curricular de}
 \end{center}
 
 \begin{center}
@@ -2242,6 +2242,116 @@ Em todos os casos, aplica-se o padrão \textit{POST/Redirect/GET} com redireccio
     \item Delega na \texttt{WebPdfService}, suportada pelo Apache PDFBox, para construir o documento PDF com a grelha mensal do utilizador.
     \item Devolve um \texttt{ResponseEntity<byte[]>} com os cabeçalhos \texttt{Content-Type: application/pdf} e \texttt{Content-Disposition: attachment; filename="horario-YYYY-MM.pdf"}.
 \end{enumerate}
+
+% ── HARDENING PÓS-INTEGRAÇÃO MULTI-LOJA ──────────────────────
+\newpage
+\subsection{Hardening de Segurança e Consistência Pós-Integração Multi-Loja}
+
+A integração da funcionalidade de multi-loja na \textit{branch} principal exigiu um esforço adicional de verificação e correção, tanto a nível da segurança da camada web como do alinhamento entre o modelo de dados e a suite de testes de integração. Esta secção documenta as duas correções mais relevantes deste esforço.
+
+\subsubsection{Correção de Controlo de Acesso no \texttt{WebGuardInterceptor}}
+
+O \texttt{WebGuardInterceptor} é o componente responsável por intercetar todos os pedidos HTTP dirigidos ao prefixo \texttt{/web} e impor as regras de controlo de acesso antes que qualquer \textit{controller} seja invocado. Para os módulos administrativos de \textit{Gestão de Loja} e \textit{Relatórios} -- exclusivos dos perfis de Gerente/Subgerente -- o método \texttt{podeAcederAoModulo(...)} deveria restringir o acesso com base no prefixo do caminho do pedido.
+
+\vspace{0.5em}
+Detetou-se que a verificação comparava o caminho do pedido com o prefixo literal \texttt{/web/modulos/gestao-loja} (e o equivalente para relatórios), enquanto as rotas efetivamente registadas nos \textit{controllers} Spring MVC eram \texttt{/web/gestao-loja} e \texttt{/web/relatorios}, sem o segmento intermédio \texttt{/modulos}. Como o método \texttt{podeAcederAoModulo} devolve \texttt{true} por defeito para qualquer caminho que não corresponda explicitamente a uma das regras, esta divergência de prefixos resultava numa falha de controlo de acesso (\textit{Broken Access Control}, OWASP Top 10 -- A01:2021): qualquer colaborador autenticado, independentemente do seu cargo, conseguia contornar a verificação de permissões introduzindo diretamente o URL correto na barra de endereços, acedendo assim a módulos de gestão exclusivos da gerência.
+
+\begin{lstlisting}[style=javastyle, caption={Correção do bloqueio de acesso por URL no \texttt{WebGuardInterceptor}}]
+private boolean podeAcederAoModulo(String path, Integer idUtilizador, Integer idLoja) {
+    // Antes: prefixo "/web/modulos/gestao-loja" nunca correspondia
+    // a rota real "/web/gestao-loja" -> bypass por URL direto.
+    if (path.startsWith("/web/gestao-loja")) {
+        return webAppService.obterPermissoes(idUtilizador, idLoja).podeGerirLoja();
+    }
+
+    if (path.startsWith("/web/relatorios")) {
+        return webAppService.obterPermissoes(idUtilizador, idLoja).podeVerRelatorios();
+    }
+
+    return true;
+}
+\end{lstlisting}
+
+\vspace{0.5em}
+A correção consistiu em alinhar os prefixos verificados pelo interceptor com as rotas reais expostas pelos \textit{controllers}, restaurando a restrição de acesso baseada em cargo (\texttt{podeGerirLoja()} / \texttt{podeVerRelatorios()}) para ambos os módulos administrativos. O impacto desta correção foi imediato: o acesso direto por URL a funcionalidades de gestão deixou de estar disponível a colaboradores sem permissões, eliminando uma via de escalonamento de privilégios na plataforma web.
+
+\subsubsection{Alinhamento de Esquema da Base de Dados e Testes de Integração}
+
+A reorganização arquitetural associada à funcionalidade multi-loja introduziu novas colunas no modelo de dados (nomeadamente \texttt{turnos.ativo} e \texttt{regras\_loja.ativo}, refletindo a entidade \texttt{Turno} e a gestão de regras por loja) sem que estas alterações tivessem sido integralmente propagadas para todas as instâncias locais da base de dados PostgreSQL. Esta situação só se tornou visível ao correr a suite completa de testes de integração após a sincronização do repositório, que reportava 38 erros do tipo \texttt{InvalidDataAccessResourceUsage} com a mensagem \texttt{column "ativo" does not exist}.
+
+\vspace{0.5em}
+A causa raiz identificada foi uma limitação conhecida do modo \texttt{ddl-auto=update} do Hibernate: embora este consiga criar tabelas e colunas anuláveis automaticamente, falha silenciosamente -- sem interromper o arranque da aplicação -- ao tentar adicionar uma coluna \texttt{NOT NULL} sem valor por defeito a uma tabela já populada, uma vez que o PostgreSQL rejeita esta operação para preservar a integridade dos registos existentes. O esquema da base de dados ficava, assim, permanentemente desalinhado com o modelo de entidades JPA, sem qualquer aviso explícito no momento da falha.
+
+\begin{lstlisting}[style=sqlstyle, caption={Migração idempotente adicionada para sincronizar o esquema com a entidade \texttt{Turno}}]
+-- Flag de ativo/inativo nos turnos (entidade Turno.java)
+ALTER TABLE public.turnos
+    ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+\end{lstlisting}
+
+\vspace{0.5em}
+A resolução passou por duas ações complementares: a aplicação direta da migração em falta à base de dados local, e a atualização do script partilhado e idempotente \texttt{sql/migracao-junho2026.sql} com o passo correspondente, garantindo que qualquer outra máquina de desenvolvimento da equipa converge automaticamente para o mesmo esquema ao executar o script, sem necessidade de intervenção manual repetida.
+
+\vspace{0.5em}
+Após a correção do esquema, restava uma única falha na suite de 151 testes: o teste \texttt{WebFluxosCriticosE2ETest.complementaresCobremFolgasPreferenciasEPermutas} submetia uma preferência com \texttt{tipo="folgas"}, um valor que deixara de constar na lista de tipos válidos (\texttt{folga\_preferida}, \texttt{colegas}, \texttt{turnos}) após uma refatorização do módulo de preferências que passou a basear a folga preferida no dia da semana em vez de num intervalo de datas. O pedido HTTP continuava a devolver um código de redireção (\texttt{3xx}), mascarando o facto de a preferência nunca ter sido persistida, o que fazia falhar a asserção subsequente. A correção do valor do parâmetro no teste, sem qualquer alteração ao código de produção, restabeleceu a coerência entre o cenário de teste e o comportamento atual do sistema.
+
+\vspace{0.5em}
+Com ambas as correções aplicadas, a suite completa de testes unitários e de integração -- \textbf{151 testes} -- passou a executar sem qualquer falha ou erro (\texttt{Tests run: 151, Failures: 0, Errors: 0}), confirmando a estabilidade da plataforma após a integração da funcionalidade multi-loja.
+
+\subsubsection{Gestão Multi-Loja e Consistência de Navegação: o enum \texttt{ContextoSelecao}}
+
+A introdução do suporte a múltiplas lojas (\textit{NorteShopping} e a loja original) obrigou a repensar o ecrã de seleção de loja, partilhado entre dois pontos de entrada distintos: imediatamente após a autenticação, e a partir do painel principal, quando um gerente com acesso a mais do que uma loja decide trocar de contexto operacional. Tratar estes dois cenários de forma indiferenciada criava dois \textit{becos sem saída} no fluxo de navegação: um colaborador que trocasse de loja a partir do painel e depois clicasse em ``voltar'' era reencaminhado para o ecrã de login, perdendo a sessão activa; inversamente, tratar a chegada vinda do login como uma simples troca de loja deixava o botão de recuo sem destino válido, uma vez que ainda não existia nenhum painel para onde voltar.
+
+\vspace{0.5em}
+A solução adotada isola esta decisão num pequeno enum dedicado, \texttt{ContextoSelecao}, injetado no \texttt{SelecionarLojaController} no momento da inicialização e usado exclusivamente para parametrizar o comportamento do botão de recuo:
+
+\begin{lstlisting}[style=javastyle, caption={Enum \texttt{ContextoSelecao} -- origem da navegação para o ecrã de seleção de loja}]
+public enum ContextoSelecao {
+    LOGIN,      // chegada pos-autenticacao: recuar = voltar ao login
+    DASHBOARD   // troca de loja a partir do painel: recuar = cancelar e manter sessao
+}
+\end{lstlisting}
+
+\vspace{0.5em}
+O \texttt{LoginController} invoca \texttt{inicializarComLigacoes(..., ContextoSelecao.LOGIN)} após uma autenticação bem-sucedida, enquanto o \texttt{DashboardController} invoca a mesma operação com \texttt{ContextoSelecao.DASHBOARD} sempre que o utilizador opta por ``Alterar Loja'' a partir da barra lateral. O próprio \texttt{SelecionarLojaController} consulta o contexto recebido tanto para decidir o texto do botão de recuo como para escolher o destino efetivo da navegação, eliminando por construção qualquer estado intermédio inconsistente entre sessão e loja ativa.
+
+\vspace{0.5em}
+Esta gestão multi-loja é reforçada por um isolamento estrito dos dados ao nível dos serviços: cada consulta a turnos, preferências, folgas e permutas é sempre parametrizada pelo identificador da loja ativa na sessão (\texttt{idLoja}), nunca assumindo um contexto global único. Adicionalmente, a camada de configuração de loja (\texttt{GestaoLojaService}) impõe uma tranca contra duplicações de turnos: dois turnos só podem coexistir, entre os ativos e os inativos da mesma loja, se diferirem tanto no nome como no intervalo horário, prevenindo a criação acidental de configurações ambíguas ao reativar um turno previamente desativado.
+
+\subsubsection{Pipeline de Validação da Configuração de Horário da Loja}
+
+A alteração das horas de abertura e fecho de uma loja (\texttt{GestaoLojaService.guardarConfiguracao}) não pode ser uma simples atualização do registo: os turnos ativos já configurados para essa loja têm de continuar a ser compatíveis com o novo horário de funcionamento, sob pena de a aplicação ficar com turnos ``órfãos'' fora do intervalo de abertura, ou com períodos do dia sem qualquer colaborador escalado. O método implementa por isso um pipeline de validação em duas restrições complementares, aplicadas antes de qualquer escrita na base de dados.
+
+\vspace{0.5em}
+\textbf{Restrição de Teto (encolher o horário):} ao reduzir o intervalo de funcionamento, cada turno ativo existente é confrontado com a nova janela horária; se algum turno começar antes da nova abertura ou terminar depois do novo fecho, a operação é rejeitada com uma mensagem que identifica o turno em conflito, obrigando o gestor a ajustá-lo ou desativá-lo previamente. Esta verificação impede que turnos ativos passem a representar, silenciosamente, horas fora do funcionamento real da loja.
+
+\vspace{0.5em}
+\textbf{Restrição de Piso -- Cobertura Total dos Extremos:} a segunda validação é a inversa da primeira e resolve o que pode ser descrito como o \textit{paradoxo da loja vazia}: nada impede, a priori, que uma loja fique sem qualquer turno ativo a cobrir exatamente o instante de abertura ou o instante de fecho (por exemplo, se todos os turnos ativos começarem 30 minutos depois da abertura oficial). O sistema exige por isso a existência de, pelo menos, um turno ativo cujo \texttt{horaInicio} coincida exatamente com a nova abertura, e de outro cujo \texttt{horaFim} coincida exatamente com o novo fecho -- sem esta cobertura nos dois extremos, a configuração é rejeitada e o gestor é informado explicitamente de qual dos dois limites (abertura, fecho, ou ambos) carece de um turno correspondente.
+
+\begin{lstlisting}[style=javastyle, caption={Verificação da cobertura exata dos extremos de abertura/fecho}]
+private boolean intervaloCorrespondeExatamente(Turno turno, LocalTime abertura, LocalTime fecho) {
+    return turno.isAtivo()
+            && turno.getHoraInicio().equals(abertura)
+            && turno.getHoraFim().equals(fecho);
+}
+// guardarConfiguracao(...) bloqueia a alteracao caso nao exista
+// nenhum turno ativo a cobrir exatamente a abertura e/ou o fecho pedidos.
+\end{lstlisting}
+
+\vspace{0.5em}
+As duas restrições atuam em conjunto: a primeira garante que nenhum turno ativo extravasa o novo horário (teto), a segunda garante que o novo horário não fica, nos seus extremos, sem nenhum turno que o cubra (piso). Só quando ambas são satisfeitas a nova configuração é persistida, mantendo a invariante de que o horário de funcionamento declarado da loja é sempre integralmente coberto pela escala ativa.
+
+\subsubsection{Outros Aspetos de Implementação: Concorrência na UI, Tratamento de Erros e Controlo de Acesso}
+
+Para além das funcionalidades centrais, três detalhes de implementação contribuem de forma discreta, mas significativa, para a robustez da plataforma.
+
+\vspace{0.5em}
+\textbf{Execução assíncrona da geração heurística de horários:} o algoritmo de \textit{backtracking} do \texttt{HorarioGeneratorEngine} pode demorar vários segundos a convergir para uma solução válida, consoante o número de colaboradores e restrições em jogo. Para evitar bloquear a thread de interface gráfica do JavaFX durante esse cálculo -- o que congelaria toda a aplicação desktop --, o \texttt{GeracaoHorariosController} delega a invocação do serviço de geração a um utilitário dedicado, o \texttt{BackgroundTaskRunner}, que encapsula a tarefa num \texttt{javafx.concurrent.Task} executado numa \textit{thread daemon} própria (nomeada, por convenção, \texttt{geracao-horarios-worker}). O resultado é entregue de volta à \textit{Application Thread} através dos callbacks \texttt{onSucceeded}/\texttt{onFailed} do próprio \texttt{Task}, garantindo que qualquer atualização da UI ocorre sempre na thread correta, e que o utilizador é impedido de disparar uma segunda geração em simultâneo enquanto a primeira ainda está em curso.
+
+\vspace{0.5em}
+\textbf{Interceção e normalização de erros de validação:} as exceções de domínio lançadas pela camada de serviços (tipicamente \texttt{IllegalArgumentException} e \texttt{IllegalStateException}, usadas de forma consistente para sinalizar violações de regras de negócio como as restrições de Teto/Piso descritas acima) são capturadas junto da fronteira de apresentação -- nos \textit{controllers} JavaFX através de diálogos de erro, e na camada REST através de um \texttt{@ExceptionHandler} dedicado que as traduz num \texttt{ApiErrorResponse} estruturado com o respetivo \texttt{HttpStatus}, em vez de deixar propagar \textit{stack traces} ou códigos de erro genéricos até ao cliente.
+
+\vspace{0.5em}
+\textbf{Reforço de cabeçalhos de cache no \texttt{WebGuardInterceptor}:} além da validação de permissões por módulo já discutida, o interceptor define explicitamente os cabeçalhos \texttt{Cache-Control: no-store, no-cache, must-revalidate}, \texttt{Pragma: no-cache} e \texttt{Expires: 0} em todas as respostas autenticadas sob \texttt{/web}. Esta medida impede que o botão ``Voltar'' do navegador exiba páginas sensíveis (por exemplo, dados de outro colaborador ou de uma loja diferente) a partir da cache local após um \textit{logout}, complementando a invalidação de sessão do lado do servidor com uma garantia equivalente do lado do cliente.
 
 % ==========================================================
 % SECÇÃO 9 - CONCLUSÃO E TRABALHO FUTURO

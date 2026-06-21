@@ -26,11 +26,17 @@ public final class EdicaoTurnoDialog {
         // utilitário
     }
 
+    /** Callback invocado quando a alteração foi aplicada com sucesso, reportando o turno escolhido (ou folga). */
+    @FunctionalInterface
+    public interface AplicacaoCallback {
+        void aplicado(String mensagem, Turno turnoEscolhido, boolean folga);
+    }
+
     public static void abrir(HorarioLinha linha,
                              Window owner,
                              HorarioService horarioBLL,
                              Integer idUtilizador,
-                             Consumer<String> onSucesso,
+                             AplicacaoCallback onSucesso,
                              Consumer<String> onErro,
                              Runnable onRecarregar) {
         try {
@@ -85,12 +91,12 @@ public final class EdicaoTurnoDialog {
                     if (opcao.ehFolga()) {
                         horarioBLL.removerTurno(linha.idHorario(), idUtilizador);
                         if (owner instanceof Stage ownerStage) ownerStage.close();
-                        onSucesso.accept("Turno removido — o colaborador fica de folga nesse dia.");
+                        onSucesso.aplicado("Troca de turno efetuada com sucesso — colaborador fica de folga.", null, true);
                     } else {
                         horarioBLL.editarTurnoPublicado(
                                 linha.idHorario(), opcao.turno().getId(), idUtilizador, null);
                         if (owner instanceof Stage ownerStage) ownerStage.close();
-                        onSucesso.accept("Turno alterado para " + opcao.label() + " com sucesso.");
+                        onSucesso.aplicado("Troca de turno efetuada com sucesso.", opcao.turno(), false);
                     }
                     if (onRecarregar != null) onRecarregar.run();
                 } catch (IllegalArgumentException ex) {
