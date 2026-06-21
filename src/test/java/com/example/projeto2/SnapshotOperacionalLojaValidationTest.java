@@ -126,7 +126,6 @@ class SnapshotOperacionalLojaValidationTest extends FluxosCriticosTestSupport {
         preferencia.setTipo("turnos");
         preferencia.setDataInicio(diaAnalise);
         preferencia.setDataFim(diaAnalise);
-        preferencia.setPrioridade(4);
         preferencia.setDescricao("Prefere turno intermedio neste dia.");
         Preferencia preferenciaPendente = preferenciaBLL.guardarPreferencia(colaboradorPreferencia.getId(), preferencia);
 

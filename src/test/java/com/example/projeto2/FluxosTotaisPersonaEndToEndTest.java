@@ -347,7 +347,6 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
                         .session(sessao)
                         .param("tipo", "folga_preferida")
                         .param("diaSemana", "SATURDAY")
-                        .param("prioridade", "1")
                         .param("descricao", "Prefiro sabados de folga (teste inter-interface)."))
                 .andExpect(status().is3xxRedirection());
 
@@ -692,7 +691,6 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
                                         .session(sessaoWeb)
                                         .param("tipo", "folga_preferida")
                                         .param("diaSemana", "SUNDAY")
-                                        .param("prioridade", "2")
                                         .param("descricao", "Preferencia concorrente Grupo F (Web)."))
                                 .andExpect(status().is3xxRedirection());
                         return null;

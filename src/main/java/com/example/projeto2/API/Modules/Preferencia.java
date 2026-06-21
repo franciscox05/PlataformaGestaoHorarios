@@ -34,9 +34,6 @@ public class Preferencia {
     @Column(name = "data_fim")
     private LocalDate dataFim;
 
-    @Column(name = "prioridade", nullable = false)
-    private Integer prioridade;
-
     @Column(name = "estado", nullable = false, length = 50)
     private String estado;
 
@@ -91,14 +88,6 @@ public class Preferencia {
 
     public void setDataFim(LocalDate dataFim) {
         this.dataFim = dataFim;
-    }
-
-    public Integer getPrioridade() {
-        return prioridade;
-    }
-
-    public void setPrioridade(Integer prioridade) {
-        this.prioridade = prioridade;
     }
 
     public String getEstado() {

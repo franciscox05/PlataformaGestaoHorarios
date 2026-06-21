@@ -91,7 +91,6 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         novaPreferencia.setTipo("folgas");
         novaPreferencia.setDataInicio(dataInicial);
         novaPreferencia.setDataFim(dataInicial.plusDays(1));
-        novaPreferencia.setPrioridade(5);
         novaPreferencia.setDescricao("Pedido de folga para compromisso familiar.");
 
         Preferencia guardada = preferenciaBLL.guardarPreferencia(colaborador.getId(), novaPreferencia);
@@ -111,7 +110,6 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         tentativaEdicao.setTipo(aprovada.getTipo());
         tentativaEdicao.setDataInicio(aprovada.getDataInicio());
         tentativaEdicao.setDataFim(aprovada.getDataFim());
-        tentativaEdicao.setPrioridade(aprovada.getPrioridade());
         tentativaEdicao.setDescricao("Descricao alterada apos aprovacao.");
 
         Preferencia editada = preferenciaBLL.guardarPreferencia(colaborador.getId(), tentativaEdicao);
@@ -139,7 +137,6 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 "folgas",
                 referencia.plusDays(1),
                 referencia.plusDays(1),
-                5,
                 "Folga aprovada para o segundo dia do periodo."
         );
 

@@ -1288,3 +1288,31 @@ Diogo via Web → sucesso** (pendente → aprovado, HTTP 200): confirma que o
 ### 23.4 — Entregável
 `Guiao_Demo_Defesa.md` — roteiro passo-a-passo (preparação, Desktop, Web, pontos
 técnicos para perguntas, armadilhas). Dados de demo garantidos por `demo-entrega.sql`.
+
+---
+
+## 24. 🗑️ REMOÇÃO da "prioridade" das preferências (não se encaixa no modelo de negócio)
+
+Decisão do Francisco: a **prioridade (1–5)** das preferências não faz parte do
+modelo de negócio e foi removida de **todo** o projeto. Confirmado primeiro que o
+**motor de geração nunca a usava** no scoring (só havia um comentário e uma string
+de descrição genéricos em `geracao/`) — por isso a remoção **não altera a geração**.
+
+**Removida em todas as camadas:**
+- **Entidade** `Preferencia`: campo `prioridade` + getters/setters.
+- **Repositório**: `existsPreferenciaDuplicada` perdeu o parâmetro/condição de
+  prioridade; os dois `ORDER BY ... p.prioridade DESC` passaram a ordenar só por data/id.
+- **Serviço** `PreferenciaService`: removidos `normalizarPrioridade`,
+  `prioridadePorOmissao`, `setPrioridade` e a passagem de prioridade ao dedup.
+- **Web**: input "Prioridade (1–5)" do formulário, param no `WebComplementaresController`,
+  e a coluna "Prioridade" da tabela "As minhas preferências" (que renderizava
+  `${item.prioridade}` e rebentaria).
+- **Desktop**: `setPrioridade(null)` removido; a coluna `colPrioridade` (que na verdade
+  mostrava "Vigência") renomeada para `colVigencia` no controller e no FXML.
+- **BD/SQL**: `demo-entrega.sql` perdeu o `ADD COLUMN ... prioridade` e o valor nos
+  INSERTs, e ganhou `ALTER TABLE ... DROP COLUMN IF EXISTS prioridade` (idempotente).
+  Coluna dropada também na BD viva.
+- **Testes**: 9 ficheiros atualizados (helper `criarPreferenciaAprovada` perdeu o
+  parâmetro; removidos `setPrioridade`/`getPrioridade` e `.param("prioridade", ...)`).
+
+**Validação:** `mvnw clean test` = **185 testes, 0 falhas, 0 skipped, BUILD SUCCESS**.

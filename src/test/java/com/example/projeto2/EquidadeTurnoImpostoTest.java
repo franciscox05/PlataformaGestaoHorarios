@@ -218,7 +218,6 @@ class EquidadeTurnoImpostoTest {
         p.setDescricao("Prefere turno de " + tipo + ".");
         p.setDataInicio(de);
         p.setDataFim(ate);
-        p.setPrioridade(3);
         return p;
     }
 

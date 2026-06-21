@@ -106,7 +106,6 @@ class WebFluxosCriticosE2ETest extends FluxosCriticosTestSupport {
                         .param("tipo", "turnos")
                         .param("dataInicio", fixture.referencia().plusDays(14).toString())
                         .param("dataFim", fixture.referencia().plusDays(15).toString())
-                        .param("prioridade", "5")
                         .param("descricao", "Preferencia E2E para validacao"))
                 .andExpect(status().is3xxRedirection());
 

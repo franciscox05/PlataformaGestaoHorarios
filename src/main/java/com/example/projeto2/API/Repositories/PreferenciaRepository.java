@@ -25,7 +25,7 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
             "AND lu.dataFim IS NULL " +
             "AND LOWER(p.estado) = 'pendente' " +
             "AND u.id <> :idUtilizadorAprovador " +
-            "ORDER BY CASE WHEN p.dataInicio IS NULL THEN 1 ELSE 0 END, p.dataInicio ASC, p.prioridade DESC, p.id DESC")
+            "ORDER BY CASE WHEN p.dataInicio IS NULL THEN 1 ELSE 0 END, p.dataInicio ASC, p.id DESC")
     List<Preferencia> findPreferenciasPendentesDaLoja(@Param("idLoja") Integer idLoja,
                                                       @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador);
 
@@ -53,7 +53,7 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
             "AND u.id <> :idUtilizadorAprovador " +
             "AND ((p.dataInicio IS NULL) OR p.dataInicio <= :dataFim) " +
             "AND ((p.dataFim IS NULL) OR p.dataFim >= :dataInicio) " +
-            "ORDER BY CASE WHEN p.dataInicio IS NULL THEN 1 ELSE 0 END, p.dataInicio ASC, p.prioridade DESC, p.id DESC")
+            "ORDER BY CASE WHEN p.dataInicio IS NULL THEN 1 ELSE 0 END, p.dataInicio ASC, p.id DESC")
     List<Preferencia> findPreferenciasPendentesRelevantesDaLoja(@Param("idLoja") Integer idLoja,
                                                                 @Param("idUtilizadorAprovador") Integer idUtilizadorAprovador,
                                                                 @Param("dataInicio") LocalDate dataInicio,
@@ -112,7 +112,6 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
             "WHERE p.id_utilizador = :idUtilizador " +
             "AND LOWER(p.tipo) = LOWER(:tipo) " +
             "AND LOWER(p.descricao) = LOWER(:descricao) " +
-            "AND p.prioridade = :prioridade " +
             "AND p.data_inicio IS NOT DISTINCT FROM CAST(:dataInicio AS DATE) " +
             "AND p.data_fim IS NOT DISTINCT FROM CAST(:dataFim AS DATE) " +
             "AND (CAST(:idIgnorado AS INTEGER) IS NULL OR p.id_preferencia <> :idIgnorado)",
@@ -120,7 +119,6 @@ public interface PreferenciaRepository extends JpaRepository<Preferencia, Intege
     boolean existsPreferenciaDuplicada(@Param("idUtilizador") Integer idUtilizador,
                                        @Param("tipo") String tipo,
                                        @Param("descricao") String descricao,
-                                       @Param("prioridade") Integer prioridade,
                                        @Param("dataInicio") LocalDate dataInicio,
                                        @Param("dataFim") LocalDate dataFim,
                                        @Param("idIgnorado") Integer idIgnorado);

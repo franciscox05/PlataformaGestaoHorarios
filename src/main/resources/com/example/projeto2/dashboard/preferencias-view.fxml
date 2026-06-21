@@ -127,7 +127,7 @@
                         <columns>
                             <TableColumn fx:id="colTipo" text="Tipo" />
                             <TableColumn fx:id="colPeriodo" text="Per&#237;odo" />
-                            <TableColumn fx:id="colPrioridade" text="Vig&#234;ncia" />
+                            <TableColumn fx:id="colVigencia" text="Vig&#234;ncia" />
                             <TableColumn fx:id="colEstado" text="Estado" />
                             <TableColumn fx:id="colDescricao" text="Descri&#231;&#227;o" />
                         </columns>

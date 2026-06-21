@@ -51,7 +51,6 @@ class DescansoSemanalValidationTest extends FluxosCriticosTestSupport {
                 "folgas",
                 diaBloqueado.plusDays(1),
                 diaBloqueado.plusDays(1),
-                4,
                 "Prefere descansar neste dia."
         );
         criarHorarioEspecial(

@@ -133,11 +133,6 @@
                     </div>
                 </div>
                 <div id="pref-data-feedback" class="rounded-xl px-3.5 py-2.5 font-body text-[12.5px] flex items-center gap-2 mt-2 hidden"></div>
-                <div class="flex flex-col gap-1.5">
-                    <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Prioridade (1–5)</label>
-                    <input name="prioridade" type="number" min="1" max="5" placeholder="3"
-                           class="bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 font-body text-[13px] text-on-surface" style="outline:none">
-                </div>
                 <div id="pref-desc-panel" class="flex flex-col gap-1.5">
                     <label class="font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</label>
                     <textarea id="pref-descricao" name="descricao" rows="2" required placeholder="Explica a preferência…"
@@ -432,14 +427,13 @@
                     <tr>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Tipo</th>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Período</th>
-                        <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Prioridade</th>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Descrição</th>
                         <th class="text-left px-6 py-3 font-body font-semibold text-[10px] uppercase tracking-wider text-on-surface-variant">Estado</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/25">
                     <tr th:if="${#lists.isEmpty(minhasPreferencias)}">
-                        <td colspan="5" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem preferências registadas.</td>
+                        <td colspan="4" class="px-6 py-10 text-center font-body text-[13px] text-on-surface-variant">Sem preferências registadas.</td>
                     </tr>
                     <tr th:each="item : ${minhasPreferencias}"
                         class="cursor-pointer hover:bg-surface-container-low/50 transition-colors"
@@ -452,7 +446,6 @@
                                  data-decisao=${item.decisao != null ? item.decisao : ''}">
                         <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.tipo}"></td>
                         <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant" th:text="${(item.dataInicio != null ? item.dataInicio : '–') + ' → ' + (item.dataFim != null ? item.dataFim : '–')}"></td>
-                        <td class="px-6 py-3.5 font-body text-[13px] text-on-surface" th:text="${item.prioridade}"></td>
                         <td class="px-6 py-3.5 font-body text-[12px] text-on-surface-variant max-w-[200px] truncate" th:text="${item.descricao}"></td>
                         <td class="px-6 py-3.5">
                             <div class="flex flex-col gap-1.5">

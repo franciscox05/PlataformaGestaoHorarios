@@ -45,7 +45,6 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
             preferencia.setTipo(tipo);
             preferencia.setDataInicio(null);
             preferencia.setDataFim(null);
-            preferencia.setPrioridade(null);
             preferencia.setDescricao("Preferencia permanente de " + tipo + " para validacao.");
 
             Preferencia guardada = preferenciaBLL.guardarPreferencia(colaborador.getId(), preferencia);
@@ -54,7 +53,6 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
             assertEquals(hoje, guardada.getDataInicio(), "A preferencia " + tipo + " devia assumir hoje como inicio.");
             assertNull(guardada.getDataFim(), "A preferencia " + tipo + " devia manter-se sem data fim.");
             assertEquals("pendente", guardada.getEstado().toLowerCase(Locale.ROOT));
-            assertNotNull(guardada.getPrioridade(), "A preferencia " + tipo + " devia ter prioridade preenchida.");
         }
     }
 
@@ -72,7 +70,6 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
                 "folgas",
                 referencia,
                 null,
-                5,
                 "Preferencia permanente sem data fim."
         );
         criarPreferenciaAprovada(
@@ -81,7 +78,6 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
                 "folgas",
                 referencia.plusDays(1),
                 referencia.plusDays(2),
-                5,
                 "Preferencia temporaria para o inicio do periodo."
         );
 
@@ -124,7 +120,6 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
                 "folga_preferida",
                 referencia,
                 null,
-                5,
                 "Prefere folgar a este dia da semana."
         );
 

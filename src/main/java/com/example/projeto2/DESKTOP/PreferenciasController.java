@@ -65,7 +65,7 @@ public class PreferenciasController {
     @FXML private TableView<Preferencia> tabelaPreferencias;
     @FXML private TableColumn<Preferencia, String> colTipo;
     @FXML private TableColumn<Preferencia, String> colPeriodo;
-    @FXML private TableColumn<Preferencia, String> colPrioridade;
+    @FXML private TableColumn<Preferencia, String> colVigencia;
     @FXML private TableColumn<Preferencia, String> colEstado;
     @FXML private TableColumn<Preferencia, String> colDescricao;
 
@@ -172,7 +172,6 @@ public class PreferenciasController {
             preferencia.setTipo(tipoNormalizado);
             preferencia.setDataInicio(resolverDataInicio(tipoNormalizado));
             preferencia.setDataFim(resolverDataFim(tipoNormalizado));
-            preferencia.setPrioridade(null);
             String textoLivre = PreferenciaFormatters.limparTexto(txtDescricao.getText());
             String descricao;
             if ("folga_preferida".equals(tipoNormalizado)) {
@@ -243,7 +242,7 @@ public class PreferenciasController {
                 new SimpleStringProperty(PreferenciaFormatters.formatarTipo(cd.getValue().getTipo())));
         colPeriodo.setCellValueFactory(cd ->
                 new SimpleStringProperty(PreferenciaFormatters.formatarPeriodo(cd.getValue())));
-        colPrioridade.setCellValueFactory(cd ->
+        colVigencia.setCellValueFactory(cd ->
                 new SimpleStringProperty(PreferenciaFormatters.formatarVigencia(cd.getValue())));
         colEstado.setCellValueFactory(cd ->
                 new SimpleStringProperty(PreferenciaFormatters.formatarEstado(cd.getValue().getEstado())));

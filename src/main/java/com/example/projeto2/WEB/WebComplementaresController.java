@@ -146,20 +146,11 @@ public class WebComplementaresController {
                                       @RequestParam(value = "dataInicio", required = false) String dataInicio,
                                       @RequestParam(value = "dataFim", required = false) String dataFim,
                                       @RequestParam(value = "diaSemana", required = false) String diaSemana,
-                                      @RequestParam(value = "prioridade", required = false) String prioridade,
                                       @RequestParam(value = "descricao", required = false) String descricao,
                                       HttpSession session,
                                       RedirectAttributes redirectAttributes) {
         try {
             Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
-            Integer prioridadeParsed = null;
-            if (prioridade != null && !prioridade.isBlank()) {
-                try {
-                    prioridadeParsed = Integer.parseInt(prioridade.strip());
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("A prioridade indicada e invalida.");
-                }
-            }
             String tipoNorm = normalizarTipoPreferencia(tipo);
             java.time.LocalDate dataInicioDate;
             if ("folga_preferida".equals(tipoNorm)) {
@@ -181,7 +172,6 @@ public class WebComplementaresController {
             preferencia.setTipo(tipoNorm);
             preferencia.setDataInicio(dataInicioDate);
             preferencia.setDataFim(parseDataOpcional(dataFim));
-            preferencia.setPrioridade(prioridadeParsed);
             preferencia.setDescricao(descricao);
             preferenciaBLL.guardarPreferencia(utilizadorId, preferencia);
             redirectAttributes.addFlashAttribute("sucesso", "Preferencia guardada com sucesso.");

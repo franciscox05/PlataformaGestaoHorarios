@@ -288,14 +288,12 @@ abstract class FluxosCriticosTestSupport {
                                                    String tipo,
                                                    LocalDate dataInicio,
                                                    LocalDate dataFim,
-                                                   Integer prioridade,
                                                    String descricao) {
         Preferencia preferencia = new Preferencia();
         preferencia.setIdUtilizador(colaborador);
         preferencia.setTipo(tipo);
         preferencia.setDataInicio(dataInicio);
         preferencia.setDataFim(dataFim);
-        preferencia.setPrioridade(prioridade);
         preferencia.setDescricao(descricao);
         preferencia.setEstado("aprovado");
         preferencia.setDecisao("Aprovado em fixture de teste.");

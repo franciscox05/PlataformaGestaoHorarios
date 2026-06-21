@@ -140,7 +140,6 @@ class PreferenciaTurnoTieBreakTest {
         p.setDescricao(descricao);
         p.setDataInicio(dataInicio);
         p.setDataFim(dataFim);
-        p.setPrioridade(1);
         p.setEstado("aprovada");
         return p;
     }

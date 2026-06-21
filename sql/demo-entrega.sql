@@ -59,11 +59,14 @@ CREATE INDEX IF NOT EXISTS idx_eventos_auditoria_sessao
     ON public.eventos_auditoria (identificador_sessao);
 
 -- Compatibilidade com a aprovacao de preferencias (#17).
+-- "prioridade" das preferencias removida do modelo de negocio (nunca foi usada pelo
+-- motor de geracao). DROP idempotente para limpar o schema em qualquer ambiente.
+ALTER TABLE public.preferencias DROP COLUMN IF EXISTS prioridade;
+
 ALTER TABLE public.preferencias
     ADD COLUMN IF NOT EXISTS tipo varchar(50),
     ADD COLUMN IF NOT EXISTS data_inicio date,
     ADD COLUMN IF NOT EXISTS data_fim date,
-    ADD COLUMN IF NOT EXISTS prioridade integer,
     ADD COLUMN IF NOT EXISTS estado varchar(50),
     ADD COLUMN IF NOT EXISTS decisao text,
     ADD COLUMN IF NOT EXISTS id_decisor integer,
@@ -343,17 +346,16 @@ INSERT INTO public.preferencias (
     tipo,
     data_inicio,
     data_fim,
-    prioridade,
     estado,
     decisao,
     id_decisor,
     data_decisao
 ) VALUES
-    (1, 7, 'Preferencia por dois dias consecutivos para compromisso familiar.', 'folgas', CURRENT_DATE + 20, CURRENT_DATE + 21, 5, 'pendente', NULL, NULL, NULL),
-    (2, 3, 'Preferencia por turnos da manha durante a semana.', 'turnos', NULL, NULL, 3, 'aprovado', 'Aprovado para equilibrar a distribuicao dos turnos da equipa.', 7, CURRENT_TIMESTAMP - INTERVAL '2 days'),
-    (3, 4, 'Preferencia para trabalhar com Afonso Barbosa no proximo periodo.', 'colegas', NULL, NULL, 2, 'rejeitado', 'Nao foi possivel acomodar esta preferencia sem comprometer a cobertura da loja.', 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
-    (4, 5, 'Pedido de ferias para ponte familiar do proximo mes.', 'ferias', CURRENT_DATE + 25, CURRENT_DATE + 27, 4, 'pendente', NULL, NULL, NULL),
-    (5, 13, 'Preferencia por turnos da manha na NorteShopping.', 'turnos', NULL, NULL, 3, 'pendente', NULL, NULL, NULL);
+    (1, 7, 'Preferencia por dois dias consecutivos para compromisso familiar.', 'folgas', CURRENT_DATE + 20, CURRENT_DATE + 21, 'pendente', NULL, NULL, NULL),
+    (2, 3, 'Preferencia por turnos da manha durante a semana.', 'turnos', NULL, NULL, 'aprovado', 'Aprovado para equilibrar a distribuicao dos turnos da equipa.', 7, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (3, 4, 'Preferencia para trabalhar com Afonso Barbosa no proximo periodo.', 'colegas', NULL, NULL, 'rejeitado', 'Nao foi possivel acomodar esta preferencia sem comprometer a cobertura da loja.', 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (4, 5, 'Pedido de ferias para ponte familiar do proximo mes.', 'ferias', CURRENT_DATE + 25, CURRENT_DATE + 27, 'pendente', NULL, NULL, NULL),
+    (5, 13, 'Preferencia por turnos da manha na NorteShopping.', 'turnos', NULL, NULL, 'pendente', NULL, NULL, NULL);
 
 INSERT INTO public.horarios_especiais_loja (id_horario_especial, id_loja, descricao, data_inicio, data_fim, loja_encerrada, observacoes) VALUES
     (1, 1, 'Encerramento para inventario anual', CURRENT_DATE + 30, CURRENT_DATE + 30, TRUE, 'Encerramento total para contagem de stock.');

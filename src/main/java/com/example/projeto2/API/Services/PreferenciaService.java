@@ -190,7 +190,6 @@ public class PreferenciaService {
                     + " registada. Edita ou remove a existente antes de criar uma nova.");
         }
         String descricaoNormalizada = normalizarDescricao(preferenciaRecebida.getDescricao());
-        Integer prioridadeNormalizada = normalizarPrioridade(preferenciaRecebida.getPrioridade(), tipoNormalizado);
         LocalDate dataInicio = normalizarDataInicio(
                 tipoNormalizado,
                 preferenciaRecebida.getDataInicio(),
@@ -205,7 +204,6 @@ public class PreferenciaService {
                 idUtilizador,
                 tipoNormalizado,
                 descricaoNormalizada,
-                prioridadeNormalizada,
                 dataInicio,
                 dataFim,
                 preferenciaPersistida.getId()
@@ -217,7 +215,6 @@ public class PreferenciaService {
         preferenciaPersistida.setTipo(tipoNormalizado);
         preferenciaPersistida.setDataInicio(dataInicio);
         preferenciaPersistida.setDataFim(dataFim);
-        preferenciaPersistida.setPrioridade(prioridadeNormalizada);
         preferenciaPersistida.setDescricao(descricaoNormalizada);
         preferenciaPersistida.setEstado("pendente");
         preferenciaPersistida.setDecisao(null);
@@ -398,26 +395,6 @@ public class PreferenciaService {
         return decisaoNormalizada;
     }
 
-    private Integer normalizarPrioridade(Integer prioridade, String tipo) {
-        if (prioridade == null) {
-            return prioridadePorOmissao(tipo);
-        }
-
-        if (prioridade < 1 || prioridade > 5) {
-            throw new IllegalArgumentException("A prioridade deve estar entre 1 e 5.");
-        }
-
-        return prioridade;
-    }
-
-    private Integer prioridadePorOmissao(String tipo) {
-        return switch (tipo) {
-            case "folgas", "ferias", "folga_preferida" -> 4;
-            case "colegas", "turnos" -> 3;
-            default -> 3;
-        };
-    }
-
     private LocalDate normalizarDataInicio(String tipo, LocalDate dataInicio, LocalDate dataFim) {
         if (dataInicio != null) {
             return dataInicio;
@@ -473,12 +450,11 @@ public class PreferenciaService {
     private boolean existePreferenciaDuplicada(Integer idUtilizador,
                                                String tipo,
                                                String descricao,
-                                               Integer prioridade,
                                                LocalDate dataInicio,
                                                LocalDate dataFim,
                                                Integer idIgnorado) {
         return preferenciaRepository.existsPreferenciaDuplicada(
-                idUtilizador, tipo, descricao, prioridade, dataInicio, dataFim, idIgnorado);
+                idUtilizador, tipo, descricao, dataInicio, dataFim, idIgnorado);
     }
 
     private String formatarTipoParaMensagem(String tipo) {
