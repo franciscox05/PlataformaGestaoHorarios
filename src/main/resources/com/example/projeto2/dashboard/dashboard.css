@@ -840,7 +840,11 @@
 }
 .campo-input,
 .campo-combo,
-.campo-readonly { -fx-padding: 11px 14px; }
+.campo-readonly {
+    -fx-padding: 11px 14px;
+    -fx-min-height: 48px;
+    -fx-pref-height: 48px;
+}
 .campo-input:focused,
 .campo-combo:focused,
 .campo-textarea:focused {
@@ -865,6 +869,8 @@
     -fx-border-width: 1.5px;
     -fx-background-radius: 12px;
     -fx-border-radius: 12px;
+    -fx-min-height: 48px;
+    -fx-pref-height: 48px;
 }
 .combo-box:focused,
 .spinner:focused,
@@ -3428,43 +3434,55 @@
 
 /* ── Toggle de vista (Calendário / Grelha) ── */
 .vista-toggle-bar {
-    -fx-background-color: #f3f4f6;
-    -fx-background-radius: 10px;
-    -fx-padding: 4px;
+    -fx-background-color: -surface-soft;
+    -fx-background-radius: 14px;
+    -fx-border-color: -border-variant;
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+    -fx-padding: 5px;
     -fx-alignment: CENTER_LEFT;
-    -fx-spacing: 4px;
-    -fx-min-height: 42px;
-    -fx-pref-height: 42px;
-    -fx-max-height: 42px;
+    -fx-spacing: 5px;
+    -fx-min-height: 46px;
+    -fx-pref-height: 46px;
+    -fx-effect: dropshadow(gaussian, rgba(26,25,28,0.05), 10, 0, 0, 2);
 }
 .btn-vista {
     -fx-font-size: 12px;
-    -fx-font-weight: 700;
-    -fx-padding: 7px 18px;
-    -fx-background-radius: 8px;
+    -fx-font-weight: 800;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 10px;
     -fx-cursor: hand;
     -fx-border-width: 0;
     -fx-alignment: CENTER;
     -fx-content-display: LEFT;
-    -fx-graphic-text-gap: 6px;
-    -fx-min-height: 32px;
-    -fx-pref-height: 32px;
+    -fx-graphic-text-gap: 7px;
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+}
+.btn-vista .ikonli-font-icon {
+    -fx-icon-size: 15px;
 }
 .btn-vista-ativo {
     -fx-background-color: #ffffff;
-    -fx-text-fill: #1c1b1b;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 6, 0, 0, 2);
+    -fx-text-fill: -levis-red-dark;
+    -fx-effect: dropshadow(gaussian, rgba(26,25,28,0.12), 8, 0, 0, 2);
+}
+.btn-vista-ativo .ikonli-font-icon {
+    -fx-icon-color: -levis-red-dark;
 }
 .btn-vista-ativo:hover {
     -fx-background-color: #f9fafb;
 }
 .btn-vista-inativo {
     -fx-background-color: transparent;
-    -fx-text-fill: #6b7280;
+    -fx-text-fill: -ink-500;
+}
+.btn-vista-inativo .ikonli-font-icon {
+    -fx-icon-color: -ink-500;
 }
 .btn-vista-inativo:hover {
     -fx-background-color: rgba(255,255,255,0.60);
-    -fx-text-fill: #374151;
+    -fx-text-fill: -ink-900;
 }
 
 /* Sub-toggle Semana / Mês dentro da grelha */
@@ -3639,7 +3657,7 @@
 /* ── Célula de dia (container) ── */
 .grelha-dia-cell {
     -fx-alignment: CENTER;
-    -fx-padding: 5px 4px;
+    -fx-padding: 5px 9px;
     -fx-min-width: 110px;
     -fx-pref-width: 110px;
     -fx-max-width: 110px;
@@ -3687,9 +3705,9 @@
     -fx-background-radius: 8px;
     -fx-padding: 6px 8px;
     -fx-spacing: 3px;
-    -fx-min-width: 96px;
-    -fx-pref-width: 96px;
-    -fx-max-width: 96px;
+    -fx-min-width: 86px;
+    -fx-pref-width: 86px;
+    -fx-max-width: 86px;
     -fx-min-height: 52px;
     -fx-pref-height: 52px;
 }
@@ -3733,14 +3751,32 @@
     /* célula vazia — sem card */
 }
 .grelha-turno-card-manha_tarde {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #dbeafe 50%, #ccfbf1 50%);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #dbeafe 50%, #fef3c7 50%);
     -fx-border-color: #bfdbfe;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
 }
 .grelha-turno-card-tarde_noite {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #ccfbf1 50%, #ede9fe 50%);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #fef3c7 50%, #ede9fe 50%);
     -fx-border-color: #ddd6fe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-manha_intermedio {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #dbeafe 50%, #fef3c7 50%);
+    -fx-border-color: #bfdbfe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-intermedio_noite {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #fef3c7 50%, #ede9fe 50%);
+    -fx-border-color: #ddd6fe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.grelha-turno-card-manha_intermedio_noite {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #dbeafe 0%, #dbeafe 33%, #fef3c7 33%, #fef3c7 66%, #ede9fe 66%, #ede9fe 100%);
+    -fx-border-color: #c7d2fe;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
 }
@@ -3759,6 +3795,9 @@
 .grelha-turno-nome-outro      { -fx-text-fill: #374151; }
 .grelha-turno-nome-manha_tarde { -fx-text-fill: #1d4ed8; }
 .grelha-turno-nome-tarde_noite { -fx-text-fill: #0e7490; }
+.grelha-turno-nome-manha_intermedio { -fx-text-fill: #1d4ed8; }
+.grelha-turno-nome-intermedio_noite { -fx-text-fill: #b45309; }
+.grelha-turno-nome-manha_intermedio_noite { -fx-text-fill: #4f46e5; }
 
 .grelha-turno-hora {
     -fx-font-size: 10px;
@@ -3773,6 +3812,9 @@
 .grelha-turno-hora-outro      { -fx-text-fill: #6b7280; }
 .grelha-turno-hora-manha_tarde { -fx-text-fill: #1d4ed8; }
 .grelha-turno-hora-tarde_noite { -fx-text-fill: #0e7490; }
+.grelha-turno-hora-manha_intermedio { -fx-text-fill: #1d4ed8; }
+.grelha-turno-hora-intermedio_noite { -fx-text-fill: #b45309; }
+.grelha-turno-hora-manha_intermedio_noite { -fx-text-fill: #4f46e5; }
 
 /* ── Célula de colaborador redimensionada ── */
 .grelha-employee-info {
@@ -4133,6 +4175,7 @@
 }
 .grelha-compacta-tile {
     -fx-alignment: CENTER;
+    -fx-padding: 2px;
     -fx-min-height: 46px;
     -fx-border-color: #f3f4f6;
     -fx-border-width: 0 0 0 1px;
@@ -4148,8 +4191,8 @@
 .grelha-compacta-pilula {
     -fx-background-radius: 4px;
     -fx-alignment: CENTER;
-    -fx-min-width: 24px;  -fx-pref-width: 26px;  -fx-max-width: 30px;
-    -fx-min-height: 24px; -fx-pref-height: 26px; -fx-max-height: 30px;
+    -fx-min-width: 20px;  -fx-pref-width: 22px;  -fx-max-width: 24px;
+    -fx-min-height: 20px; -fx-pref-height: 22px; -fx-max-height: 24px;
 }
 .grelha-compacta-pilula-manha      { -fx-background-color: #dbeafe; }
 .grelha-compacta-pilula-tarde      { -fx-background-color: #fef3c7; }
@@ -4159,6 +4202,9 @@
 .grelha-compacta-pilula-outro      { -fx-background-color: #f3f4f6; }
 .grelha-compacta-pilula-manha_tarde { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #2563eb 50%, #0891b2 50%); }
 .grelha-compacta-pilula-tarde_noite { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #0891b2 50%, #7c3aed 50%); }
+.grelha-compacta-pilula-manha_intermedio { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #2563eb 50%, #d97706 50%); }
+.grelha-compacta-pilula-intermedio_noite { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #d97706 50%, #7c3aed 50%); }
+.grelha-compacta-pilula-manha_intermedio_noite { -fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #2563eb 0%, #2563eb 33%, #d97706 33%, #d97706 66%, #7c3aed 66%, #7c3aed 100%); }
 
 /* Letra dentro da pílula */
 .grelha-compacta-tile-letra { -fx-font-size: 11px; -fx-font-weight: 800; }
@@ -4170,6 +4216,9 @@
 .grelha-compacta-tile-letra-outro      { -fx-text-fill: #374151; }
 .grelha-compacta-tile-letra-manha_tarde { -fx-text-fill: white; }
 .grelha-compacta-tile-letra-tarde_noite { -fx-text-fill: white; }
+.grelha-compacta-tile-letra-manha_intermedio { -fx-text-fill: white; }
+.grelha-compacta-tile-letra-intermedio_noite { -fx-text-fill: white; }
+.grelha-compacta-tile-letra-manha_intermedio_noite { -fx-text-fill: white; -fx-font-size: 9px; }
 
 /* ── Calendário mensal: dias sem eventos recuam (menos "caixas brancas") ── */
 .calendario-mes-dia-card-sem-eventos {

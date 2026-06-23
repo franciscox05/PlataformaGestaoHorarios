@@ -529,11 +529,19 @@
                                             <Button fx:id="btnVistaCalendario"
                                                     onAction="#onVistaCalendarioClick"
                                                     styleClass="btn-vista btn-vista-ativo"
-                                                    text="&#128197;  Calend&#225;rio"/>
+                                                    text="Calend&#225;rio">
+                                                <graphic>
+                                                    <FontIcon iconLiteral="mdi2c-calendar-month-outline" iconSize="15"/>
+                                                </graphic>
+                                            </Button>
                                             <Button fx:id="btnVistaGrelha"
                                                     onAction="#onVistaGrelhaClick"
                                                     styleClass="btn-vista btn-vista-inativo"
-                                                    text="&#9635;  Grelha"/>
+                                                    text="Grelha">
+                                                <graphic>
+                                                    <FontIcon iconLiteral="mdi2v-view-grid-outline" iconSize="15"/>
+                                                </graphic>
+                                            </Button>
                                         </HBox>
                                         <Label styleClass="bento-card-subtitulo"
                                                text="Alterna entre calend&#225;rio e grelha por colaborador"/>

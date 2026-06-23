@@ -97,7 +97,9 @@ public final class GrelhaHorarioHelper {
                         : "");
                 String tipo = h.getIdTurno() != null ? h.getIdTurno().getTipo() : null;
                 porColaborador.computeIfAbsent(id, k -> new LinkedHashMap<>())
-                        .put(h.getDataTurno(), new GrelhaHorarioRenderer.CelulaTurno(tipo, horasDe(h)));
+                        .merge(h.getDataTurno(),
+                                new GrelhaHorarioRenderer.CelulaTurno(tipo, horasDe(h)),
+                                GrelhaHorarioHelper::combinarCelulas);
             }
         }
 
@@ -130,6 +132,96 @@ public final class GrelhaHorarioHelper {
         return (ini != null ? ini.format(HORA_FMT) : "--:--")
                 + " - "
                 + (fim != null ? fim.format(HORA_FMT) : "--:--");
+    }
+
+    private static GrelhaHorarioRenderer.CelulaTurno combinarCelulas(
+            GrelhaHorarioRenderer.CelulaTurno atual,
+            GrelhaHorarioRenderer.CelulaTurno nova) {
+        if (atual == null) {
+            return nova;
+        }
+        if (nova == null) {
+            return atual;
+        }
+        return new GrelhaHorarioRenderer.CelulaTurno(
+                combinarTipos(atual.tipo(), nova.tipo()),
+                combinarHoras(atual.horas(), nova.horas()));
+    }
+
+    private static String combinarTipos(String primeiro, String segundo) {
+        List<String> tipos = List.of("manha", "intermedio", "noite");
+        List<String> presentes = new ArrayList<>();
+        for (String tipo : new String[]{normalizarTipo(primeiro), normalizarTipo(segundo)}) {
+            if (tipo != null && !presentes.contains(tipo)) {
+                presentes.add(tipo);
+            }
+        }
+        if (presentes.isEmpty()) {
+            return primeiro != null ? primeiro : segundo;
+        }
+        presentes.sort(Comparator.comparingInt(tipo -> {
+            int indice = tipos.indexOf(tipo);
+            return indice >= 0 ? indice : tipos.size();
+        }));
+        return String.join("_", presentes);
+    }
+
+    private static String normalizarTipo(String tipo) {
+        if (tipo == null || tipo.isBlank()) {
+            return null;
+        }
+        String valor = Normalizer.normalize(tipo.toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .trim();
+        if (valor.contains("manha")) {
+            return "manha";
+        }
+        if (valor.contains("intermedio") || valor.contains("tarde")) {
+            return "intermedio";
+        }
+        if (valor.contains("noite")) {
+            return "noite";
+        }
+        if (valor.contains("folga")) {
+            return "folga";
+        }
+        return valor;
+    }
+
+    private static String combinarHoras(String primeira, String segunda) {
+        LocalTime inicio = menorHora(extrairHora(primeira, 0), extrairHora(segunda, 0));
+        LocalTime fim = maiorHora(extrairHora(primeira, 1), extrairHora(segunda, 1));
+        if (inicio == null || fim == null) {
+            return primeira != null ? primeira : segunda;
+        }
+        return inicio.format(HORA_FMT) + " - " + fim.format(HORA_FMT);
+    }
+
+    private static LocalTime extrairHora(String horas, int indice) {
+        if (horas == null || horas.isBlank()) {
+            return null;
+        }
+        String[] partes = horas.split("\\s*-\\s*");
+        if (indice < 0 || indice >= partes.length) {
+            return null;
+        }
+        try {
+            return LocalTime.parse(partes[indice], HORA_FMT);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static LocalTime menorHora(LocalTime primeira, LocalTime segunda) {
+        if (primeira == null) return segunda;
+        if (segunda == null) return primeira;
+        return primeira.isBefore(segunda) ? primeira : segunda;
+    }
+
+    private static LocalTime maiorHora(LocalTime primeira, LocalTime segunda) {
+        if (primeira == null) return segunda;
+        if (segunda == null) return primeira;
+        return primeira.isAfter(segunda) ? primeira : segunda;
     }
 
     private static String textoOu(String valor, String fallback) {

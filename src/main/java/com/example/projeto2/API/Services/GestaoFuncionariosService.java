@@ -95,8 +95,7 @@ public class GestaoFuncionariosService {
         String estado = normalizarEstado(request.estado());
 
         if (request.idUtilizador() == null) {
-            String password = segurancaBLL.prepararPasswordParaPersistencia(request.password(), true);
-            return criarColaborador(ligacaoGestor.getIdLoja(), cargoSelecionado, nome, email, telemovel, password, estado);
+            return criarColaborador(ligacaoGestor.getIdLoja(), cargoSelecionado, nome, email, telemovel, request.password(), estado);
         }
 
         String password = segurancaBLL.prepararPasswordParaPersistencia(request.password(), false);
@@ -164,23 +163,24 @@ public class GestaoFuncionariosService {
                                      String nome,
                                      String email,
                                      String telemovel,
-                                     String password,
+                                     String passwordEmTexto,
                                      String estado) {
         if (!"ativo".equals(estado)) {
             throw new IllegalArgumentException("Novos colaboradores devem ser criados com estado ativo.");
         }
 
-        if (password == null) {
-            throw new IllegalArgumentException("Indica uma password inicial para o novo colaborador.");
+        Optional<Utilizador> colaboradorExistente = resolverColaboradorExistenteParaNovaLoja(loja, nome, email, telemovel);
+        if (colaboradorExistente.isPresent()) {
+            Utilizador colaborador = colaboradorExistente.get();
+            criarNovaLigacaoLoja(colaborador, loja, cargoSelecionado);
+            if (colaborador.getEstado() != EstadoUtilizador.ativo) {
+                colaborador.setEstado(EstadoUtilizador.ativo);
+                utilizadorRepository.save(colaborador);
+            }
+            return colaborador.getId();
         }
 
-        if (utilizadorRepository.existsByEmailIgnoreCase(email)) {
-            throw new IllegalArgumentException("Este email ja esta registado noutra conta.");
-        }
-
-        if (telemovel != null && utilizadorRepository.existsByTelemovel(telemovel)) {
-            throw new IllegalArgumentException("Este telemovel ja esta registado noutra conta.");
-        }
+        String password = segurancaBLL.prepararPasswordParaPersistencia(passwordEmTexto, true);
 
         Utilizador colaborador = new Utilizador();
         colaborador.setNome(nome);
@@ -192,6 +192,46 @@ public class GestaoFuncionariosService {
 
         criarNovaLigacaoLoja(colaboradorGuardado, loja, cargoSelecionado);
         return colaboradorGuardado.getId();
+    }
+
+    private Optional<Utilizador> resolverColaboradorExistenteParaNovaLoja(Loja loja,
+                                                                          String nome,
+                                                                          String email,
+                                                                          String telemovel) {
+        Optional<Utilizador> porEmail = utilizadorRepository.findByEmailIgnoreCase(email);
+        Optional<Utilizador> porTelemovel = telemovel != null
+                ? utilizadorRepository.findByTelemovel(telemovel)
+                : Optional.empty();
+
+        if (porEmail.isEmpty() && porTelemovel.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (porEmail.isPresent() && porTelemovel.isPresent()
+                && !Objects.equals(porEmail.get().getId(), porTelemovel.get().getId())) {
+            throw new IllegalArgumentException("O email e o telemovel ja estao registados em contas diferentes.");
+        }
+
+        Utilizador existente = porEmail.or(() -> porTelemovel).orElseThrow();
+        boolean emailCoincide = existente.getEmail() != null && existente.getEmail().equalsIgnoreCase(email);
+        boolean telemovelCoincide = telemovel != null && Objects.equals(existente.getTelemovel(), telemovel);
+        boolean nomeCoincide = nomesEquivalentes(existente.getNome(), nome);
+
+        if (!(emailCoincide && telemovelCoincide && nomeCoincide)) {
+            if (emailCoincide && telemovelCoincide) {
+                throw new IllegalArgumentException("O email e o telemovel ja estao registados para outro colaborador.");
+            }
+            if (emailCoincide) {
+                throw new IllegalArgumentException("Este email ja esta registado noutra conta.");
+            }
+            throw new IllegalArgumentException("Este telemovel ja esta registado noutra conta.");
+        }
+
+        if (lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(existente.getId(), loja.getId()).isPresent()) {
+            throw new IllegalArgumentException("Este colaborador ja esta associado a esta loja.");
+        }
+
+        return Optional.of(existente);
     }
 
     private Integer atualizarColaborador(Lojautilizador ligacaoGestor,
@@ -507,6 +547,19 @@ public class GestaoFuncionariosService {
 
         String valorNormalizado = valor.trim();
         return valorNormalizado.isEmpty() ? null : valorNormalizado;
+    }
+
+    private boolean nomesEquivalentes(String atual, String recebido) {
+        return normalizarParaComparacao(atual).equals(normalizarParaComparacao(recebido));
+    }
+
+    private String normalizarParaComparacao(String valor) {
+        if (valor == null) {
+            return "";
+        }
+        return java.text.Normalizer.normalize(valor.trim(), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(java.util.Locale.ROOT);
     }
 
     public record GestaoFuncionariosResumo(

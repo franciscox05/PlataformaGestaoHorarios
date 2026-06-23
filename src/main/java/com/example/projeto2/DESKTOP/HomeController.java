@@ -49,6 +49,10 @@ public class HomeController {
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter HORARIO_COMPACTO = DateTimeFormatter.ofPattern("HH:mm");
     private static final Locale LOCALE_PT = Locale.forLanguageTag("pt-PT");
+    private static final double ALTURA_GRELHA_MENSAL_CABECALHO = 56.0;
+    private static final double ALTURA_GRELHA_MENSAL_LINHA = 72.0;
+    private static final double ALTURA_GRELHA_MENSAL_SCROLL_HORIZONTAL = 56.0;
+    private static final double ALTURA_GRELHA_MENSAL_MINIMA = 330.0;
 
     @FXML private Label lblBemVindo;
     @FXML private Label lblDataHoje;
@@ -485,6 +489,7 @@ public class HomeController {
         if (vistaGrelhaAtiva) {
             GrelhaHorarioHelper.preencher(boxGrelhaEquipaMensal, periodo, horarios, LocalDate.now(),
                     this::abrirDetalheDiaMensal);
+            ajustarAlturaGrelhaMensal(horarios);
         } else {
             Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
             if (horarios != null) {
@@ -505,6 +510,30 @@ public class HomeController {
                     "Sem horários publicados para o período selecionado.",
                     this::abrirDetalheDiaMensal);
         }
+    }
+
+    private void ajustarAlturaGrelhaMensal(List<Horario> horarios) {
+        if (scrollGrelhaEquipaMensal == null) {
+            return;
+        }
+
+        long linhas = horarios == null ? 0 : horarios.stream()
+                .map(Horario::getIdLojautilizador)
+                .filter(Objects::nonNull)
+                .map(r -> r.getIdUtilizador())
+                .filter(Objects::nonNull)
+                .map(Utilizador::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+
+        double altura = ALTURA_GRELHA_MENSAL_CABECALHO
+                + (Math.max(1, linhas) * ALTURA_GRELHA_MENSAL_LINHA)
+                + ALTURA_GRELHA_MENSAL_SCROLL_HORIZONTAL;
+        altura = Math.max(ALTURA_GRELHA_MENSAL_MINIMA, altura);
+
+        scrollGrelhaEquipaMensal.setMinHeight(altura);
+        scrollGrelhaEquipaMensal.setPrefHeight(altura);
     }
 
     private void abrirDetalheDiaMensal(LocalDate data) {

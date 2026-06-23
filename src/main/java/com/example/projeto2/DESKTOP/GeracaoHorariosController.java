@@ -504,7 +504,7 @@ public class GeracaoHorariosController {
             // Clicar numa célula dia×colaborador abre a "Escala da Equipa do Dia" (com folgas) e
             // realça o colaborador clicado — diálogo dono desta janela, para surgir à frente dela.
             final PropostaResultado propostaExpandida = propostaAtual;
-            double larguraEcra = javafx.stage.Screen.getPrimary().getVisualBounds().getWidth();
+            double larguraEcra = javafx.stage.Screen.getPrimary().getBounds().getWidth();
             com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
                     .renderizarDetalhado(grelha, dias, linhasGrelha, LocalDate.now(),
                             dia -> abrirDetalheDiaProposta(dia, propostaExpandida, janela, null),
@@ -525,11 +525,8 @@ public class GeracaoHorariosController {
             aplicarEstilosCena(cena);
             janela.setTitle("Horário — " + mes + " " + spAno.getValue());
             janela.setScene(cena);
-            janela.initModality(javafx.stage.Modality.APPLICATION_MODAL);
-            if (obterJanela() != null) janela.initOwner(obterJanela());
-            janela.show();
-            // setMaximized depois de show() garante que funciona no Windows/JavaFX
-            javafx.application.Platform.runLater(() -> janela.setMaximized(true));
+            configurarJanelaExpandida(janela, obterStagePrincipal());
+            apresentarJanelaExpandida(janela);
         } catch (Exception e) {
             mostrarErro("Não foi possível abrir a vista em detalhe.");
         }
@@ -673,11 +670,8 @@ public class GeracaoHorariosController {
             cena.setOnKeyPressed(ev -> { if (ev.getCode() == KeyCode.ESCAPE) janela.close(); });
             janela.setScene(cena);
             // Sem decoração do SO → não é uma janela arrastável/móvel; comporta-se como overlay interno.
-            janela.initStyle(javafx.stage.StageStyle.UNDECORATED);
-            janela.initModality(javafx.stage.Modality.APPLICATION_MODAL);
-            if (obterJanela() != null) janela.initOwner(obterJanela());
-            janela.show();
-            javafx.application.Platform.runLater(() -> janela.setMaximized(true));
+            configurarJanelaExpandida(janela, obterStagePrincipal());
+            apresentarJanelaExpandida(janela);
         } catch (Exception e) {
             mostrarErro("Não foi possível abrir a comparação em detalhe.");
         }
@@ -2093,6 +2087,51 @@ public class GeracaoHorariosController {
     private Window obterJanela() {
         if (lblLoja == null || lblLoja.getScene() == null) return null;
         return lblLoja.getScene().getWindow();
+    }
+
+    private Stage obterStagePrincipal() {
+        Window janela = obterJanela();
+        return janela instanceof Stage ? (Stage) janela : null;
+    }
+
+    private void configurarJanelaExpandida(Stage janela, Stage stagePrincipal) {
+        janela.initStyle(javafx.stage.StageStyle.UNDECORATED);
+        janela.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        if (stagePrincipal != null) {
+            janela.initOwner(stagePrincipal);
+        }
+        janela.setFullScreenExitHint("");
+        janela.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
+        janela.setOnHidden(event -> restaurarFullscreenAplicacao(stagePrincipal));
+    }
+
+    private void apresentarJanelaExpandida(Stage janela) {
+        janela.show();
+        javafx.application.Platform.runLater(() -> {
+            janela.setMaximized(true);
+            janela.setFullScreen(true);
+        });
+    }
+
+    private void restaurarFullscreenAplicacao(Stage stagePrincipal) {
+        if (stagePrincipal == null || !stagePrincipal.isShowing()) {
+            return;
+        }
+        javafx.application.Platform.runLater(() -> {
+            stagePrincipal.setResizable(false);
+            stagePrincipal.setFullScreenExitHint("");
+            stagePrincipal.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
+            stagePrincipal.setFullScreen(true);
+            stagePrincipal.toFront();
+            stagePrincipal.requestFocus();
+
+            javafx.application.Platform.runLater(() -> {
+                if (stagePrincipal.isShowing()) {
+                    stagePrincipal.setFullScreen(true);
+                    stagePrincipal.toFront();
+                }
+            });
+        });
     }
 
     /**

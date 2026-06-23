@@ -11,6 +11,8 @@ public interface UtilizadorRepository extends JpaRepository<Utilizador, Integer>
 
     Optional<Utilizador> findByEmailIgnoreCase(String email);
 
+    Optional<Utilizador> findByTelemovel(String telemovel);
+
     boolean existsByEmailIgnoreCase(String email);
 
     boolean existsByTelemovel(String telemovel);

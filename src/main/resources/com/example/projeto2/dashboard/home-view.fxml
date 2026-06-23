@@ -118,15 +118,15 @@
                 <HBox alignment="BOTTOM_LEFT" spacing="12.0">
                     <VBox spacing="6.0">
                         <Label styleClass="campo-titulo" text="M&#234;s" />
-                        <ComboBox fx:id="cbMesHorarioMensal" prefWidth="140.0" minWidth="120.0" maxWidth="160.0" promptText="Seleciona o m&#234;s" styleClass="campo-combo" />
+                        <ComboBox fx:id="cbMesHorarioMensal" prefWidth="150.0" minWidth="150.0" maxWidth="150.0" promptText="Seleciona o m&#234;s" styleClass="campo-combo" />
                     </VBox>
                     <VBox spacing="6.0">
                         <Label styleClass="campo-titulo" text="Ano" />
-                        <Spinner fx:id="spAnoHorarioMensal" prefWidth="100.0" minWidth="90.0" maxWidth="120.0" />
+                        <Spinner fx:id="spAnoHorarioMensal" prefWidth="112.0" minWidth="112.0" maxWidth="112.0" />
                     </VBox>
                     <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                         <Label styleClass="campo-titulo" text="Colaborador" />
-                        <ComboBox fx:id="cbColaboradorHorarioMensal" prefWidth="280.0" minWidth="200.0" maxWidth="400.0" promptText="Toda a equipa" styleClass="campo-combo" />
+                        <ComboBox fx:id="cbColaboradorHorarioMensal" prefWidth="360.0" minWidth="320.0" maxWidth="520.0" promptText="Toda a equipa" styleClass="campo-combo" />
                     </VBox>
                 </HBox>
 
@@ -146,11 +146,12 @@
                 <!-- Vista Grelha (linhas colaborador × dias) -->
                 <ScrollPane fx:id="scrollGrelhaEquipaMensal"
                             fitToWidth="true"
-                            fitToHeight="true"
-                            hbarPolicy="NEVER"
+                            fitToHeight="false"
+                            hbarPolicy="AS_NEEDED"
                             vbarPolicy="NEVER"
                             managed="false"
-                            minHeight="260.0"
+                            minHeight="330.0"
+                            prefHeight="390.0"
                             styleClass="grelha-scroll"
                             visible="false">
                     <content>

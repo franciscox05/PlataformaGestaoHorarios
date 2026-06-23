@@ -8,6 +8,7 @@ import javafx.scene.layout.VBox;
 import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
@@ -223,14 +224,69 @@ public final class VistaGrelhaHorarioRender {
 
     private static GrelhaHorarioRenderer.CelulaTurno mesclarCelulas(
             GrelhaHorarioRenderer.CelulaTurno existente, String novoTipo, String novasHoras) {
-        String tipoE = existente.tipo() != null ? existente.tipo().toLowerCase() : "";
-        String tipoN = novoTipo != null ? novoTipo.toLowerCase() : "";
-        boolean temManha = "manha".equals(tipoE) || "manha".equals(tipoN);
-        boolean temTarde = "tarde".equals(tipoE) || "tarde".equals(tipoN);
-        boolean temNoite = "noite".equals(tipoE) || "noite".equals(tipoN);
-        if (temManha && temTarde) return new GrelhaHorarioRenderer.CelulaTurno("manha_tarde", "10:00 - 18:00");
-        if (temTarde && temNoite) return new GrelhaHorarioRenderer.CelulaTurno("tarde_noite", "14:00 - 22:00");
-        return new GrelhaHorarioRenderer.CelulaTurno(novoTipo, novasHoras);
+        String tipoE = chaveTurno(existente.tipo());
+        String tipoN = chaveTurno(novoTipo);
+        String tipoCombinado = combinarTipos(tipoE, tipoN);
+        return new GrelhaHorarioRenderer.CelulaTurno(tipoCombinado, combinarHoras(existente.horas(), novasHoras));
+    }
+
+    private static String combinarTipos(String a, String b) {
+        boolean temManha = "manha".equals(a) || "manha".equals(b)
+                || "manha_intermedio".equals(a) || "manha_intermedio".equals(b)
+                || "manha_tarde".equals(a) || "manha_tarde".equals(b);
+        boolean temIntermedio = "intermedio".equals(a) || "intermedio".equals(b)
+                || "tarde".equals(a) || "tarde".equals(b)
+                || "manha_intermedio".equals(a) || "manha_intermedio".equals(b)
+                || "manha_tarde".equals(a) || "manha_tarde".equals(b)
+                || "intermedio_noite".equals(a) || "intermedio_noite".equals(b)
+                || "tarde_noite".equals(a) || "tarde_noite".equals(b);
+        boolean temNoite = "noite".equals(a) || "noite".equals(b)
+                || "intermedio_noite".equals(a) || "intermedio_noite".equals(b)
+                || "tarde_noite".equals(a) || "tarde_noite".equals(b);
+
+        if (temManha && temIntermedio && temNoite) return "manha_intermedio_noite";
+        if (temManha && temIntermedio) return "manha_intermedio";
+        if (temIntermedio && temNoite) return "intermedio_noite";
+        if (temManha) return "manha";
+        if (temNoite) return "noite";
+        return temIntermedio ? "intermedio" : b;
+    }
+
+    private static String chaveTurno(String tipo) {
+        if (tipo == null || tipo.isBlank()) return "";
+        String p = Normalizer.normalize(tipo.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return switch (p) {
+            case "manha" -> "manha";
+            case "tarde", "intermedio" -> "intermedio";
+            case "noite" -> "noite";
+            case "manha_tarde", "manha_intermedio" -> "manha_intermedio";
+            case "tarde_noite", "intermedio_noite" -> "intermedio_noite";
+            case "folga" -> "folga";
+            default -> p;
+        };
+    }
+
+    private static String combinarHoras(String horasExistentes, String horasNovas) {
+        LocalTime[] a = intervalo(horasExistentes);
+        LocalTime[] b = intervalo(horasNovas);
+        if (a == null) return horasNovas;
+        if (b == null) return horasExistentes;
+        LocalTime inicio = a[0].isBefore(b[0]) ? a[0] : b[0];
+        LocalTime fim = a[1].isAfter(b[1]) ? a[1] : b[1];
+        return inicio + " - " + fim;
+    }
+
+    private static LocalTime[] intervalo(String horas) {
+        if (horas == null || horas.isBlank() || "-".equals(horas.trim())) return null;
+        String normalizado = horas.trim().replace("–", "-").replace("—", "-");
+        String[] partes = normalizado.split("\\s*-\\s*", 2);
+        if (partes.length != 2) return null;
+        try {
+            return new LocalTime[]{LocalTime.parse(partes[0].trim()), LocalTime.parse(partes[1].trim())};
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static String capitalizar(String texto) {

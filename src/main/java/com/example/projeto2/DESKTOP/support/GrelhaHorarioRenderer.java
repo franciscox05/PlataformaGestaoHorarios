@@ -59,6 +59,7 @@ public final class GrelhaHorarioRenderer {
 
     private static final double ALTURA_CABECALHO = 56.0;
     private static final double ALTURA_LINHA = 72.0;
+    private static final double ESPACO_ANTES_SCROLL_HORIZONTAL = 24.0;
     private static final double NOME_COL_COMPACTA = 190.0;
 
     private GrelhaHorarioRenderer() {
@@ -160,6 +161,14 @@ public final class GrelhaHorarioRenderer {
             colunaFixa.getChildren().add(celulaColab);
             parteDias.getChildren().add(linhaDias);
         }
+
+        Region folgaColunaFixa = new Region();
+        fixarAltura(folgaColunaFixa, ESPACO_ANTES_SCROLL_HORIZONTAL);
+        colunaFixa.getChildren().add(folgaColunaFixa);
+
+        Region folgaDias = new Region();
+        fixarAltura(folgaDias, ESPACO_ANTES_SCROLL_HORIZONTAL);
+        parteDias.getChildren().add(folgaDias);
 
         ScrollPane scrollDias = new ScrollPane(parteDias);
         scrollDias.getStyleClass().add("grelha-dias-scroll");
@@ -338,15 +347,18 @@ public final class GrelhaHorarioRenderer {
 
     // cores por tipo: [chip-bg, chip-text, cell-bg, cell-bg-fds]
     // Para tipos combinados, chip-bg é um gradiente CSS inline
-    private static final Map<String, String[]> CORES_DET = Map.of(
-            "manha",       new String[]{"#2563eb", "white",   "#eff6ff", "#dbeafe"},
-            "tarde",       new String[]{"#0891b2", "white",   "#f0fdfa", "#ccfbf1"},
-            "noite",       new String[]{"#7c3aed", "white",   "#f5f3ff", "#ede9fe"},
-            "intermedio",  new String[]{"#d97706", "white",   "#fffbeb", "#fef3c7"},
-            "folga",       new String[]{"#6b7280", "#9ca3af", "#f9fafb", "#f3f4f6"},
-            "outro",       new String[]{"#374151", "white",   "#f9fafb", "#f3f4f6"},
-            "manha_tarde", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #2563eb 50%, #0891b2 50%)", "white", "#eff6ff", "#dbeafe"},
-            "tarde_noite", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #0891b2 50%, #7c3aed 50%)", "white", "#f0fdfa", "#ccfbf1"}
+    private static final Map<String, String[]> CORES_DET = Map.ofEntries(
+            Map.entry("manha",       new String[]{"#2563eb", "white",   "#eff6ff", "#dbeafe"}),
+            Map.entry("tarde",       new String[]{"#d97706", "white",   "#fffbeb", "#fef3c7"}),
+            Map.entry("noite",       new String[]{"#7c3aed", "white",   "#f5f3ff", "#ede9fe"}),
+            Map.entry("intermedio",  new String[]{"#d97706", "white",   "#fffbeb", "#fef3c7"}),
+            Map.entry("folga",       new String[]{"#6b7280", "#9ca3af", "#f9fafb", "#f3f4f6"}),
+            Map.entry("outro",       new String[]{"#374151", "white",   "#f9fafb", "#f3f4f6"}),
+            Map.entry("manha_tarde", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #2563eb 50%, #d97706 50%)", "white", "#eff6ff", "#dbeafe"}),
+            Map.entry("tarde_noite", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #d97706 50%, #7c3aed 50%)", "white", "#fffbeb", "#fef3c7"}),
+            Map.entry("manha_intermedio", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #2563eb 50%, #d97706 50%)", "white", "#eff6ff", "#dbeafe"}),
+            Map.entry("intermedio_noite", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #d97706 50%, #7c3aed 50%)", "white", "#fffbeb", "#fef3c7"}),
+            Map.entry("manha_intermedio_noite", new String[]{"linear-gradient(from 0% 0% to 100% 0%, #2563eb 0%, #2563eb 33%, #d97706 33%, #d97706 66%, #7c3aed 66%, #7c3aed 100%)", "white", "#f8fafc", "#eef2ff"})
     );
 
     /**
@@ -420,7 +432,7 @@ public final class GrelhaHorarioRenderer {
                 : Screen.getPrimary().getVisualBounds().getWidth();
         double screenH = Screen.getPrimary().getVisualBounds().getHeight();
         double larguraDia = Math.max(34.0, Math.min(72.0,
-                Math.floor((screenW - NOME_COL_DET - 26.0) / Math.max(1, dias.size()))));
+                (screenW - NOME_COL_DET) / Math.max(1, dias.size())));
 
         // Altura estimada por linha: usada apenas para dimensionar chips e fontes.
         // As linhas não têm altura fixa — crescem com VGrow=ALWAYS para preencher o ecrã.
@@ -430,9 +442,9 @@ public final class GrelhaHorarioRenderer {
 
         boolean mostrarHoras = larguraDia >= 38.0;
         double chipH    = Math.max(18.0, alturaEstimada * 0.36);
-        double chipW    = Math.max(22.0, Math.min(larguraDia - 10.0, chipH * 1.45));
+        double chipW    = Math.max(24.0, Math.min(larguraDia - 14.0, chipH * 1.45));
         double fntLetra = Math.max(9.0,  Math.min(14.0, chipW * 0.44));
-        double fntHoras = Math.max(8.5,  Math.min(11.0, larguraDia * 0.22));
+        double fntHoras = Math.max(8.0,  Math.min(9.0, larguraDia * 0.17));
 
         // ── Coluna fixa ────────────────────────────────────────────────────
         VBox colunaFixa = new VBox();
@@ -531,16 +543,19 @@ public final class GrelhaHorarioRenderer {
         VBox hDia = new VBox(2);
         hDia.setAlignment(Pos.CENTER);
         fixarLargura(hDia, larguraDia);
-        String bgHdr = fds ? "#f0f4ff" : "transparent";
-        hDia.setStyle("-fx-background-color: " + bgHdr + "; -fx-border-color: #e5e7eb; "
-                + "-fx-border-width: 0 1 0 0; -fx-cursor: hand;");
+        String bgHdr = eHoje ? "#fff1f2" : (fds ? "#f0f4ff" : "transparent");
+        hDia.setStyle("-fx-background-color: " + bgHdr + "; -fx-border-color: "
+                + (eHoje ? "transparent #fecdd3 #fecdd3 #dc2626" : "#e5e7eb") + "; "
+                + (eHoje ? "-fx-border-width: 0 1 2 2;" : "-fx-border-width: 0 1 0 0;")
+                + " -fx-cursor: hand;");
 
         Label lblSem = new Label(diaSemanaAbrev(dia.getDayOfWeek()).toUpperCase(Locale.ROOT));
         lblSem.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: " + (fds ? "#4f46e5" : "#9ca3af") + ";");
 
         if (eHoje) {
             StackPane circulo = new StackPane();
-            circulo.setStyle("-fx-background-color: #dc2626; -fx-background-radius: 100;");
+            circulo.setStyle("-fx-background-color: #dc2626; -fx-background-radius: 100;"
+                    + " -fx-effect: dropshadow(gaussian, rgba(220,38,38,0.22), 8, 0, 0, 2);");
             circulo.setMinSize(30, 30); circulo.setPrefSize(30, 30); circulo.setMaxSize(30, 30);
             Label num = new Label(String.valueOf(dia.getDayOfMonth()));
             num.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: white;");
@@ -606,6 +621,7 @@ public final class GrelhaHorarioRenderer {
         StackPane cell = new StackPane();
         fixarLargura(cell, larguraDia);
         cell.setMaxHeight(Double.MAX_VALUE);
+        cell.setPadding(new javafx.geometry.Insets(0, 3, 0, 3));
 
         boolean fds   = dia.getDayOfWeek() == DayOfWeek.SATURDAY || dia.getDayOfWeek() == DayOfWeek.SUNDAY;
         boolean eHoje = dia.equals(hoje);
@@ -616,8 +632,10 @@ public final class GrelhaHorarioRenderer {
         boolean ehFolga = celula == null || "folga".equals(chave);
 
         String[] cores = CORES_DET.getOrDefault(chave, CORES_DET.get("outro"));
-        String bgCell = fds ? cores[3] : (eHoje ? "#fef2f2" : cores[2]);
-        String bordaTop = eHoje ? "-fx-border-color: #dc2626; -fx-border-width: 2 1 1 0;" : "-fx-border-color: #f1f5f9; -fx-border-width: 0 1 1 0;";
+        String bgCell = eHoje ? "#fff1f2" : (fds ? cores[3] : cores[2]);
+        String bordaTop = eHoje
+                ? "-fx-border-color: transparent #fecdd3 #fecdd3 #dc2626; -fx-border-width: 0 1 1 2;"
+                : "-fx-border-color: #f1f5f9; -fx-border-width: 0 1 1 0;";
         if (destacada) {
             bordaTop = "-fx-border-color: #f59e0b; -fx-border-width: 3;";
             bgCell = "#fffbeb";
@@ -636,19 +654,25 @@ public final class GrelhaHorarioRenderer {
             chip.setStyle("-fx-background-color: " + cores[0] + "; -fx-background-radius: 5;"
                     + " -fx-min-width: " + chipW + "; -fx-min-height: " + chipH
                     + "; -fx-pref-width: " + chipW + "; -fx-pref-height: " + chipH + ";");
-            Label letra = new Label(turnoLetraCompacta(tipo));
-            letra.setStyle("-fx-font-size: " + fntLetra + "px; -fx-font-weight: 700; -fx-text-fill: " + cores[1] + ";");
+            String letraTurno = turnoLetraCompacta(tipo);
+            double fntLetraAjustada = letraTurno.length() > 1 ? Math.max(8.5, fntLetra - 1.5) : fntLetra;
+            Label letra = new Label(letraTurno);
+            letra.setStyle("-fx-font-size: " + fntLetraAjustada + "px; -fx-font-weight: 700; -fx-text-fill: " + cores[1] + ";");
             chip.getChildren().add(letra);
             content.getChildren().add(chip);
 
             if (mostrarHoras && horas != null && !horas.isBlank()) {
                 // cores[0] pode ser um gradiente para tipos combinados — usar cor sólida para texto
                 String horasCorTexto = switch (chave) {
-                    case "manha_tarde" -> "#1d4ed8";
-                    case "tarde_noite" -> "#0891b2";
+                    case "manha_tarde", "manha_intermedio" -> "#1d4ed8";
+                    case "tarde_noite", "intermedio_noite" -> "#b45309";
+                    case "manha_intermedio_noite" -> "#4f46e5";
                     default            -> cores[0];
                 };
-                Label lblHoras = new Label(formatarHorasGrelha(horas));
+                String horasFormatadas = formatarHorasGrelha(horas);
+                Label lblHoras = new Label(horasFormatadas);
+                lblHoras.setTextOverrun(javafx.scene.control.OverrunStyle.CLIP);
+                lblHoras.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
                 lblHoras.setStyle("-fx-font-size: " + fntHoras + "px; -fx-font-weight: 600; -fx-text-fill: " + horasCorTexto + ";");
                 content.getChildren().add(lblHoras);
             }
@@ -846,8 +870,9 @@ public final class GrelhaHorarioRenderer {
             case "tarde"       -> "T";
             case "noite"       -> "N";
             case "intermedio"  -> "I";
-            case "manha_tarde" -> "M/T";
-            case "tarde_noite" -> "T/N";
+            case "manha_tarde", "manha_intermedio" -> "M/I";
+            case "tarde_noite", "intermedio_noite" -> "I/N";
+            case "manha_intermedio_noite" -> "M/I/N";
             case "folga"       -> "–";
             default            -> tipo.isBlank() ? "?" : tipo.substring(0, 1).toUpperCase(Locale.ROOT);
         };
@@ -869,6 +894,9 @@ public final class GrelhaHorarioRenderer {
             case "intermedio"  -> "intermedio";
             case "manha_tarde" -> "manha_tarde";
             case "tarde_noite" -> "tarde_noite";
+            case "manha_intermedio" -> "manha_intermedio";
+            case "intermedio_noite" -> "intermedio_noite";
+            case "manha_intermedio_noite" -> "manha_intermedio_noite";
             default            -> "outro";
         };
     }
@@ -883,6 +911,9 @@ public final class GrelhaHorarioRenderer {
             case "noite"       -> "Noite";
             case "folga"       -> "Folga";
             case "intermedio"  -> "Interm.";
+            case "manha_intermedio" -> "Manha+Interm.";
+            case "intermedio_noite" -> "Interm.+Noite";
+            case "manha_intermedio_noite" -> "Manha+Interm.+Noite";
             case "manha_tarde" -> "Manhã+Tarde";
             case "tarde_noite" -> "Tarde+Noite";
             default            -> tipo.length() > 8 ? tipo.substring(0, 7) + "." : tipo;
