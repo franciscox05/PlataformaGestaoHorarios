@@ -14,6 +14,9 @@ public interface DashboardNavigator {
 
     void abrirPainelGerente();
 
+    /** Abre o painel de Pedidos já com a aba do tipo indicado selecionada (folga/permuta/preferência). */
+    void abrirPainelGerente(String abaInicial);
+
     void abrirHorarios();
 
     void abrirRelatorios();

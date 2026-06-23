@@ -67,13 +67,13 @@ public class WebPainelController {
         Integer idLoja = webAppService.obterLojaAtual(session);
         WebAppService.WebPermissoes permissoes = webAppService.obterPermissoes(utilizadorId, idLoja);
         long folgasParaAprovar = permissoes.podeAprovarFolgas()
-                ? dayOffBLL.contarPendentesParaAprovacao(utilizadorId)
+                ? dayOffBLL.contarPendentesParaAprovacao(utilizadorId, idLoja)
                 : 0;
         long preferenciasParaAprovar = permissoes.podeAprovarPreferencias()
-                ? preferenciaBLL.contarPendentesParaAprovacao(utilizadorId)
+                ? preferenciaBLL.contarPendentesParaAprovacao(utilizadorId, idLoja)
                 : 0;
         long permutasParaAprovar = permissoes.podeAprovarPermutas()
-                ? permutaBLL.contarPendentesParaAprovacao(utilizadorId)
+                ? permutaBLL.contarPendentesParaAprovacao(utilizadorId, idLoja)
                 : 0;
 
         if (Boolean.TRUE.equals(acessoNegado)) {

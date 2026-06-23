@@ -336,6 +336,8 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
      * Cross-store overlap guard: detects double-booking in OTHER stores only.
      * Intentionally excludes same-store shifts so that multiple rascunho proposals
      * from the same store do not block each other during generation.
+     * Only published/approved shifts count as real conflicts — rascunho/pendente
+     * proposals from other stores are not yet committed and must not block generation.
      * Returns the conflicting Horario objects for use in error messages.
      */
     @Query("SELECT h FROM Horario h " +
@@ -343,11 +345,14 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "JOIN FETCH lu.idUtilizador u " +
             "JOIN FETCH lu.idLoja l " +
             "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
             "WHERE u.id = :idUtilizador " +
             "AND lu.idLoja.id <> :idLoja " +
             "AND h.dataTurno = :data " +
             "AND :horaInicio < t.horaFim " +
             "AND :horaFim > t.horaInicio " +
+            "AND (ph IS NULL OR LOWER(ph.estado) = 'aprovado') " +
+            "AND (h.estado IS NULL OR LOWER(CAST(h.estado AS string)) = 'aprovado') " +
             "ORDER BY t.horaInicio")
     List<Horario> findOverlappingShiftsInOtherStores(
             @Param("idUtilizador") Integer idUtilizador,
@@ -381,6 +386,31 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
             "AND h.dataTurno >= :dataInicio AND h.dataTurno <= :dataFim " +
             "AND (ph IS NULL OR LOWER(ph.estado) IN ('pendente', 'aprovado'))")
     Set<Integer> findUtilizadoresComTurnosNoutraLoja(
+            @Param("ids") List<Integer> ids,
+            @Param("idLoja") Integer idLoja,
+            @Param("dataInicio") LocalDate dataInicio,
+            @Param("dataFim") LocalDate dataFim);
+
+    /**
+     * Returns the actual Horario objects (with shift times) for collaborators
+     * in OTHER stores during the generation period. Used by the engine to enforce
+     * the 11h inter-store rest rule via respeitaDescansoVizinhanca().
+     */
+    @Query("SELECT h FROM Horario h " +
+            "JOIN FETCH h.idLojautilizador lu " +
+            "JOIN FETCH lu.idUtilizador u " +
+            "JOIN FETCH lu.idCargo c " +
+            "JOIN FETCH lu.idLoja l " +
+            "JOIN FETCH h.idTurno t " +
+            "LEFT JOIN h.idPropostaHorario ph " +
+            "WHERE u.id IN :ids " +
+            "AND l.id <> :idLoja " +
+            "AND h.dataTurno BETWEEN :dataInicio AND :dataFim " +
+            "AND (ph IS NULL OR LOWER(ph.estado) IN ('pendente', 'aprovado')) " +
+            "AND (h.estado IS NULL OR LOWER(CAST(h.estado AS string)) = 'aprovado') " +
+            "AND t.horaFim IS NOT NULL " +
+            "ORDER BY h.dataTurno ASC, t.horaInicio ASC")
+    List<Horario> findHorariosPorColaboradoresEmOutrasLojas(
             @Param("ids") List<Integer> ids,
             @Param("idLoja") Integer idLoja,
             @Param("dataInicio") LocalDate dataInicio,

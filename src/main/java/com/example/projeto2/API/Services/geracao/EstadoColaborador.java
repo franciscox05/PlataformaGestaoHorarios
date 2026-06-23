@@ -32,9 +32,11 @@ public final class EstadoColaborador {
     private final boolean chefiaAoSabado;
     private final boolean apenasFimDeSemana;
     private final int maxTurnosPorDia;
+    private final PerfilContratual perfil;
     private final HorarioValidatorService validator;
 
     private final Map<LocalDate, Integer> contagemTurnosPorDia = new HashMap<>();
+    private final Map<LocalDate, Long> minutosPorDia = new HashMap<>();
 
     private LocalDate ultimaDataAtribuida;
     private int diasConsecutivos;
@@ -59,6 +61,7 @@ public final class EstadoColaborador {
                 && chefiasSabadoIds.contains(ligacao.getIdUtilizador().getId());
         String tipoCargo = ligacao.getIdCargo() != null ? normalizarCargo(ligacao.getIdCargo().getTipo()) : "";
         this.apenasFimDeSemana = "reforco_parttime".equals(tipoCargo);
+        this.perfil = PerfilContratual.fromCargoTipo(tipoCargo).orElse(null);
         boolean ehPerfilTI = "fulltime".equals(tipoCargo) || "gerente".equals(tipoCargo)
                 || "subgerente".equals(tipoCargo) || "supervisor".equals(tipoCargo);
         this.maxTurnosPorDia = ehPerfilTI ? 2 : 1;
@@ -144,13 +147,13 @@ public final class EstadoColaborador {
 
     public int totalFimDeSemanaTrabalhados() { return totalFimDeSemanaTrabalhados; }
 
-    /** Máximo de turnos por dia para este colaborador (2 para full-time, 1 para part-time). */
+    /** Máximo de turnos por dia para este colaborador (2 para part-time, 1 para os restantes perfis). */
     public int maxTurnosPorDia() { return maxTurnosPorDia; }
 
     /**
-     * True se este colaborador é FT/gestão (maxTurnosPorDia ≥ 2) e o turno proposto seria
+     * True se este colaborador é part-time (maxTurnosPorDia ≥ 2) e o turno proposto seria
      * um primeiro turno PT (< 8h) sem complemento consecutivo disponível — o que criaria
-     * um dia de apenas 4.5h sem possibilidade de completar o par.
+     * um dia de apenas 4h sem possibilidade de completar o par.
      * Usado pelo avaliador para penalizar fortemente este padrão sem bloqueio absoluto.
      */
     public boolean ehPrimeiroPTSemComplemento(LocalDate data, Turno turno, long minutosTurno,
@@ -179,6 +182,34 @@ public final class EstadoColaborador {
     public boolean fimDeSemanaJaTrabalhado(LocalDate data) {
         return data != null && validator.ehFimDeSemana(data)
                 && ultimoFimDeSemana.containsKey(validator.inicioFimDeSemana(data));
+    }
+
+    /**
+     * Garante o mínimo absoluto da rotação de FDS (RFS08): mesmo quando a rotação é
+     * relaxada por falta de cobertura, nenhum colaborador não-isento (gerência ao
+     * sábado ou perfil exclusivo de fim de semana) pode ficar sem NENHUM fim de
+     * semana livre no período — sem isto, relaxações sucessivas em fins de semana
+     * não-consecutivos poderiam acumular-se sobre o mesmo colaborador.
+     */
+    public boolean ficariaSemFimDeSemanaLivre(LocalDate data, LocalDate inicioPeriodo, LocalDate fimPeriodo) {
+        if (apenasFimDeSemana || chefiaAoSabado) return false;
+        if (!validator.ehFimDeSemana(data) || fimDeSemanaJaTrabalhado(data)) return false;
+        return fimsDeSemanaDistintosTrabalhados() + 1 >= totalFinsDeSemanaNoPeriodo(inicioPeriodo, fimPeriodo);
+    }
+
+    private int totalFinsDeSemanaNoPeriodo(LocalDate inicio, LocalDate fim) {
+        if (inicio == null || fim == null) return Integer.MAX_VALUE;
+        int total = 0;
+        LocalDate sabado = validator.inicioFimDeSemana(inicio);
+        LocalDate ultimoSabado = validator.inicioFimDeSemana(fim);
+        while (!sabado.isAfter(ultimoSabado)) {
+            LocalDate domingo = sabado.plusDays(1);
+            boolean sabadoNoPeriodo = !sabado.isBefore(inicio) && !sabado.isAfter(fim);
+            boolean domingoNoPeriodo = !domingo.isBefore(inicio) && !domingo.isAfter(fim);
+            if (sabadoNoPeriodo || domingoNoPeriodo) total++;
+            sabado = sabado.plusWeeks(1);
+        }
+        return Math.max(total, 1);
     }
 
     /**
@@ -239,11 +270,13 @@ public final class EstadoColaborador {
                 .getOrDefault(idUtilizador(), Set.of());
 
         int turnosDoDia = contagemTurnosPorDia.getOrDefault(data, 0);
+        long minutosNoDia = minutosPorDia.getOrDefault(data, 0L);
         if ((apenasFimDeSemana && !validator.ehFimDeSemana(data))
                 || bloqueios.contains(data)
                 || folgasReservadas.contains(data)
                 || turnosDoDia >= maxTurnosPorDia
                 || (turnosDoDia > 0 && !eTurnoConsecutivo(data, turno))
+                || (minutosNoDia + minutosTurno) > PerfilContratual.LIMITE_DIARIO_TRABALHO_MINUTOS
                 || (minutosAtribuidos + minutosTurno) > cargaMaximaMinutos) {
             return false;
         }
@@ -346,12 +379,15 @@ public final class EstadoColaborador {
                 .getOrDefault(idUtilizador(), Set.of());
 
         int turnosDoDia = contagemTurnosPorDia.getOrDefault(data, 0);
+        long minutosNoDia = minutosPorDia.getOrDefault(data, 0L);
         if (apenasFimDeSemana && !validator.ehFimDeSemana(data)) return "parttime_fim_semana";
         if (bloqueios.contains(data)) return "bloqueado";
         if (folgasReservadas.contains(data)) return "folga_reservada";
         if (turnosDoDia >= maxTurnosPorDia) return "ja_escalado";
         if (turnosDoDia > 0 && !eTurnoConsecutivo(data, turno)) return "turno_nao_consecutivo";
+        if ((minutosNoDia + minutosTurno) > PerfilContratual.LIMITE_DIARIO_TRABALHO_MINUTOS) return "limite_diario_excedido";
         if ((minutosAtribuidos + minutosTurno) > cargaMaximaMinutos) return "carga_esgotada";
+        if (perfil != null && !perfil.permiteTurno(minutosTurno)) return "turno_tipo_invalido";
 
         int diasNaSemana = diasTrabalhadosPorSemana.getOrDefault(validator.inicioSemana(data), 0);
         if (validator.excedeDiasTrabalhadosNaSemana(data, diasNaSemana, pedido.descansoSemanalMinimoDias())) {
@@ -407,6 +443,7 @@ public final class EstadoColaborador {
             atribuicoesConhecidas.put(data, turno);
         }
         contagemTurnosPorDia.merge(data, 1, Integer::sum);
+        minutosPorDia.merge(data, minutosTurno, Long::sum);
         minutosAtribuidos += minutosTurno;
     }
 

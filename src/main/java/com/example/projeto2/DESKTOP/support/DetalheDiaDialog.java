@@ -49,6 +49,24 @@ public final class DetalheDiaDialog {
                              boolean podeEditar,
                              BiConsumer<HorarioLinha, Window> onEditarTurno,
                              BiConsumer<HorarioLinha, Window> onAdicionarTurno) {
+        abrir(data, linhasProposta, owner, podeEditar, onEditarTurno, onAdicionarTurno, null, false);
+    }
+
+    /**
+     * @param idColaboradorDestaque colaborador a realçar no diálogo (a linha/célula que foi
+     *                              clicada na grelha). {@code null} = sem realce.
+     * @param mostrarFolgas         quando {@code true}, lista também os colaboradores da proposta
+     *                              <b>de folga</b> nesse dia (secção read-only), à semelhança do
+     *                              Painel — útil na comparação de alternativas.
+     */
+    public static void abrir(LocalDate data,
+                             List<HorarioLinha> linhasProposta,
+                             Window owner,
+                             boolean podeEditar,
+                             BiConsumer<HorarioLinha, Window> onEditarTurno,
+                             BiConsumer<HorarioLinha, Window> onAdicionarTurno,
+                             Integer idColaboradorDestaque,
+                             boolean mostrarFolgas) {
         if (data == null || linhasProposta == null) return;
 
         List<HorarioLinha> turnosDia = linhasProposta.stream()
@@ -60,14 +78,15 @@ public final class DetalheDiaDialog {
                                 Comparator.nullsLast(String::compareToIgnoreCase)))
                 .toList();
 
-        // Colaboradores na proposta sem turno neste dia (para a secção "Adicionar")
+        // Colaboradores da proposta SEM turno neste dia (folga). Um representante por colaborador.
+        Set<Integer> comTurno = turnosDia.stream()
+                .map(HorarioLinha::idColaborador)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // Secção editável "Adicionar" — precisa de idLojautilizador para poder criar Horario.
         List<HorarioLinha> semTurnoHoje = List.of();
         if (podeEditar && onAdicionarTurno != null) {
-            Set<Integer> comTurno = turnosDia.stream()
-                    .map(HorarioLinha::idColaborador)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-            // Um representante por colaborador (idLojautilizador != null para poder criar Horario)
             Map<Integer, HorarioLinha> porColab = new LinkedHashMap<>();
             for (HorarioLinha l : linhasProposta) {
                 if (l == null || l.idColaborador() == null || l.idLojautilizador() == null) continue;
@@ -79,27 +98,45 @@ public final class DetalheDiaDialog {
                     Comparator.nullsLast(String::compareToIgnoreCase)));
         }
 
-        if (turnosDia.isEmpty() && semTurnoHoje.isEmpty()) return;
+        // Secção read-only "De folga" — todos os colaboradores sem turno (não exige idLojautilizador).
+        List<HorarioLinha> folgasDia = List.of();
+        if (mostrarFolgas) {
+            Map<Integer, HorarioLinha> porColab = new LinkedHashMap<>();
+            for (HorarioLinha l : linhasProposta) {
+                if (l == null || l.idColaborador() == null) continue;
+                if (comTurno.contains(l.idColaborador())) continue;
+                porColab.putIfAbsent(l.idColaborador(), l);
+            }
+            folgasDia = new ArrayList<>(porColab.values());
+            folgasDia.sort(Comparator.comparing(HorarioLinha::colaborador,
+                    Comparator.nullsLast(String::compareToIgnoreCase)));
+        }
+
+        if (turnosDia.isEmpty() && semTurnoHoje.isEmpty() && folgasDia.isEmpty()) return;
 
         VBox conteudo = new VBox(10.0);
         conteudo.getStyleClass().add("detalhe-dia-lista");
 
-        // ── Turnos existentes ───────────────────────────────────────────────────
+        // ── Turnos existentes (realça a linha/colaborador clicado) ──────────────
         for (HorarioLinha turno : turnosDia) {
-            conteudo.getChildren().add(criarCard(turno, podeEditar, onEditarTurno));
+            boolean destaque = idColaboradorDestaque != null
+                    && idColaboradorDestaque.equals(turno.idColaborador());
+            conteudo.getChildren().add(criarCard(turno, podeEditar, onEditarTurno, destaque));
         }
 
-        // ── Secção "Adicionar colaborador a este dia" ───────────────────────────
-        if (!semTurnoHoje.isEmpty()) {
-            if (!turnosDia.isEmpty()) {
-                javafx.scene.control.Separator sep = new javafx.scene.control.Separator();
-                sep.setStyle("-fx-padding: 4 0 0 0;");
-                conteudo.getChildren().add(sep);
+        // ── Secção "De folga neste dia" (read-only) ─────────────────────────────
+        if (!folgasDia.isEmpty()) {
+            conteudo.getChildren().add(tituloSeccao("DE FOLGA NESTE DIA", !turnosDia.isEmpty()));
+            for (HorarioLinha colab : folgasDia) {
+                boolean destaque = idColaboradorDestaque != null
+                        && idColaboradorDestaque.equals(colab.idColaborador());
+                conteudo.getChildren().add(criarCardFolga(colab, destaque));
             }
-            Label lblTitulo = new Label("ADICIONAR A ESTE DIA");
-            lblTitulo.setStyle("-fx-font-size: 9px; -fx-font-weight: bold; -fx-text-fill: #64748b; -fx-padding: 4 0 2 0;");
-            conteudo.getChildren().add(lblTitulo);
+        }
 
+        // ── Secção "Adicionar colaborador a este dia" (editável) ────────────────
+        if (!semTurnoHoje.isEmpty()) {
+            conteudo.getChildren().add(tituloSeccao("ADICIONAR A ESTE DIA", !turnosDia.isEmpty()));
             for (HorarioLinha colab : semTurnoHoje) {
                 HorarioLinha template = new HorarioLinha(
                         null, colab.idColaborador(), colab.idLojautilizador(),
@@ -109,9 +146,16 @@ public final class DetalheDiaDialog {
             }
         }
 
-        String subtitulo = turnosDia.isEmpty()
-                ? "Nenhum turno atribuído — podes adicionar colaboradores abaixo."
-                : turnosDia.size() + " turno(s) planeado(s). Revê a cobertura antes de enviar ao supervisor.";
+        String subtitulo;
+        if (turnosDia.isEmpty()) {
+            subtitulo = mostrarFolgas
+                    ? "Ninguém com turno neste dia — toda a equipa está de folga."
+                    : "Nenhum turno atribuído — podes adicionar colaboradores abaixo.";
+        } else if (mostrarFolgas) {
+            subtitulo = turnosDia.size() + " turno(s) planeado(s) · " + folgasDia.size() + " de folga.";
+        } else {
+            subtitulo = turnosDia.size() + " turno(s) planeado(s). Revê a cobertura antes de enviar ao supervisor.";
+        }
 
         // Scroll quando a lista é comprida (ex.: muitos colaboradores sem turno)
         ScrollPane scroll = new ScrollPane(conteudo);
@@ -206,9 +250,11 @@ public final class DetalheDiaDialog {
 
     private static VBox criarCard(HorarioLinha turno,
                                   boolean podeEditar,
-                                  BiConsumer<HorarioLinha, Window> onEditarTurno) {
+                                  BiConsumer<HorarioLinha, Window> onEditarTurno,
+                                  boolean destaque) {
         VBox card = new VBox(5.0);
         card.getStyleClass().add("detalhe-dia-turno-card");
+        if (destaque) aplicarDestaque(card);
 
         Label periodo = new Label(valorOuTraco(turno.periodo()));
         periodo.getStyleClass().add("detalhe-dia-periodo");
@@ -235,6 +281,51 @@ public final class DetalheDiaDialog {
         }
 
         return card;
+    }
+
+    /** Cartão read-only de um colaborador de folga neste dia (realça se for o clicado). */
+    private static VBox criarCardFolga(HorarioLinha colab, boolean destaque) {
+        VBox card = new VBox(3.0);
+        card.getStyleClass().add("detalhe-dia-turno-card");
+        // Estado "de folga": cartão recuado/cinza, distinto dos turnos atribuídos.
+        card.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-width: 1; "
+                + "-fx-border-radius: 10; -fx-background-radius: 10; -fx-opacity: 0.92;");
+
+        Label estado = new Label("Folga");
+        estado.getStyleClass().add("detalhe-dia-periodo");
+        estado.setStyle("-fx-text-fill: #64748b;");
+
+        Label colaborador = new Label(valorOuTraco(colab.colaborador()));
+        colaborador.getStyleClass().add("detalhe-dia-colaborador");
+
+        Label cargo = new Label(valorOuTraco(colab.cargo()) + " · sem turno");
+        cargo.getStyleClass().add("detalhe-dia-cargo");
+        cargo.setWrapText(true);
+
+        card.getChildren().addAll(estado, colaborador, cargo);
+        if (destaque) aplicarDestaque(card);
+        return card;
+    }
+
+    /** Título de secção, opcionalmente precedido de um separador. */
+    private static VBox tituloSeccao(String texto, boolean comSeparador) {
+        VBox box = new VBox(2.0);
+        if (comSeparador) {
+            javafx.scene.control.Separator sep = new javafx.scene.control.Separator();
+            sep.setStyle("-fx-padding: 4 0 0 0;");
+            box.getChildren().add(sep);
+        }
+        Label lbl = new Label(texto);
+        lbl.setStyle("-fx-font-size: 9px; -fx-font-weight: bold; -fx-text-fill: #64748b; -fx-padding: 4 0 2 0;");
+        box.getChildren().add(lbl);
+        return box;
+    }
+
+    /** Realce visual (moldura vermelha + fundo suave) do cartão do colaborador clicado. */
+    private static void aplicarDestaque(javafx.scene.layout.Region card) {
+        card.setStyle("-fx-background-color: #fff5f5; -fx-border-color: #c91428; -fx-border-width: 2; "
+                + "-fx-border-radius: 10; -fx-background-radius: 10; "
+                + "-fx-effect: dropshadow(gaussian, rgba(201,20,40,0.18), 10, 0, 0, 2);");
     }
 
     private static HBox criarCardAdicionar(HorarioLinha template,

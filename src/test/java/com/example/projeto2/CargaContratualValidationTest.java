@@ -160,13 +160,17 @@ class CargaContratualValidationTest extends FluxosCriticosTestSupport {
                         Collectors.summingLong(this::duracaoEmMinutos)
                 ));
         assertFalse(totalPorColaboradorDia.isEmpty());
-        // Allow up to 10 days where a FT/gestão worker receives a single short slot (algorithm may
-        // occasionally assign one 4.5h slot when coverage demands it and no PT worker is free).
+        // Allow up to 20 days where a FT/gestão worker receives a single short slot (algorithm may
+        // occasionally assign one 4.5h slot when coverage demands it and no PT worker is free). With
+        // the per-day 8h legal cap enforced (EstadoColaborador.podeReceber), the engine now refuses to
+        // pair a second turno when doing so would push the day's total past 480 minutes — so it
+        // legitimately leaves more single-slot short days than before, instead of silently exceeding
+        // the daily limit to chase a full 8h pairing.
         long violacoesDiarias = totalPorColaboradorDia.values().stream()
                 .filter(total -> total < 8 * 60)
                 .count();
-        assertTrue(violacoesDiarias <= 10,
-                "No máximo 10 dias de trabalho de FT/gestão abaixo de 8h totais, encontradas: " + violacoesDiarias);
+        assertTrue(violacoesDiarias <= 20,
+                "No máximo 20 dias de trabalho de FT/gestão abaixo de 8h totais, encontradas: " + violacoesDiarias);
     }
 
     @Test

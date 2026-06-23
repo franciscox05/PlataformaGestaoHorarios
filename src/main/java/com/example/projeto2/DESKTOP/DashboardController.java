@@ -139,16 +139,10 @@ public class DashboardController implements DashboardNavigator {
     private StackPane stackPainelGerente;
 
     @FXML
-    private Label badgeFolgas;
-
-    @FXML
-    private Label badgePermutas;
-
-    @FXML
-    private Label badgePreferencias;
-
-    @FXML
     private Label badgeHorarios;
+
+    /** Aba pretendida no painel de Pedidos quando aberto a partir de outro ecrã (transitória). */
+    private String abaPedidosPendente;
 
     @FXML
     private Label badgePainelGerente;
@@ -508,12 +502,17 @@ public class DashboardController implements DashboardNavigator {
             } else if (controller instanceof GestaoLojaController gestaoLojaController) {
                 gestaoLojaController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof GestaoFuncionariosController gestaoFuncionariosController) {
+                gestaoFuncionariosController.setDashboardNavigation(this);
                 gestaoFuncionariosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof GeracaoHorariosController geracaoHorariosController) {
                 geracaoHorariosController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PainelGerentePedidosController painelGerentePedidosController) {
                 painelGerentePedidosController.setDashboardNavigation(this);
                 painelGerentePedidosController.setUtilizadorLogado(utilizadorLogado);
+                if (abaPedidosPendente != null) {
+                    painelGerentePedidosController.selecionarAbaInicial(abaPedidosPendente);
+                    abaPedidosPendente = null;   // consumida — não persiste para a próxima abertura
+                }
 
             } else if (controller instanceof PermutasController permutasController) {
                 permutasController.setUtilizadorLogado(utilizadorLogado);
@@ -618,12 +617,11 @@ public class DashboardController implements DashboardNavigator {
         Integer idLoja = (idLojaAtiva != null && idLojaAtiva > 0) ? idLojaAtiva : null;
         Platform.runLater(() -> {
             try {
+                // Folgas/Permutas/Preferências já não têm badge próprio no sidebar — o seu total
+                // pendente é comunicado apenas no separador "Pedidos" (badgePainelGerente).
                 int folgas = dayOffBLL.contarPendentesParaAprovacao(idUtilizador, idLoja);
                 int permutas = permutaBLL.contarPendentesParaAprovacao(idUtilizador, idLoja);
                 int preferencias = preferenciaBLL.contarPendentesParaAprovacao(idUtilizador, idLoja);
-                atualizarBadge(badgeFolgas, folgas);
-                atualizarBadge(badgePermutas, permutas);
-                atualizarBadge(badgePreferencias, preferencias);
                 atualizarBadge(badgeHorarios, geracaoHorariosBLL.contarHorariosPendentesValidacao(idUtilizador, idLoja));
                 atualizarBadge(badgePainelGerente, folgas + permutas + preferencias);
             } catch (Exception e) {
@@ -984,6 +982,13 @@ public class DashboardController implements DashboardNavigator {
 
     @Override
     public void abrirPainelGerente() {
+        onPainelGerentePedidosClick();
+    }
+
+    @Override
+    public void abrirPainelGerente(String abaInicial) {
+        // Guarda a aba pretendida; é aplicada quando o controlador do painel é carregado.
+        this.abaPedidosPendente = abaInicial;
         onPainelGerentePedidosClick();
     }
 

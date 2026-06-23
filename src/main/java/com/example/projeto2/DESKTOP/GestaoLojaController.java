@@ -59,6 +59,10 @@ public class GestaoLojaController {
     @FXML private ComboBox<String> cbHoraFechoLoja;
     @FXML private Label lblMensagem;
     @FXML private VBox regrasContainer;
+    @FXML private TextField txtPesquisarRegra;
+    @FXML private Button btnIrParaTurnos;
+    @FXML private javafx.scene.control.ScrollPane scrollConfiguracao;
+    @FXML private VBox seccaoTurnos;
 
     @FXML private TextField txtDescricaoExcecao;
     @FXML private DatePicker dpDataInicioExcecao;
@@ -86,6 +90,7 @@ public class GestaoLojaController {
     @FXML private ComboBox<String> cbHoraInicioTurno;
     @FXML private ComboBox<String> cbHoraFimTurno;
     @FXML private Label lblMensagemTurnos;
+    @FXML private Label lblMensagemTurnosLista;
 
     private final GestaoLojaService gestaoLojaBLL;
     private final Map<Integer, TextField> camposValor = new LinkedHashMap<>();
@@ -118,6 +123,55 @@ public class GestaoLojaController {
         limparFormularioHorarioEspecial();
         tabelaHorariosEspeciais.setPlaceholder(
                 new Label("Ainda não existem exceções de horário configuradas para esta loja."));
+
+        if (txtPesquisarRegra != null) {
+            txtPesquisarRegra.textProperty().addListener((obs, ant, novo) -> filtrarRegras(novo));
+        }
+    }
+
+    /**
+     * Filtra os cartões de regra visíveis com base no texto de pesquisa. Cada cartão guarda
+     * o seu texto pesquisável em {@code userData}; cabeçalhos de secção e o botão de adicionar
+     * (sem userData String) permanecem sempre visíveis.
+     */
+    private void filtrarRegras(String filtro) {
+        if (regrasContainer == null) return;
+        String alvo = normalizarPesquisa(filtro);
+        boolean semFiltro = alvo.isBlank();
+        for (javafx.scene.Node node : regrasContainer.getChildren()) {
+            if (node.getUserData() instanceof String texto) {
+                boolean corresponde = semFiltro || texto.contains(alvo);
+                node.setVisible(corresponde);
+                node.setManaged(corresponde);
+            }
+        }
+    }
+
+    /** Normaliza texto para pesquisa: minúsculas e sem acentos. */
+    private static String normalizarPesquisa(String texto) {
+        if (texto == null) return "";
+        return java.text.Normalizer.normalize(texto.toLowerCase(Locale.ROOT), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .trim();
+    }
+
+    /** Navegação rápida: faz scroll suave até à secção de Turnos (Períodos de Trabalho). */
+    @FXML
+    public void onIrParaTurnosClick() {
+        if (scrollConfiguracao == null || seccaoTurnos == null) return;
+        javafx.application.Platform.runLater(() -> {
+            javafx.scene.Node conteudo = scrollConfiguracao.getContent();
+            if (conteudo == null) return;
+            double alturaConteudo = conteudo.getBoundsInLocal().getHeight();
+            double alturaViewport = scrollConfiguracao.getViewportBounds().getHeight();
+            double espacoRolavel = alturaConteudo - alturaViewport;
+            if (espacoRolavel <= 0) { scrollConfiguracao.setVvalue(1.0); return; }
+            // Posição Y da secção de turnos relativa ao conteúdo do ScrollPane.
+            javafx.geometry.Bounds alvoNoConteudo = conteudo.sceneToLocal(
+                    seccaoTurnos.localToScene(seccaoTurnos.getBoundsInLocal()));
+            double vvalue = alvoNoConteudo.getMinY() / espacoRolavel;
+            scrollConfiguracao.setVvalue(Math.max(0.0, Math.min(1.0, vvalue)));
+        });
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -364,18 +418,10 @@ public class GestaoLojaController {
 
         regrasContainer.getChildren().add(cabecalhoSeccao("Regras do motor de geração",
                 "Parâmetros que controlam o planeamento automático desta loja. "
-                        + "Os valores base do sistema podem ser ajustados para personalizar o motor. "
-                        + "Usa \"Criar nota / regra livre\" para adicionar diretrizes específicas."));
-
-        Button btnAdicionar = new Button("✏️ Criar nota / regra livre");
-        btnAdicionar.getStyleClass().add("botao-secundario");
-        btnAdicionar.setMaxWidth(Double.MAX_VALUE);
-        btnAdicionar.setOnAction(e -> onAdicionarRegraClick());
-        regrasContainer.getChildren().add(btnAdicionar);
+                        + "Ajusta os valores base do sistema para personalizar o motor de geração."));
 
         if (proprias.isEmpty()) {
-            Label vazio = new Label("Ainda não adicionaste regras próprias. Usa o botão acima para criar "
-                    + "qualquer diretriz ou nota específica para esta loja.");
+            Label vazio = new Label("Não há parâmetros personalizáveis para esta loja.");
             vazio.getStyleClass().add("subtitulo");
             vazio.setWrapText(true);
             regrasContainer.getChildren().add(vazio);
@@ -392,58 +438,6 @@ public class GestaoLojaController {
                 regrasContainer.getChildren().add(criarCardRegra(regra, false));
             }
         }
-    }
-
-    private void onAdicionarRegraClick() {
-        Dialog<String[]> dialog = new Dialog<>();
-        dialog.setTitle("Criar nota / regra livre");
-        dialog.setHeaderText("Cria uma diretriz ou regra específica para esta loja.\n"
-                + "Pode ser qualquer instrução — o motor de geração não a processa automaticamente.");
-        Window janela = obterJanela();
-        if (janela != null) dialog.initOwner(janela);
-
-        ButtonType btnCriar = new ButtonType("Criar", ButtonType.OK.getButtonData());
-        dialog.getDialogPane().getButtonTypes().addAll(btnCriar, ButtonType.CANCEL);
-
-        GridPane grid = new GridPane();
-        grid.setHgap(12);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(16));
-
-        Label lblDesc = new Label("Descrição:");
-        TextField txtDesc = new TextField();
-        txtDesc.setPromptText("Ex.: Toda a equipa trabalha na última sexta-feira do mês");
-        txtDesc.setPrefWidth(360);
-        grid.add(lblDesc, 0, 0);
-        grid.add(txtDesc, 1, 0);
-
-        Label lblObs = new Label("Observações:");
-        TextArea txtObs = new TextArea();
-        txtObs.setPromptText("Notas adicionais (opcional)");
-        txtObs.setPrefRowCount(3);
-        txtObs.setWrapText(true);
-        grid.add(lblObs, 0, 1);
-        grid.add(txtObs, 1, 1);
-
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().lookupButton(btnCriar).setDisable(true);
-        txtDesc.textProperty().addListener((obs, old, val) ->
-                dialog.getDialogPane().lookupButton(btnCriar).setDisable(val.isBlank()));
-
-        dialog.setResultConverter(bt -> bt == btnCriar
-                ? new String[]{ txtDesc.getText(), txtObs.getText() } : null);
-
-        dialog.showAndWait().ifPresent(resultado -> {
-            try {
-                gestaoLojaBLL.criarRegraLivre(utilizadorLogado.getId(), resultado[0], resultado[1]);
-                mostrarMensagem("Regra criada com sucesso.", true);
-                carregarDados();
-            } catch (IllegalArgumentException e) {
-                mostrarMensagem(e.getMessage(), false);
-            } catch (Exception e) {
-                mostrarMensagem("Não foi possível criar a regra.", false);
-            }
-        });
     }
 
     private void onDesativarRegraClick(GestaoLojaService.RegraLojaResumo regra) {
@@ -509,8 +503,13 @@ public class GestaoLojaController {
                 : ClassificadorRegra.categoria(regra.descricao(), regra.tipo());
 
         VBox card = new VBox(16);
-        card.getStyleClass().add("bento-card");
+        card.getStyleClass().addAll("bento-card", "regra-card");
         card.setPadding(new Insets(28));
+        // Texto pesquisável (descrição + tipo + observações) usado pelo filtro "Pesquisar regra...".
+        card.setUserData(normalizarPesquisa(
+                (regra.descricao() != null ? regra.descricao() : "") + " "
+                        + (regra.tipo() != null ? regra.tipo() : "") + " "
+                        + (regra.observacoes() != null ? regra.observacoes() : "")));
         if (!regra.ativo()) {
             card.setStyle("-fx-opacity: 0.65;");
         }
@@ -835,9 +834,19 @@ public class GestaoLojaController {
                 gestaoLojaBLL.criarTurno(utilizadorLogado.getId(), txtNomeTurno.getText(), horaInicio, horaFim);
                 mostrarMensagemTurnos("Turno criado com sucesso.", true);
             } else {
-                gestaoLojaBLL.editarTurno(utilizadorLogado.getId(), idTurnoEmEdicao,
+                GestaoLojaService.TurnoResumo resultado = gestaoLojaBLL.editarTurno(
+                        utilizadorLogado.getId(), idTurnoEmEdicao,
                         txtNomeTurno.getText(), horaInicio, horaFim);
-                mostrarMensagemTurnos("Turno atualizado com sucesso.", true);
+                // Quando a edição de horas gera uma versão nova (copy-on-write), o
+                // resultado vem com vigência "A partir de ..." — explica o diferimento.
+                if (resultado.vigencia() != null && resultado.vigencia().startsWith("A partir de")) {
+                    mostrarMensagemTurnos(
+                            "Como já existem horários publicados com este turno, foi criada uma versão nova "
+                            + "vigente " + resultado.vigencia().toLowerCase(Locale.ROOT)
+                            + ". A versão anterior fica preservada no histórico.", true);
+                } else {
+                    mostrarMensagemTurnos("Turno atualizado com sucesso.", true);
+                }
             }
             ocultarPainelTurno();
             carregarDados();
@@ -910,24 +919,24 @@ public class GestaoLojaController {
         )) return;
         try {
             gestaoLojaBLL.desativarTurno(utilizadorLogado.getId(), turno.idTurno());
-            mostrarMensagem("Turno \"" + turno.nome() + "\" desativado.", true);
+            mostrarMensagemTurnosLista("Turno \"" + turno.nome() + "\" desativado.", true);
             carregarDados();
         } catch (IllegalArgumentException e) {
-            mostrarMensagem(e.getMessage(), false);
+            mostrarMensagemTurnosLista(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Não foi possível desativar o turno.", false);
+            mostrarMensagemTurnosLista("Não foi possível desativar o turno.", false);
         }
     }
 
     private void onAtivarTurnoClick(GestaoLojaService.TurnoResumo turno) {
         try {
             gestaoLojaBLL.ativarTurno(utilizadorLogado.getId(), turno.idTurno());
-            mostrarMensagem("Turno \"" + turno.nome() + "\" reativado.", true);
+            mostrarMensagemTurnosLista("Turno \"" + turno.nome() + "\" reativado.", true);
             carregarDados();
         } catch (IllegalArgumentException e) {
-            mostrarMensagem(e.getMessage(), false);
+            mostrarMensagemTurnosLista(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Não foi possível reativar o turno.", false);
+            mostrarMensagemTurnosLista("Não foi possível reativar o turno.", false);
         }
     }
 
@@ -940,12 +949,12 @@ public class GestaoLojaController {
         )) return;
         try {
             gestaoLojaBLL.removerTurno(utilizadorLogado.getId(), turno.idTurno());
-            mostrarMensagem("Turno \"" + turno.nome() + "\" eliminado.", true);
+            mostrarMensagemTurnosLista("Turno \"" + turno.nome() + "\" eliminado.", true);
             carregarDados();
         } catch (IllegalArgumentException e) {
-            mostrarMensagem(e.getMessage(), false);
+            mostrarMensagemTurnosLista(e.getMessage(), false);
         } catch (Exception e) {
-            mostrarMensagem("Não foi possível eliminar o turno.", false);
+            mostrarMensagemTurnosLista("Não foi possível eliminar o turno.", false);
         }
     }
 
@@ -970,6 +979,17 @@ public class GestaoLojaController {
         HBox.setHgrow(espacador, Priority.ALWAYS);
 
         row.getChildren().addAll(lblNome, lblHoras, espacador);
+
+        // Badge de vigência: versões futuras (copy-on-write) e versões arquivadas.
+        if (turno.vigencia() != null) {
+            boolean arquivado = turno.vigencia().startsWith("Arquivado");
+            Label badgeVigencia = new Label(turno.vigencia());
+            badgeVigencia.setStyle("-fx-background-color: " + (arquivado ? "#f1f5f9" : "#dbeafe") + "; "
+                    + "-fx-text-fill: " + (arquivado ? "#475569" : "#1e40af") + "; "
+                    + "-fx-font-weight: 700; -fx-font-size: 10px; "
+                    + "-fx-padding: 2 8 2 8; -fx-background-radius: 6;");
+            row.getChildren().add(badgeVigencia);
+        }
 
         if (desativado) {
             Label badge = new Label("DESATIVADO");
@@ -1027,6 +1047,21 @@ public class GestaoLojaController {
         lblMensagemTurnos.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
         lblMensagemTurnos.setManaged(true);
         lblMensagemTurnos.setVisible(true);
+    }
+
+    /**
+     * Mensagem de feedback para ações sobre uma linha de turno (desativar/ativar/eliminar),
+     * que não passam pelo formulário de criar/editar. Usa um label próprio porque
+     * {@code lblMensagemTurnos} vive dentro de {@code painelCriarTurno}, que fica escondido
+     * fora do fluxo de criação/edição — mostrar nele aqui ficaria invisível.
+     */
+    private void mostrarMensagemTurnosLista(String mensagem, boolean sucesso) {
+        if (lblMensagemTurnosLista == null) return;
+        lblMensagemTurnosLista.setText(mensagem);
+        lblMensagemTurnosLista.getStyleClass().removeAll("mensagem-sucesso", "mensagem-erro");
+        lblMensagemTurnosLista.getStyleClass().add(sucesso ? "mensagem-sucesso" : "mensagem-erro");
+        lblMensagemTurnosLista.setManaged(true);
+        lblMensagemTurnosLista.setVisible(true);
     }
 
     // ── Parsing ───────────────────────────────────────────────────────────────

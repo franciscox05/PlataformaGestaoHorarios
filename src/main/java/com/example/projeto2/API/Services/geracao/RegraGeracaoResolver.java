@@ -59,6 +59,12 @@ public class RegraGeracaoResolver {
         for (Regra regra : regraRepository.findAllByOrderByDescricaoAsc()) {
             if ("nota".equals(regra.getTipo())) continue;
             RegrasLoja override = overrides.get(regra.getId());
+            if (ehRegraDeFixtureDeTeste(regra) && override == null) {
+                // Fixtures de testes de integracao (prefixo "000 ") sao globais (id_loja_privada
+                // nulo) e duplicam regras reais para sortir primeiro alfabeticamente. Sem esta
+                // exclusao, sombreavam o valor real para qualquer loja sem override explicito.
+                continue;
+            }
             Integer valor = override != null && override.getValorEspecifico() != null
                     ? override.getValorEspecifico()
                     : regra.getValorPadrao();
@@ -136,7 +142,7 @@ public class RegraGeracaoResolver {
                 .filter(Objects::nonNull)
                 .filter(valor -> valor >= 2)
                 .findFirst()
-                .orElse(2);
+                .orElse(7);
 
         int diaLimiteLancamento = regras.stream()
                 .filter(this::ehRegraDiaLimiteLancamento)
@@ -188,6 +194,10 @@ public class RegraGeracaoResolver {
                 exigirChefiaAoSabado,
                 cargaMaximaMinutosPorPerfil
         );
+    }
+
+    private boolean ehRegraDeFixtureDeTeste(Regra regra) {
+        return regra.getDescricao() != null && regra.getDescricao().startsWith("000 ");
     }
 
     private boolean ehRegraDeMinimos(RegraAplicada regra) {

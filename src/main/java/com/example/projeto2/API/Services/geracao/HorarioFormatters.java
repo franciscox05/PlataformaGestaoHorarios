@@ -123,16 +123,27 @@ public final class HorarioFormatters {
         return textoLimpo.isEmpty() ? null : textoLimpo;
     }
 
+    /**
+     * Duração de um turno em minutos de trabalho contabilizados para a carga contratual.
+     * Turnos com janela >= 8h (full-time/gestão) incluem 1h de almoço não trabalhada,
+     * que é descontada aqui — um turno de 9h (09:00-18:00) conta 8h, não 9h.
+     */
     public static long calcularDuracaoEmMinutos(Turno turno) {
         if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null) {
             return 0;
         }
         LocalTime inicio = turno.getHoraInicio();
         LocalTime fim = turno.getHoraFim();
+        long minutos;
         if (!fim.isBefore(inicio)) {
-            return Duration.between(inicio, fim).toMinutes();
+            minutos = Duration.between(inicio, fim).toMinutes();
+        } else {
+            minutos = Duration.between(inicio, LocalTime.MAX).plusMinutes(1).toMinutes()
+                    + Duration.between(LocalTime.MIN, fim).toMinutes();
         }
-        return Duration.between(inicio, LocalTime.MAX).plusMinutes(1).toMinutes()
-                + Duration.between(LocalTime.MIN, fim).toMinutes();
+        if (minutos > PerfilContratual.DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS) {
+            minutos -= 60;
+        }
+        return minutos;
     }
 }

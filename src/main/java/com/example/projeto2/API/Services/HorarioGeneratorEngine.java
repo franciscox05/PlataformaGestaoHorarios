@@ -482,26 +482,14 @@ public class HorarioGeneratorEngine {
         // Melhor turno por colaborador, limite inverso ao mínimo por tipo — enche até à
         // capacidade disponível. Usado quando o gestor NÃO definiu alvo de pessoas/turno
         // (com alvo, o preenchimento é feito por preencherAteAlvoUniforme, que levanta o piso).
-        // No top-up, fim de semana ignora a rotação de FDS para permitir cobertura adequada
+        // Ao fim de semana, tenta primeiro SEM relaxar a rotação de FDS — só relaxa (para
+        // todo o dia) se nenhum colaborador elegível restar, espelhando a escalada por
+        // tentativas da Fase 1 (tentativa 3/4) em vez de ignorar a rotação incondicionalmente.
         boolean fimDeSemana = validator.ehFimDeSemana(data);
-        List<CandidatoPontuado> candidatos = new ArrayList<>();
-        for (EstadoColaborador estado : estados) {
-            if (estado.capacidadeRestanteMinutos() <= 0) continue;
-            if (pedido.folgasPreferidasPorColaborador()
-                    .getOrDefault(estado.idUtilizador(), Set.of()).contains(data)) continue;
-
-            CandidatoPontuado melhor = null;
-            for (Turno turno : turnosDoDia) {
-                long minutos = validator.calcularDuracaoEmMinutos(turno);
-                if (!estado.podeReceber(data, turno, minutos, pedido, fimDeSemana, false)) continue;
-                double score = avaliador.pontuar(estado, turno, minutos, data, pedido, contexto);
-                if (melhor == null || score < melhor.score()) {
-                    melhor = new CandidatoPontuado(new AtribuicaoDia(estado, turno, minutos), score);
-                }
-            }
-            if (melhor != null) {
-                candidatos.add(melhor);
-            }
+        List<CandidatoPontuado> candidatos = construirCandidatosReforco(
+                data, turnosDoDia, estados, pedido, contexto, false);
+        if (candidatos.isEmpty() && fimDeSemana) {
+            candidatos = construirCandidatosReforco(data, turnosDoDia, estados, pedido, contexto, true);
         }
 
         // Limita o top-up inversamente ao mínimo por tipo. Garante sempre pelo menos 1
@@ -532,6 +520,38 @@ public class HorarioGeneratorEngine {
             selecionados.add(candidato.atribuicao());
         }
         return selecionados;
+    }
+
+    /** Melhor turno por colaborador para o top-up, com ou sem relaxação da rotação de FDS. */
+    private List<CandidatoPontuado> construirCandidatosReforco(LocalDate data,
+                                                                List<Turno> turnosDoDia,
+                                                                Collection<EstadoColaborador> estados,
+                                                                PedidoGeracao pedido,
+                                                                AvaliadorAtribuicao.ContextoAvaliacao contexto,
+                                                                boolean ignorarRotacaoFDS) {
+        List<CandidatoPontuado> candidatos = new ArrayList<>();
+        for (EstadoColaborador estado : estados) {
+            if (estado.capacidadeRestanteMinutos() <= 0) continue;
+            if (pedido.folgasPreferidasPorColaborador()
+                    .getOrDefault(estado.idUtilizador(), Set.of()).contains(data)) continue;
+
+            if (ignorarRotacaoFDS
+                    && estado.ficariaSemFimDeSemanaLivre(data, pedido.dataInicio(), pedido.dataFim())) continue;
+
+            CandidatoPontuado melhor = null;
+            for (Turno turno : turnosDoDia) {
+                long minutos = validator.calcularDuracaoEmMinutos(turno);
+                if (!estado.podeReceber(data, turno, minutos, pedido, ignorarRotacaoFDS, false)) continue;
+                double score = avaliador.pontuar(estado, turno, minutos, data, pedido, contexto);
+                if (melhor == null || score < melhor.score()) {
+                    melhor = new CandidatoPontuado(new AtribuicaoDia(estado, turno, minutos), score);
+                }
+            }
+            if (melhor != null) {
+                candidatos.add(melhor);
+            }
+        }
+        return candidatos;
     }
 
     /**
@@ -654,21 +674,40 @@ public class HorarioGeneratorEngine {
         }
     }
 
-    /** Melhor candidato (menor pontuação) para um turno de um dado tipo num dia, ou null. */
+    /**
+     * Melhor candidato (menor pontuação) para um turno de um dado tipo num dia, ou null.
+     * Ao fim de semana, tenta primeiro SEM relaxar a rotação de FDS — só relaxa se nenhum
+     * colaborador elegível restar, espelhando a escalada por tentativas da Fase 1
+     * (tentativa 3/4) em vez de ignorar a rotação incondicionalmente.
+     */
     private CandidatoPontuado melhorCandidatoSlot(LocalDate dia,
                                                   List<Turno> turnosDoTipo,
                                                   Collection<EstadoColaborador> estados,
                                                   PedidoGeracao pedido,
                                                   AvaliadorAtribuicao.ContextoAvaliacao contexto) {
-        boolean fimDeSemana = validator.ehFimDeSemana(dia);
+        CandidatoPontuado melhor = melhorCandidatoSlot(dia, turnosDoTipo, estados, pedido, contexto, false);
+        if (melhor == null && validator.ehFimDeSemana(dia)) {
+            melhor = melhorCandidatoSlot(dia, turnosDoTipo, estados, pedido, contexto, true);
+        }
+        return melhor;
+    }
+
+    private CandidatoPontuado melhorCandidatoSlot(LocalDate dia,
+                                                  List<Turno> turnosDoTipo,
+                                                  Collection<EstadoColaborador> estados,
+                                                  PedidoGeracao pedido,
+                                                  AvaliadorAtribuicao.ContextoAvaliacao contexto,
+                                                  boolean ignorarRotacaoFDS) {
         CandidatoPontuado melhor = null;
         for (EstadoColaborador estado : estados) {
             if (estado.capacidadeRestanteMinutos() <= 0) continue;
             if (pedido.folgasPreferidasPorColaborador()
                     .getOrDefault(estado.idUtilizador(), Set.of()).contains(dia)) continue;
+            if (ignorarRotacaoFDS
+                    && estado.ficariaSemFimDeSemanaLivre(dia, pedido.dataInicio(), pedido.dataFim())) continue;
             for (Turno turno : turnosDoTipo) {
                 long minutos = validator.calcularDuracaoEmMinutos(turno);
-                if (!estado.podeReceber(dia, turno, minutos, pedido, fimDeSemana, false)) continue;
+                if (!estado.podeReceber(dia, turno, minutos, pedido, ignorarRotacaoFDS, false)) continue;
                 double score = avaliador.pontuar(estado, turno, minutos, dia, pedido, contexto);
                 if (melhor == null || score < melhor.score()) {
                     melhor = new CandidatoPontuado(new AtribuicaoDia(estado, turno, minutos), score);
@@ -1177,6 +1216,7 @@ public class HorarioGeneratorEngine {
                 case "descanso_minimo"   -> "descanso mínimo entre turnos";
                 case "turno_nao_consecutivo" -> "segundo turno não consecutivo com o primeiro";
                 case "ja_escalado"       -> "já atingiu o máximo de turnos no dia";
+                case "limite_diario_excedido" -> "limite legal de 8h de trabalho diário atingido";
                 default                   -> "indisponível";
             };
             if (!detalhe.isEmpty()) detalhe.append("; ");

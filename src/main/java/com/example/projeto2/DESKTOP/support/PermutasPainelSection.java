@@ -114,6 +114,7 @@ public final class PermutasPainelSection {
             }
 
             tabela.getSelectionModel().clearSelection();
+            tabela.requestFocus();
             coord.aposAcaoBemSucedida();
         } catch (IllegalArgumentException e) {
             FeedbackHelper.mostrar(feedback, e.getMessage(), false);

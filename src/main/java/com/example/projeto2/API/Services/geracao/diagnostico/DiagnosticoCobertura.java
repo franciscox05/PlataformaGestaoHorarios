@@ -114,6 +114,7 @@ public final class DiagnosticoCobertura {
             case "bloqueado"           -> "Folga ou ausência aprovada nesta data";
             case "ja_escalado"         -> "Já atingiu o máximo de turnos neste dia";
             case "carga_esgotada"      -> "Carga contratual mensal esgotada";
+            case "limite_diario_excedido" -> "Limite legal de 8h de trabalho diário atingido";
             case "descanso_semanal"    -> "Atingiu o máximo de dias de trabalho na semana";
             case "rotacao_fim_semana"  -> "Rotação de fins de semana — já trabalhou um fim de semana recente";
             case "dias_consecutivos"   -> "Atingiu o máximo de dias consecutivos de trabalho";
@@ -131,6 +132,10 @@ public final class DiagnosticoCobertura {
                     "full-time");
             case "turno_nao_consecutivo" -> new SugestaoFalhaGeracao(codigo,
                     "O segundo turno de full-time tem de ser consecutivo com o primeiro (ex.: Manhã+Tarde ou Tarde+Noite).",
+                    "full-time");
+            case "limite_diario_excedido" -> new SugestaoFalhaGeracao(codigo,
+                    "A soma dos turnos do dia excederia as 8h legais de trabalho diário; o segundo turno só pode "
+                            + "completar o dia até ao limite, nunca somar-se a um turno já de dia inteiro.",
                     "full-time");
             case "parttime_fim_semana" -> new SugestaoFalhaGeracao(codigo,
                     "Este dia útil precisa de colaboradores de tempo inteiro ou part-time, não de reforço de fim de semana.",

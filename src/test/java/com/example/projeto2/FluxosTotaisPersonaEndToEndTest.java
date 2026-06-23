@@ -888,6 +888,11 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
                 if (entidade instanceof Permuta p) {
                     permutaRepositoryAutowired.deleteById(p.getId());
                 } else if (entidade instanceof Horario h) {
+                    // Apaga primeiro qualquer Permuta dinamica (ex.: criada pelas threads
+                    // concorrentes deste teste) que ainda referencie este horario — sem
+                    // isto o DELETE falha por FK e e silenciosamente engolido, deixando o
+                    // Horario e, em cascata, o Turno global orfaos na BD partilhada.
+                    permutaRepositoryAutowired.deleteByHorarioId(h.getId());
                     horarioRepository.deleteById(h.getId());
                 } else if (entidade instanceof Loja l) {
                     lojautilizadorRepository.findByIdLojaWithUtilizadorCargo(l.getId())

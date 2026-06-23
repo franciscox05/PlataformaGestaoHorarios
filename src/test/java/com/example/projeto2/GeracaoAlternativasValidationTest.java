@@ -183,6 +183,14 @@ class GeracaoAlternativasValidationTest extends FluxosCriticosTestSupport {
                 "Colaborador123"
         );
         criarLigacaoAtiva(colaboradorExtra, fixture.lojaFixture().loja(), cargoFullTime);
+        for (int i = 1; i <= 4; i++) {
+            Utilizador extra = criarUtilizadorHashado(
+                    "Colaborador FT Reforco " + i,
+                    "colaborador.ft.reforco." + i,
+                    "Colaborador123"
+            );
+            criarLigacaoAtiva(extra, fixture.lojaFixture().loja(), cargoFullTime);
+        }
 
         RegrasLoja regraMinimos = regrasLojaRepository.findByIdLojaWithRegraOrderByDescricao(
                         fixture.lojaFixture().loja().getId())

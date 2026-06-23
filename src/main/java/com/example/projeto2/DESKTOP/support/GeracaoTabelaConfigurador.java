@@ -61,7 +61,14 @@ public final class GeracaoTabelaConfigurador {
             Consumer<Integer> onSelecaoId,
             Runnable onAtualizarEstado) {
 
-        tabela.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        // Seleção única: o gestor escolhe UMA alternativa para rever/enviar; a comparação
+        // de duas propostas é feita pelos combos dedicados (base/alvo), não por multi-seleção.
+        tabela.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        // Colunas fixas — a ordem (Proposta · Estado · Score · Qualidade · Turnos) é estável e previsível.
+        for (TableColumn<PropostaResumo, String> c
+                : java.util.List.of(colRotulo, colEstado, colData, colScore, colQualidade, colTurnos)) {
+            c.setReorderable(false);
+        }
 
         colRotulo.setCellValueFactory(c -> new SimpleStringProperty(
                 (c.getValue().recomendada() ? "★ " : "") + c.getValue().rotulo()));
@@ -181,7 +188,9 @@ public final class GeracaoTabelaConfigurador {
                 double progress = (double) valor / maxVal;
 
                 Label lbl = new Label(texto);
-                lbl.setStyle("-fx-font-size: 11px;");
+                // Cor explícita (igual ao texto normal da tabela, -ink-700): impede que a linha
+                // selecionada herde o branco da seleção e deixe "Base"/"Comparada" ilegíveis.
+                lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #2e2c2e;");
 
                 Region track = new Region();
                 track.setPrefSize(64, 5);

@@ -194,6 +194,9 @@ public class GeracaoHorariosController {
     private boolean grelhaVistaSemanais = true;
     private LocalDate grelhaDataInicio = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
     private boolean verificacaoAtiva = false;
+    // Verdadeiro quando a proposta atual cumpre TODAS as regras obrigatórias. Gateia o avanço
+    // "Rever → Enviar" e o envio ao supervisor: uma proposta não-conforme não pode ser submetida.
+    private boolean propostaCumpreRegrasObrigatorias = true;
     private VistaGrelhaHorarioRender vistaGrelhaRender;
     private DiagnosticoGeracaoPanel diagnosticoGeracaoPanel;
     private GeracaoStepperPanel stepperPanel;
@@ -253,6 +256,23 @@ public class GeracaoHorariosController {
         tabelaResumoColaboradores.setPlaceholder(new Label("Ainda não existe proposta gerada para apresentar o resumo da equipa."));
         tabelaPropostas.setPlaceholder(new Label("Gera alternativas para as comparar antes da validação."));
         tabelaComparacao.setPlaceholder(new Label("Seleciona duas propostas para comparar a distribuição por colaborador."));
+
+        // Expandir só faz sentido depois de existir uma comparação calculada: mantém o botão
+        // desativado (afordância clara) enquanto a tabela estiver vazia, em vez de o utilizador
+        // clicar e receber um erro. Reage automaticamente a cada "Comparar".
+        if (btnExpandirComparacao != null) {
+            Runnable sincronizarExpandir = () -> btnExpandirComparacao.setDisable(
+                    tabelaComparacao.getItems() == null || tabelaComparacao.getItems().isEmpty());
+            sincronizarExpandir.run();
+            tabelaComparacao.itemsProperty().addListener((obs, ant, nova) -> {
+                sincronizarExpandir.run();
+                if (nova != null) nova.addListener((javafx.collections.ListChangeListener<DiferencaColaborador>) c -> sincronizarExpandir.run());
+            });
+            if (tabelaComparacao.getItems() != null) {
+                tabelaComparacao.getItems().addListener(
+                        (javafx.collections.ListChangeListener<DiferencaColaborador>) c -> sincronizarExpandir.run());
+            }
+        }
 
         btnGerarProposta.setTooltip(new Tooltip("Gera uma alternativa com as definições atuais"));
         btnGerarAlternativas.setTooltip(new Tooltip("Gera várias alternativas em lote para comparação"));
@@ -344,6 +364,12 @@ public class GeracaoHorariosController {
             ValidacaoHorarioResultado resultado =
                     ValidadorHorarioProposta.validar(propostaAtual.linhas(), criterios);
 
+            // Atualiza o gate de submissão: só se pode avançar/enviar se não houver violações
+            // de regras obrigatórias (estadoGeral == OK).
+            propostaCumpreRegrasObrigatorias =
+                    resultado.estadoGeral() == ValidacaoHorarioResultado.Estado.OK;
+            atualizarEstadoInterativo();
+
             // Título
             String titulo = (propostaAtual.idProposta() != null
                     ? "Proposta #" + propostaAtual.idProposta() + "  ·  " : "")
@@ -405,6 +431,33 @@ public class GeracaoHorariosController {
         }
     }
 
+    /**
+     * Legenda de cores dos turnos (M/N/I/Folga) para os cabeçalhos escuros das janelas de
+     * grelha (expansão e comparação). Reutilizada para manter o significado das cores visível
+     * e consistente entre os dois ecrãs.
+     */
+    private javafx.scene.layout.HBox construirLegendaTurnos() {
+        javafx.scene.layout.HBox legenda = new javafx.scene.layout.HBox(16);
+        legenda.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        for (String[] par : new String[][]{
+                {"M", "#3b82f6", "Manhã"},
+                {"N", "#8b5cf6", "Noite"},
+                {"I", "#f59e0b", "Intermédio"},
+                {"—", "#94a3b8", "Folga"}}) {
+            javafx.scene.layout.HBox item = new javafx.scene.layout.HBox(5);
+            item.setAlignment(javafx.geometry.Pos.CENTER);
+            javafx.scene.control.Label chip = new javafx.scene.control.Label(par[0]);
+            chip.setStyle("-fx-background-color: " + par[1] + "; -fx-text-fill: white"
+                    + "; -fx-font-weight: 700; -fx-font-size: 11px; "
+                    + "-fx-padding: 2 7 2 7; -fx-background-radius: 5;");
+            javafx.scene.control.Label txt = new javafx.scene.control.Label(par[2]);
+            txt.setStyle("-fx-font-size: 11px; -fx-text-fill: #fca5a5;");
+            item.getChildren().addAll(chip, txt);
+            legenda.getChildren().add(item);
+        }
+        return legenda;
+    }
+
     @FXML
     public void onExpandirGrelhaClick() {
         if (propostaAtual == null || propostaAtual.linhas() == null) return;
@@ -435,24 +488,7 @@ public class GeracaoHorariosController {
             javafx.scene.layout.HBox.setHgrow(esp, javafx.scene.layout.Priority.ALWAYS);
 
             // Legenda de cores — chip colorido + nome completo para cada tipo de turno
-            javafx.scene.layout.HBox legenda = new javafx.scene.layout.HBox(16);
-            legenda.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-            for (String[] par : new String[][]{
-                    {"M", "#3b82f6", "Manhã"},
-                    {"N", "#8b5cf6", "Noite"},
-                    {"I", "#f59e0b", "Intermédio"},
-                    {"—", "#94a3b8", "Folga"}}) {
-                javafx.scene.layout.HBox item = new javafx.scene.layout.HBox(5);
-                item.setAlignment(javafx.geometry.Pos.CENTER);
-                javafx.scene.control.Label chip = new javafx.scene.control.Label(par[0]);
-                chip.setStyle("-fx-background-color: " + par[1] + "; -fx-text-fill: white"
-                        + "; -fx-font-weight: 700; -fx-font-size: 11px; "
-                        + "-fx-padding: 2 7 2 7; -fx-background-radius: 5;");
-                javafx.scene.control.Label txt = new javafx.scene.control.Label(par[2]);
-                txt.setStyle("-fx-font-size: 11px; -fx-text-fill: #fca5a5;");
-                item.getChildren().addAll(chip, txt);
-                legenda.getChildren().add(item);
-            }
+            javafx.scene.layout.HBox legenda = construirLegendaTurnos();
 
             javafx.stage.Stage janela = new javafx.stage.Stage();
             javafx.scene.control.Button btnFechar = new javafx.scene.control.Button("✕ Fechar");
@@ -465,9 +501,15 @@ public class GeracaoHorariosController {
             // ── Grelha detalhada (chip colorido + horas, coluna fixa) ────────
             javafx.scene.layout.VBox grelha = new javafx.scene.layout.VBox();
             grelha.setStyle("-fx-background-color: white;");
-            // null: sem callback de clique — evita abrir painéis na app de fundo
+            // Clicar numa célula dia×colaborador abre a "Escala da Equipa do Dia" (com folgas) e
+            // realça o colaborador clicado — diálogo dono desta janela, para surgir à frente dela.
+            final PropostaResultado propostaExpandida = propostaAtual;
+            double larguraEcra = javafx.stage.Screen.getPrimary().getVisualBounds().getWidth();
             com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
-                    .renderizarDetalhado(grelha, dias, linhasGrelha, LocalDate.now(), null, celulasAlteradas);
+                    .renderizarDetalhado(grelha, dias, linhasGrelha, LocalDate.now(),
+                            dia -> abrirDetalheDiaProposta(dia, propostaExpandida, janela, null),
+                            celulasAlteradas, larguraEcra,
+                            (dia, idColab) -> abrirDetalheDiaProposta(dia, propostaExpandida, janela, idColab));
 
             javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(grelha);
             sp.setFitToWidth(true);
@@ -480,9 +522,7 @@ public class GeracaoHorariosController {
             root.getChildren().addAll(header, sp);
 
             javafx.scene.Scene cena = new javafx.scene.Scene(root, 1400, 800);
-            if (obterJanela() != null && obterJanela().getScene() != null) {
-                cena.getStylesheets().addAll(obterJanela().getScene().getStylesheets());
-            }
+            aplicarEstilosCena(cena);
             janela.setTitle("Horário — " + mes + " " + spAno.getValue());
             janela.setScene(cena);
             janela.initModality(javafx.stage.Modality.APPLICATION_MODAL);
@@ -498,57 +538,142 @@ public class GeracaoHorariosController {
     @FXML
     public void onExpandirComparacaoClick() {
         if (tabelaComparacao == null) return;
+        // Só faz sentido expandir quando já existe uma comparação calculada.
+        if (tabelaComparacao.getItems() == null || tabelaComparacao.getItems().isEmpty()) {
+            mostrarErro("Compara primeiro duas alternativas antes de expandir a comparação.");
+            return;
+        }
+        PropostaResumo base = cbComparacaoBase.getValue();
+        PropostaResumo alvo = cbComparacaoAlvo.getValue();
+        if (base == null || alvo == null) {
+            mostrarErro("Seleciona as duas alternativas a comparar.");
+            return;
+        }
+
+        // Carrega os horários reais (linhas) das duas propostas para os mostrar em grelha/calendário.
+        final PropostaResultado resBase;
+        final PropostaResultado resAlvo;
         try {
-            javafx.scene.Parent paiOriginal = tabelaComparacao.getParent();
-            if (!(paiOriginal instanceof javafx.scene.layout.VBox paiVBox)) return;
-            int indiceTabela = paiVBox.getChildren().indexOf(tabelaComparacao);
+            validarUtilizadorAutenticado();
+            resBase = geracaoHorariosBLL.obterPropostaPorId(utilizadorLogado.getId(), base.idProposta());
+            resAlvo = geracaoHorariosBLL.obterPropostaPorId(utilizadorLogado.getId(), alvo.idProposta());
+        } catch (Exception e) {
+            mostrarErro("Não foi possível carregar os horários das alternativas para comparação.");
+            return;
+        }
 
-            javafx.scene.layout.VBox root = new javafx.scene.layout.VBox(0);
-            root.setStyle("-fx-background-color: white;");
+        try {
+            javafx.stage.Stage janela = new javafx.stage.Stage();
 
+            // ── Cabeçalho ────────────────────────────────────────────────────
             javafx.scene.layout.HBox header = new javafx.scene.layout.HBox(12);
             header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             header.setPadding(new javafx.geometry.Insets(16, 24, 14, 24));
-            header.setStyle("-fx-background-color: #7f1d1d; -fx-border-color: transparent;");
-
-            PropostaResumo base = cbComparacaoBase.getValue();
-            PropostaResumo alvo = cbComparacaoAlvo.getValue();
+            header.setStyle("-fx-background-color: #7f1d1d;");
             javafx.scene.control.Label lblTitulo = new javafx.scene.control.Label(
-                    "Comparação de alternativas"
-                    + (base != null && alvo != null ? "  —  " + base.rotulo() + " vs " + alvo.rotulo() : ""));
+                    "Comparação de alternativas  —  " + base.rotulo() + "  vs  " + alvo.rotulo());
             lblTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: white;");
-
             javafx.scene.layout.Region esp = new javafx.scene.layout.Region();
             javafx.scene.layout.HBox.setHgrow(esp, javafx.scene.layout.Priority.ALWAYS);
-
-            javafx.stage.Stage janela = new javafx.stage.Stage();
             javafx.scene.control.Button btnFechar = new javafx.scene.control.Button("✕ Fechar");
             btnFechar.setStyle("-fx-background-color: rgba(255,255,255,0.15); -fx-text-fill: white; "
                     + "-fx-font-weight: 700; -fx-font-size: 12px; -fx-padding: 6 14 6 14; -fx-background-radius: 6; "
                     + "-fx-cursor: hand;");
-            header.getChildren().addAll(lblTitulo, esp, btnFechar);
+            btnFechar.setOnAction(e -> janela.close());
+            // Legenda de cores dos turnos (M/N/I/Folga) — igual à do ecrã de expansão.
+            javafx.scene.layout.HBox legendaComparacao = construirLegendaTurnos();
+            header.getChildren().addAll(lblTitulo, esp, legendaComparacao, btnFechar);
 
-            javafx.scene.layout.VBox corpo = new javafx.scene.layout.VBox(16);
-            corpo.setPadding(new javafx.geometry.Insets(24));
-            corpo.setStyle("-fx-background-color: white;");
-            javafx.scene.layout.VBox.setVgrow(tabelaComparacao, javafx.scene.layout.Priority.ALWAYS);
-            corpo.getChildren().addAll(lblResumoComparacao, tabelaComparacao);
+            // ── Barra de ferramentas: Vista + Foco ───────────────────────────
+            javafx.scene.control.ToggleGroup grupoVista = new javafx.scene.control.ToggleGroup();
+            javafx.scene.control.ToggleButton btnGrelha = criarToggleComparacao("Grelha da equipa", grupoVista, true);
+            javafx.scene.control.ToggleButton btnCalendario = criarToggleComparacao("Calendário", grupoVista, false);
+            javafx.scene.control.ToggleButton btnDiferencas = criarToggleComparacao("Diferenças (horas)", grupoVista, false);
 
-            // Ao fechar a janela, devolver a tabela (e o seu vgrow) ao painel de origem na aba Alternativas.
-            janela.setOnHidden(e -> {
-                corpo.getChildren().remove(tabelaComparacao);
-                javafx.scene.layout.VBox.setVgrow(tabelaComparacao, javafx.scene.layout.Priority.ALWAYS);
-                paiVBox.getChildren().add(indiceTabela, tabelaComparacao);
-            });
+            javafx.scene.control.ToggleGroup grupoFoco = new javafx.scene.control.ToggleGroup();
+            javafx.scene.control.ToggleButton btnAmbas = criarToggleComparacao("Ambas", grupoFoco, true);
+            javafx.scene.control.ToggleButton btnSoBase = criarToggleComparacao("Só base", grupoFoco, false);
+            javafx.scene.control.ToggleButton btnSoAlvo = criarToggleComparacao("Só alvo", grupoFoco, false);
 
-            root.getChildren().addAll(header, corpo);
+            javafx.scene.control.Label lblVista = new javafx.scene.control.Label("Vista:");
+            lblVista.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #7f1d1d;");
+            javafx.scene.control.Label lblFoco = new javafx.scene.control.Label("Mostrar:");
+            lblFoco.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #7f1d1d;");
+            javafx.scene.layout.Region espTb = new javafx.scene.layout.Region();
+            javafx.scene.layout.HBox.setHgrow(espTb, javafx.scene.layout.Priority.ALWAYS);
+            javafx.scene.layout.HBox toolbar = new javafx.scene.layout.HBox(8,
+                    lblVista, btnGrelha, btnCalendario, btnDiferencas, espTb, lblFoco, btnAmbas, btnSoBase, btnSoAlvo);
+            toolbar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            toolbar.setPadding(new javafx.geometry.Insets(14, 24, 4, 24));
+
+            // ── Área de conteúdo (reconstruída ao alternar) ──────────────────
+            javafx.scene.layout.VBox area = new javafx.scene.layout.VBox(12);
+            area.setPadding(new javafx.geometry.Insets(10, 24, 24, 24));
+            javafx.scene.layout.VBox.setVgrow(area, javafx.scene.layout.Priority.ALWAYS);
+
+            // Títulos completos: o rótulo já inclui mês/ano (sem repetir) e juntamos o Score
+            // de cada alternativa para se perceber, de relance, qual está melhor pontuada.
+            final String tituloBase = "Proposta base · " + base.rotulo() + "  ·  Score " + base.pontuacao();
+            final String tituloAlvo = "Proposta alvo · " + alvo.rotulo() + "  ·  Score " + alvo.pontuacao();
+
+            Runnable renderizar = () -> {
+                boolean diferencas = grupoVista.getSelectedToggle() == btnDiferencas;
+                boolean grelha = grupoVista.getSelectedToggle() == btnGrelha;
+                btnAmbas.setDisable(diferencas);
+                btnSoBase.setDisable(diferencas);
+                btnSoAlvo.setDisable(diferencas);
+                area.getChildren().clear();
+
+                if (diferencas) {
+                    javafx.scene.control.Label lblResumo = new javafx.scene.control.Label(
+                            lblResumoComparacao != null ? lblResumoComparacao.getText() : "");
+                    lblResumo.setWrapText(true);
+                    lblResumo.setStyle("-fx-font-size: 13px; -fx-text-fill: #475569;");
+                    javafx.scene.control.TableView<DiferencaColaborador> tabela = construirTabelaComparacaoExpandida();
+                    tabela.setItems(FXCollections.observableArrayList(tabelaComparacao.getItems()));
+                    javafx.scene.layout.VBox.setVgrow(tabela, javafx.scene.layout.Priority.ALWAYS);
+                    area.getChildren().addAll(lblResumo, tabela);
+                    return;
+                }
+
+                boolean soBase = grupoFoco.getSelectedToggle() == btnSoBase;
+                boolean soAlvo = grupoFoco.getSelectedToggle() == btnSoAlvo;
+                javafx.scene.Node conteudo;
+                if (soBase) {
+                    conteudo = construirVistaHorarioProposta(tituloBase, resBase, grelha, true, janela);
+                } else if (soAlvo) {
+                    conteudo = construirVistaHorarioProposta(tituloAlvo, resAlvo, grelha, true, janela);
+                } else {
+                    // Modo "Ambas": empilhado na vertical — cada proposta ocupa a largura total,
+                    // idêntica ao Painel, e percorre-se na vertical para ver a outra.
+                    javafx.scene.Node pBase = construirVistaHorarioProposta(tituloBase, resBase, grelha, false, janela);
+                    javafx.scene.Node pAlvo = construirVistaHorarioProposta(tituloAlvo, resAlvo, grelha, false, janela);
+                    javafx.scene.layout.VBox empilhado = new javafx.scene.layout.VBox(16, pBase, pAlvo);
+                    empilhado.setFillWidth(true);
+                    javafx.scene.control.ScrollPane spExterior = new javafx.scene.control.ScrollPane(empilhado);
+                    spExterior.setFitToWidth(true);
+                    spExterior.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+                    spExterior.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+                    spExterior.setStyle("-fx-background-color: white; -fx-background: white;");
+                    conteudo = spExterior;
+                }
+                javafx.scene.layout.VBox.setVgrow(conteudo, javafx.scene.layout.Priority.ALWAYS);
+                area.getChildren().add(conteudo);
+            };
+            grupoVista.selectedToggleProperty().addListener((o, a, s) -> { if (s == null) grupoVista.selectToggle(a); else renderizar.run(); });
+            grupoFoco.selectedToggleProperty().addListener((o, a, s) -> { if (s == null) grupoFoco.selectToggle(a); else renderizar.run(); });
+            renderizar.run();
+
+            javafx.scene.layout.VBox root = new javafx.scene.layout.VBox(0, header, toolbar, area);
+            root.setStyle("-fx-background-color: white;");
 
             javafx.scene.Scene cena = new javafx.scene.Scene(root, 1400, 800);
-            if (obterJanela() != null && obterJanela().getScene() != null) {
-                cena.getStylesheets().addAll(obterJanela().getScene().getStylesheets());
-            }
-            janela.setTitle("Comparação de alternativas");
+            aplicarEstilosCena(cena);
+            // Fechar com Escape — sem barra de título do SO para arrastar.
+            cena.setOnKeyPressed(ev -> { if (ev.getCode() == KeyCode.ESCAPE) janela.close(); });
             janela.setScene(cena);
+            // Sem decoração do SO → não é uma janela arrastável/móvel; comporta-se como overlay interno.
+            janela.initStyle(javafx.stage.StageStyle.UNDECORATED);
             janela.initModality(javafx.stage.Modality.APPLICATION_MODAL);
             if (obterJanela() != null) janela.initOwner(obterJanela());
             janela.show();
@@ -556,6 +681,199 @@ public class GeracaoHorariosController {
         } catch (Exception e) {
             mostrarErro("Não foi possível abrir a comparação em detalhe.");
         }
+    }
+
+    /** Devolve o YearMonth de uma proposta a partir da primeira linha com data (ou o período selecionado). */
+    private YearMonth periodoDaProposta(PropostaResultado p) {
+        if (p != null && p.linhas() != null) {
+            for (HorarioLinha l : p.linhas()) {
+                if (l != null && l.data() != null) return YearMonth.from(l.data());
+            }
+        }
+        MesOption mes = (cbMes != null) ? cbMes.getValue() : null;
+        int ano = (spAno != null && spAno.getValue() != null) ? spAno.getValue() : LocalDate.now().getYear();
+        int m = (mes != null) ? mes.numero() : LocalDate.now().getMonthValue();
+        return YearMonth.of(ano, m);
+    }
+
+    /**
+     * Constrói o painel de horário de uma proposta com o <b>mesmo estilo do Painel</b>
+     * (grelha detalhada com chips coloridos + horas, ou calendário mensal).
+     *
+     * @param preencherAltura {@code true} quando o painel ocupa sozinho a área (vistas "Só base"/
+     *                        "Só alvo"): a grelha estica para encher a altura. {@code false} no modo
+     *                        "Ambas", em que dois painéis ficam empilhados e cada um toma a altura
+     *                        natural do seu conteúdo, deixando o scroll vertical ao contentor exterior.
+     */
+    private javafx.scene.Node construirVistaHorarioProposta(String titulo, PropostaResultado p,
+                                                            boolean grelha, boolean preencherAltura,
+                                                            javafx.stage.Window ownerModal) {
+        YearMonth ym = periodoDaProposta(p);
+        javafx.scene.layout.VBox painel = new javafx.scene.layout.VBox(10);
+        painel.setStyle("-fx-background-color: #ffffff; -fx-border-color: #e5e7eb; -fx-border-width: 1; "
+                + "-fx-border-radius: 12; -fx-background-radius: 12;");
+        painel.setPadding(new javafx.geometry.Insets(14));
+        painel.setMaxWidth(Double.MAX_VALUE);
+        painel.setMaxHeight(Double.MAX_VALUE);
+
+        // O título já vem completo (inclui mês/ano e score do chamador); não voltar a anexar o
+        // mês para evitar a duplicação "Agosto 2026 … Agosto 2026".
+        javafx.scene.control.Label lblTit = new javafx.scene.control.Label(titulo);
+        lblTit.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #7f1d1d;");
+        painel.getChildren().add(lblTit);
+
+        List<HorarioLinha> linhas = (p != null) ? p.linhas() : null;
+        if (linhas == null || linhas.isEmpty()) {
+            javafx.scene.control.Label vazio = new javafx.scene.control.Label("Sem horário gerado para esta alternativa.");
+            vazio.setStyle("-fx-text-fill: #94a3b8;");
+            painel.getChildren().add(vazio);
+            return painel;
+        }
+
+        if (grelha) {
+            java.util.List<LocalDate> dias = new java.util.ArrayList<>();
+            for (LocalDate d = ym.atDay(1); !d.isAfter(ym.atEndOfMonth()); d = d.plusDays(1)) dias.add(d);
+            java.util.List<com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer.LinhaGrelha> linhasGrelha =
+                    com.example.projeto2.DESKTOP.support.VistaGrelhaHorarioRender
+                            .construirLinhasGrelha(linhas, ym.atDay(1), ym.atEndOfMonth());
+
+            // Vista DETALHADA — exatamente a do Painel / "Expandir proposta": coluna de
+            // colaboradores congelada + chips coloridos com horas. Empilhados na vertical,
+            // cada painel ocupa toda a largura, pelo que descontamos apenas o "chrome" do
+            // modal (padding da área + padding/borda do painel) para os 31 dias não cortarem.
+            double larguraGrelha = javafx.stage.Screen.getPrimary().getVisualBounds().getWidth() - 96.0;
+            javafx.scene.layout.VBox grelhaBox = new javafx.scene.layout.VBox();
+            grelhaBox.setStyle("-fx-background-color: white;");
+            grelhaBox.setMaxWidth(Double.MAX_VALUE);
+            com.example.projeto2.DESKTOP.support.GrelhaHorarioRenderer
+                    .renderizarDetalhado(grelhaBox, dias, linhasGrelha, LocalDate.now(),
+                            dia -> abrirDetalheDiaProposta(dia, p, ownerModal, null), // clique no cabeçalho do dia
+                            null, larguraGrelha,
+                            // clique numa célula dia×colaborador → realça esse colaborador no detalhe
+                            (dia, idColab) -> abrirDetalheDiaProposta(dia, p, ownerModal, idColab));
+
+            if (preencherAltura) {
+                // Vista única: a grelha estica para encher a altura disponível.
+                grelhaBox.setMaxHeight(Double.MAX_VALUE);
+                if (!grelhaBox.getChildren().isEmpty()
+                        && grelhaBox.getChildren().getFirst() instanceof javafx.scene.layout.HBox raizGrelha) {
+                    raizGrelha.setMaxHeight(Double.MAX_VALUE);
+                    javafx.scene.layout.VBox.setVgrow(raizGrelha, javafx.scene.layout.Priority.ALWAYS);
+                }
+                javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(grelhaBox);
+                sp.setFitToWidth(true);
+                sp.setFitToHeight(true);
+                sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+                sp.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+                sp.setStyle("-fx-background-color: white; -fx-background: white;");
+                javafx.scene.layout.VBox.setVgrow(sp, javafx.scene.layout.Priority.ALWAYS);
+                painel.getChildren().add(sp);
+            } else {
+                // Modo "Ambas" empilhado: altura natural; o scroll vertical é do contentor exterior.
+                painel.getChildren().add(grelhaBox);
+            }
+        } else {
+            javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+            grid.setMaxWidth(Double.MAX_VALUE);
+            // Mesma classe do calendário do Painel: painel branco com cantos arredondados,
+            // borda subtil e padding interno (a `preencherCalendario` só estiliza os cartões dos dias).
+            grid.getStyleClass().add("calendar-grid");
+            com.example.projeto2.DESKTOP.support.CalendarioMensalHelper.preencherCalendario(
+                    grid, ym, eventosDaProposta(linhas, ym), "Sem turnos atribuidos",
+                    dia -> abrirDetalheDiaProposta(dia, p, ownerModal, null));
+            if (preencherAltura) {
+                javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(grid);
+                sp.setFitToWidth(true);
+                sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+                sp.setStyle("-fx-background-color: white; -fx-background: white;");
+                javafx.scene.layout.VBox.setVgrow(sp, javafx.scene.layout.Priority.ALWAYS);
+                painel.getChildren().add(sp);
+            } else {
+                // Modo "Ambas" empilhado: o calendário toma a altura natural; scroll é do exterior.
+                painel.getChildren().add(grid);
+            }
+        }
+        return painel;
+    }
+
+    /** Mapa data→eventos (turno | colaborador (cargo)) para o calendário mensal de uma proposta. */
+    private java.util.Map<LocalDate, java.util.List<String>> eventosDaProposta(List<HorarioLinha> linhas, YearMonth ym) {
+        java.util.Map<LocalDate, java.util.List<String>> mapa = new java.util.LinkedHashMap<>();
+        if (linhas == null) return mapa;
+        for (HorarioLinha linha : linhas) {
+            if (linha == null || linha.data() == null) continue;
+            if (!YearMonth.from(linha.data()).equals(ym)) continue;
+            String desc = (linha.periodo() != null ? linha.periodo() : "?") + " | "
+                    + (linha.colaborador() != null ? linha.colaborador() : "")
+                    + " (" + (linha.cargo() != null ? linha.cargo() : "-") + ")";
+            mapa.computeIfAbsent(linha.data(), k -> new java.util.ArrayList<>()).add(desc);
+        }
+        return mapa;
+    }
+
+    /** Cria um botão de alternância estilizado para o modal de comparação. */
+    private javafx.scene.control.ToggleButton criarToggleComparacao(
+            String texto, javafx.scene.control.ToggleGroup grupo, boolean selecionado) {
+        javafx.scene.control.ToggleButton b = new javafx.scene.control.ToggleButton(texto);
+        b.setToggleGroup(grupo);
+        b.setSelected(selecionado);
+        b.getStyleClass().add("btn-toggle-comparacao");
+        b.setCursor(javafx.scene.Cursor.HAND);
+        return b;
+    }
+
+    /**
+     * Constrói uma tabela de comparação independente (não o nó @FXML), pronta a receber
+     * uma cópia das diferenças. Usada apenas no modal expandido, pelo que pode ser
+     * descartada ao fechar sem afetar a aba Alternativas. Seleção única e colunas fixas.
+     */
+    private javafx.scene.control.TableView<DiferencaColaborador> construirTabelaComparacaoExpandida() {
+        javafx.scene.control.TableView<DiferencaColaborador> tabela = new javafx.scene.control.TableView<>();
+        tabela.getStyleClass().add("tabela-premium");
+        tabela.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.SINGLE);
+        tabela.setColumnResizePolicy(javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY);
+
+        javafx.scene.control.TableColumn<DiferencaColaborador, String> colColab =
+                new javafx.scene.control.TableColumn<>("Colaborador");
+        colColab.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().colaborador()));
+
+        javafx.scene.control.TableColumn<DiferencaColaborador, String> colBase =
+                new javafx.scene.control.TableColumn<>("Proposta base");
+        colBase.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+                c.getValue().turnosBase() + " turnos · " + c.getValue().horasBase()));
+
+        javafx.scene.control.TableColumn<DiferencaColaborador, String> colAlvo =
+                new javafx.scene.control.TableColumn<>("Proposta alvo");
+        colAlvo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+                c.getValue().turnosComparada() + " turnos · " + c.getValue().horasComparada()));
+
+        javafx.scene.control.TableColumn<DiferencaColaborador, String> colDif =
+                new javafx.scene.control.TableColumn<>("Diferença");
+        colDif.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+                (c.getValue().diferencaTurnos() > 0 ? "+" : "") + c.getValue().diferencaTurnos()
+                        + " turnos · " + c.getValue().diferencaHoras()));
+        colDif.setCellFactory(col -> new javafx.scene.control.TableCell<>() {
+            @Override protected void updateItem(String texto, boolean empty) {
+                super.updateItem(texto, empty);
+                if (empty || texto == null) { setText(null); setStyle(""); return; }
+                setText(texto);
+                DiferencaColaborador item = getTableRow() != null ? getTableRow().getItem() : null;
+                if (item != null && item.diferencaTurnos() > 0)      setStyle("-fx-text-fill: #16a34a; -fx-font-weight: 700;");
+                else if (item != null && item.diferencaTurnos() < 0) setStyle("-fx-text-fill: #c91428; -fx-font-weight: 700;");
+                else                                                  setStyle("");
+            }
+        });
+
+        // Bloquear arrastamento de colunas — comparação é estática e previsível.
+        for (javafx.scene.control.TableColumn<DiferencaColaborador, ?> c
+                : java.util.List.of(colColab, colBase, colAlvo, colDif)) {
+            c.setReorderable(false);
+        }
+        tabela.getColumns().add(colColab);
+        tabela.getColumns().add(colBase);
+        tabela.getColumns().add(colAlvo);
+        tabela.getColumns().add(colDif);
+        return tabela;
     }
 
     private void mostrarPainelVerificacao(boolean mostrar) {
@@ -900,6 +1218,33 @@ public class GeracaoHorariosController {
         );
     }
 
+    /**
+     * Abre o detalhe do dia para uma proposta específica do modal de comparação.
+     * Ao contrário de {@link #abrirDetalheDia}, usa as linhas de {@code p} (e não a
+     * {@code propostaAtual} ativa), garantindo que se inspeciona o snapshot correto da
+     * alternativa visível. É read-only: editar/adicionar turnos só faz sentido na proposta
+     * ativa, pelo que aqui não se passam callbacks de edição.
+     *
+     * @param owner janela que deve possuir o diálogo. No modal de comparação tem de ser a
+     *              <b>janela de comparação</b> (e não a janela principal): sendo a comparação
+     *              um {@code APPLICATION_MODAL} por cima da app, um diálogo dono da janela
+     *              principal abriria <i>por trás</i> da comparação. Com o dono correto, a
+     *              "Escala da Equipa do Dia" aparece à frente, como esperado.
+     */
+    private void abrirDetalheDiaProposta(LocalDate data, PropostaResultado p, javafx.stage.Window owner,
+                                         Integer idColaboradorDestaque) {
+        DetalheDiaDialog.abrir(
+                data,
+                (p != null) ? p.linhas() : null,
+                owner != null ? owner : obterJanela(),
+                false,
+                null,
+                null,
+                idColaboradorDestaque,   // realça o colaborador cuja célula foi clicada
+                true                      // mostra também quem está de folga nesse dia (como no Painel)
+        );
+    }
+
     private void abrirAdicionarTurno(HorarioLinha template, LocalDate data, Window owner) {
         if (propostaAtual == null || propostaAtual.idProposta() == null) {
             mostrarErro("Proposta não encontrada — não é possível adicionar o turno.");
@@ -1099,9 +1444,32 @@ public class GeracaoHorariosController {
 
     // ── Preenchimento / limpeza de resultado ─────────────────────────────────
 
+    /**
+     * Nomes das regras obrigatórias que a proposta <b>não</b> cumpre (lista vazia = cumpre todas).
+     * Usado para bloquear o avanço/envio de propostas não-conformes. Em caso de erro de avaliação
+     * devolve lista vazia para não bloquear indevidamente o gestor.
+     */
+    private List<String> regrasObrigatoriasEmFalta(PropostaResultado p) {
+        if (p == null || p.linhas() == null || p.linhas().isEmpty()) return List.of();
+        try {
+            var criterios = geracaoHorariosBLL.obterCriteriosGeracao(
+                    utilizadorLogado.getId(), p.ano(), p.mes());
+            ValidacaoHorarioResultado r = ValidadorHorarioProposta.validar(p.linhas(), criterios);
+            return r.categorias().stream()
+                    .filter(c -> !c.semViolacoes())
+                    .map(ValidacaoHorarioResultado.CategoriaValidacao::nome)
+                    .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     private void preencherResultado(PropostaResultado resultado) {
         propostaAtual = resultado;
         periodoMensalAtual = YearMonth.of(resultado.ano(), resultado.mes());
+        // Recalcula o cumprimento das regras obrigatórias para a nova proposta antes de
+        // atualizar o estado dos botões (atualizarPainelValidacao/atualizarEstadoInterativo).
+        propostaCumpreRegrasObrigatorias = regrasObrigatoriasEmFalta(resultado).isEmpty();
         reposicionarSemanaPlaneamentoParaMesSelecionado();
         lblEstadoProposta.setText(resultado.estado());
         lblOrigemPlaneamento.setText(resultado.origemPlaneamento());
@@ -1444,6 +1812,22 @@ public class GeracaoHorariosController {
             if (idsPropostas.isEmpty()) {
                 throw new IllegalArgumentException("Seleciona uma ou mais alternativas em rascunho para enviar ao supervisor.");
             }
+
+            // Enforce: uma alternativa que viole regras obrigatórias não pode ser enviada.
+            List<String> bloqueios = new ArrayList<>();
+            for (Integer idProposta : idsPropostas) {
+                PropostaResultado pr = geracaoHorariosBLL.obterPropostaPorId(utilizadorLogado.getId(), idProposta);
+                List<String> falhas = regrasObrigatoriasEmFalta(pr);
+                if (!falhas.isEmpty()) {
+                    bloqueios.add("Proposta #" + idProposta + " — por cumprir: " + String.join("; ", falhas));
+                }
+            }
+            if (!bloqueios.isEmpty()) {
+                mostrarErro("Não é possível enviar ao supervisor enquanto houver regras obrigatórias por cumprir:\n"
+                        + String.join("\n", bloqueios));
+                return;
+            }
+
             if (!DialogosHelper.confirmarAcao(
                     obterJanela(),
                     "Enviar ao supervisor",
@@ -1630,7 +2014,10 @@ public class GeracaoHorariosController {
         boolean temPropostaSelecionada = propostaAtual != null;
         if (btnPasso1Continuar != null) btnPasso1Continuar.setDisable(emProcessamento || !temPropostasLista);
         if (btnPasso2Continuar != null) btnPasso2Continuar.setDisable(emProcessamento || !temPropostaSelecionada);
-        if (btnPasso3Continuar != null) btnPasso3Continuar.setDisable(emProcessamento || !temPropostaSelecionada);
+        // "Rever → Enviar" exige adicionalmente que a proposta cumpra todas as regras
+        // obrigatórias — uma proposta não-conforme não pode avançar para envio.
+        if (btnPasso3Continuar != null) btnPasso3Continuar.setDisable(
+                emProcessamento || !temPropostaSelecionada || !propostaCumpreRegrasObrigatorias);
 
         if (lblResumoEnvio != null) {
             var selecionadas = tabelaPropostas.getSelectionModel().getSelectedItems();
@@ -1706,6 +2093,27 @@ public class GeracaoHorariosController {
     private Window obterJanela() {
         if (lblLoja == null || lblLoja.getScene() == null) return null;
         return lblLoja.getScene().getWindow();
+    }
+
+    /**
+     * Aplica a folha de estilos da app a uma cena nova (janelas de detalhe/comparação).
+     * O CSS é carregado no {@code mainContainer} do Dashboard — e não na Scene — pelo que
+     * {@code getScene().getStylesheets()} vem vazio; sem isto, as classes CSS (cartões do
+     * calendário, pontos dos eventos, toggles, tabela) não chegam à janela e ficam "cruas".
+     */
+    private void aplicarEstilosCena(javafx.scene.Scene cena) {
+        if (cena == null) return;
+        java.net.URL recurso = getClass().getResource("/com/example/projeto2/dashboard/dashboard.css");
+        if (recurso != null) {
+            String url = recurso.toExternalForm();
+            if (!cena.getStylesheets().contains(url)) cena.getStylesheets().add(url);
+        }
+        // Fallback: copia também eventuais folhas já presentes na cena principal.
+        if (obterJanela() != null && obterJanela().getScene() != null) {
+            for (String s : obterJanela().getScene().getStylesheets()) {
+                if (!cena.getStylesheets().contains(s)) cena.getStylesheets().add(s);
+            }
+        }
     }
 
     private void abrirEdicaoTurno(HorarioLinha linha, Window owner) {

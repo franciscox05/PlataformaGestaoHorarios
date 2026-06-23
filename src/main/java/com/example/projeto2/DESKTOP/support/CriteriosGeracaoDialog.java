@@ -29,15 +29,21 @@ public final class CriteriosGeracaoDialog {
         // Balanço de capacidade — a informação mais importante: chega ou não chega?
         conteudo.getChildren().add(construirBalancoCapacidade(criterios));
 
-        conteudo.getChildren().add(seccaoExpansivel("Regras de trabalho (obrigatórias)", true, List.of(
-                "Descanso mínimo entre turnos: " + criterios.descansoMinimoHoras() + " horas",
-                "Máximo de dias seguidos de trabalho: " + criterios.maxDiasConsecutivos(),
-                "Dias de folga por semana: " + criterios.descansoSemanalMinimoDias(),
-                "Intervalo entre fins de semana trabalhados: " + criterios.janelaRotacaoFimDeSemana()
-                        + " semana" + (criterios.janelaRotacaoFimDeSemana() == 1 ? "" : "s"),
-                criterios.exigirChefiaAoSabado()
-                        ? "Sábados exigem presença de gerente ou subgerente"
-                        : "Sábados não exigem chefia obrigatória")));
+        List<String> regrasTrabalho = new java.util.ArrayList<>();
+        regrasTrabalho.add("Descanso mínimo entre turnos: " + criterios.descansoMinimoHoras() + " horas");
+        regrasTrabalho.add("Dias de folga por semana: " + criterios.descansoSemanalMinimoDias());
+        // Só mostrar max consecutivos quando é mais restritivo que o descanso semanal;
+        // caso contrário (ex: valor=31) a regra semanal já é o limite vinculante.
+        int limiteConsecEfetivo = 7 - criterios.descansoSemanalMinimoDias();
+        if (criterios.maxDiasConsecutivos() < limiteConsecEfetivo) {
+            regrasTrabalho.add("Máximo de dias seguidos de trabalho: " + criterios.maxDiasConsecutivos());
+        }
+        regrasTrabalho.add("Intervalo entre fins de semana trabalhados: " + criterios.janelaRotacaoFimDeSemana()
+                + " semana" + (criterios.janelaRotacaoFimDeSemana() == 1 ? "" : "s"));
+        regrasTrabalho.add(criterios.exigirChefiaAoSabado()
+                ? "Sábados exigem presença de gerente ou subgerente"
+                : "Sábados não exigem chefia obrigatória");
+        conteudo.getChildren().add(seccaoExpansivel("Regras de trabalho (obrigatórias)", true, regrasTrabalho));
 
         conteudo.getChildren().add(seccaoExpansivel("Cobertura mínima por turno", true,
                 criterios.minimosPorTurno()));

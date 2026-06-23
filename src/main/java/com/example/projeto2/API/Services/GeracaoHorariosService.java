@@ -579,7 +579,7 @@ public class GeracaoHorariosService {
         Integer idLoja = loja.getId();
         DateTimeFormatter formatoDia = DateTimeFormatter.ofPattern("dd/MM");
 
-        List<Turno> turnos = turnoRepository.findAllAtivosOrderByHoraInicioAsc();
+        List<Turno> turnos = turnoRepository.findAtivosVigentesParaLojaNoPeriodo(idLoja, dataInicio, dataFim);
         List<RegraAplicada> regras = regraGeracaoResolver.obterRegrasAplicadas(idLoja);
         ParametrosGeracao parametros = regraGeracaoResolver.resolverParametrosGeracao(regras, turnos);
 
@@ -795,9 +795,18 @@ public class GeracaoHorariosService {
             throw new IllegalArgumentException("Nao e possivel gerar horarios sem colaboradores elegiveis e com vinculo valido na loja.");
         }
 
-        List<Turno> turnos = turnoRepository.findAllAtivosOrderByHoraInicioAsc();
+        List<Turno> turnos = turnoRepository.findAtivosVigentesParaLojaNoPeriodo(idLoja, dataInicio, dataFim);
         if (turnos.isEmpty()) {
             throw new IllegalArgumentException("Nao existem turnos base configurados para gerar a proposta.");
+        }
+        if (loja.getHoraAbertura() != null && loja.getHoraFecho() != null) {
+            turnos = turnos.stream()
+                    .filter(t -> validator.turnoCabeNoHorario(t, loja.getHoraAbertura(), loja.getHoraFecho()))
+                    .toList();
+            if (turnos.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Nao existem turnos base configurados que caibam no horario de funcionamento da loja.");
+            }
         }
 
         List<RegraAplicada> regras = regraGeracaoResolver.obterRegrasAplicadas(idLoja);
@@ -809,8 +818,21 @@ public class GeracaoHorariosService {
         List<Preferencia> preferenciasAprovadas = preferenciaRepository.findPreferenciasAprovadasDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         List<HorarioEspecialLoja> horariosEspeciais = horarioEspecialLojaRepository.findAtivosNoPeriodo(idLoja, dataInicio, dataFim);
         List<Horario> historicoHorarios = inicioHistorico.isBefore(dataInicio)
-                ? horarioRepository.findHorariosDaLojaEntreDatas(idLoja, inicioHistorico, dataInicio.minusDays(1))
-                : List.of();
+                ? new ArrayList<>(horarioRepository.findHorariosDaLojaEntreDatas(idLoja, inicioHistorico, dataInicio.minusDays(1)))
+                : new ArrayList<>();
+
+        // Cross-store shifts during the current period: loaded so the engine's
+        // respeitaDescansoVizinhanca() enforces the 11h inter-store rest rule.
+        // inicializarComHistorico() passes 0 minutes, so capacity is unaffected.
+        List<Integer> idsColabs = colaboradoresAtivos.stream()
+                .filter(lu -> lu.getIdUtilizador() != null && lu.getIdUtilizador().getId() != null)
+                .map(lu -> lu.getIdUtilizador().getId())
+                .toList();
+        if (!idsColabs.isEmpty()) {
+            historicoHorarios.addAll(
+                    horarioRepository.findHorariosPorColaboradoresEmOutrasLojas(
+                            idsColabs, idLoja, dataInicio, dataFim));
+        }
 
         Map<Integer, Set<LocalDate>> bloqueiosPorUtilizador = PreferenciasGeracaoBuilder.construirBloqueiosPorUtilizador(
                 dataInicio,

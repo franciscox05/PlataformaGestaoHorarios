@@ -182,8 +182,9 @@ public class HorarioValidatorService {
     }
 
     /**
-     * Calcula a duração em minutos de um turno.
-     * Suporta turnos que atravessam a meia-noite.
+     * Calcula a duração em minutos de trabalho contabilizados de um turno (para carga
+     * contratual). Suporta turnos que atravessam a meia-noite. Turnos com janela >= 8h
+     * (full-time/gestão) incluem 1h de almoço não trabalhada, descontada aqui.
      */
     public long calcularDuracaoEmMinutos(Turno turno) {
         if (turno == null || turno.getHoraInicio() == null || turno.getHoraFim() == null) {
@@ -194,7 +195,11 @@ public class HorarioValidatorService {
         if (fim <= inicio) {
             fim += 24 * 60;
         }
-        return fim - inicio;
+        long minutos = fim - inicio;
+        if (minutos > DURACAO_MINIMA_TURNO_TEMPO_INTEIRO_MINUTOS) {
+            minutos -= 60;
+        }
+        return minutos;
     }
 
     /**

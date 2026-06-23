@@ -7,6 +7,7 @@ import com.example.projeto2.API.Modules.Utilizador;
 import com.example.projeto2.API.Services.DayOffService;
 import com.example.projeto2.API.Services.GestaoLojaService;
 import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.PreferenciaService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -35,6 +36,7 @@ public final class HomePedidosHelper {
 
     private final DayOffService dayOffBLL;
     private final PermutaService permutaBLL;
+    private final PreferenciaService preferenciaBLL;
     private final GestaoLojaService gestaoLojaBLL;
 
     private final Supplier<Window> janelaSupplier;
@@ -45,6 +47,7 @@ public final class HomePedidosHelper {
                               VBox listaMeusPedidos,
                               DayOffService dayOffBLL,
                               PermutaService permutaBLL,
+                              PreferenciaService preferenciaBLL,
                               GestaoLojaService gestaoLojaBLL,
                               Supplier<Window> janelaSupplier) {
         this.bannerPendentes = bannerPendentes;
@@ -53,17 +56,19 @@ public final class HomePedidosHelper {
         this.listaMeusPedidos = listaMeusPedidos;
         this.dayOffBLL = dayOffBLL;
         this.permutaBLL = permutaBLL;
+        this.preferenciaBLL = preferenciaBLL;
         this.gestaoLojaBLL = gestaoLojaBLL;
         this.janelaSupplier = janelaSupplier;
     }
 
     // ── Banner de pendentes ──────────────────────────────────────────────────
 
-    public void atualizarBannerPendentes(Utilizador utilizadorLogado) {
+    public void atualizarBannerPendentes(Utilizador utilizadorLogado, Integer idLoja) {
         if (bannerPendentes == null || utilizadorLogado == null) return;
         try {
-            int total = dayOffBLL.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId()).size()
-                    + permutaBLL.listarPedidosPendentesParaAprovacao(utilizadorLogado.getId()).size();
+            int total = dayOffBLL.contarPendentesParaAprovacao(utilizadorLogado.getId(), idLoja)
+                    + permutaBLL.contarPendentesParaAprovacao(utilizadorLogado.getId(), idLoja)
+                    + preferenciaBLL.contarPendentesParaAprovacao(utilizadorLogado.getId(), idLoja);
             if (total > 0) {
                 String msg = total == 1
                         ? "Tens 1 pedido pendente a aguardar a tua aprovação."

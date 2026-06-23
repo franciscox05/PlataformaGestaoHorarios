@@ -24,6 +24,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
@@ -86,6 +87,7 @@ public class PainelGerentePedidosController {
     @FXML private TableColumn<SnapshotOperacionalLojaService.ColaboradorContexto, String> colContextoTurnos;
     @FXML private TableColumn<SnapshotOperacionalLojaService.ColaboradorContexto, String> colContextoAusencias;
     @FXML private VBox  gradeHorario;
+    @FXML private TabPane tabsPedidos;
     @FXML private TableView<DayOff>    tabelaFolgasPendentes;
     @FXML private TableColumn<DayOff, String> colFolgaColaborador;
     @FXML private TableColumn<DayOff, String> colFolgaData;
@@ -195,6 +197,29 @@ public class PainelGerentePedidosController {
 
     public void setDashboardNavigation(DashboardNavigator dashboardNavigation) {
         this.dashboardNavigation = dashboardNavigation;
+    }
+
+    /**
+     * Seleciona a aba inicial (Folgas/Permutas/Preferências) ao abrir o painel a partir de
+     * outro ecrã (ex.: botão "Gerir em Pedidos" do perfil do colaborador). {@code tipo} aceita
+     * variações como "folga", "permuta", "preferencia"/"ferias"/"folga_preferida".
+     */
+    public void selecionarAbaInicial(String tipo) {
+        if (tabsPedidos == null || tipo == null) return;
+        String t = java.text.Normalizer.normalize(tipo.trim().toLowerCase(java.util.Locale.ROOT),
+                        java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        int indice;
+        if (t.startsWith("permuta")) {
+            indice = 1;
+        } else if (t.startsWith("folga") && !t.contains("preferid")) {
+            indice = 0; // pedido de ausência/folga
+        } else {
+            indice = 2; // preferências (inclui férias, folga_preferida, turnos, colegas…)
+        }
+        if (indice < tabsPedidos.getTabs().size()) {
+            tabsPedidos.getSelectionModel().select(indice);
+        }
     }
 
     @FXML public void onAprovarFolgaClick()       { folgasSection.tratar(true); }
@@ -504,7 +529,7 @@ public class PainelGerentePedidosController {
             boolean preferenciaPermamente = contexto.pedido().tipo() == SnapshotOperacionalLojaService.TipoPedidoOperacional.PREFERENCIA
                     && contexto.pedido().dataFim() == null;
             lblContextoPeriodo.setText(preferenciaPermamente
-                    ? "Preferência sem data de fim (permanente até o colaborador cancelar) · escala de contexto: próximos 30 dias"
+                    ? "Preferência sem data de fim (permanente até o colaborador cancelar) · janela considerada: próximos 30 dias"
                     : descreverPeriodoContexto(contexto.snapshotRelacionada().intervalo()));
             lblContextoResumo.setText(contexto.pedido().resumo());
             lblContextoMotivoCompleto.setText(contexto.pedido().motivoCompleto());

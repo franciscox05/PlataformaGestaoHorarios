@@ -102,7 +102,7 @@
 
                 <!-- TOP: TabPane with the three request types -->
                 <VBox>
-                    <TabPane styleClass="modulo-tabs" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+                    <TabPane fx:id="tabsPedidos" styleClass="modulo-tabs" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
 
                         <!-- Tab: Folgas -->
                         <Tab text="Folgas">

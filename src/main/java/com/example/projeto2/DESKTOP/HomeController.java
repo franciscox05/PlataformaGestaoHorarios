@@ -4,6 +4,7 @@ import com.example.projeto2.API.Services.DayOffService;
 import com.example.projeto2.API.Services.GestaoLojaService;
 import com.example.projeto2.API.Services.HorarioService;
 import com.example.projeto2.API.Services.PermutaService;
+import com.example.projeto2.API.Services.PreferenciaService;
 import com.example.projeto2.API.Services.SessaoService;
 import com.example.projeto2.DESKTOP.support.CalendarioMensalHelper;
 import com.example.projeto2.DESKTOP.support.CalendarioSemanalHelper;
@@ -15,12 +16,15 @@ import com.example.projeto2.API.Modules.Horario;
 import com.example.projeto2.API.Modules.Utilizador;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -78,6 +82,7 @@ public class HomeController {
     private final GestaoLojaService gestaoLojaBLL;
     private final DayOffService dayOffBLL;
     private final PermutaService permutaBLL;
+    private final PreferenciaService preferenciaBLL;
     private final SessaoService sessaoBLL;
 
     private Utilizador utilizadorLogado;
@@ -91,11 +96,13 @@ public class HomeController {
                           GestaoLojaService gestaoLojaBLL,
                           DayOffService dayOffBLL,
                           PermutaService permutaBLL,
+                          PreferenciaService preferenciaBLL,
                           SessaoService sessaoBLL) {
         this.horarioBll = horarioBll;
         this.gestaoLojaBLL = gestaoLojaBLL;
         this.dayOffBLL = dayOffBLL;
         this.permutaBLL = permutaBLL;
+        this.preferenciaBLL = preferenciaBLL;
         this.sessaoBLL = sessaoBLL;
     }
 
@@ -119,6 +126,46 @@ public class HomeController {
     public void initialize() {
         configurarPainelHorarioPublicado();
         configurarPainelHorarioMensal();
+        bloquearScrollVerticalGrelha();
+    }
+
+    /**
+     * A grelha mensal tem um ScrollPane interno (scrollDias, dentro do GrelhaHorarioRenderer)
+     * dedicado ao scroll horizontal dos dias. Mesmo com a barra vertical escondida, esse
+     * ScrollPane ainda intercepta parte do gesto de wheel vertical da página, disputando o
+     * scroll com o ScrollPane da página e desalinhando a coluna fixa da parte dos dias a
+     * meio do gesto. Intercetamos aqui o scroll vertical antes que chegue ao scrollDias e
+     * repassamo-lo manualmente ao ScrollPane da página, para a grelha nunca scrollar na
+     * vertical por si própria.
+     */
+    private void bloquearScrollVerticalGrelha() {
+        if (scrollGrelhaEquipaMensal == null) return;
+        scrollGrelhaEquipaMensal.addEventFilter(ScrollEvent.SCROLL, event -> {
+            if (Math.abs(event.getDeltaY()) <= Math.abs(event.getDeltaX())) {
+                return;
+            }
+            ScrollPane scrollPagina = encontrarScrollPaneAntecessor(scrollGrelhaEquipaMensal);
+            if (scrollPagina != null) {
+                double alturaScroll = scrollPagina.getContent().getBoundsInLocal().getHeight()
+                        - scrollPagina.getViewportBounds().getHeight();
+                if (alturaScroll > 0) {
+                    double novoVvalue = scrollPagina.getVvalue() - event.getDeltaY() / alturaScroll;
+                    scrollPagina.setVvalue(Math.max(0, Math.min(1, novoVvalue)));
+                }
+            }
+            event.consume();
+        });
+    }
+
+    private ScrollPane encontrarScrollPaneAntecessor(Node node) {
+        Parent pai = node.getParent();
+        while (pai != null) {
+            if (pai instanceof ScrollPane scrollPane) {
+                return scrollPane;
+            }
+            pai = pai.getParent();
+        }
+        return null;
     }
 
     public void setUtilizadorLogado(Utilizador utilizador) {
@@ -131,7 +178,7 @@ public class HomeController {
         pedidosHelper = new HomePedidosHelper(
                 bannerPendentes, lblBannerPendentes,
                 painelMeusPedidos, listaMeusPedidos,
-                dayOffBLL, permutaBLL, gestaoLojaBLL,
+                dayOffBLL, permutaBLL, preferenciaBLL, gestaoLojaBLL,
                 this::obterJanela);
 
         carregarHorarioPublicado();
@@ -259,7 +306,7 @@ public class HomeController {
         if (podeGerirLoja) {
             carregarColaboradoresParaComboBox(cbColaboradorHorarioMensal);
             carregarHorarioMensalLoja();
-            pedidosHelper.atualizarBannerPendentes(utilizadorLogado);
+            pedidosHelper.atualizarBannerPendentes(utilizadorLogado, obterLojaAtivaSegura());
         } else {
             renderizarCalendarioMensalLoja(YearMonth.now(), List.of());
             lblResumoHorarioMensal.setText(

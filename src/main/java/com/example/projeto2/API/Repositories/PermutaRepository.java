@@ -2,12 +2,26 @@ package com.example.projeto2.API.Repositories;
 
 import com.example.projeto2.API.Modules.Permuta;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 public interface PermutaRepository extends JpaRepository<Permuta, Integer> {
+
+    /**
+     * Apaga qualquer Permuta (de qualquer estado/origem) que ainda referencie o horario
+     * indicado, como origem ou destino. Usado na limpeza de testes que correm fora de
+     * transacao (NOT_SUPPORTED) — sem isto, uma Permuta criada dinamicamente durante o
+     * teste (ex.: concorrencia/race condition) bloqueia o DELETE do Horario por FK, o que
+     * por sua vez impede a purga do Turno orfao (ver Revisao.md 21.8.4).
+     */
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Permuta p WHERE p.idHorarioOrigem.id = :idHorario OR p.idHorarioDestino.id = :idHorario")
+    void deleteByHorarioId(@Param("idHorario") Integer idHorario);
 
     @Query("SELECT p FROM Permuta p " +
             "JOIN FETCH p.idHorarioOrigem ho " +

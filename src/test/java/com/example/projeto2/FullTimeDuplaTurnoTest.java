@@ -39,8 +39,10 @@ class FullTimeDuplaTurnoTest {
     private final LocalDate fim = inicio.plusDays(4);
 
     // Turnos CONSECUTIVOS: Manhã termina onde Tarde começa → eTurnoConsecutivo=true.
-    private final Turno manha = turno(1, "manha", LocalTime.of(9, 0), LocalTime.of(14, 0));
-    private final Turno tarde = turno(2, "tarde", LocalTime.of(14, 0), LocalTime.of(19, 0));
+    // 4h + 4h = 8h, exatamente o limite legal diário (PerfilContratual.LIMITE_DIARIO_TRABALHO_MINUTOS) —
+    // turnos mais longos fariam o par exceder as 8h de trabalho diário e seriam corretamente bloqueados.
+    private final Turno manha = turno(1, "manha", LocalTime.of(9, 0), LocalTime.of(13, 0));
+    private final Turno tarde = turno(2, "tarde", LocalTime.of(13, 0), LocalTime.of(17, 0));
 
     @Test
     void gerenteFTRecebeSegundoTurnoConsecutivoNoMesmoDia() {
@@ -91,8 +93,8 @@ class FullTimeDuplaTurnoTest {
         Lojautilizador ft = colaborador(1, "FT-Minimo", "fulltime");
         Lojautilizador pt = colaborador(2, "PT1", "parttime");
 
-        // Capacidade FT = 300 min (5h = exatamente 1 turno); PT = 3000 min.
-        Map<Integer, Long> cargas = Map.of(1, 300L, 2, 3_000L);
+        // Capacidade FT = 240 min (4h = exatamente 1 turno); PT = 3000 min.
+        Map<Integer, Long> cargas = Map.of(1, 240L, 2, 3_000L);
 
         PedidoGeracao pedido = new PedidoGeracao(
                 List.of(ft, pt),
@@ -107,7 +109,7 @@ class FullTimeDuplaTurnoTest {
 
         List<Horario> horarios = engine.gerar(pedido);
 
-        // FT só tem capacidade para 1 turno (300 min = 5h = 1 turno de 5h).
+        // FT só tem capacidade para 1 turno (240 min = 4h = 1 turno de 4h).
         long turnosFT = horarios.stream()
                 .filter(h -> h.getIdLojautilizador().getIdUtilizador().getId() == 1)
                 .count();

@@ -134,42 +134,6 @@
                             <graphic><FontIcon iconLiteral="mdi2v-view-dashboard" iconSize="18" styleClass="sidebar-icon" /></graphic>
                         </Button>
 
-                        <StackPane maxWidth="Infinity">
-                            <Button fx:id="btnFolgas"
-                                    onAction="#onPedirFolgaClick"
-                                    maxWidth="Infinity"
-                                    graphicTextGap="12.0"
-                                    styleClass="sidebar-btn"
-                                    text="Folgas"
-                                    StackPane.alignment="CENTER">
-                                <graphic><FontIcon iconLiteral="mdi2c-calendar-remove" iconSize="18" styleClass="sidebar-icon" /></graphic>
-                            </Button>
-                            <Label fx:id="badgeFolgas"
-                                   styleClass="sidebar-notif-badge"
-                                   visible="false"
-                                   StackPane.alignment="TOP_RIGHT">
-                                <StackPane.margin><Insets top="4.0" right="6.0"/></StackPane.margin>
-                            </Label>
-                        </StackPane>
-
-                        <StackPane maxWidth="Infinity">
-                            <Button fx:id="btnPermutas"
-                                    onAction="#onTrocarTurnoClick"
-                                    maxWidth="Infinity"
-                                    graphicTextGap="12.0"
-                                    styleClass="sidebar-btn"
-                                    text="Permutas"
-                                    StackPane.alignment="CENTER">
-                                <graphic><FontIcon iconLiteral="mdi2s-swap-horizontal" iconSize="18" styleClass="sidebar-icon" /></graphic>
-                            </Button>
-                            <Label fx:id="badgePermutas"
-                                   styleClass="sidebar-notif-badge"
-                                   visible="false"
-                                   StackPane.alignment="TOP_RIGHT">
-                                <StackPane.margin><Insets top="4.0" right="6.0"/></StackPane.margin>
-                            </Label>
-                        </StackPane>
-
                         <Label fx:id="lblSecaoGestao"
                                managed="false" visible="false"
                                styleClass="sidebar-section-label" text="GEST&#195;O" />
@@ -254,23 +218,32 @@
                             <graphic><FontIcon iconLiteral="mdi2a-account-circle" iconSize="18" styleClass="sidebar-icon" /></graphic>
                         </Button>
 
-                        <StackPane maxWidth="Infinity">
-                            <Button fx:id="btnPreferencias"
-                                    onAction="#onPreferenciasClick"
-                                    maxWidth="Infinity"
-                                    graphicTextGap="12.0"
-                                    styleClass="sidebar-btn"
-                                    text="Prefer&#234;ncias"
-                                    StackPane.alignment="CENTER">
-                                <graphic><FontIcon iconLiteral="mdi2s-star-outline" iconSize="18" styleClass="sidebar-icon" /></graphic>
-                            </Button>
-                            <Label fx:id="badgePreferencias"
-                                   styleClass="sidebar-notif-badge"
-                                   visible="false"
-                                   StackPane.alignment="TOP_RIGHT">
-                                <StackPane.margin><Insets top="4.0" right="6.0"/></StackPane.margin>
-                            </Label>
-                        </StackPane>
+                        <Button fx:id="btnFolgas"
+                                onAction="#onPedirFolgaClick"
+                                maxWidth="Infinity"
+                                graphicTextGap="12.0"
+                                styleClass="sidebar-btn"
+                                text="Folgas">
+                            <graphic><FontIcon iconLiteral="mdi2c-calendar-remove" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
+
+                        <Button fx:id="btnPermutas"
+                                onAction="#onTrocarTurnoClick"
+                                maxWidth="Infinity"
+                                graphicTextGap="12.0"
+                                styleClass="sidebar-btn"
+                                text="Permutas">
+                            <graphic><FontIcon iconLiteral="mdi2s-swap-horizontal" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
+
+                        <Button fx:id="btnPreferencias"
+                                onAction="#onPreferenciasClick"
+                                maxWidth="Infinity"
+                                graphicTextGap="12.0"
+                                styleClass="sidebar-btn"
+                                text="Prefer&#234;ncias">
+                            <graphic><FontIcon iconLiteral="mdi2s-star-outline" iconSize="18" styleClass="sidebar-icon" /></graphic>
+                        </Button>
 
                     </VBox>
                 </ScrollPane>

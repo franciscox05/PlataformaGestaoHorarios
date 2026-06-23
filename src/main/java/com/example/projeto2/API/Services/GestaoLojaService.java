@@ -87,7 +87,15 @@ public class GestaoLojaService {
     public GestaoLojaResumo obterResumo(Integer idUtilizador) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
         Loja loja = ligacaoAtiva.getIdLoja();
-        List<Turno> turnosBase = turnoRepository.findAllByOrderByHoraInicioAsc();
+        // Ordem de apresentação: alfabética pelo nome do turno; dentro do mesmo nome,
+        // a versão arquivada (dataFimVigencia preenchida) aparece antes da versão nova
+        // que a substitui (vigente a partir de uma data futura).
+        List<Turno> turnosBase = turnoRepository.findParaLojaOrderByHoraInicioAsc(loja.getId()).stream()
+                .sorted(Comparator
+                        .comparing(this::nomeDisplayTurno, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(t -> t.getDataFimVigencia() == null ? 1 : 0)
+                        .thenComparing(Turno::getDataInicioVigencia, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .toList();
 
         Map<Integer, RegrasLoja> regrasEspecificas = new LinkedHashMap<>();
         for (RegrasLoja regraLoja : regrasLojaRepository.findByIdLojaWithRegraOrderByDescricao(loja.getId())) {
@@ -149,7 +157,12 @@ public class GestaoLojaService {
             // Consistência operacional: a nova janela da loja tem de conter todos os
             // turnos ativos. Bloqueia se algum turno começa antes da abertura ou
             // termina depois do fecho — o gestor tem de o ajustar/desativar primeiro.
-            List<Turno> turnosAtivos = turnoRepository.findAllAtivosOrderByHoraInicioAsc();
+            // Ignora versões arquivadas (dataFimVigencia preenchida): são histórico já
+            // superado por uma versão mais recente e não devem bloquear esta validação.
+            List<Turno> turnosAtivos = turnoRepository.findAtivosParaLojaOrderByHoraInicioAsc(loja.getId())
+                    .stream()
+                    .filter(t -> t.getDataFimVigencia() == null)
+                    .toList();
             List<Turno> foraDaJanela = turnosAtivos.stream()
                     .filter(t -> t.getHoraInicio() != null && t.getHoraFim() != null)
                     .filter(t -> t.getHoraInicio().isBefore(request.horaAbertura())
@@ -262,13 +275,16 @@ public class GestaoLojaService {
                     .setParameter("ids", horarioIds).executeUpdate();
         }
 
-        entityManager.createQuery("DELETE FROM Turno t").executeUpdate();
+        // Apaga apenas os turnos próprios desta loja — turnos globais (id_loja NULL)
+        // e os de outras lojas são preservados.
+        entityManager.createQuery("DELETE FROM Turno t WHERE t.idLoja.id = :idLoja")
+                .setParameter("idLoja", idLoja).executeUpdate();
         entityManager.clear();
 
-        criarTresTurnos(abertura, fecho);
+        criarTresTurnos(loja, abertura, fecho);
     }
 
-    private void criarTresTurnos(LocalTime abertura, LocalTime fecho) {
+    private void criarTresTurnos(Loja loja, LocalTime abertura, LocalTime fecho) {
         long abMin = abertura.toSecondOfDay() / 60;
         long feMin = fecho.toSecondOfDay() / 60;
         if (feMin <= abMin) feMin += 24 * 60;
@@ -282,6 +298,7 @@ public class GestaoLojaService {
             long fimMin = (abMin + (long) (i + 1) * bloco) % (24 * 60);
 
             Turno turno = new Turno();
+            turno.setIdLoja(loja);
             turno.setNome(nomes[i]);
             turno.setTipo(tipos[i]);
             turno.setHoraInicio(LocalTime.ofSecondOfDay(iniMin * 60));
@@ -381,10 +398,11 @@ public class GestaoLojaService {
         regraRepository.delete(regra);
     }
 
-    /** Cria um novo turno. Valida sobreposição de horas com turnos existentes. */
+    /** Cria um novo turno scoped à loja ativa. Valida nome/intervalo únicos na loja. */
     @Transactional
     public TurnoResumo criarTurno(Integer idUtilizador, String nome, LocalTime horaInicio, LocalTime horaFim) {
-        obterLigacaoAtivaComPermissao(idUtilizador);
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Loja loja = ligacaoAtiva.getIdLoja();
         String nomeLimpo = limparTexto(nome);
         if (nomeLimpo == null) {
             throw new IllegalArgumentException("Indica um nome para o turno.");
@@ -395,9 +413,10 @@ public class GestaoLojaService {
         if (!horaFim.isAfter(horaInicio)) {
             throw new IllegalArgumentException("A hora de fim deve ser posterior à hora de início.");
         }
-        validarNomeTurnoUnico(nomeLimpo, null);
-        validarIntervaloTurnoUnico(horaInicio, horaFim, null);
+        validarNomeTurnoUnico(nomeLimpo, loja.getId(), null);
+        validarIntervaloTurnoUnico(horaInicio, horaFim, loja.getId(), null);
         Turno turno = new Turno();
+        turno.setIdLoja(loja);
         turno.setNome(nomeLimpo);
         turno.setHoraInicio(horaInicio);
         turno.setHoraFim(horaFim);
@@ -406,36 +425,89 @@ public class GestaoLojaService {
         return criarResumoTurno(turnoRepository.save(turno));
     }
 
-    /** Edita um turno. Nome sempre editável. Horas só editáveis se não tiver horários atribuídos. */
+    /**
+     * Edita um turno. O nome é sempre editável em-lugar. As horas:
+     * <ul>
+     *   <li>se o turno <b>não</b> tem horários atribuídos — são alteradas em-lugar;</li>
+     *   <li>se já tem horários atribuídos — em vez de bloquear, aplica-se
+     *       <b>copy-on-write versionado</b>: a versão atual é arquivada (fica ligada ao
+     *       histórico publicado) e nasce uma versão nova com as novas horas, vigente a
+     *       partir do primeiro dia da próxima geração mensal permitida. Simétrico com a
+     *       alteração do horário de funcionamento da loja.</li>
+     * </ul>
+     */
     @Transactional
     public TurnoResumo editarTurno(Integer idUtilizador, Integer idTurno,
                                    String nome, LocalTime horaInicio, LocalTime horaFim) {
         if (idTurno == null) throw new IllegalArgumentException("Seleciona um turno antes de o editar.");
-        obterLigacaoAtivaComPermissao(idUtilizador);
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Loja loja = ligacaoAtiva.getIdLoja();
         Turno turno = turnoRepository.findById(idTurno)
                 .orElseThrow(() -> new IllegalArgumentException("Turno não encontrado."));
+        if (turno.getIdLoja() != null && !turno.getIdLoja().getId().equals(loja.getId())) {
+            throw new IllegalArgumentException("Este turno pertence a outra loja e não pode ser editado aqui.");
+        }
+        Integer idLoja = loja.getId();
+
         String nomeLimpo = limparTexto(nome);
         if (nomeLimpo == null) throw new IllegalArgumentException("Indica um nome para o turno.");
-        validarNomeTurnoUnico(nomeLimpo, idTurno);
-        turno.setNome(nomeLimpo);
 
         boolean horasAlteraram = horaInicio != null && horaFim != null
                 && (!horaInicio.equals(turno.getHoraInicio()) || !horaFim.equals(turno.getHoraFim()));
-        if (horasAlteraram) {
-            if (turnoRepository.existeEmHorarios(idTurno)) {
-                throw new IllegalArgumentException(
-                        "Este turno tem horários atribuídos — as horas não podem ser alteradas. "
-                        + "Para mudar as horas, desativa este turno e cria um novo.");
-            }
+
+        if (horasAlteraram && turnoRepository.existeEmHorarios(idTurno)) {
+            // ── Copy-on-write: arquiva a versão atual, cria versão nova vigente no futuro ──
             if (!horaFim.isAfter(horaInicio)) {
                 throw new IllegalArgumentException("A hora de fim deve ser posterior à hora de início.");
             }
-            validarIntervaloTurnoUnico(horaInicio, horaFim, idTurno);
+            validarIntervaloTurnoUnico(horaInicio, horaFim, idLoja, idTurno);
+
+            LocalDate inicioNovaVigencia = primeiroDiaProximaGeracaoPermitida(loja);
+
+            // Arquiva a versão atual: mantém nome/horas antigas, fecha a vigência no dia
+            // anterior ao arranque da nova versão (continua ligada aos horários publicados).
+            turno.setNome(nomeLimpo);
+            turno.setDataFimVigencia(inicioNovaVigencia.minusDays(1));
+            turnoRepository.save(turno);
+
+            // Cria a versão nova (mesmo escopo de loja que a antiga: global continua global).
+            Turno novaVersao = new Turno();
+            novaVersao.setIdLoja(turno.getIdLoja());
+            novaVersao.setNome(nomeLimpo);
+            novaVersao.setHoraInicio(horaInicio);
+            novaVersao.setHoraFim(horaFim);
+            novaVersao.setTipo(derivarTipo(horaInicio));
+            novaVersao.setAtivo(true);
+            novaVersao.setDataInicioVigencia(inicioNovaVigencia);
+            return criarResumoTurno(turnoRepository.save(novaVersao));
+        }
+
+        // ── Edição em-lugar (sem histórico, ou só muda o nome) ──
+        validarNomeTurnoUnico(nomeLimpo, idLoja, idTurno);
+        turno.setNome(nomeLimpo);
+        if (horasAlteraram) {
+            if (!horaFim.isAfter(horaInicio)) {
+                throw new IllegalArgumentException("A hora de fim deve ser posterior à hora de início.");
+            }
+            validarIntervaloTurnoUnico(horaInicio, horaFim, idLoja, idTurno);
             turno.setHoraInicio(horaInicio);
             turno.setHoraFim(horaFim);
             turno.setTipo(derivarTipo(horaInicio));
         }
         return criarResumoTurno(turnoRepository.save(turno));
+    }
+
+    /**
+     * Primeiro dia do mês em que uma alteração de configuração entra em vigor, respeitando
+     * o dia de corte de lançamento da loja (regra "Dia limite de lancamento"). Se hoje já
+     * passou o corte, o próximo mês já está em lançamento, pelo que a alteração só vale a
+     * partir do mês seguinte a esse. Espelha {@code construirAlertaCorteHorario} na UI.
+     */
+    private LocalDate primeiroDiaProximaGeracaoPermitida(Loja loja) {
+        int diaCorte = resolverDiaLimiteLancamento(loja);
+        LocalDate hoje = LocalDate.now();
+        boolean passouCorte = hoje.getDayOfMonth() > diaCorte;
+        return hoje.withDayOfMonth(1).plusMonths(passouCorte ? 2 : 1);
     }
 
     /** Desativa um turno — fica invisível para futuras gerações mas os registos históricos são preservados. */
@@ -477,18 +549,24 @@ public class GestaoLojaService {
         turnoRepository.deleteById(idTurno);
     }
 
-    /** Política estrita: nenhum turno (ativo ou inativo) pode partilhar o mesmo nome — protege o histórico. */
-    private void validarNomeTurnoUnico(String nomeLimpo, Integer idExcluir) {
-        if (!turnoRepository.findTodosPorNome(nomeLimpo, idExcluir).isEmpty()) {
+    /**
+     * Nenhum turno corrente da loja (global + próprio) pode partilhar o mesmo nome.
+     * Versões arquivadas pelo copy-on-write são ignoradas — não bloqueiam a nova versão.
+     */
+    private void validarNomeTurnoUnico(String nomeLimpo, Integer idLoja, Integer idExcluir) {
+        if (!turnoRepository.findCorrentesPorNomeParaLoja(nomeLimpo, idLoja, idExcluir).isEmpty()) {
             throw new IllegalArgumentException(
-                    "Erro: Já existe um turno registado com o nome \"" + nomeLimpo
-                    + "\" (Ativo ou Inativo). Escolhe um nome exclusivo para proteger o histórico.");
+                    "Erro: Já existe um turno nesta loja com o nome \"" + nomeLimpo
+                    + "\". Escolhe um nome exclusivo.");
         }
     }
 
-    /** Política estrita: nenhum turno (ativo ou inativo) pode partilhar o intervalo de tempo EXATO. */
-    private void validarIntervaloTurnoUnico(LocalTime horaInicio, LocalTime horaFim, Integer idExcluir) {
-        if (!turnoRepository.findByIntervaloExato(horaInicio, horaFim, idExcluir).isEmpty()) {
+    /**
+     * Nenhum turno corrente da loja (global + próprio) pode partilhar o intervalo de
+     * tempo EXATO. Versões arquivadas são ignoradas.
+     */
+    private void validarIntervaloTurnoUnico(LocalTime horaInicio, LocalTime horaFim, Integer idLoja, Integer idExcluir) {
+        if (!turnoRepository.findCorrentesPorIntervaloParaLoja(horaInicio, horaFim, idLoja, idExcluir).isEmpty()) {
             throw new IllegalArgumentException(
                     "Erro: Já existe um turno configurado exatamente para o intervalo "
                     + formatarHora(horaInicio) + " - " + formatarHora(horaFim)
@@ -506,7 +584,10 @@ public class GestaoLojaService {
     @Transactional(readOnly = true)
     public int obterDiaLimiteLancamento(Integer idUtilizador) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
-        Loja loja = ligacaoAtiva.getIdLoja();
+        return resolverDiaLimiteLancamento(ligacaoAtiva.getIdLoja());
+    }
+
+    private int resolverDiaLimiteLancamento(Loja loja) {
         final int fallback = 15;
 
         Regra regra = regraRepository.findAll().stream()
@@ -592,7 +673,7 @@ public class GestaoLojaService {
                 throw new IllegalArgumentException("O horario base da loja nao permite aplicar esta excecao.");
             }
 
-            List<Turno> turnosCompativeis = filtrarTurnosCompativeis(turnoRepository.findAllAtivosOrderByHoraInicioAsc(), aberturaEfetiva, fechoEfetivo);
+            List<Turno> turnosCompativeis = filtrarTurnosCompativeis(turnoRepository.findAtivosParaLojaOrderByHoraInicioAsc(loja.getId()), aberturaEfetiva, fechoEfetivo);
             if (turnosCompativeis.isEmpty()) {
                 throw new IllegalArgumentException("Nao existe nenhum turno base compativel com o horario especial indicado.");
             }
@@ -679,8 +760,26 @@ public class GestaoLojaService {
                 turno.getTipo(),
                 formatarHora(turno.getHoraInicio()),
                 formatarHora(turno.getHoraFim()),
-                Boolean.TRUE.equals(turno.getAtivo())
+                Boolean.TRUE.equals(turno.getAtivo()),
+                descreverVigencia(turno)
         );
+    }
+
+    /**
+     * Rótulo legível da vigência de uma versão de turno, para a UI distinguir versões
+     * futuras (copy-on-write) das arquivadas. {@code null} quando é a versão corrente
+     * sem restrição de datas (caso comum).
+     */
+    private String descreverVigencia(Turno turno) {
+        LocalDate inicio = turno.getDataInicioVigencia();
+        LocalDate fim = turno.getDataFimVigencia();
+        if (fim != null) {
+            return "Arquivado (até " + fim.format(DATA_FORMATTER) + ")";
+        }
+        if (inicio != null && inicio.isAfter(LocalDate.now())) {
+            return "A partir de " + inicio.format(DATA_FORMATTER);
+        }
+        return null;
     }
 
     private String capitalizar(String s) {
@@ -849,7 +948,8 @@ public class GestaoLojaService {
             String tipo,
             String horaInicio,
             String horaFim,
-            boolean ativo
+            boolean ativo,
+            String vigencia
     ) {
     }
 

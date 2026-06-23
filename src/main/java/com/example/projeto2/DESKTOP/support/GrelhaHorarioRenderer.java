@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -166,7 +167,10 @@ public final class GrelhaHorarioRenderer {
         scrollDias.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollDias.setFitToHeight(false);
         scrollDias.setFitToWidth(false);
-        scrollDias.setPannable(true);
+        // Sem pan por arrasto: evita "puxar" o conteúdo por baixo do cabeçalho fixo (a
+        // desformatação observada). O cabeçalho dos dias vive dentro do mesmo scroll, pelo
+        // que o scroll horizontal por barra/roda mantém sempre a grelha alinhada.
+        scrollDias.setPannable(false);
         HBox.setHgrow(scrollDias, Priority.ALWAYS);
 
         HBox raiz = new HBox(colunaFixa, scrollDias);
@@ -364,6 +368,43 @@ public final class GrelhaHorarioRenderer {
                                            LocalDate hoje,
                                            Consumer<LocalDate> aoAbrirDia,
                                            Set<String> celulasDestacadas) {
+        renderizarDetalhado(container, dias, linhas, hoje, aoAbrirDia, celulasDestacadas,
+                Screen.getPrimary().getVisualBounds().getWidth());
+    }
+
+    /**
+     * Variante que recebe explicitamente a largura disponível para a grelha completa
+     * (coluna fixa + dias). Permite reutilizar exatamente esta vista — o estilo do Painel —
+     * em contentores mais estreitos que o ecrã (ex.: comparação de alternativas empilhada),
+     * dimensionando a largura de cada dia ao espaço real em vez de assumir o ecrã inteiro.
+     *
+     * @param larguraDisponivel largura em px que a grelha pode ocupar; evita cortar o último dia.
+     */
+    public static void renderizarDetalhado(VBox container,
+                                           List<LocalDate> dias,
+                                           List<LinhaGrelha> linhas,
+                                           LocalDate hoje,
+                                           Consumer<LocalDate> aoAbrirDia,
+                                           Set<String> celulasDestacadas,
+                                           double larguraDisponivel) {
+        renderizarDetalhado(container, dias, linhas, hoje, aoAbrirDia, celulasDestacadas,
+                larguraDisponivel, null);
+    }
+
+    /**
+     * Variante com clique <b>por célula ciente do colaborador</b>: ao clicar numa célula
+     * dia×colaborador, {@code aoAbrirDiaPorColaborador} recebe (dia, idColaborador). Permite
+     * que o detalhe do dia destaque exatamente o colaborador cuja linha foi clicada. O clique
+     * no cabeçalho do dia continua a usar {@code aoAbrirDia} (sem colaborador específico).
+     */
+    public static void renderizarDetalhado(VBox container,
+                                           List<LocalDate> dias,
+                                           List<LinhaGrelha> linhas,
+                                           LocalDate hoje,
+                                           Consumer<LocalDate> aoAbrirDia,
+                                           Set<String> celulasDestacadas,
+                                           double larguraDisponivel,
+                                           BiConsumer<LocalDate, Integer> aoAbrirDiaPorColaborador) {
         if (container == null) return;
         container.getChildren().clear();
         if (dias == null || dias.isEmpty() || linhas == null || linhas.isEmpty()) return;
@@ -374,7 +415,9 @@ public final class GrelhaHorarioRenderer {
                         Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "")));
 
         // ── Largura adaptativa: todos os dias do mês cabem sem scroll horizontal ──
-        double screenW = Screen.getPrimary().getVisualBounds().getWidth();
+        double screenW = larguraDisponivel > 0
+                ? larguraDisponivel
+                : Screen.getPrimary().getVisualBounds().getWidth();
         double screenH = Screen.getPrimary().getVisualBounds().getHeight();
         double larguraDia = Math.max(34.0, Math.min(72.0,
                 Math.floor((screenW - NOME_COL_DET - 26.0) / Math.max(1, dias.size()))));
@@ -441,13 +484,19 @@ public final class GrelhaHorarioRenderer {
                     + "; -fx-border-color: #f1f5f9; -fx-border-width: 0 0 1 0;");
             VBox.setVgrow(rowDias, Priority.ALWAYS);  // linha expande para preencher
 
+            // Clique na célula: se houver callback ciente do colaborador, leva o id desta linha;
+            // caso contrário, recai no callback de dia simples (cabeçalho/uso legado).
+            final Integer idColabLinha = linha.idColaborador();
+            Consumer<LocalDate> cliqueCelula = (aoAbrirDiaPorColaborador != null)
+                    ? d -> aoAbrirDiaPorColaborador.accept(d, idColabLinha)
+                    : aoAbrirDia;
             for (LocalDate dia : dias) {
                 CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
                 boolean destacada = celulasDestacadas != null
                         && celulasDestacadas.contains(chaveCelula(linha.idColaborador(), dia));
                 rowDias.getChildren().add(construirCelulaDetalhada(
                         celula, dia, hoje, chipH, chipW, fntLetra, fntHoras,
-                        larguraDia, mostrarHoras, aoAbrirDia, destacada));
+                        larguraDia, mostrarHoras, cliqueCelula, destacada));
             }
 
             sincronizarHoverDet(nomeCell, rowDias);
@@ -457,9 +506,10 @@ public final class GrelhaHorarioRenderer {
 
         // fitToHeight=true: parteDias estica até à altura do ScrollPane,
         // o que distribui o espaço pelas linhas com VGrow=ALWAYS.
-        // hbarPolicy=NEVER: a largura adaptativa garante que todos os dias cabem.
+        // hbarPolicy=AS_NEEDED: a largura adaptativa fá-los caber quase sempre; a barra só
+        // aparece como rede de segurança se o espaço real ficar aquém do estimado.
         ScrollPane scrollDias = new ScrollPane(parteDias);
-        scrollDias.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollDias.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollDias.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollDias.setFitToHeight(true);
         scrollDias.setFitToWidth(false);
@@ -614,6 +664,13 @@ public final class GrelhaHorarioRenderer {
         }
 
         if (aoAbrirDia != null) {
+            // Realce do "quadradinho" sob o rato: brilho vermelho na própria célula dia×colaborador,
+            // para o utilizador saber exatamente onde vai clicar (além do realce da linha inteira).
+            final String estiloBaseCelula = cell.getStyle();
+            final String estiloHoverCelula = estiloBaseCelula
+                    + " -fx-effect: dropshadow(gaussian, rgba(201,20,40,0.38), 9, 0.25, 0, 0);";
+            cell.setOnMouseEntered(e -> cell.setStyle(estiloHoverCelula));
+            cell.setOnMouseExited(e -> cell.setStyle(estiloBaseCelula));
             cell.setOnMouseClicked(e -> aoAbrirDia.accept(dia));
         }
         return cell;

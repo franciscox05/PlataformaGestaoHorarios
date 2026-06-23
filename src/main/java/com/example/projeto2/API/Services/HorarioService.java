@@ -31,19 +31,22 @@ public class HorarioService {
     private final TurnoRepository turnoRepository;
     private final HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository;
     private final PropostaHorarioMensalRepository propostaRepository;
+    private final SessaoService sessaoBLL;
 
     public HorarioService(HorarioRepository horarioRepository,
                       LojautilizadorRepository lojautilizadorRepository,
                       LojautilizadorHelper lojautilizadorHelper,
                       TurnoRepository turnoRepository,
                       HistoricoHorarioEstadoRepository historicoHorarioEstadoRepository,
-                      PropostaHorarioMensalRepository propostaRepository) {
+                      PropostaHorarioMensalRepository propostaRepository,
+                      SessaoService sessaoBLL) {
         this.horarioRepository = horarioRepository;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.lojautilizadorHelper = lojautilizadorHelper;
         this.turnoRepository = turnoRepository;
         this.historicoHorarioEstadoRepository = historicoHorarioEstadoRepository;
         this.propostaRepository = propostaRepository;
+        this.sessaoBLL = sessaoBLL;
     }
 
     @Transactional(readOnly = true)
@@ -251,11 +254,17 @@ public class HorarioService {
     }
 
     /**
-     * Lista todos os turnos disponíveis no sistema (para o picker de edição).
+     * Lista os turnos disponíveis para o picker de edição, scoped à loja activa da
+     * sessão (turnos globais + próprios da loja). Sem loja activa (loja única ou
+     * testes), devolve todos os turnos activos — comportamento legado seguro.
      */
     @Transactional(readOnly = true)
     public List<Turno> listarTodosOsTurnos() {
-        return turnoRepository.findAllAtivosOrderByHoraInicioAsc();
+        Integer idLoja = sessaoBLL.obterLojaAtiva();
+        Integer idLojaSegura = (idLoja != null && idLoja > 0) ? idLoja : null;
+        return idLojaSegura == null
+                ? turnoRepository.findAllAtivosOrderByHoraInicioAsc()
+                : turnoRepository.findAtivosParaLojaOrderByHoraInicioAsc(idLojaSegura);
     }
 
     /**

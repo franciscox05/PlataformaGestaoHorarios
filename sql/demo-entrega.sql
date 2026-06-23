@@ -161,6 +161,12 @@ BEGIN
 END $$;
 
 ALTER TABLE public.turnos ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
+-- Turnos por loja + versionamento copy-on-write (junho 2026):
+--   id_loja NULL          = turno global (visivel a todas as lojas)
+--   data_inicio/fim_vigencia NULL = sempre vigente; data_fim preenchida = versao arquivada
+ALTER TABLE public.turnos ADD COLUMN IF NOT EXISTS id_loja INTEGER REFERENCES public.lojas(id_loja);
+ALTER TABLE public.turnos ADD COLUMN IF NOT EXISTS data_inicio_vigencia DATE;
+ALTER TABLE public.turnos ADD COLUMN IF NOT EXISTS data_fim_vigencia DATE;
 ALTER TABLE public.regras_loja ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE public.regras ADD COLUMN IF NOT EXISTS id_loja_privada INTEGER REFERENCES public.lojas(id_loja);
 
@@ -218,81 +224,116 @@ INSERT INTO public.lojas (id_loja, nome, localizacao, hora_abertura, hora_fecho)
     (4, 'Levi''s Vasco da Gama', 'Lisboa', '09:00', '22:00');
 
 INSERT INTO public.regras (id_regra, descricao, valor_padrao, tipo) VALUES
-    (1, 'Minimo de funcionarios por turno', 2, 'operacional'),
-    (2, 'Dia limite de lancamento do horario mensal', 15, 'administrativo'),
-    (3, 'Maximo de horas consecutivas', 8, 'legal'),
-    (4, 'Carga contratual mensal gestao (horas)', 176, 'contratual'),
-    (5, 'Carga contratual mensal full-time (horas)', 176, 'contratual'),
-    (6, 'Carga contratual mensal part-time (horas)', 96, 'contratual'),
-    (7, 'Carga contratual mensal reforco de fim de semana (horas)', 64, 'contratual'),
-    (8, 'Descanso semanal minimo (dias)', 2, 'descanso'),
-    (9, 'Janela de rotacao de fins de semana (semanas)', 2, 'descanso'),
-    (10, 'Presenca de gerente ou subgerente aos sabados', 1, 'operacional');
+    (1,  'Minimo de funcionarios por turno',                        2,   'operacional'),
+    (2,  'Dia limite de lancamento do horario mensal',              15,  'administrativo'),
+    (3,  'Maximo de dias consecutivos de trabalho',                 6,   'legal'),
+    (4,  'Carga contratual mensal gestao (horas)',                  176, 'contratual'),
+    (5,  'Carga contratual mensal full-time (horas)',               176, 'contratual'),
+    (6,  'Carga contratual mensal part-time (horas)',               88,  'contratual'),
+    (7,  'Carga contratual mensal reforco de fim de semana (horas)',64,  'contratual'),
+    (8,  'Descanso semanal minimo (dias)',                          2,   'descanso'),
+    (9,  'Janela de rotacao de fins de semana (semanas)',           7,   'descanso'),
+    (10, 'Presenca de gerente ou subgerente aos sabados',           1,   'operacional'),
+    (11, 'Descanso minimo entre turnos (horas)',                    11,  'legal');
 
 INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifico, observacoes) VALUES
     -- Loja 1 (Braga Parque) — regras completas, loja principal da demo
-    (1,  1,  1, 3,   'Loja principal da demonstracao com maior afluencia.'),
-    (2,  1,  2, 12,  'Horario mensal deve ser fechado antes da segunda semana.'),
-    (3,  1,  3, 8,   'Limite padrao para turnos longos.'),
-    (4,  1,  4, 176, 'Carga mensal gerencia.'),
-    (5,  1,  5, 176, 'Carga mensal full-time.'),
-    (6,  1,  6, 96,  'Carga mensal part-time.'),
-    (7,  1,  7, 64,  'Carga mensal reforco FDS.'),
+    -- Equipa: 3 gestao + 9 FT + 2 PT + 1 reforco = 15 workers; 3 tipos x minimo=2 x 31 dias = 186 slots;
+    -- capacidade FT/gestao: 12 x 22 turnos = 264 > 186 (42% de folga para restricoes).
+    (1,  1,  1, 2,   'Minimo de 2 colaboradores por turno para loja de media dimensao.'),
+    (2,  1,  2, 12,  'Horario mensal fechado ate ao dia 12 para garantir comunicacao atempada.'),
+    (3,  1,  3, 6,   'Maximo de 6 dias consecutivos de trabalho (lei do trabalho portugues).'),
+    (4,  1,  4, 176, 'Carga mensal gestao: 22 dias x 8h = 176h.'),
+    (5,  1,  5, 176, 'Carga mensal full-time: 22 dias x 8h = 176h.'),
+    (6,  1,  6, 88,  'Carga mensal part-time: 22 dias x 4h = 88h (sem pausa de almoco).'),
+    (7,  1,  7, 64,  'Carga mensal reforco FDS: fins de semana do mes.'),
     (8,  1,  8, 2,   'Dois dias de descanso por semana.'),
-    (9,  1,  9, 2,   'Rotacao de fins de semana a cada 2 semanas.'),
+    (9,  1,  9, 7,   'Rotacao de fins de semana a cada 7 semanas (ciclo completo).'),
     (10, 1, 10, 1,   'Garantir presenca de gerente ou subgerente aos sabados com loja aberta.'),
-    -- Loja 2 (NorteShopping) — configuracao base. Minimo de 1 colaborador/turno (em vez de 2):
-    -- a equipa de 6 pessoas tem 976h/mes de capacidade contratual; com minimo de 2/turno nos
-    -- 3 turnos diarios o motor exige ~1674h/mes (cobertura impossivel, faltam ~698h). Com 1/turno
-    -- a exigencia cai para ~837h, dentro da capacidade da equipa e a geracao tem sucesso.
-    (11, 2,  1, 1,   'Loja secundaria com equipa reduzida; minimo de 1 colaborador por turno para viabilizar cobertura mensal.'),
-    (12, 2,  8, 2,   'Descanso semanal minimo.'),
-    (13, 2,  9, 2,   'Rotacao de fins de semana.'),
-    (14, 2, 10, 1,   'Chefia obrigatoria ao sabado.');
+    (11, 1, 11, 11,  'Descanso minimo de 11h entre jornadas (CT art. 214).'),
+    -- Loja 2 (NorteShopping) — equipa de 8 (3 gestao + 4 FT + 1 PT); minimo=1/turno:
+    -- 3 tipos x 1 x 31 = 93 slots; capacidade FT/gestao: 7 x 22 = 154 > 93 (65% de folga).
+    (12, 2,  1, 1,   'Loja com equipa mais reduzida; minimo de 1 colaborador por turno.'),
+    (13, 2,  6, 88,  'Carga mensal part-time: 22 dias x 4h = 88h.'),
+    (14, 2,  8, 2,   'Descanso semanal minimo.'),
+    (15, 2,  9, 7,   'Rotacao de fins de semana a cada 7 semanas (ciclo completo).'),
+    (16, 2, 10, 1,   'Chefia obrigatoria ao sabado.');
 
+-- Turnos globais (id_loja NULL = visivel a todas as lojas).
+-- FT: 9h de turno = 8h de trabalho + 1h almoco (a 1h e descontada na carga contratual).
+-- PT: 4h exactas = metade das 8h de trabalho diarias; sem pausa de almoco, sem desconto.
 INSERT INTO public.turnos (id_turno, tipo, nome, hora_inicio, hora_fim, ativo) VALUES
     (1, 'manha',      'Manha FT',        '10:00', '19:00', true),
     (2, 'intermedio', 'Intermedio FT',   '12:00', '21:00', true),
     (3, 'noite',      'Noite FT',        '14:00', '23:00', true),
-    (4, 'manha',      'Manha PT',        '10:00', '14:30', true),
-    (5, 'intermedio', 'Intermedio PT',   '14:00', '18:30', true),
-    (6, 'noite',      'Noite PT',        '18:30', '23:00', true);
+    (4, 'manha',      'Manha PT',        '10:00', '14:00', true),
+    (5, 'intermedio', 'Intermedio PT',   '14:00', '18:00', true),
+    (6, 'noite',      'Noite PT',        '19:00', '23:00', true);
 
 INSERT INTO public.utilizadores (id_utilizador, nome, email, telemovel, password_hash, estado) VALUES
-    (1, 'Francisco Gomes', 'francisco.gomes@levis.com', '912000001', '123456', 'ativo'),
-    (2, 'Tiago Costa', 'tiago.costa@levis.com', '912000002', '123456', 'ativo'),
-    (3, 'Henrique Siano', 'henrique.siano@levis.com', '912000003', '123456', 'ativo'),
-    (4, 'Tiago Eiras', 'tiago.eiras@levis.com', '912000004', '123456', 'ativo'),
-    (5, 'Afonso Barbosa', 'afonso.barbosa@levis.com', '912000005', '123456', 'ativo'),
-    (6, 'Micael Martins', 'micael.martins@levis.com', '912000006', '123456', 'ativo'),
-    (7, 'Francisco (Tu)', 'francisco@levis.com', '912000007', '123456', 'ativo'),
-    (8, 'Ana Sousa', 'ana@levis.com', '912000008', '123456', 'ativo'),
-    (9, 'Carlos Pereira', 'carlos@levis.com', '912000009', '123456', 'ativo'),
-    (10, 'Beatriz Santos', 'beatriz@levis.com', '912000010', '123456', 'inativo'),
-    -- Equipa da Levi's NorteShopping (loja 2) — para ter equipa testavel de geracao/preferencias
-    (11, 'Sofia Marques', 'sofia.marques@levis.com', '912000011', '123456', 'ativo'),
-    (12, 'Diogo Faria', 'diogo.faria@levis.com', '912000012', '123456', 'ativo'),
-    (13, 'Marta Pinto', 'marta.pinto@levis.com', '912000013', '123456', 'ativo'),
-    (14, 'Rui Castro', 'rui.castro@levis.com', '912000014', '123456', 'ativo');
+    -- Equipa Levi's Braga Parque (loja 1)
+    (1,  'Francisco Gomes',   'francisco.gomes@levis.com',   '912000001', '123456', 'ativo'),
+    (2,  'Tiago Costa',       'tiago.costa@levis.com',        '912000002', '123456', 'ativo'),
+    (3,  'Henrique Siano',    'henrique.siano@levis.com',     '912000003', '123456', 'ativo'),
+    (4,  'Tiago Eiras',       'tiago.eiras@levis.com',        '912000004', '123456', 'ativo'),
+    (5,  'Afonso Barbosa',    'afonso.barbosa@levis.com',     '912000005', '123456', 'ativo'),
+    (6,  'Micael Martins',    'micael.martins@levis.com',     '912000006', '123456', 'ativo'),
+    (7,  'Francisco (Tu)',    'francisco@levis.com',           '912000007', '123456', 'ativo'),
+    (8,  'Ana Sousa',         'ana@levis.com',                 '912000008', '123456', 'ativo'),
+    (9,  'Carlos Pereira',    'carlos@levis.com',              '912000009', '123456', 'ativo'),
+    (10, 'Beatriz Santos',    'beatriz@levis.com',             '912000010', '123456', 'inativo'),
+    -- Equipa Levi's NorteShopping (loja 2)
+    (11, 'Sofia Marques',     'sofia.marques@levis.com',      '912000011', '123456', 'ativo'),
+    (12, 'Diogo Faria',       'diogo.faria@levis.com',        '912000012', '123456', 'ativo'),
+    (13, 'Marta Pinto',       'marta.pinto@levis.com',        '912000013', '123456', 'ativo'),
+    (14, 'Rui Castro',        'rui.castro@levis.com',         '912000014', '123456', 'ativo'),
+    -- Colaboradores FT adicionais loja 1 (necessarios para geracao com minimo=2)
+    (15, 'Rita Mendes',       'rita.mendes@levis.com',        '912000015', '123456', 'ativo'),
+    (16, 'Pedro Luz',         'pedro.luz@levis.com',          '912000016', '123456', 'ativo'),
+    (17, 'Sara Ferreira',     'sara.ferreira@levis.com',      '912000017', '123456', 'ativo'),
+    (18, 'Joao Alves',        'joao.alves@levis.com',         '912000018', '123456', 'ativo'),
+    (19, 'Catarina Cruz',     'catarina.cruz@levis.com',      '912000019', '123456', 'ativo'),
+    (20, 'Miguel Rocha',      'miguel.rocha@levis.com',       '912000020', '123456', 'ativo'),
+    (21, 'Ines Silva',        'ines.silva@levis.com',         '912000021', '123456', 'ativo'),
+    (22, 'Luis Pinto',        'luis.pinto@levis.com',         '912000022', '123456', 'ativo'),
+    -- Colaboradores FT adicionais loja 2
+    (23, 'Vera Lopes',        'vera.lopes@levis.com',         '912000023', '123456', 'ativo'),
+    (24, 'Nuno Santos',       'nuno.santos@levis.com',        '912000024', '123456', 'ativo'),
+    -- Trabalhador multi-loja: tem ligacao ativa simultanea em loja 1 e loja 2
+    (25, 'Marco Dias',        'marco.dias@levis.com',         '912000025', '123456', 'ativo');
 
 INSERT INTO public.lojautilizador (id_lojautilizador, id_utilizador, id_loja, id_cargo, data_inicio, data_fim) VALUES
-    (1, 1, 1, 1, CURRENT_DATE - 400, NULL),
-    (2, 2, 1, 2, CURRENT_DATE - 320, NULL),
-    (3, 3, 1, 4, CURRENT_DATE - 240, NULL),
-    (4, 4, 1, 5, CURRENT_DATE - 180, NULL),
-    (5, 5, 1, 5, CURRENT_DATE - 180, NULL),
-    (6, 6, 1, 6, CURRENT_DATE - 150, NULL),
-    (7, 7, 1, 3, CURRENT_DATE - 20, NULL),
-    (8, 8, 2, 3, CURRENT_DATE - 120, NULL),
-    (9, 9, 3, 2, CURRENT_DATE - 90, NULL),
-    (10, 10, 1, 5, CURRENT_DATE - 140, CURRENT_DATE - 30),
-    (11, 1, 2, 1, CURRENT_DATE - 5, NULL),
-    -- Equipa ativa da NorteShopping (loja 2): subgerente Ana (id 8) + gerente Francisco (id 1)
-    -- + supervisor + 2 fulltime + 1 parttime, dando chefia e cobertura para gerar horarios.
-    (12, 11, 2, 2, CURRENT_DATE - 200, NULL),
-    (13, 12, 2, 4, CURRENT_DATE - 180, NULL),
-    (14, 13, 2, 4, CURRENT_DATE - 150, NULL),
-    (15, 14, 2, 5, CURRENT_DATE - 120, NULL);
+    -- Loja 1 — Braga Parque: 3 gestao + 9 FT + 2 PT + 1 reforco = 15 workers ativos
+    (1,  1,  1, 1, CURRENT_DATE - 400, NULL),  -- Francisco Gomes   gerente
+    (2,  2,  1, 2, CURRENT_DATE - 320, NULL),  -- Tiago Costa        supervisor
+    (3,  3,  1, 4, CURRENT_DATE - 240, NULL),  -- Henrique Siano     fulltime
+    (4,  4,  1, 5, CURRENT_DATE - 180, NULL),  -- Tiago Eiras        parttime
+    (5,  5,  1, 5, CURRENT_DATE - 180, NULL),  -- Afonso Barbosa     parttime
+    (6,  6,  1, 6, CURRENT_DATE - 150, NULL),  -- Micael Martins     reforco
+    (7,  7,  1, 3, CURRENT_DATE - 20,  NULL),  -- Francisco (admin)  subgerente
+    (8,  8,  2, 3, CURRENT_DATE - 120, NULL),  -- Ana Sousa          subgerente loja 2
+    (9,  9,  3, 2, CURRENT_DATE - 90,  NULL),  -- Carlos Pereira     supervisor loja 3
+    (10, 10, 1, 5, CURRENT_DATE - 140, CURRENT_DATE - 30), -- Beatriz Santos (inativa)
+    -- Loja 1 extra FT (necessarios para geracao minimo=2 com 3 tipos de turno)
+    (16, 15, 1, 4, CURRENT_DATE - 120, NULL),  -- Rita Mendes        fulltime
+    (17, 16, 1, 4, CURRENT_DATE - 110, NULL),  -- Pedro Luz          fulltime
+    (18, 17, 1, 4, CURRENT_DATE - 100, NULL),  -- Sara Ferreira      fulltime
+    (19, 18, 1, 4, CURRENT_DATE - 90,  NULL),  -- Joao Alves         fulltime
+    (20, 19, 1, 4, CURRENT_DATE - 80,  NULL),  -- Catarina Cruz      fulltime
+    (21, 20, 1, 4, CURRENT_DATE - 70,  NULL),  -- Miguel Rocha       fulltime
+    (22, 21, 1, 4, CURRENT_DATE - 60,  NULL),  -- Ines Silva         fulltime
+    (23, 22, 1, 4, CURRENT_DATE - 50,  NULL),  -- Luis Pinto         fulltime
+    -- Loja 2 — NorteShopping: 1 gerente + 1 subgerente + 1 supervisor + 4 FT + 1 PT = 8 workers
+    (11, 1,  2, 1, CURRENT_DATE - 5,   NULL),  -- Francisco Gomes    gerente (multi-loja)
+    (12, 11, 2, 2, CURRENT_DATE - 200, NULL),  -- Sofia Marques      supervisor
+    (13, 12, 2, 4, CURRENT_DATE - 180, NULL),  -- Diogo Faria        fulltime
+    (14, 13, 2, 4, CURRENT_DATE - 150, NULL),  -- Marta Pinto        fulltime
+    (15, 14, 2, 5, CURRENT_DATE - 120, NULL),  -- Rui Castro         parttime
+    (24, 23, 2, 4, CURRENT_DATE - 90,  NULL),  -- Vera Lopes         fulltime
+    (25, 24, 2, 4, CURRENT_DATE - 80,  NULL),  -- Nuno Santos        fulltime
+    -- Marco Dias: ligacao ativa em ambas as lojas (cenario multi-loja)
+    (26, 25, 1, 4, CURRENT_DATE - 40,  NULL),  -- Marco Dias         fulltime loja 1
+    (27, 25, 2, 4, CURRENT_DATE - 40,  NULL);  -- Marco Dias         fulltime loja 2
 
 INSERT INTO public.horarios (id_horario, id_lojautilizador, id_turno, data_turno, estado) VALUES
     (1,  7, 2, CURRENT_DATE + 1, 'aprovado'),
@@ -354,11 +395,98 @@ INSERT INTO public.preferencias (
     id_decisor,
     data_decisao
 ) VALUES
-    (1, 7, 'Preferencia por dois dias consecutivos para compromisso familiar.', 'folgas', CURRENT_DATE + 20, CURRENT_DATE + 21, 'pendente', NULL, NULL, NULL),
-    (2, 3, 'Preferencia por turnos da manha durante a semana.', 'turnos', NULL, NULL, 'aprovado', 'Aprovado para equilibrar a distribuicao dos turnos da equipa.', 7, CURRENT_TIMESTAMP - INTERVAL '2 days'),
-    (3, 4, 'Preferencia para trabalhar com Afonso Barbosa no proximo periodo.', 'colegas', NULL, NULL, 'rejeitado', 'Nao foi possivel acomodar esta preferencia sem comprometer a cobertura da loja.', 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
-    (4, 5, 'Pedido de ferias para ponte familiar do proximo mes.', 'ferias', CURRENT_DATE + 25, CURRENT_DATE + 27, 'pendente', NULL, NULL, NULL),
-    (5, 13, 'Preferencia por turnos da manha na NorteShopping.', 'turnos', NULL, NULL, 'pendente', NULL, NULL, NULL);
+    -- Francisco Gomes (id=1) — gerente Braga + NorteShopping
+    (1,  1, 'Folga para evento familiar.',                                        'folgas',  CURRENT_DATE + 35, CURRENT_DATE + 35, 'aprovado',  'Aprovada. Cobertura assegurada.',                           1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    (2,  1, 'Preferencia por turnos da manha nos dias de semana.',                'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    (3,  1, 'Prefere trabalhar com Tiago Costa sempre que possivel.',             'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Tiago Costa (id=2) — supervisor loja 1
+    (4,  2, 'Pedido de folga para compromisso pessoal.',                          'folgas',  CURRENT_DATE + 42, CURRENT_DATE + 42, 'pendente',  NULL, NULL, NULL),
+    (5,  2, 'Preferencia por turnos intermedios.',                                'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '5 days'),
+    (6,  2, 'Gostava de trabalhar com Francisco Gomes nos fins de semana.',       'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Henrique Siano (id=3) — FT loja 1
+    (7,  3, 'Folga para tratamento medico.',                                      'folgas',  CURRENT_DATE + 20, CURRENT_DATE + 20, 'aprovado',  'Aprovada. Cobertura assegurada.',                           1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (8,  3, 'Preferencia por turnos da manha.',                                   'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (9,  3, 'Prefere trabalhar com Tiago Eiras.',                                 'colegas', NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    -- Tiago Eiras (id=4) — PT loja 1
+    (10, 4, 'Pedido de folga para evento escolar.',                               'folgas',  CURRENT_DATE + 18, CURRENT_DATE + 18, 'pendente',  NULL, NULL, NULL),
+    (11, 4, 'Preferencia por turnos manha part-time.',                            'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '4 days'),
+    (12, 4, 'Prefere trabalhar com Afonso Barbosa.',                              'colegas', NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    -- Afonso Barbosa (id=5) — PT loja 1
+    (13, 5, 'Folga para compromisso familiar.',                                   'folgas',  CURRENT_DATE + 28, CURRENT_DATE + 28, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (14, 5, 'Preferencia por turnos intermedio part-time.',                       'turnos',  NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    (15, 5, 'Gostava de trabalhar com Henrique Siano.',                           'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Micael Martins (id=6) — reforco loja 1
+    (16, 6, 'Pedido de folga para o proximo fim de semana.',                      'folgas',  CURRENT_DATE + 7,  CURRENT_DATE + 7,  'pendente',  NULL, NULL, NULL),
+    (17, 6, 'Preferencia por turnos manha ao fim de semana.',                     'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (18, 6, 'Prefere trabalhar com Tiago Costa.',                                 'colegas', NULL, NULL,                            'rejeitado', 'Nao compativel com a distribuicao atual.',                  1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    -- Francisco admin (id=7) — subgerente loja 1
+    (19, 7, 'Folga para fim de semana prolongado.',                               'folgas',  CURRENT_DATE + 21, CURRENT_DATE + 21, 'pendente',  NULL, NULL, NULL),
+    (20, 7, 'Preferencia por turnos da manha.',                                   'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    (21, 7, 'Prefere trabalhar com Francisco Gomes.',                             'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Ana Sousa (id=8) — subgerente loja 2
+    (22, 8, 'Pedido de folga para compromisso profissional.',                     'folgas',  CURRENT_DATE + 33, CURRENT_DATE + 33, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (23, 8, 'Preferencia por turnos da noite durante a semana.',                  'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (24, 8, 'Prefere trabalhar com Sofia Marques.',                               'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Sofia Marques (id=11) — supervisor loja 2
+    (25, 11, 'Folga pretendida para descanso.',                                   'folgas',  CURRENT_DATE + 40, CURRENT_DATE + 40, 'pendente',  NULL, NULL, NULL),
+    (26, 11, 'Preferencia por turnos intermedios.',                               'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '4 days'),
+    (27, 11, 'Gostava de trabalhar com Diogo Faria.',                             'colegas', NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    -- Diogo Faria (id=12) — FT loja 2
+    (28, 12, 'Folga para compromisso pessoal.',                                   'folgas',  CURRENT_DATE + 15, CURRENT_DATE + 15, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '5 days'),
+    (29, 12, 'Preferencia por turnos da manha na NorteShopping.',                 'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (30, 12, 'Prefere trabalhar com Marta Pinto.',                                'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Marta Pinto (id=13) — FT loja 2
+    (31, 13, 'Pedido de folga familiar.',                                         'folgas',  CURRENT_DATE + 26, CURRENT_DATE + 26, 'pendente',  NULL, NULL, NULL),
+    (32, 13, 'Preferencia por turnos da tarde (intermedio).',                     'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (33, 13, 'Prefere trabalhar com Rui Castro.',                                 'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Rui Castro (id=14) — PT loja 2
+    (34, 14, 'Folga para consulta medica.',                                       'folgas',  CURRENT_DATE + 12, CURRENT_DATE + 12, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    (35, 14, 'Preferencia por turnos manha part-time.',                           'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (36, 14, 'Prefere trabalhar com Vera Lopes.',                                 'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Rita Mendes (id=15) — FT loja 1
+    (37, 15, 'Folga para evento pessoal.',                                        'folgas',  CURRENT_DATE + 22, CURRENT_DATE + 22, 'pendente',  NULL, NULL, NULL),
+    (38, 15, 'Preferencia por turnos da noite.',                                  'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (39, 15, 'Prefere trabalhar com Pedro Luz.',                                  'colegas', NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    -- Pedro Luz (id=16) — FT loja 1
+    (40, 16, 'Pedido de folga por motivos familiares.',                           'folgas',  CURRENT_DATE + 38, CURRENT_DATE + 38, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (41, 16, 'Preferencia por turnos intermedios.',                               'turnos',  NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    (42, 16, 'Prefere trabalhar com Sara Ferreira.',                              'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Sara Ferreira (id=17) — FT loja 1
+    (43, 17, 'Folga para compromisso educativo.',                                 'folgas',  CURRENT_DATE + 17, CURRENT_DATE + 17, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '4 days'),
+    (44, 17, 'Preferencia por turnos da manha durante a semana.',                 'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    (45, 17, 'Prefere trabalhar com Joao Alves.',                                 'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Joao Alves (id=18) — FT loja 1
+    (46, 18, 'Pedido de folga para descanso.',                                    'folgas',  CURRENT_DATE + 45, CURRENT_DATE + 45, 'pendente',  NULL, NULL, NULL),
+    (47, 18, 'Preferencia por turnos da noite.',                                  'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (48, 18, 'Prefere trabalhar com Catarina Cruz.',                              'colegas', NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    -- Catarina Cruz (id=19) — FT loja 1
+    (49, 19, 'Folga para viagem pessoal.',                                        'folgas',  CURRENT_DATE + 30, CURRENT_DATE + 30, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '5 days'),
+    (50, 19, 'Preferencia por turnos da tarde.',                                  'turnos',  NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    (51, 19, 'Prefere trabalhar com Miguel Rocha.',                               'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Miguel Rocha (id=20) — FT loja 1
+    (52, 20, 'Pedido de folga por motivos pessoais.',                             'folgas',  CURRENT_DATE + 23, CURRENT_DATE + 23, 'pendente',  NULL, NULL, NULL),
+    (53, 20, 'Preferencia por turnos da manha.',                                  'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    (54, 20, 'Prefere trabalhar com Ines Silva.',                                 'colegas', NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    -- Ines Silva (id=21) — FT loja 1
+    (55, 21, 'Folga para evento familiar.',                                       'folgas',  CURRENT_DATE + 36, CURRENT_DATE + 36, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (56, 21, 'Preferencia por turnos intermedios da tarde.',                      'turnos',  NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    (57, 21, 'Prefere trabalhar com Luis Pinto.',                                 'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Luis Pinto (id=22) — FT loja 1
+    (58, 22, 'Pedido de folga para consulta medica.',                             'folgas',  CURRENT_DATE + 11, CURRENT_DATE + 11, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '4 days'),
+    (59, 22, 'Preferencia por turnos da noite.',                                  'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    (60, 22, 'Prefere trabalhar com Rita Mendes.',                                'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Vera Lopes (id=23) — FT loja 2
+    (61, 23, 'Folga para reuniao escolar dos filhos.',                            'folgas',  CURRENT_DATE + 19, CURRENT_DATE + 19, 'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    (62, 23, 'Preferencia por turnos da manha.',                                  'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+    (63, 23, 'Prefere trabalhar com Nuno Santos.',                                'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    -- Nuno Santos (id=24) — FT loja 2
+    (64, 24, 'Pedido de folga para evento desportivo.',                           'folgas',  CURRENT_DATE + 44, CURRENT_DATE + 44, 'pendente',  NULL, NULL, NULL),
+    (65, 24, 'Preferencia por turnos intermedios.',                               'turnos',  NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+    (66, 24, 'Prefere trabalhar com Vera Lopes.',                                 'colegas', NULL, NULL,                            'aprovado',  'Aprovada.',                                                 1, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+    -- Marco Dias (id=25) — FT multi-loja (loja 1 + loja 2)
+    (67, 25, 'Folga para assunto pessoal urgente.',                               'folgas',  CURRENT_DATE + 29, CURRENT_DATE + 29, 'pendente',  NULL, NULL, NULL),
+    (68, 25, 'Preferencia por turnos da manha em ambas as lojas.',                'turnos',  NULL, NULL,                            'pendente',  NULL, NULL, NULL),
+    (69, 25, 'Prefere trabalhar com Francisco Gomes.',                            'colegas', NULL, NULL,                            'pendente',  NULL, NULL, NULL);
 
 INSERT INTO public.horarios_especiais_loja (id_horario_especial, id_loja, descricao, data_inicio, data_fim, loja_encerrada, observacoes) VALUES
     (1, 1, 'Encerramento para inventario anual', CURRENT_DATE + 30, CURRENT_DATE + 30, TRUE, 'Encerramento total para contagem de stock.');
@@ -398,7 +526,7 @@ DO $$
 BEGIN
     PERFORM setval(pg_get_serial_sequence('public.cargos', 'id_cargo'), COALESCE((SELECT MAX(id_cargo) FROM public.cargos), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.lojas', 'id_loja'), COALESCE((SELECT MAX(id_loja) FROM public.lojas), 1), true);
-    PERFORM setval(pg_get_serial_sequence('public.regras', 'id_regra'), COALESCE((SELECT MAX(id_regra) FROM public.regras), 1), true);
+    PERFORM setval(pg_get_serial_sequence('public.regras', 'id_regra'), COALESCE((SELECT MAX(id_regra) FROM public.regras), 11), true);
     PERFORM setval(pg_get_serial_sequence('public.turnos', 'id_turno'), COALESCE((SELECT MAX(id_turno) FROM public.turnos), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.utilizadores', 'id_utilizador'), COALESCE((SELECT MAX(id_utilizador) FROM public.utilizadores), 1), true);
     PERFORM setval(pg_get_serial_sequence('public.lojautilizador', 'id_lojautilizador'), COALESCE((SELECT MAX(id_lojautilizador) FROM public.lojautilizador), 1), true);

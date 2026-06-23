@@ -51,3 +51,20 @@ build/
 .claude/
 Entrega_Projeto2_*.zip
 Entrega_Projeto2_*/
+
+### Documentos pessoais/internos (mantidos so localmente, fora do GitHub) ###
+CLAUDE.md
+Checklist_Manual_Final.md
+Guiao_Demo_Defesa.md
+Guiao_Testes_Manuais.md
+backend-audit.md
+auditoria_agressiva_realidade_gng.md
+conteudo_canva_pitch_negocio.txt
+guia_defesa_apresentacao.txt
+guiao_apresentacoes_25junho.txt
+pitch_apresentacao_gng.pdf
+Guia_Defesa_Apresentação_Projeto2.pdf
+Revisao.md
+relatorio.txt
+REFATORACAO.md
+PROGRESS.md

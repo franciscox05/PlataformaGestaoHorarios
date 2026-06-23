@@ -43,6 +43,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.stage.Window;
+import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -127,6 +128,7 @@ public class GestaoFuncionariosController {
     private Map<Integer, Preferencia> preferencias_pendentes = Map.of();
     private final ObservableList<PermutaLinha> permutasColaborador = FXCollections.observableArrayList();
     private Utilizador utilizadorLogado;
+    private DashboardNavigator dashboardNavigation;
     private Integer idColaboradorEmEdicao;
     private LocalDate semanaColaboradorInicio;
     private YearMonth mesColaboradorAtual = YearMonth.now();
@@ -194,6 +196,10 @@ public class GestaoFuncionariosController {
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
         this.utilizadorLogado = utilizadorLogado;
         carregarDados(null);
+    }
+
+    public void setDashboardNavigation(DashboardNavigator dashboardNavigation) {
+        this.dashboardNavigation = dashboardNavigation;
     }
 
     @FXML
@@ -858,21 +864,6 @@ public class GestaoFuncionariosController {
         } catch (IllegalArgumentException ex) { mostrarMensagem(ex.getMessage(), false); }
     }
 
-    private void decidirPreferencia(Preferencia pref, boolean aprovar) {
-        if (pref == null || pref.getId() == null || utilizadorLogado == null || utilizadorLogado.getId() == null) return;
-        ColaboradorLinha selecionado = tabelaColaboradores.getSelectionModel().getSelectedItem();
-        if (selecionado == null) return;
-        if (!DialogosHelper.confirmarAcao(obterJanela(),
-                aprovar ? "Aprovar preferência" : "Rejeitar preferência",
-                aprovar ? "Deseja aprovar esta preferência?" : "Deseja rejeitar esta preferência?",
-                "A decisão será registada de imediato.")) return;
-        try {
-            if (aprovar) { preferenciaBLL.aprovarPreferencia(pref.getId(), utilizadorLogado.getId(), null); mostrarMensagem("Preferência aprovada com sucesso.", true); }
-            else { preferenciaBLL.rejeitarPreferencia(pref.getId(), utilizadorLogado.getId(), null); mostrarMensagem("Preferência rejeitada com sucesso.", true); }
-            carregarPerfilOperacionalColaborador(selecionado);
-        } catch (IllegalArgumentException ex) { mostrarMensagem(ex.getMessage(), false); }
-    }
-
     private void actualizarPreferenciasAgrupadas(List<Preferencia> prefs, Map<Integer, Preferencia> pendentes) {
         if (boxPreferenciasAgrupadas == null) return;
         boxPreferenciasAgrupadas.getChildren().clear();
@@ -929,9 +920,9 @@ public class GestaoFuncionariosController {
     }
 
     private HBox criarLinhaPreferencia(Preferencia pref, Map<Integer, Preferencia> pendentes) {
-        HBox linha = new HBox(8);
+        HBox linha = new HBox(12);
         linha.setAlignment(Pos.CENTER_LEFT);
-        linha.setStyle("-fx-padding: 4 0 4 4;");
+        linha.setStyle("-fx-padding: 8 4 8 4;");
 
         String estado = pref.getEstado() != null ? pref.getEstado() : "pendente";
         Label badge = new Label(PreferenciaFormatters.formatarEstado(estado));
@@ -943,38 +934,58 @@ public class GestaoFuncionariosController {
         });
         badge.setMinWidth(76);
 
-        String descricao = pref.getDescricao() != null ? pref.getDescricao() : "-";
+        String descricao = pref.getDescricao() != null && !pref.getDescricao().isBlank()
+                ? pref.getDescricao().trim() : "Sem descrição indicada.";
         if (descricao.startsWith("[TESTE")) {
             int idx = descricao.indexOf(']');
             if (idx >= 0 && idx < descricao.length() - 1) descricao = descricao.substring(idx + 1).trim();
         }
-        if (descricao.length() > 90) descricao = descricao.substring(0, 87) + "…";
         Label lblDesc = new Label(descricao);
         lblDesc.getStyleClass().add("texto-ajuda");
-        lblDesc.setWrapText(false);
-        HBox.setHgrow(lblDesc, Priority.ALWAYS);
+        lblDesc.setWrapText(true);
 
-        String periodo = formatarPeriodo(pref.getDataInicio(), pref.getDataFim());
-        Label lblPer = new Label(periodo);
-        lblPer.getStyleClass().add("meta-etiqueta");
-        lblPer.setMinWidth(120);
-        lblPer.setMaxWidth(160);
+        // Período: formato dia/mês/ano e cor neutra (já não a vermelho), com ícone de calendário.
+        Label lblPer = new Label(formatarIntervaloPt(pref.getDataInicio(), pref.getDataFim()));
+        lblPer.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: 600;");
+        FontIcon iconePeriodo = new FontIcon("mdi2c-calendar-range");
+        iconePeriodo.setIconSize(13);
+        iconePeriodo.setIconColor(javafx.scene.paint.Color.web("#94a3b8"));
+        lblPer.setGraphic(iconePeriodo);
+        lblPer.setGraphicTextGap(6);
 
-        linha.getChildren().addAll(badge, lblDesc, lblPer);
+        VBox centro = new VBox(3, lblDesc, lblPer);
+        centro.setAlignment(Pos.CENTER_LEFT);
+        centro.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(centro, Priority.ALWAYS);
 
+        linha.getChildren().addAll(badge, centro);
+
+        // A decisão (aprovar/rejeitar) é feita no painel de Pedidos — fonte única. Aqui o perfil
+        // do colaborador é só de consulta, pelo que encaminhamos para lá, na aba do tipo.
         boolean pendente = "pendente".equalsIgnoreCase(estado) || pendentes.containsKey(pref.getId());
         if (pendente) {
-            Button btnAprovar = criarBotaoAcao("Aprovar", true);
-            Button btnRejeitar = criarBotaoAcao("Rejeitar", false);
-            btnAprovar.setOnAction(e -> decidirPreferencia(pref, true));
-            btnRejeitar.setOnAction(e -> decidirPreferencia(pref, false));
-            linha.getChildren().addAll(btnAprovar, btnRejeitar);
+            Button btnGerir = new Button("Gerir em Pedidos");
+            btnGerir.getStyleClass().add("botao-secundario");
+            btnGerir.setTooltip(new javafx.scene.control.Tooltip(
+                    "Abrir este pedido no painel de Pedidos, na aba Preferências"));
+            btnGerir.setOnAction(e -> {
+                if (dashboardNavigation != null) dashboardNavigation.abrirPainelGerente("preferencia");
+            });
+            linha.getChildren().add(btnGerir);
         }
 
         if ("rejeitado".equalsIgnoreCase(estado)) {
             linha.setOpacity(0.55);
         }
         return linha;
+    }
+
+    /** Intervalo de datas em pt-PT no formato dia/mês/ano (ex.: "16/07/2026 – 18/07/2026"). */
+    private String formatarIntervaloPt(LocalDate inicio, LocalDate fim) {
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (inicio == null && fim == null) return "Sem datas definidas";
+        if (fim == null || fim.equals(inicio)) return inicio != null ? inicio.format(f) : "—";
+        return inicio.format(f) + " – " + fim.format(f);
     }
 
     private Label criarPlaceholderPreferencias(String texto) {
@@ -1010,9 +1021,6 @@ public class GestaoFuncionariosController {
         return data == null ? "-" : data.format(DateTimeFormatter.ISO_LOCAL_DATE);
     }
 
-    private String formatarPeriodo(LocalDate dataInicio, LocalDate dataFim) {
-        return formatarData(dataInicio) + " -> " + formatarData(dataFim);
-    }
 
     private String formatarTurnosPermuta(Permuta permuta) {
         if (permuta == null || permuta.getIdHorarioOrigem() == null || permuta.getIdHorarioDestino() == null) return "-";

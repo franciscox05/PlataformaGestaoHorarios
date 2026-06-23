@@ -459,7 +459,7 @@ abstract class FluxosCriticosTestSupport {
         criarRegra("000 Minimo de colaboradores por turno", 1, "operacional");
         criarRegra("000 Carga contratual mensal gestao (horas)", 176, "contratual");
         criarRegra("000 Carga contratual mensal full-time (horas)", 176, "contratual");
-        criarRegra("000 Carga contratual mensal part-time (horas)", 96, "contratual");
+        criarRegra("000 Carga contratual mensal part-time (horas)", 88, "contratual");
         criarRegra("000 Carga contratual mensal reforco de fim de semana (horas)", 64, "contratual");
         criarRegra("000 Descanso semanal minimo (dias)", 2, "descanso");
         criarRegra("000 Janela de rotacao de fins de semana (semanas)", 2, "descanso");
@@ -542,7 +542,7 @@ abstract class FluxosCriticosTestSupport {
                 return 176;
             }
             if (texto.contains("parttime") || (texto.contains("part") && texto.contains("time")) || texto.contains("tempo parcial")) {
-                return 96;
+                return 88;
             }
             if (texto.contains("reforco") || texto.contains("fim de semana") || texto.contains("weekend")) {
                 return 64;

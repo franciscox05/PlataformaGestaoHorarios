@@ -225,12 +225,18 @@ public class RelatorioHorasService {
         LocalTime horaInicio = turno.getHoraInicio();
         LocalTime horaFim = turno.getHoraFim();
 
+        long minutos;
         if (!horaFim.isBefore(horaInicio)) {
-            return Duration.between(horaInicio, horaFim).toMinutes();
+            minutos = Duration.between(horaInicio, horaFim).toMinutes();
+        } else {
+            minutos = Duration.between(horaInicio, LocalTime.MAX).plusMinutes(1).toMinutes()
+                    + Duration.between(LocalTime.MIN, horaFim).toMinutes();
         }
-
-        return Duration.between(horaInicio, LocalTime.MAX).plusMinutes(1).toMinutes()
-                + Duration.between(LocalTime.MIN, horaFim).toMinutes();
+        // Turnos > 8h (full-time/gestão) incluem 1h de almoço não trabalhada.
+        if (minutos > 8 * 60L) {
+            minutos -= 60;
+        }
+        return minutos;
     }
 
     private String formatarDuracao(long minutosTotais) {

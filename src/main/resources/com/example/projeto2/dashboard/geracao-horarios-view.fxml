@@ -11,6 +11,7 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
@@ -18,6 +19,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.SVGPath?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox styleClass="conteudo-pagina, modulo-com-abas"
       stylesheets="@dashboard.css"
@@ -309,12 +311,12 @@
                                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
                                             </columnResizePolicy>
                                             <columns>
-                                                <TableColumn fx:id="colPropostaRotulo"    text="Proposta"/>
-                                                <TableColumn fx:id="colPropostaEstado"    text="Estado"/>
-                                                <TableColumn fx:id="colPropostaData"      text="Gerada em"/>
-                                                <TableColumn fx:id="colPropostaScore"     text="Score"/>
-                                                <TableColumn fx:id="colPropostaQualidade" text="Qualidade"/>
-                                                <TableColumn fx:id="colPropostaTurnos"    text="Turnos"/>
+                                                <TableColumn fx:id="colPropostaRotulo"    text="Proposta"  prefWidth="300.0" minWidth="240.0"/>
+                                                <TableColumn fx:id="colPropostaEstado"    text="Estado"    prefWidth="120.0"/>
+                                                <TableColumn fx:id="colPropostaData"      text="Gerada em" prefWidth="150.0"/>
+                                                <TableColumn fx:id="colPropostaScore"     text="Score"     prefWidth="80.0"/>
+                                                <TableColumn fx:id="colPropostaQualidade" text="Qualidade" prefWidth="90.0"/>
+                                                <TableColumn fx:id="colPropostaTurnos"    text="Turnos"    prefWidth="75.0"/>
                                             </columns>
                                         </TableView>
                                     </VBox>
@@ -340,7 +342,14 @@
                                             <Button fx:id="btnCompararPropostas" onAction="#onCompararPropostasClick"
                                                     styleClass="botao-acao" text="Comparar"/>
                                             <Button fx:id="btnExpandirComparacao" onAction="#onExpandirComparacaoClick"
-                                                    styleClass="botao-nav" text="&#8599;"/>
+                                                    styleClass="botao-nav" text="Expandir" contentDisplay="LEFT">
+                                                <graphic>
+                                                    <FontIcon iconLiteral="mdi2a-arrow-expand-all" iconSize="16"/>
+                                                </graphic>
+                                                <tooltip>
+                                                    <Tooltip text="Abrir a compara&#231;&#227;o em ecr&#227; inteiro (grelha da equipa, calend&#225;rio e diferen&#231;as)"/>
+                                                </tooltip>
+                                            </Button>
                                         </HBox>
                                         <Label fx:id="lblResumoComparacao" styleClass="bento-card-subtitulo"
                                                text="Seleciona duas alternativas para comparar distribui&#231;&#227;o, carga hor&#225;ria e impacto por colaborador."
@@ -688,8 +697,15 @@
                                                 <Button fx:id="btnExpandirGrelha"
                                                         onAction="#onExpandirGrelhaClick"
                                                         styleClass="botao-nav"
-                                                        text="&#8599;"
-                                                        managed="false" visible="false"/>
+                                                        text="Expandir" contentDisplay="LEFT"
+                                                        managed="false" visible="false">
+                                                    <graphic>
+                                                        <FontIcon iconLiteral="mdi2a-arrow-expand-all" iconSize="16"/>
+                                                    </graphic>
+                                                    <tooltip>
+                                                        <Tooltip text="Abrir o hor&#225;rio da equipa em ecr&#227; inteiro (clica num dia para ver a escala e destacar o colaborador)"/>
+                                                    </tooltip>
+                                                </Button>
                                                 <Region minWidth="4.0"/>
                                                 <Button fx:id="btnDesfazerAlteracao"
                                                         onAction="#onDesfazerAlteracaoClick"
