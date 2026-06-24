@@ -29,7 +29,7 @@
                 <VBox alignment="CENTER" spacing="10.0">
                     <padding><Insets top="24.0" bottom="20.0" /></padding>
                     <StackPane fx:id="stkPerfilAvatar" styleClass="avatar-circle perfil-avatar-circle"
-                               prefWidth="96.0" prefHeight="96.0"
+                               prefWidth="96.0" prefHeight="96.0" maxWidth="96.0" maxHeight="96.0"
                                onMouseClicked="#onAlterarFotoClick">
                         <Circle radius="48.0" styleClass="avatar-bg"
                                 style="-fx-fill: rgba(255,255,255,0.22); -fx-stroke: rgba(255,255,255,0.35); -fx-stroke-width: 2;" />

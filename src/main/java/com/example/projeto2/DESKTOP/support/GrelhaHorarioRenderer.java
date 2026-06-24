@@ -491,27 +491,19 @@ public final class GrelhaHorarioRenderer {
         double fntLetra = Math.max(9.0,  Math.min(14.0, chipW * 0.44));
         double fntHoras = Math.max(8.0,  Math.min(9.0, larguraDia * 0.17));
 
-        // ── Coluna fixa ────────────────────────────────────────────────────
-        VBox colunaFixa = new VBox();
-        colunaFixa.setMaxHeight(Double.MAX_VALUE);
-        colunaFixa.setStyle("-fx-border-color: #e2e8f0; -fx-border-width: 0 2 0 0; "
-                + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 6, 0, 2, 0);");
-
+        // ── Cabeçalho "COLABORADOR" — fixo, nunca se desloca (nem vertical nem horizontalmente) ──
         HBox hdrColab = new HBox();
         hdrColab.setAlignment(Pos.CENTER_LEFT);
         fixarAltura(hdrColab, ALTURA_HEADER_DET);
         hdrColab.setStyle("-fx-background-color: #f1f5f9; -fx-border-color: #e2e8f0; "
-                + "-fx-border-width: 0 0 2 0; -fx-padding: 0 12 0 18;");
+                + "-fx-border-width: 0 2 2 0; -fx-padding: 0 12 0 18;");
         Label lblColab = new Label("COLABORADOR");
         lblColab.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #94a3b8;");
         hdrColab.getChildren().add(lblColab);
         fixarLargura(hdrColab, NOME_COL_DET);
-        colunaFixa.getChildren().add(hdrColab);
 
-        // ── Parte deslizante ───────────────────────────────────────────────
-        VBox parteDias = new VBox();
-        parteDias.setMaxHeight(Double.MAX_VALUE);
-
+        // ── Cabeçalho dos dias — fixo verticalmente; acompanha apenas o scroll
+        //    horizontal do corpo (nunca tem barra própria, é só um "espelho") ──
         HBox hdrDias = new HBox();
         hdrDias.setAlignment(Pos.CENTER_LEFT);
         fixarAltura(hdrDias, ALTURA_HEADER_DET);
@@ -519,7 +511,23 @@ public final class GrelhaHorarioRenderer {
         for (LocalDate dia : dias) {
             hdrDias.getChildren().add(construirCabecalhoDetalhado(dia, hoje, larguraDia, aoAbrirDia));
         }
-        parteDias.getChildren().add(hdrDias);
+        ScrollPane scrollHdrDias = new ScrollPane(hdrDias);
+        scrollHdrDias.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollHdrDias.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollHdrDias.setFitToHeight(true);
+        scrollHdrDias.setPannable(false);
+        scrollHdrDias.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        HBox.setHgrow(scrollHdrDias, Priority.ALWAYS);
+
+        HBox linhaCabecalho = new HBox(hdrColab, scrollHdrDias);
+        fixarAltura(linhaCabecalho, ALTURA_HEADER_DET);
+
+        // ── Coluna de colaboradores do corpo — acompanha apenas o scroll vertical
+        //    do corpo (sem barra própria); a largura é sempre a mesma do cabeçalho ──
+        VBox colunaFixaBody = new VBox();
+
+        // ── Linhas de células — vivem no único ScrollPane com barras visíveis ──
+        VBox corpoDias = new VBox();
 
         boolean alt = false;
         int idx = 0;
@@ -557,27 +565,42 @@ public final class GrelhaHorarioRenderer {
             }
 
             sincronizarHoverDet(nomeCell, rowDias);
-            colunaFixa.getChildren().add(nomeCell);
-            parteDias.getChildren().add(rowDias);
+            colunaFixaBody.getChildren().add(nomeCell);
+            corpoDias.getChildren().add(rowDias);
         }
 
-        // fitToHeight=true: parteDias estica até à altura do ScrollPane,
-        // o que distribui o espaço pelas linhas com VGrow=ALWAYS.
-        // hbarPolicy=AS_NEEDED: a largura adaptativa fá-los caber quase sempre; a barra só
-        // aparece como rede de segurança se o espaço real ficar aquém do estimado.
-        ScrollPane scrollDias = new ScrollPane(parteDias);
-        scrollDias.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollDias.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollDias.setFitToHeight(true);
-        scrollDias.setFitToWidth(false);
-        scrollDias.setPannable(false);
-        scrollDias.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
-        HBox.setHgrow(scrollDias, Priority.ALWAYS);
+        colunaFixaBody.setStyle("-fx-border-color: #e2e8f0; -fx-border-width: 0 2 0 0; "
+                + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 6, 0, 2, 0);");
+        ScrollPane scrollColunaFixa = new ScrollPane(colunaFixaBody);
+        scrollColunaFixa.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollColunaFixa.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollColunaFixa.setFitToWidth(true);
+        scrollColunaFixa.setFitToHeight(true);
+        scrollColunaFixa.setPannable(false);
+        scrollColunaFixa.setStyle("-fx-background-color: white; -fx-background: white;");
+        fixarLargura(scrollColunaFixa, NOME_COL_DET);
 
-        HBox raiz = new HBox(colunaFixa, scrollDias);
-        raiz.setMaxHeight(Double.MAX_VALUE);
-        VBox.setVgrow(raiz, Priority.ALWAYS);
-        container.getChildren().add(raiz);
+        // fitToHeight=true: o corpo estica até à altura do ScrollPane quando há espaço de
+        // sobra (distribuído pelas linhas com VGrow=ALWAYS); quando o conteúdo é maior do
+        // que a área visível, mantém o tamanho natural e mostra a barra vertical — único
+        // ScrollPane com barras visíveis; os outros dois são apenas "espelhos" sincronizados.
+        ScrollPane scrollCorpo = new ScrollPane(corpoDias);
+        scrollCorpo.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollCorpo.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollCorpo.setFitToHeight(true);
+        scrollCorpo.setFitToWidth(false);
+        scrollCorpo.setPannable(false);
+        scrollCorpo.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        HBox.setHgrow(scrollCorpo, Priority.ALWAYS);
+
+        scrollCorpo.hvalueProperty().addListener((obs, ov, nv) -> scrollHdrDias.setHvalue(nv.doubleValue()));
+        scrollCorpo.vvalueProperty().addListener((obs, ov, nv) -> scrollColunaFixa.setVvalue(nv.doubleValue()));
+
+        HBox linhaCorpo = new HBox(scrollColunaFixa, scrollCorpo);
+        linhaCorpo.setMaxHeight(Double.MAX_VALUE);
+        VBox.setVgrow(linhaCorpo, Priority.ALWAYS);
+
+        container.getChildren().addAll(linhaCabecalho, linhaCorpo);
     }
 
     private static VBox construirCabecalhoDetalhado(LocalDate dia, LocalDate hoje,

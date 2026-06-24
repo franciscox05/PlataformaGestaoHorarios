@@ -756,41 +756,15 @@ public class GeracaoHorariosController {
                             (dia, idColab) -> abrirDetalheDiaProposta(dia, p, ownerModal, idColab),
                             alturaDisponivel);
 
-            if (preencherAltura) {
-                // Vista única: a grelha estica para encher a altura disponível.
-                grelhaBox.setMaxHeight(Double.MAX_VALUE);
-                if (!grelhaBox.getChildren().isEmpty()
-                        && grelhaBox.getChildren().getFirst() instanceof javafx.scene.layout.HBox raizGrelha) {
-                    raizGrelha.setMaxHeight(Double.MAX_VALUE);
-                    javafx.scene.layout.VBox.setVgrow(raizGrelha, javafx.scene.layout.Priority.ALWAYS);
-                }
-                javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(grelhaBox);
-                sp.setFitToWidth(true);
-                sp.setFitToHeight(true);
-                sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
-                sp.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
-                sp.setStyle("-fx-background-color: white; -fx-background: white;");
-                javafx.scene.layout.VBox.setVgrow(sp, javafx.scene.layout.Priority.ALWAYS);
-                painel.getChildren().add(sp);
-            } else {
-                // Modo "Ambas": grelha cresce para preencher o painel; sem scroll.
-                grelhaBox.setMaxHeight(Double.MAX_VALUE);
-                javafx.scene.layout.VBox.setVgrow(grelhaBox, javafx.scene.layout.Priority.ALWAYS);
-                if (!grelhaBox.getChildren().isEmpty()
-                        && grelhaBox.getChildren().getFirst() instanceof javafx.scene.layout.HBox raizGrelha) {
-                    raizGrelha.setMaxHeight(Double.MAX_VALUE);
-                    javafx.scene.layout.VBox.setVgrow(raizGrelha, javafx.scene.layout.Priority.ALWAYS);
-                }
-                javafx.scene.control.ScrollPane spAmbas = new javafx.scene.control.ScrollPane(grelhaBox);
-                spAmbas.setFitToWidth(true);
-                spAmbas.setFitToHeight(true);
-                spAmbas.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
-                spAmbas.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
-                spAmbas.setStyle("-fx-background-color: white; -fx-background: white;");
-                javafx.scene.layout.VBox.setVgrow(spAmbas, javafx.scene.layout.Priority.ALWAYS);
-                painel.getChildren().add(spAmbas);
-                javafx.scene.layout.VBox.setVgrow(painel, javafx.scene.layout.Priority.ALWAYS);
-            }
+            // O scroll (vertical e horizontal) já é gerido internamente pela grelha
+            // (cabeçalho de dias + coluna "Colaborador" fixos; renderizarDetalhado constrói
+            // o seu próprio ScrollPane "mestre" para as linhas). Aqui só precisamos de dar
+            // à grelha uma altura disponível delimitada — sem outro ScrollPane por cima, que
+            // voltaria a deslocar o cabeçalho junto com as linhas ao fazer scroll vertical.
+            grelhaBox.setMaxHeight(Double.MAX_VALUE);
+            javafx.scene.layout.VBox.setVgrow(grelhaBox, javafx.scene.layout.Priority.ALWAYS);
+            painel.getChildren().add(grelhaBox);
+            javafx.scene.layout.VBox.setVgrow(painel, javafx.scene.layout.Priority.ALWAYS);
         } else {
             javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
             grid.setMaxWidth(Double.MAX_VALUE);
@@ -808,8 +782,17 @@ public class GeracaoHorariosController {
                 javafx.scene.layout.VBox.setVgrow(sp, javafx.scene.layout.Priority.ALWAYS);
                 painel.getChildren().add(sp);
             } else {
-                // Modo "Ambas" empilhado: o calendário toma a altura natural; scroll é do exterior.
-                painel.getChildren().add(grid);
+                // Modo "Ambas" empilhado: cada painel tem o seu próprio scroll vertical,
+                // tal como a vista "Grelha da equipa", para o calendário alvo não ficar
+                // inacessível quando a soma dos dois calendários excede a altura da janela.
+                javafx.scene.control.ScrollPane spAmbas = new javafx.scene.control.ScrollPane(grid);
+                spAmbas.setFitToWidth(true);
+                spAmbas.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+                spAmbas.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+                spAmbas.setStyle("-fx-background-color: white; -fx-background: white;");
+                javafx.scene.layout.VBox.setVgrow(spAmbas, javafx.scene.layout.Priority.ALWAYS);
+                painel.getChildren().add(spAmbas);
+                javafx.scene.layout.VBox.setVgrow(painel, javafx.scene.layout.Priority.ALWAYS);
             }
         }
         return painel;
