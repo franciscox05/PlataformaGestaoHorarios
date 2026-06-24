@@ -144,21 +144,21 @@ public class PropostaPersistenciaHelper {
                                                                     String novoEstado,
                                                                     String observacoesSupervisor) {
         if (idProposta == null) {
-            throw new IllegalArgumentException("Seleciona uma proposta antes de tomar uma decisao.");
+            throw new IllegalArgumentException("Seleciona uma proposta antes de tomar uma decisão.");
         }
 
         PropostaHorarioMensal proposta = propostaHorarioMensalRepository
                 .findByIdAndIdLojaId(idProposta, ligacaoAtiva.getIdLoja().getId())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Nao foi encontrada nenhuma proposta para a tua loja com esse identificador."));
+                        "Não foi encontrada nenhuma proposta para a tua loja com esse identificador."));
 
         if (ESTADO_RASCUNHO.equals(normalizarTexto(proposta.getEstado()))) {
             throw new IllegalArgumentException(
-                    "Esta proposta ainda esta em rascunho. O gerente tem de a enviar ao supervisor antes da validacao.");
+                    "Esta proposta ainda está em rascunho. O gerente tem de a enviar ao supervisor antes da validação.");
         }
         if (!ESTADO_PENDENTE.equals(normalizarTexto(proposta.getEstado()))) {
             throw new IllegalArgumentException(
-                    "Esta proposta ja foi decidida e nao pode voltar a ser alterada.");
+                    "Esta proposta já foi decidida e não pode voltar a ser alterada.");
         }
         if (ESTADO_APROVADO.equals(normalizarTexto(novoEstado))) {
             validarAprovacaoSemConflitos(proposta);
@@ -202,7 +202,7 @@ public class PropostaPersistenciaHelper {
                 .filter(outra -> !Objects.equals(outra.getId(), proposta.getId()))
                 .anyMatch(outra -> ESTADO_APROVADO.equals(normalizarTexto(outra.getEstado())));
         if (existeOutraAprovada) {
-            throw new IllegalArgumentException("Ja existe uma proposta aprovada para este periodo.");
+            throw new IllegalArgumentException("Já existe uma proposta aprovada para este período.");
         }
 
         LocalDate dataInicio = LocalDate.of(proposta.getAno(), proposta.getMes(), 1);
@@ -211,7 +211,7 @@ public class PropostaPersistenciaHelper {
                 proposta.getIdLoja().getId(), dataInicio, dataFim);
         if (horariosVisiveis > 0) {
             throw new IllegalArgumentException(
-                    "Ja existem horarios publicados neste periodo. Nao e seguro publicar outra alternativa.");
+                    "Já existem horários publicados neste período. Não é seguro publicar outra alternativa.");
         }
     }
 
@@ -238,7 +238,7 @@ public class PropostaPersistenciaHelper {
             proposta.setObservacoesSupervisor(
                     "Rejeitada automaticamente porque a proposta #"
                             + propostaAprovada.getId()
-                            + " foi aprovada para o mesmo periodo.");
+                            + " foi aprovada para o mesmo período.");
 
             for (Horario horario : horarioRepository.findByIdPropostaHorarioId(proposta.getId())) {
                 horario.setEstado(EstadoHorario.rejeitado);
@@ -248,7 +248,7 @@ public class PropostaPersistenciaHelper {
                 historico.setIdHorario(horario);
                 historico.setEstadoNovo(ESTADO_REJEITADO);
                 historico.setDataRegisto(Instant.now());
-                historico.setObservacoes("Rejeitado automaticamente apos aprovacao de uma alternativa concorrente.");
+                historico.setObservacoes("Rejeitado automaticamente após aprovação de uma alternativa concorrente.");
                 historicos.add(historico);
             }
         }
@@ -283,8 +283,8 @@ public class PropostaPersistenciaHelper {
         String acao = ESTADO_APROVADO.equals(normalizarTexto(novoEstado)) ? "aprovado" : "rejeitado";
         String observacoes = limparTexto(proposta.getObservacoesSupervisor());
         if (observacoes == null) {
-            return "Horario " + acao + " pelo supervisor.";
+            return "Horário " + acao + " pelo supervisor.";
         }
-        return "Horario " + acao + " pelo supervisor. Observacoes: " + observacoes;
+        return "Horário " + acao + " pelo supervisor. Observações: " + observacoes;
     }
 }

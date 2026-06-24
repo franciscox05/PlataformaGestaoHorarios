@@ -62,7 +62,7 @@ public class WebPermutasApiController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(401).body(Map.of("erro", ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.internalServerError().body(Map.of("erro", "Nao foi possivel carregar os turnos."));
+            return ResponseEntity.internalServerError().body(Map.of("erro", "Não foi possível carregar os turnos."));
         }
     }
 
@@ -73,7 +73,7 @@ public class WebPermutasApiController {
         try {
             Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
             if (idHorarioOrigem == null) {
-                return ResponseEntity.badRequest().body(Map.of("erro", "O turno de origem e obrigatorio."));
+                return ResponseEntity.badRequest().body(Map.of("erro", "O turno de origem é obrigatório."));
             }
             List<Horario> turnos = horarioBLL.listarTurnosElegiveisParaPermuta(utilizadorId, idHorarioOrigem);
             List<Map<String, Object>> resposta = turnos.stream()
@@ -91,7 +91,7 @@ public class WebPermutasApiController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(401).body(Map.of("erro", ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.internalServerError().body(Map.of("erro", "Nao foi possivel carregar os turnos elegiveis."));
+            return ResponseEntity.internalServerError().body(Map.of("erro", "Não foi possível carregar os turnos elegíveis."));
         }
     }
 
@@ -120,14 +120,14 @@ public class WebPermutasApiController {
                     .filter(h -> idHorarioOrigem.equals(h.getId()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException(
-                            "O turno de origem selecionado nao e valido ou nao te pertence."));
+                            "O turno de origem selecionado não é válido ou não te pertence."));
 
             List<Horario> elegiveis = horarioBLL.listarTurnosElegiveisParaPermuta(utilizadorId, idHorarioOrigem);
             Horario turnoDestino = elegiveis.stream()
                     .filter(h -> idHorarioDestino.equals(h.getId()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException(
-                            "O turno de destino selecionado nao e elegivel para permuta."));
+                            "O turno de destino selecionado não é elegível para permuta."));
 
             // Registar — BLL valida todas as regras de negócio e estado_permuta_enum
             Permuta permuta = permutaBLL.registarPedidoTroca(utilizadorId, turnoOrigem, turnoDestino);
@@ -138,13 +138,13 @@ public class WebPermutasApiController {
             return ResponseEntity.ok(Map.of(
                     "id",      permuta.getId(),
                     "estado",  estado.name(),
-                    "mensagem","Pedido de permuta submetido com sucesso. Aguarda a aprovacao do supervisor."
+                    "mensagem","Pedido de permuta submetido com sucesso. Aguarda a aprovação do supervisor."
             ));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.unprocessableEntity().body(Map.of("erro", ex.getMessage()));
         } catch (Exception ex) {
             return ResponseEntity.internalServerError()
-                    .body(Map.of("erro", "Nao foi possivel submeter o pedido de permuta. Tenta novamente."));
+                    .body(Map.of("erro", "Não foi possível submeter o pedido de permuta. Tenta novamente."));
         }
     }
 

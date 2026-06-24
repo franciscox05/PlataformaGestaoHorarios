@@ -217,7 +217,7 @@ public class GestaoFuncionariosController {
             }
             CargoOption cargoSelecionado = cbCargo.getValue();
             if (cargoSelecionado == null || cargoSelecionado.idCargo() == null) {
-                throw new IllegalArgumentException("Seleciona um cargo valido para o colaborador.");
+                throw new IllegalArgumentException("Seleciona um cargo válido para o colaborador.");
             }
             boolean novoColaborador = idColaboradorEmEdicao == null;
             if (!DialogosHelper.confirmarAcao(
@@ -296,6 +296,8 @@ public class GestaoFuncionariosController {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Redefinir palavra-passe");
         dialog.setHeaderText("Redefinir password de: " + selecionado.nome());
+        dialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("/com/example/projeto2/dashboard/dashboard.css").toExternalForm());
 
         ButtonType btnConfirmar = new ButtonType("Confirmar",
                 javafx.scene.control.ButtonBar.ButtonData.OK_DONE);

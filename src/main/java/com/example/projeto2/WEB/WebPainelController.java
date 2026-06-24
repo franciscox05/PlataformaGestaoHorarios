@@ -77,7 +77,7 @@ public class WebPainelController {
                 : 0;
 
         if (Boolean.TRUE.equals(acessoNegado)) {
-            model.addAttribute("erro", "Nao tens permissao para abrir esse modulo com o perfil atual.");
+            model.addAttribute("erro", "Não tens permissão para abrir esse módulo com o perfil atual.");
         }
 
         model.addAttribute("proximosTurnos", proximosTurnos);

@@ -145,6 +145,8 @@ public final class FolgasPainelSection {
         Dialog<String> dlg = new Dialog<>();
         dlg.setTitle("Rejeitar folga");
         dlg.setHeaderText("Indica o motivo da rejeição");
+        dlg.getDialogPane().getStylesheets().add(
+                getClass().getResource("/com/example/projeto2/dashboard/dashboard.css").toExternalForm());
         dlg.getDialogPane().setContent(corpo);
         dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         if (coord.obterJanela() != null) {

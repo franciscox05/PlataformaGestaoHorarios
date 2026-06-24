@@ -116,11 +116,11 @@ public class GestaoFuncionariosService {
         Lojautilizador ligacaoGestor = obterLigacaoAtivaComPermissao(idUtilizadorGestor);
 
         if (idColaborador == null) {
-            throw new IllegalArgumentException("Seleciona um colaborador valido.");
+            throw new IllegalArgumentException("Seleciona um colaborador válido.");
         }
 
         if (Objects.equals(idUtilizadorGestor, idColaborador)) {
-            throw new IllegalArgumentException("Usa o teu perfil para gerir o teu proprio registo.");
+            throw new IllegalArgumentException("Usa o teu perfil para gerir o teu próprio registo.");
         }
 
         Utilizador colaborador = obterUtilizadorPersistido(idColaborador);
@@ -128,7 +128,7 @@ public class GestaoFuncionariosService {
                         idColaborador,
                         ligacaoGestor.getIdLoja().getId()
                 )
-                .orElseThrow(() -> new IllegalArgumentException("Este colaborador ja nao tem um registo ativo nesta loja."));
+                .orElseThrow(() -> new IllegalArgumentException("Este colaborador já não tem um registo ativo nesta loja."));
 
         desativarLigacaoDaLoja(ligacaoGestor.getIdLoja(), colaborador, ligacaoAtiva);
         utilizadorRepository.save(colaborador);
@@ -137,10 +137,10 @@ public class GestaoFuncionariosService {
     @Transactional
     public void resetarPasswordColaborador(Integer idUtilizadorGestor, Integer idColaborador, String novaPassword) {
         if (idColaborador == null) {
-            throw new IllegalArgumentException("Seleciona um colaborador valido.");
+            throw new IllegalArgumentException("Seleciona um colaborador válido.");
         }
         if (Objects.equals(idUtilizadorGestor, idColaborador)) {
-            throw new IllegalArgumentException("Usa o teu perfil para alterar a tua propria password.");
+            throw new IllegalArgumentException("Usa o teu perfil para alterar a tua própria password.");
         }
 
         Lojautilizador ligacaoGestor = obterLigacaoAtivaComPermissao(idUtilizadorGestor);
@@ -150,7 +150,7 @@ public class GestaoFuncionariosService {
                 ligacaoGestor.getIdLoja().getId(), idColaborador)
                 .stream()
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Este colaborador nao pertence a loja que estas a gerir."));
+                .orElseThrow(() -> new IllegalArgumentException("Este colaborador não pertence à loja que estás a gerir."));
 
         Utilizador colaborador = obterUtilizadorPersistido(idColaborador);
         String passwordHash = segurancaBLL.prepararPasswordParaPersistencia(novaPassword, true);
@@ -209,7 +209,7 @@ public class GestaoFuncionariosService {
 
         if (porEmail.isPresent() && porTelemovel.isPresent()
                 && !Objects.equals(porEmail.get().getId(), porTelemovel.get().getId())) {
-            throw new IllegalArgumentException("O email e o telemovel ja estao registados em contas diferentes.");
+            throw new IllegalArgumentException("O email e o telemóvel já estão registados em contas diferentes.");
         }
 
         Utilizador existente = porEmail.or(() -> porTelemovel).orElseThrow();
@@ -219,16 +219,16 @@ public class GestaoFuncionariosService {
 
         if (!(emailCoincide && telemovelCoincide && nomeCoincide)) {
             if (emailCoincide && telemovelCoincide) {
-                throw new IllegalArgumentException("O email e o telemovel ja estao registados para outro colaborador.");
+                throw new IllegalArgumentException("O email e o telemóvel já estão registados para outro colaborador.");
             }
             if (emailCoincide) {
-                throw new IllegalArgumentException("Este email ja esta registado noutra conta.");
+                throw new IllegalArgumentException("Este email já está registado noutra conta.");
             }
-            throw new IllegalArgumentException("Este telemovel ja esta registado noutra conta.");
+            throw new IllegalArgumentException("Este telemóvel já está registado noutra conta.");
         }
 
         if (lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(existente.getId(), loja.getId()).isPresent()) {
-            throw new IllegalArgumentException("Este colaborador ja esta associado a esta loja.");
+            throw new IllegalArgumentException("Este colaborador já está associado a esta loja.");
         }
 
         return Optional.of(existente);
@@ -243,7 +243,7 @@ public class GestaoFuncionariosService {
                                          String password,
                                          String estado) {
         if (Objects.equals(ligacaoGestor.getIdUtilizador().getId(), idColaborador)) {
-            throw new IllegalArgumentException("Usa o teu perfil para gerir o teu proprio registo.");
+            throw new IllegalArgumentException("Usa o teu perfil para gerir o teu próprio registo.");
         }
 
         Utilizador colaborador = obterUtilizadorPersistido(idColaborador);
@@ -251,7 +251,7 @@ public class GestaoFuncionariosService {
 
         List<Lojautilizador> historicoNaLoja = lojautilizadorRepository.findHistoricoByIdLojaAndIdUtilizador(idLoja, idColaborador);
         if (historicoNaLoja.isEmpty()) {
-            throw new IllegalArgumentException("Este colaborador nao pertence a loja que estas a gerir.");
+            throw new IllegalArgumentException("Este colaborador não pertence à loja que estás a gerir.");
         }
 
         Optional<Lojautilizador> ligacaoAtivaNaLoja = historicoNaLoja.stream()
@@ -262,15 +262,15 @@ public class GestaoFuncionariosService {
         if (ligacaoAtivaNaLoja.isEmpty()
                 && ligacaoAtivaGlobal.isPresent()
                 && !Objects.equals(ligacaoAtivaGlobal.get().getIdLoja().getId(), idLoja)) {
-            throw new IllegalArgumentException("Este colaborador tem uma ligacao ativa noutra loja e nao pode ser gerido a partir daqui.");
+            throw new IllegalArgumentException("Este colaborador tem uma ligação ativa noutra loja e não pode ser gerido a partir daqui.");
         }
 
         if (utilizadorRepository.existsByEmailIgnoreCaseAndIdNot(email, idColaborador)) {
-            throw new IllegalArgumentException("Este email ja esta registado noutra conta.");
+            throw new IllegalArgumentException("Este email já está registado noutra conta.");
         }
 
         if (telemovel != null && utilizadorRepository.existsByTelemovelAndIdNot(telemovel, idColaborador)) {
-            throw new IllegalArgumentException("Este telemovel ja esta registado noutra conta.");
+            throw new IllegalArgumentException("Este telemóvel já está registado noutra conta.");
         }
 
         colaborador.setNome(nome);
@@ -318,7 +318,7 @@ public class GestaoFuncionariosService {
 
         if (ligacaoAtivaGlobal.isPresent()
                 && !Objects.equals(ligacaoAtivaGlobal.get().getIdLoja().getId(), loja.getId())) {
-            throw new IllegalArgumentException("Este colaborador ja tem uma ligacao ativa noutra loja.");
+            throw new IllegalArgumentException("Este colaborador já tem uma ligação ativa noutra loja.");
         }
 
         criarNovaLigacaoLoja(colaborador, loja, cargoSelecionado);
@@ -459,28 +459,28 @@ public class GestaoFuncionariosService {
         Integer idLojaSegura = (idLoja != null && idLoja > 0) ? idLoja : null;
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorGestor, idLojaSegura, LojautilizadorHelper.GESTAO,
-                "Nao tens permissao para gerir colaboradores.");
+                "Não tens permissão para gerir colaboradores.");
     }
 
     private Cargo obterCargo(Integer idCargo) {
         if (idCargo == null) {
-            throw new IllegalArgumentException("Seleciona um cargo valido para o colaborador.");
+            throw new IllegalArgumentException("Seleciona um cargo válido para o colaborador.");
         }
 
         return cargoRepository.findById(idCargo)
-                .orElseThrow(() -> new IllegalArgumentException("Foi selecionado um cargo invalido."));
+                .orElseThrow(() -> new IllegalArgumentException("Foi selecionado um cargo inválido."));
     }
 
     private Utilizador obterUtilizadorPersistido(Integer idUtilizador) {
         return utilizadorRepository.findById(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi possivel encontrar o colaborador selecionado."));
+                .orElseThrow(() -> new IllegalArgumentException("Não foi possível encontrar o colaborador selecionado."));
     }
 
     private String normalizarNome(String nome) {
         String nomeNormalizado = normalizarTexto(nome);
 
         if (nomeNormalizado == null) {
-            throw new IllegalArgumentException("O nome do colaborador e obrigatorio.");
+            throw new IllegalArgumentException("O nome do colaborador é obrigatório.");
         }
 
         if (nomeNormalizado.length() < 3) {
@@ -488,7 +488,7 @@ public class GestaoFuncionariosService {
         }
 
         if (nomeNormalizado.length() > 100) {
-            throw new IllegalArgumentException("O nome nao pode ter mais de 100 caracteres.");
+            throw new IllegalArgumentException("O nome não pode ter mais de 100 caracteres.");
         }
 
         return nomeNormalizado;
@@ -498,15 +498,15 @@ public class GestaoFuncionariosService {
         String emailNormalizado = normalizarTexto(email);
 
         if (emailNormalizado == null) {
-            throw new IllegalArgumentException("O email do colaborador e obrigatorio.");
+            throw new IllegalArgumentException("O email do colaborador é obrigatório.");
         }
 
         if (emailNormalizado.length() > 150) {
-            throw new IllegalArgumentException("O email nao pode ter mais de 150 caracteres.");
+            throw new IllegalArgumentException("O email não pode ter mais de 150 caracteres.");
         }
 
         if (!EMAIL_PATTERN.matcher(emailNormalizado).matches()) {
-            throw new IllegalArgumentException("Indica um email valido.");
+            throw new IllegalArgumentException("Indica um email válido.");
         }
 
         return emailNormalizado.toLowerCase();
@@ -520,7 +520,7 @@ public class GestaoFuncionariosService {
         }
 
         if (!telemovelNormalizado.matches("\\d{9}")) {
-            throw new IllegalArgumentException("O telemovel deve ter exatamente 9 digitos.");
+            throw new IllegalArgumentException("O telemóvel deve ter exatamente 9 dígitos.");
         }
 
         return telemovelNormalizado;
@@ -534,7 +534,7 @@ public class GestaoFuncionariosService {
         }
 
         if (!"ativo".equalsIgnoreCase(estadoNormalizado) && !"inativo".equalsIgnoreCase(estadoNormalizado)) {
-            throw new IllegalArgumentException("Foi indicado um estado invalido para o colaborador.");
+            throw new IllegalArgumentException("Foi indicado um estado inválido para o colaborador.");
         }
 
         return estadoNormalizado.toLowerCase();

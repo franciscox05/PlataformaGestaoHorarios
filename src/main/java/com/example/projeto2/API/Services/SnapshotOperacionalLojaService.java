@@ -57,7 +57,7 @@ public class SnapshotOperacionalLojaService {
     @Transactional(readOnly = true)
     public SnapshotOperacionalLoja carregarSnapshot(Integer idUtilizadorGestor, LocalDate data) {
         if (data == null) {
-            throw new IllegalArgumentException("A data do snapshot e obrigatoria.");
+            throw new IllegalArgumentException("A data do snapshot é obrigatória.");
         }
 
         return carregarSnapshot(idUtilizadorGestor, data, data);
@@ -166,11 +166,11 @@ public class SnapshotOperacionalLojaService {
                                                             TipoPedidoOperacional tipoPedido,
                                                             Integer idPedido) {
         if (tipoPedido == null) {
-            throw new IllegalArgumentException("O tipo de pedido e obrigatorio.");
+            throw new IllegalArgumentException("O tipo de pedido é obrigatório.");
         }
 
         if (idPedido == null) {
-            throw new IllegalArgumentException("O pedido selecionado e obrigatorio.");
+            throw new IllegalArgumentException("O pedido selecionado é obrigatório.");
         }
 
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizadorGestor);
@@ -206,10 +206,10 @@ public class SnapshotOperacionalLojaService {
 
     private PedidoContexto carregarContextoFolga(Integer idLoja, Integer idPedido) {
         DayOff dayOff = dayOffRepository.findPedidoDaLojaById(idLoja, idPedido)
-                .orElseThrow(() -> new IllegalArgumentException("Pedido de folga nao encontrado."));
+                .orElseThrow(() -> new IllegalArgumentException("Pedido de folga não encontrado."));
 
         if (!"pendente".equalsIgnoreCase(dayOff.getEstado())) {
-            throw new IllegalArgumentException("Este pedido de folga ja nao esta pendente.");
+            throw new IllegalArgumentException("Este pedido de folga já não está pendente.");
         }
 
         Map<Integer, ColaboradorBase> colaboradoresAtivos = carregarColaboradoresAtivosDaLoja(idLoja);
@@ -226,17 +226,17 @@ public class SnapshotOperacionalLojaService {
 
     private PedidoContexto carregarContextoPermuta(Integer idLoja, Integer idPedido) {
         Permuta permuta = permutaRepository.findDetalhadaById(idPedido)
-                .orElseThrow(() -> new IllegalArgumentException("Pedido de permuta nao encontrado."));
+                .orElseThrow(() -> new IllegalArgumentException("Pedido de permuta não encontrado."));
 
         if (com.example.projeto2.API.Enums.EstadoPermuta.pendente != permuta.getEstado()) {
-            throw new IllegalArgumentException("Este pedido de permuta ja nao esta pendente.");
+            throw new IllegalArgumentException("Este pedido de permuta já não está pendente.");
         }
 
         Integer idLojaOrigem = permuta.getIdHorarioOrigem().getIdLojautilizador().getIdLoja().getId();
         Integer idLojaDestino = permuta.getIdHorarioDestino().getIdLojautilizador().getIdLoja().getId();
 
         if (!idLoja.equals(idLojaOrigem) || !idLoja.equals(idLojaDestino)) {
-            throw new IllegalArgumentException("Nao tens permissao para consultar este pedido de permuta.");
+            throw new IllegalArgumentException("Não tens permissão para consultar este pedido de permuta.");
         }
 
         PedidoPendenteOperacional pedido = mapPedidoPermuta(permuta);
@@ -254,10 +254,10 @@ public class SnapshotOperacionalLojaService {
 
     private PedidoContexto carregarContextoPreferencia(Integer idLoja, Integer idPedido) {
         Preferencia preferencia = preferenciaRepository.findPreferenciaDaLoja(idPedido, idLoja)
-                .orElseThrow(() -> new IllegalArgumentException("Preferencia nao encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Preferência não encontrada."));
 
         if (!"pendente".equalsIgnoreCase(preferencia.getEstado())) {
-            throw new IllegalArgumentException("Esta preferencia ja nao esta pendente.");
+            throw new IllegalArgumentException("Esta preferência já não está pendente.");
         }
 
         IntervaloOperacional intervalo = resolverIntervaloDaPreferencia(preferencia);
@@ -465,7 +465,7 @@ public class SnapshotOperacionalLojaService {
                 preferencia.getIdUtilizador() != null
                         ? valorOuFallback(preferencia.getIdUtilizador().getNome(), "Colaborador")
                         : "Colaborador",
-                "Preferencia de " + formatarNomeTipoPreferencia(preferencia.getTipo()),
+                "Preferência de " + formatarNomeTipoPreferencia(preferencia.getTipo()),
                 valorOuTraco(preferencia.getDescricao()),
                 idUtilizador == null ? List.of() : List.of(idUtilizador)
         );
@@ -501,11 +501,11 @@ public class SnapshotOperacionalLojaService {
 
     private IntervaloOperacional normalizarIntervalo(LocalDate dataInicio, LocalDate dataFim) {
         if (dataInicio == null || dataFim == null) {
-            throw new IllegalArgumentException("As datas do snapshot sao obrigatorias.");
+            throw new IllegalArgumentException("As datas do snapshot são obrigatórias.");
         }
 
         if (dataFim.isBefore(dataInicio)) {
-            throw new IllegalArgumentException("A data final nao pode ser anterior a data inicial.");
+            throw new IllegalArgumentException("A data final não pode ser anterior à data inicial.");
         }
 
         return new IntervaloOperacional(dataInicio, dataFim, dataInicio.equals(dataFim));
@@ -522,7 +522,7 @@ public class SnapshotOperacionalLojaService {
         Integer idLojaSegura = (idLoja != null && idLoja > 0) ? idLoja : null;
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizador, idLojaSegura, LojautilizadorHelper.GESTAO,
-                "Nao tens permissao para consultar o snapshot operacional da loja.");
+                "Não tens permissão para consultar o snapshot operacional da loja.");
     }
 
     private String formatarPeriodo(Horario horario) {

@@ -29,7 +29,7 @@ public class SessaoService {
         this.idLojaAtiva = lojaAtiva;
 
         if (utilizador == null || utilizador.getId() == null) {
-            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
+            throw new IllegalArgumentException("O utilizador autenticado é obrigatório.");
         }
 
         this.utilizadorAutenticado = utilizador;

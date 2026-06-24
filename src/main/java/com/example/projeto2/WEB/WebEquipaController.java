@@ -77,7 +77,7 @@ public class WebEquipaController {
 
         if (!podeGerir(idGestor, idLoja)) {
             return webAppService.redirecionarComErro(redirectAttributes,
-                    "Este modulo esta disponivel apenas para perfis de gestao.");
+                    "Este módulo está disponível apenas para perfis de gestão.");
         }
 
         boolean podeCriarColaboradores = podeCriar(idGestor, idLoja);
@@ -144,7 +144,7 @@ public class WebEquipaController {
 
         if (!podeGerir(idGestor, idLoja)) {
             return webAppService.redirecionarComErro(redirectAttributes,
-                    "Este modulo esta disponivel apenas para perfis de gestao.");
+                    "Este módulo está disponível apenas para perfis de gestão.");
         }
 
         boolean podeCriarColaboradores = podeCriar(idGestor, idLoja);
@@ -152,7 +152,7 @@ public class WebEquipaController {
 
         Utilizador utilizador = utilizadorRepository.findById(idUtilizador).orElse(null);
         if (utilizador == null) {
-            model.addAttribute("erro", "Nao foi possivel encontrar o utilizador selecionado.");
+            model.addAttribute("erro", "Não foi possível encontrar o utilizador selecionado.");
             model.addAttribute("temSelecao", false);
             model.addAttribute("utilizadores", utilizadores);
             model.addAttribute("pesquisa", pesquisa == null ? "" : pesquisa.trim());
@@ -330,7 +330,7 @@ public class WebEquipaController {
         Integer idLoja = webAppService.obterLojaAtual(session);
         try {
             preferenciaBLL.aprovarPreferencia(idPreferencia, idGestor, decisao, idLoja);
-            redirectAttributes.addFlashAttribute("sucesso", "Preferencia aprovada com sucesso.");
+            redirectAttributes.addFlashAttribute("sucesso", "Preferência aprovada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
@@ -346,7 +346,7 @@ public class WebEquipaController {
         Integer idLoja = webAppService.obterLojaAtual(session);
         try {
             preferenciaBLL.rejeitarPreferencia(idPreferencia, idGestor, decisao, idLoja);
-            redirectAttributes.addFlashAttribute("sucesso", "Preferencia rejeitada com sucesso.");
+            redirectAttributes.addFlashAttribute("sucesso", "Preferência rejeitada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }

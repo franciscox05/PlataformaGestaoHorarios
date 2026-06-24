@@ -456,6 +456,9 @@
     -fx-font-weight: 700;
     -fx-text-fill: -levis-red;
 }
+.meta-etiqueta-lg {
+    -fx-font-size: 12px;
+}
 .meta-valor {
     -fx-font-size: 13px;
     -fx-font-weight: 700;
@@ -740,6 +743,41 @@
     -fx-cursor: hand;
 }
 
+/* Botão de edição inline (lápis) junto a um campo de "Dados Pessoais" — discreto até hover,
+   para não competir visualmente com o valor do campo. */
+.botao-editar-campo {
+    -fx-background-color: transparent;
+    -fx-text-fill: -ink-300;
+    -fx-font-size: 13px;
+    -fx-min-width: 30px;
+    -fx-min-height: 30px;
+    -fx-max-width: 30px;
+    -fx-max-height: 30px;
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+}
+.botao-editar-campo:hover {
+    -fx-background-color: rgba(201,20,40,0.10);
+    -fx-text-fill: -levis-red-dark;
+}
+.botao-editar-campo:pressed {
+    -fx-background-color: rgba(201,20,40,0.18);
+}
+.icon-pencil {
+    -fx-fill: -ink-300;
+}
+.botao-editar-campo:hover .icon-pencil {
+    -fx-fill: -levis-red-dark;
+}
+
+/* Linha divisória fina entre cada campo do cartão "Dados Pessoais". */
+.campo-linha-divisor {
+    -fx-background-color: -border-variant;
+    -fx-opacity: 0.6;
+}
+
 /* ── CHIPS / BADGES ──────────────────────────────────────────── */
 .badge-ativo,
 .badge-pendente,
@@ -948,6 +986,8 @@
 .tabela-premium .table-row-cell:filled:hover { -fx-background-color: #fff0ef; -fx-cursor: hand; }
 .tabela-premium .table-row-cell:selected { -fx-background-color: rgba(201,20,40,0.1); }
 .tabela-premium .table-row-cell:selected .table-cell { -fx-text-fill: #8b0018; -fx-font-weight: 600; }
+.tabela-premium .texto-celula-longa { -fx-text-fill: -ink-700; }
+.tabela-premium .table-row-cell:selected .texto-celula-longa { -fx-text-fill: #8b0018; -fx-font-weight: 600; }
 .tabela-premium .table-cell {
     -fx-font-size: 13px;
     -fx-text-fill: -ink-700;
@@ -3190,6 +3230,72 @@
     -fx-text-fill: #5b21b6;
 }
 
+/* ── MODAL "DETALHE DO PEDIDO" (PainelGerentePedidosController) ─ */
+.detalhe-pedido-dialog .dialog-pane {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 14px;
+}
+
+.detalhe-pedido-conteudo {
+    -fx-background-color: #ffffff;
+}
+
+.detalhe-pedido-subtitulo {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #c91428;
+}
+
+.detalhe-pedido-nome {
+    -fx-font-size: 18px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1a191c;
+}
+
+.detalhe-pedido-grid {
+    -fx-background-color: #f8f5f2;
+    -fx-background-radius: 10px;
+    -fx-border-color: #e6e2dd;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-padding: 14px 16px;
+}
+
+.detalhe-pedido-campo-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #9c9690;
+}
+
+.detalhe-pedido-campo-valor {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #1a191c;
+}
+
+.detalhe-pedido-motivo-titulo {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1a191c;
+}
+
+.detalhe-pedido-motivo-area,
+.detalhe-pedido-motivo-area .content {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10px;
+}
+
+.detalhe-pedido-motivo-area .text-area {
+    -fx-background-color: transparent;
+}
+
+.detalhe-pedido-motivo-area {
+    -fx-border-color: #e6e2dd;
+    -fx-border-radius: 10px;
+    -fx-font-size: 13px;
+    -fx-text-fill: #2c2a2d;
+}
+
 /* ── BOTÃO CANCELAR PEDIDO PENDENTE (inline em TableCell) ─────── */
 .botao-cancelar-pedido {
     -fx-background-color: transparent;
@@ -3206,6 +3312,22 @@
     -fx-max-width: 22px;
 }
 .botao-cancelar-pedido:hover {
+    -fx-background-color: rgba(201, 20, 40, 0.08);
+}
+
+/* ── BOTÃO CANCELAR (coluna "Ação" dedicada, com texto) ───────── */
+.botao-cancelar-pedido-texto {
+    -fx-background-color: transparent;
+    -fx-border-color: #c91428;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-text-fill: #c91428;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 4px 12px;
+    -fx-cursor: hand;
+}
+.botao-cancelar-pedido-texto:hover {
     -fx-background-color: rgba(201, 20, 40, 0.08);
 }
 

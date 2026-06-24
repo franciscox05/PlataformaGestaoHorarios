@@ -20,7 +20,7 @@
                 <VBox alignment="BOTTOM_LEFT" maxWidth="620.0" spacing="18.0" styleClass="login-editorial-panel" HBox.hgrow="ALWAYS">
                     <children>
                         <Region VBox.vgrow="ALWAYS" />
-                        <Label styleClass="login-editorial-headline" text="RAW&#10;DENIM" />
+                        <Label styleClass="login-editorial-headline" text="LIVE IN&#10;LEVI'S" />
                         <Label maxWidth="520.0" styleClass="login-editorial-copy" text="A qualidade nunca passa de moda. O portal oficial da Levi Strauss &amp; Co. para operação, equipa e planeamento editorial." wrapText="true" />
                     </children>
                 </VBox>
@@ -61,8 +61,6 @@
                                         <HBox alignment="CENTER_LEFT">
                                             <children>
                                                 <Label styleClass="login-field-label" text="PALAVRA-PASSE" />
-                                                <Region HBox.hgrow="ALWAYS" />
-                                                <Label styleClass="login-link" text="ESQUECESTE-TE?" />
                                             </children>
                                         </HBox>
 
@@ -70,11 +68,7 @@
                                             <children>
                                                 <TextField fx:id="txtPasswordVisible" promptText="Palavra-passe" styleClass="campo-login" visible="false" />
                                                 <PasswordField fx:id="txtPassword" promptText="Palavra-passe" styleClass="campo-login" />
-                                                <Button fx:id="btnMostrarSenha" alignment="CENTER_RIGHT" onAction="#onMostrarSenhaClick" styleClass="botao-mostrar-senha" StackPane.alignment="CENTER_RIGHT">
-                                                    <padding>
-                                                        <Insets right="8.0" />
-                                                    </padding>
-                                                </Button>
+                                                <Button fx:id="btnMostrarSenha" onAction="#onMostrarSenhaClick" styleClass="botao-mostrar-senha" StackPane.alignment="CENTER_RIGHT" />
                                             </children>
                                         </StackPane>
                                     </children>
@@ -87,19 +81,12 @@
                         <VBox spacing="18.0">
                             <children>
                                 <Button defaultButton="true" maxWidth="420.0" onAction="#onLoginClick" styleClass="botao-login" text="ENTRAR" />
-
-                                <HBox alignment="CENTER_RIGHT" maxWidth="420.0">
-                                    <Button onAction="#onEsqueciPasswordClick"
-                                            styleClass="login-forgot-btn"
-                                            text="Esqueci a palavra-passe" />
-                                </HBox>
-
                             </children>
                         </VBox>
 
                         <Region VBox.vgrow="ALWAYS" />
 
-                        <Label maxWidth="420.0" styleClass="mensagem-info-autenticacao" text="© 2024 Levi Strauss &amp; Co. Informação confidencial e proprietária.&#10;Apenas para pessoal autorizado." textAlignment="CENTER" wrapText="true" />
+                        <Label maxWidth="420.0" styleClass="mensagem-info-autenticacao" text="© 2026 Levi Strauss &amp; Co. Informação confidencial e proprietária.&#10;Apenas para pessoal autorizado." textAlignment="CENTER" wrapText="true" />
                     </children>
                 </VBox>
             </children>

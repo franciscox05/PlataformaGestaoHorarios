@@ -171,6 +171,7 @@
                                                 <TableColumn fx:id="colTurnoOrigem"   text="Meu turno" />
                                                 <TableColumn fx:id="colTurnoDestino"  text="Turno pretendido" />
                                                 <TableColumn fx:id="colEstadoPermuta" text="Estado" />
+                                                <TableColumn fx:id="colAcaoPermuta"   text="A&#231;&#227;o" />
                                             </columns>
                                             <placeholder>
                                                 <VBox alignment="CENTER" spacing="12.0">
@@ -300,6 +301,7 @@
                                                 <TableColumn fx:id="colPfDiaD"       text="Cedo (dia D)" />
                                                 <TableColumn fx:id="colPfDiaY"       text="Recebo (dia Y)" />
                                                 <TableColumn fx:id="colPfEstado"     text="Estado" />
+                                                <TableColumn fx:id="colPfAcao"       text="A&#231;&#227;o" />
                                             </columns>
                                             <placeholder>
                                                 <Label text="Nenhuma permuta de folga submetida." />

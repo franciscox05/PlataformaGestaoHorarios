@@ -91,7 +91,7 @@
                                         maxWidth="Infinity" />
                         </VBox>
 
-                        <!-- Data de fim — visivel apenas para Ferias -->
+                        <!-- Data de fim — visível apenas para Férias -->
                         <VBox fx:id="painelDataFim" spacing="8.0" managed="false" visible="false"
                               GridPane.columnIndex="1" GridPane.rowIndex="0">
                             <Label styleClass="campo-titulo" text="Data de fim das f&#233;rias" />

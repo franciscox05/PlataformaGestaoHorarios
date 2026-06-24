@@ -53,11 +53,11 @@ public class LojautilizadorHelper {
      */
     public Lojautilizador obterLigacaoAtiva(Integer idUtilizador) {
         if (idUtilizador == null) {
-            throw new IllegalArgumentException("O utilizador autenticado e obrigatorio.");
+            throw new IllegalArgumentException("O utilizador autenticado é obrigatório.");
         }
         List<Lojautilizador> ligacoes = lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(idUtilizador);
         if (ligacoes.isEmpty()) {
-            throw new IllegalArgumentException("Nao foi encontrada uma ligacao ativa para este utilizador.");
+            throw new IllegalArgumentException("Não foi encontrada uma ligação ativa para este utilizador.");
         }
         return ligacoes.get(0);
     }
@@ -194,11 +194,11 @@ public class LojautilizadorHelper {
      */
     public Lojautilizador obterLigacaoAtiva(Integer idUtilizador, Integer idLoja) {
         if (idUtilizador == null || idLoja == null) {
-            throw new IllegalArgumentException("O utilizador e a loja sao obrigatorios.");
+            throw new IllegalArgumentException("O utilizador e a loja são obrigatórios.");
         }
         return lojautilizadorRepository.findLigacaoAtivaByIdUtilizadorAndIdLoja(idUtilizador, idLoja)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Nao foi encontrada uma ligacao ativa para este utilizador nesta loja."));
+                        "Não foi encontrada uma ligação ativa para este utilizador nesta loja."));
     }
 
     /**

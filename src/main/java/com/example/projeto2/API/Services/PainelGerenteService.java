@@ -172,7 +172,7 @@ public class PainelGerenteService {
 
     private void validarAcesso(Integer idUtilizadorGestor) {
         if (!utilizadorPodeAcederPainel(idUtilizadorGestor)) {
-            throw new IllegalArgumentException("Nao tens permissao para usar este painel.");
+            throw new IllegalArgumentException("Não tens permissão para usar este painel.");
         }
     }
 

@@ -17,11 +17,11 @@
            href="/web/complementares">Complementares</a>
         <a class="btn-link"
            th:classappend="${paginaAtiva == 'horarios'} ? ' btn-link-active'"
-           href="/web/horarios" th:if="${podeAcederHorarios}">Horarios</a>
-        <a class="btn-link" href="/web/gestao-loja" th:if="${podeGerirLoja}">Gestao Loja</a>
-        <a class="btn-link" href="/web/relatorios" th:if="${podeRelatorios}">Relatorios</a>
+           href="/web/horarios" th:if="${podeAcederHorarios}">Horários</a>
+        <a class="btn-link" href="/web/gestao-loja" th:if="${podeGerirLoja}">Gestão Loja</a>
+        <a class="btn-link" href="/web/relatorios" th:if="${podeRelatorios}">Relatórios</a>
         <form method="post" action="/web/logout">
-            <button type="submit" class="btn-ghost">Terminar sessao</button>
+            <button type="submit" class="btn-ghost">Terminar sessão</button>
         </form>
     </nav>
 </header>

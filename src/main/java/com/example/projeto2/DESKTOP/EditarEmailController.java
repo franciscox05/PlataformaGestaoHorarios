@@ -46,6 +46,7 @@ public class EditarEmailController {
 
         if (utilizadorLogado != null && utilizadorLogado.getEmail() != null && !utilizadorLogado.getEmail().isBlank()) {
             txtEmailAtual.setText(utilizadorLogado.getEmail());
+            txtEmailNovo.setPromptText(utilizadorLogado.getEmail());
         } else {
             txtEmailAtual.setText("Não definido");
         }

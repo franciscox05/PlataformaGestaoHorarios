@@ -45,9 +45,6 @@ public class PerfilController {
     private Label lblTelemovelPerfil;
 
     @FXML
-    private Label lblEstadoPerfil;
-
-    @FXML
     private Label lblLojaAtual;
 
     @FXML
@@ -116,7 +113,6 @@ public class PerfilController {
             lblNomePerfil.setText(resumo.nome());
             lblEmailPerfil.setText(resumo.email());
             lblTelemovelPerfil.setText(resumo.telemovel());
-            lblEstadoPerfil.setText(resumo.estado());
             lblLojaAtual.setText(resumo.lojaAtual());
             lblCargoAtual.setText(resumo.cargoAtual());
             lblDataEntrada.setText(resumo.dataEntrada());
@@ -128,7 +124,6 @@ public class PerfilController {
         } catch (IllegalArgumentException e) {
             preencherValoresEmFalta();
             lblNomePerfil.setText(utilizadorLogado.getNome());
-            lblEstadoPerfil.setText("Dados indisponíveis");
             lblProximoTurno.setText(e.getMessage());
         }
     }
@@ -219,7 +214,6 @@ public class PerfilController {
         lblNomePerfil.setText("-");
         lblEmailPerfil.setText("-");
         lblTelemovelPerfil.setText("-");
-        lblEstadoPerfil.setText("-");
         lblLojaAtual.setText("-");
         lblCargoAtual.setText("-");
         lblDataEntrada.setText("-");

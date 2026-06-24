@@ -200,19 +200,19 @@ public class RelatorioHorasService {
         Integer idLojaSegura = (idLoja != null && idLoja > 0) ? idLoja : null;
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizador, idLojaSegura, LojautilizadorHelper.GESTAO,
-                "Nao tens permissao para consultar relatorios mensais.");
+                "Não tens permissão para consultar relatórios mensais.");
     }
 
     private int normalizarAno(Integer ano) {
         if (ano == null || ano < 2020 || ano > 2100) {
-            throw new IllegalArgumentException("O ano selecionado e invalido.");
+            throw new IllegalArgumentException("O ano selecionado é inválido.");
         }
         return ano;
     }
 
     private int normalizarMes(Integer mes) {
         if (mes == null || mes < 1 || mes > 12) {
-            throw new IllegalArgumentException("O mes selecionado e invalido.");
+            throw new IllegalArgumentException("O mês selecionado é inválido.");
         }
         return mes;
     }

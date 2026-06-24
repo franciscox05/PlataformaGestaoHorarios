@@ -78,7 +78,7 @@ public class WebPerfilController {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
         try {
             perfilBLL.atualizarTelemovel(utilizadorId, telemovel);
-            redirectAttributes.addFlashAttribute("sucesso", "Telemovel atualizado com sucesso.");
+            redirectAttributes.addFlashAttribute("sucesso", "Telemóvel atualizado com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }

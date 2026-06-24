@@ -35,8 +35,7 @@
 
     <VBox spacing="6.0">
         <Label styleClass="campo-titulo" text="Novo número" />
-        <TextField fx:id="txtTelemovel" maxWidth="Infinity"
-                   promptText="Ex: 912 345 678" styleClass="campo-input" />
+        <TextField fx:id="txtTelemovel" maxWidth="Infinity" styleClass="campo-input" />
     </VBox>
 
     <Label fx:id="lblErro" managed="false"

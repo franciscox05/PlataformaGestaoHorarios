@@ -121,7 +121,7 @@ public class MetricasPlaneamentoCalculator {
         String qualidade = pontuacao <= 60 ? "Alta" : pontuacao <= 120 ? "Boa" : "A rever";
 
         String resumo = qualidade + " · score " + pontuacao
-                + " · desvio medio " + formatarDuracao(desvioMedio)
+                + " · desvio médio " + formatarDuracao(desvioMedio)
                 + " · amplitude " + formatarDuracao(amplitude)
                 + " · amplitude FDS " + amplitudeFinsDeSemana;
 

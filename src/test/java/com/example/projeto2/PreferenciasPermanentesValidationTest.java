@@ -143,7 +143,7 @@ class PreferenciasPermanentesValidationTest extends FluxosCriticosTestSupport {
         preferencia.setTipo("turnos");
         preferencia.setDataInicio(LocalDate.now());
         preferencia.setDataFim(null);
-        preferencia.setDescricao("Turnos preferidos: intermedio/tarde. Duracao preferida: curto. Nota adicional: estudo de manha.");
+        preferencia.setDescricao("Turnos preferidos: intermedio/tarde. Duracao preferida: curto. Nota adicional: estudo de manhã.");
 
         Turno turnoCurtoTarde = criarTurno("intermedio", 14, 0, 18, 30);
         Turno turnoLongoTarde = criarTurno("intermedio", 12, 0, 21, 0);

@@ -224,40 +224,40 @@ INSERT INTO public.lojas (id_loja, nome, localizacao, hora_abertura, hora_fecho)
     (4, 'Levi''s Vasco da Gama', 'Lisboa', '09:00', '22:00');
 
 INSERT INTO public.regras (id_regra, descricao, valor_padrao, tipo) VALUES
-    (1,  'Minimo de funcionarios por turno',                        2,   'operacional'),
-    (2,  'Dia limite de lancamento do horario mensal',              15,  'administrativo'),
-    (3,  'Maximo de dias consecutivos de trabalho',                 6,   'legal'),
-    (4,  'Carga contratual mensal gestao (horas)',                  176, 'contratual'),
+    (1,  'Mínimo de funcionários por turno',                        2,   'operacional'),
+    (2,  'Dia limite de lançamento do horário mensal',               15,  'administrativo'),
+    (3,  'Máximo de dias consecutivos de trabalho',                 6,   'legal'),
+    (4,  'Carga contratual mensal gestão (horas)',                  176, 'contratual'),
     (5,  'Carga contratual mensal full-time (horas)',               176, 'contratual'),
     (6,  'Carga contratual mensal part-time (horas)',               88,  'contratual'),
-    (7,  'Carga contratual mensal reforco de fim de semana (horas)',64,  'contratual'),
-    (8,  'Descanso semanal minimo (dias)',                          2,   'descanso'),
-    (9,  'Janela de rotacao de fins de semana (semanas)',           7,   'descanso'),
-    (10, 'Presenca de gerente ou subgerente aos sabados',           1,   'operacional'),
-    (11, 'Descanso minimo entre turnos (horas)',                    11,  'legal');
+    (7,  'Carga contratual mensal reforço de fim de semana (horas)',64,  'contratual'),
+    (8,  'Descanso semanal mínimo (dias)',                          2,   'descanso'),
+    (9,  'Janela de rotação de fins de semana (semanas)',           7,   'descanso'),
+    (10, 'Presença de gerente ou subgerente aos sábados',           1,   'operacional'),
+    (11, 'Descanso mínimo entre turnos (horas)',                    11,  'legal');
 
 INSERT INTO public.regras_loja (id_regra_loja, id_loja, id_regra, valor_especifico, observacoes) VALUES
     -- Loja 1 (Braga Parque) — regras completas, loja principal da demo
     -- Equipa: 3 gestao + 9 FT + 2 PT + 1 reforco = 15 workers; 3 tipos x minimo=2 x 31 dias = 186 slots;
     -- capacidade FT/gestao: 12 x 22 turnos = 264 > 186 (42% de folga para restricoes).
-    (1,  1,  1, 2,   'Minimo de 2 colaboradores por turno para loja de media dimensao.'),
-    (2,  1,  2, 12,  'Horario mensal fechado ate ao dia 12 para garantir comunicacao atempada.'),
-    (3,  1,  3, 6,   'Maximo de 6 dias consecutivos de trabalho (lei do trabalho portugues).'),
-    (4,  1,  4, 176, 'Carga mensal gestao: 22 dias x 8h = 176h.'),
+    (1,  1,  1, 2,   'Mínimo de 2 colaboradores por turno para loja de média dimensão.'),
+    (2,  1,  2, 12,  'Horário mensal fechado até ao dia 12 para garantir comunicação atempada.'),
+    (3,  1,  3, 6,   'Máximo de 6 dias consecutivos de trabalho (lei do trabalho português).'),
+    (4,  1,  4, 176, 'Carga mensal gestão: 22 dias x 8h = 176h.'),
     (5,  1,  5, 176, 'Carga mensal full-time: 22 dias x 8h = 176h.'),
-    (6,  1,  6, 88,  'Carga mensal part-time: 22 dias x 4h = 88h (sem pausa de almoco).'),
-    (7,  1,  7, 64,  'Carga mensal reforco FDS: fins de semana do mes.'),
+    (6,  1,  6, 88,  'Carga mensal part-time: 22 dias x 4h = 88h (sem pausa de almoço).'),
+    (7,  1,  7, 64,  'Carga mensal reforço FDS: fins de semana do mês.'),
     (8,  1,  8, 2,   'Dois dias de descanso por semana.'),
-    (9,  1,  9, 7,   'Rotacao de fins de semana a cada 7 semanas (ciclo completo).'),
-    (10, 1, 10, 1,   'Garantir presenca de gerente ou subgerente aos sabados com loja aberta.'),
-    (11, 1, 11, 11,  'Descanso minimo de 11h entre jornadas (CT art. 214).'),
+    (9,  1,  9, 7,   'Rotação de fins de semana a cada 7 semanas (ciclo completo).'),
+    (10, 1, 10, 1,   'Garantir presença de gerente ou subgerente aos sábados com loja aberta.'),
+    (11, 1, 11, 11,  'Descanso mínimo de 11h entre jornadas (CT art. 214).'),
     -- Loja 2 (NorteShopping) — equipa de 8 (3 gestao + 4 FT + 1 PT); minimo=1/turno:
     -- 3 tipos x 1 x 31 = 93 slots; capacidade FT/gestao: 7 x 22 = 154 > 93 (65% de folga).
-    (12, 2,  1, 1,   'Loja com equipa mais reduzida; minimo de 1 colaborador por turno.'),
+    (12, 2,  1, 1,   'Loja com equipa mais reduzida; mínimo de 1 colaborador por turno.'),
     (13, 2,  6, 88,  'Carga mensal part-time: 22 dias x 4h = 88h.'),
-    (14, 2,  8, 2,   'Descanso semanal minimo.'),
-    (15, 2,  9, 7,   'Rotacao de fins de semana a cada 7 semanas (ciclo completo).'),
-    (16, 2, 10, 1,   'Chefia obrigatoria ao sabado.');
+    (14, 2,  8, 2,   'Descanso semanal mínimo.'),
+    (15, 2,  9, 7,   'Rotação de fins de semana a cada 7 semanas (ciclo completo).'),
+    (16, 2, 10, 1,   'Chefia obrigatória ao sábado.');
 
 -- Turnos globais (id_loja NULL = visivel a todas as lojas).
 -- FT: 9h de turno = 8h de trabalho + 1h almoco (a 1h e descontada na carga contratual).

@@ -442,7 +442,7 @@ public class PreferenciasController {
         if (tipoColegas) {
             txtDescricao.setPromptText("Se quiseres, acrescenta contexto adicional para esta preferência.");
         } else if (tipoTurnos) {
-            txtDescricao.setPromptText("Acrescenta contexto opcional, por exemplo: estudo de manha, prefiro fechos curtos ou quero evitar aberturas consecutivas.");
+            txtDescricao.setPromptText("Acrescenta contexto opcional, por exemplo: estudo de manhã, prefiro fechos curtos ou quero evitar aberturas consecutivas.");
         } else if (tipoFolgaPreferida) {
             txtDescricao.setPromptText("Notas adicionais (opcional).");
         } else {

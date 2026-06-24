@@ -162,7 +162,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
                 () -> dayOffBLL.aprovarPedidoFolga(pedido.getIdDayoff(), colaboradorComum.getId(), fixture.loja().getId()),
                 "Um colaborador full-time (fora de APROVACAO) nao pode aprovar folgas, "
                         + "mesmo sendo colega de loja do solicitante.");
-        assertTrue(erro.getMessage().toLowerCase().contains("permissao"));
+        assertTrue(erro.getMessage().toLowerCase().contains("permissão"));
     }
 
     /**
@@ -226,7 +226,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
                 () -> dayOffBLL.aprovarPedidoFolga(pedidoNaLojaA.getIdDayoff(), gerenteB.getId(), lojaB.getId()),
                 "Gerente da Loja B nao pode gerir um pedido cujo solicitante nao tem "
                         + "vinculo ativo a Loja B.");
-        assertTrue(erro.getMessage().toLowerCase().contains("permissao"));
+        assertTrue(erro.getMessage().toLowerCase().contains("permissão"));
     }
 
     /**

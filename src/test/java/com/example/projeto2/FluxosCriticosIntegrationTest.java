@@ -211,7 +211,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
         assertNotNull(resultado);
         assertEquals(null, resultado.idProposta());
         assertEquals("Publicado", resultado.estado());
-        assertEquals("Horarios publicados", resultado.origemPlaneamento());
+        assertEquals("Horários publicados", resultado.origemPlaneamento());
         assertEquals(2, resultado.linhas().size());
         assertTrue(resultado.linhas().stream().allMatch(linha -> "Aprovado".equalsIgnoreCase(linha.estado())));
     }
@@ -257,7 +257,7 @@ class FluxosCriticosIntegrationTest extends FluxosCriticosTestSupport {
                 () -> dayOffBLL.registarPedidoFolga(pedidoTardio)
         );
         // Folga no mês atual é bloqueada pela regra do mês corrente (mais restritiva que 24h)
-        assertTrue(erro.getMessage().contains("mes atual") || erro.getMessage().contains("24 horas"));
+        assertTrue(erro.getMessage().contains("mês atual") || erro.getMessage().contains("24 horas"));
     }
 
     @Test

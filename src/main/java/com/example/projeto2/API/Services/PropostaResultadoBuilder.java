@@ -51,19 +51,19 @@ public class PropostaResultadoBuilder {
         int colaboradoresComTurnos = (int) planeamento.estados().stream()
                 .filter(estado -> estado.turnosAtribuidos() > 0)
                 .count();
-        StringBuilder resumo = new StringBuilder("Modelo IO: satisfacao de restricoes com funcao objetivo ponderada ("
+        StringBuilder resumo = new StringBuilder("Modelo IO: satisfação de restrições com função objetivo ponderada ("
                 + politica.nome()
                 + "). Proposta gerada automaticamente com "
                 + planeamento.horarios().size()
-                + " turnos distribuidos por "
+                + " turnos distribuídos por "
                 + colaboradoresComTurnos
-                + " colaboradores. Pontuacao: "
+                + " colaboradores. Pontuação: "
                 + metricas.pontuacao()
-                + " (menor e melhor). Carga: desvio medio "
+                + " (menor é melhor). Carga: desvio médio "
                 + metricas.desvioMedioHoras()
                 + ", amplitude "
                 + metricas.amplitudeHoras()
-                + ". Politica: "
+                + ". Política: "
                 + politica.descricao()
                 + ".");
 
@@ -101,16 +101,16 @@ public class PropostaResultadoBuilder {
             Loja loja, int ano, int mes, List<Horario> horarios) {
         String resumo = "Foram encontrados "
                 + horarios.size()
-                + " turnos ja publicados para "
+                + " turnos já publicados para "
                 + nomeMes(mes).toLowerCase(Locale.ROOT)
                 + " de "
                 + ano
                 + ". Podes consultar o planeamento atual, mesmo sem existir uma proposta mensal guardada.";
         return construirResultado(
                 null, valorOuTraco(loja.getNome()), ano, mes, nomeMes(mes),
-                "Publicado", "Horarios publicados", resumo,
+                "Publicado", "Horários publicados", resumo,
                 "-", "-", "-", "-",
-                "Estes horarios ja estao publicados na loja e podem ser analisados diretamente neste ecra.",
+                "Estes horários já estão publicados na loja e podem ser analisados diretamente neste ecrã.",
                 false, horarios
         );
     }
@@ -202,7 +202,7 @@ public class PropostaResultadoBuilder {
 
     public String rotuloCurtoProposta(PropostaResultado proposta) {
         if (proposta == null || proposta.idProposta() == null) {
-            return "Horarios publicados";
+            return "Horários publicados";
         }
         return proposta.nomeMes()
                 + " " + proposta.ano()
@@ -234,7 +234,7 @@ public class PropostaResultadoBuilder {
 
     private String construirOrigemPlaneamento(PropostaHorarioMensal proposta) {
         return switch (normalizarTexto(proposta.getEstado())) {
-            case ESTADO_APROVADO  -> "Horarios publicados a partir de proposta aprovada";
+            case ESTADO_APROVADO  -> "Horários publicados a partir de proposta aprovada";
             case ESTADO_REJEITADO -> "Proposta mensal rejeitada";
             case ESTADO_RASCUNHO  -> "Rascunho do gerente";
             case ESTADO_PENDENTE  -> "Enviada ao supervisor";

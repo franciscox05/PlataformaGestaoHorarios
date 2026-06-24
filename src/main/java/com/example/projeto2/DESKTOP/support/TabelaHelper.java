@@ -6,6 +6,9 @@ import javafx.event.Event;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumnBase;
 import javafx.scene.control.TableView;
 import javafx.scene.input.MouseEvent;
@@ -49,6 +52,7 @@ public final class TabelaHelper {
         for (TableColumnBase<?, ?> coluna : colunas) {
             coluna.setSortable(true);
             coluna.setResizable(true);
+            coluna.setReorderable(false);
             prepararColunas(coluna.getColumns());
         }
     }
@@ -90,6 +94,18 @@ public final class TabelaHelper {
 
         if (node instanceof ScrollPane scrollPane) {
             recolherTabelas(scrollPane.getContent(), tabelas);
+        }
+
+        if (node instanceof TabPane tabPane) {
+            for (Tab tab : tabPane.getTabs()) {
+                recolherTabelas(tab.getContent(), tabelas);
+            }
+        }
+
+        if (node instanceof SplitPane splitPane) {
+            for (Node item : splitPane.getItems()) {
+                recolherTabelas(item, tabelas);
+            }
         }
 
         if (node instanceof Parent parent) {

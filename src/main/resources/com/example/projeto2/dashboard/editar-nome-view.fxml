@@ -35,8 +35,7 @@
 
     <VBox spacing="6.0">
         <Label styleClass="campo-titulo" text="Novo nome" />
-        <TextField fx:id="txtNomeNovo" maxWidth="Infinity"
-                   promptText="Ex: Francisco Silva" styleClass="campo-input" />
+        <TextField fx:id="txtNomeNovo" maxWidth="Infinity" styleClass="campo-input" />
     </VBox>
 
     <Label fx:id="lblErro" managed="false"

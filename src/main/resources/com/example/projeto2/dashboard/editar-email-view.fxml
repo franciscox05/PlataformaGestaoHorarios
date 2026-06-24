@@ -35,8 +35,7 @@
 
     <VBox spacing="6.0">
         <Label styleClass="campo-titulo" text="Novo email" />
-        <TextField fx:id="txtEmailNovo" maxWidth="Infinity"
-                   promptText="Ex: nome@empresa.com" styleClass="campo-input" />
+        <TextField fx:id="txtEmailNovo" maxWidth="Infinity" styleClass="campo-input" />
     </VBox>
 
     <Label fx:id="lblErro" managed="false"

@@ -61,8 +61,8 @@ public final class DiagnosticoGeracaoPanel {
         String perfilRecomendado = perfilRecomendado(falha);
         boolean temPerfil = !perfilRecomendado.isBlank();
         lblPerfilRecomendado.setText(temPerfil
-                ? "Reforco recomendado: " + perfilRecomendado
-                        + ". Este e o perfil que mais ajuda a aliviar este gargalo sem mexer nas restantes regras."
+                ? "Reforço recomendado: " + perfilRecomendado
+                        + ". Este é o perfil que mais ajuda a aliviar este gargalo sem mexer nas restantes regras."
                 : "");
         lblPerfilRecomendado.setVisible(temPerfil);
         lblPerfilRecomendado.setManaged(temPerfil);

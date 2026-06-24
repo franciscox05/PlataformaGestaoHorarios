@@ -45,7 +45,7 @@ public class WebPermutaFolgaApiController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(401).body(Map.of("erro", ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.internalServerError().body(Map.of("erro", "Nao foi possivel carregar os turnos."));
+            return ResponseEntity.internalServerError().body(Map.of("erro", "Não foi possível carregar os turnos."));
         }
     }
 
@@ -66,7 +66,7 @@ public class WebPermutaFolgaApiController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(401).body(Map.of("erro", ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.internalServerError().body(Map.of("erro", "Nao foi possivel carregar as compensacoes."));
+            return ResponseEntity.internalServerError().body(Map.of("erro", "Não foi possível carregar as compensações."));
         }
     }
 
@@ -79,22 +79,22 @@ public class WebPermutaFolgaApiController {
 
             List<Horario> meus = permutaFolgaBLL.listarTurnosParaCederFolga(id);
             Horario horarioD = meus.stream().filter(h -> idHorarioD.equals(h.getId())).findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("O turno a ceder nao e valido ou nao te pertence."));
+                    .orElseThrow(() -> new IllegalArgumentException("O turno a ceder não é válido ou não te pertence."));
 
             List<Horario> compensacoes = permutaFolgaBLL.listarTurnosElegiveisCompensacao(id, idHorarioD);
             Horario horarioY = compensacoes.stream().filter(h -> idHorarioY.equals(h.getId())).findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("O turno de compensacao selecionado nao e elegivel."));
+                    .orElseThrow(() -> new IllegalArgumentException("O turno de compensação selecionado não é elegível."));
 
             PermutaFolga pf = permutaFolgaBLL.registarPedido(id, horarioD, horarioY);
             return ResponseEntity.ok(Map.of(
                     "id",      pf.getId(),
                     "estado",  pf.getEstado(),
-                    "mensagem","Pedido de permuta de folga submetido. Aguarda a aprovacao do supervisor."
+                    "mensagem","Pedido de permuta de folga submetido. Aguarda a aprovação do supervisor."
             ));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.unprocessableEntity().body(Map.of("erro", ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.internalServerError().body(Map.of("erro", "Nao foi possivel submeter o pedido."));
+            return ResponseEntity.internalServerError().body(Map.of("erro", "Não foi possível submeter o pedido."));
         }
     }
 
@@ -108,7 +108,7 @@ public class WebPermutaFolgaApiController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.unprocessableEntity().body(Map.of("erro", ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.internalServerError().body(Map.of("erro", "Nao foi possivel cancelar o pedido."));
+            return ResponseEntity.internalServerError().body(Map.of("erro", "Não foi possível cancelar o pedido."));
         }
     }
 

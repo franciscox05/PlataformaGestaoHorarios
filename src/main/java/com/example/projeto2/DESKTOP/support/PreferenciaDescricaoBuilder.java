@@ -159,9 +159,9 @@ public final class PreferenciaDescricaoBuilder {
         chkTurnoIntermedio.setSelected(n.contains("intermedio") || n.contains("tarde"));
         chkTurnoNoite.setSelected(n.contains("noite") || n.contains("fecho"));
 
-        if (n.contains("duracao preferida: curto") || n.contains(" turnos curtos")) {
+        if (n.contains("duração preferida: curto") || n.contains(" turnos curtos")) {
             cbDuracaoPreferida.setValue("Mais curto");
-        } else if (n.contains("duracao preferida: longo") || n.contains(" turnos longos")) {
+        } else if (n.contains("duração preferida: longo") || n.contains(" turnos longos")) {
             cbDuracaoPreferida.setValue("Mais longo");
         } else {
             cbDuracaoPreferida.setValue("Indiferente");

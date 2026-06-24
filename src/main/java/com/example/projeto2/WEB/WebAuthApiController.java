@@ -38,14 +38,14 @@ public class WebAuthApiController {
 
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("erro", "email e password sao obrigatorios"));
+                    .body(Map.of("erro", "Email e password são obrigatórios."));
         }
 
         try {
             Utilizador utilizador = utilizadorBLL.efetuarLogin(email, password);
             if (utilizador == null) {
                 return ResponseEntity.status(401)
-                        .body(Map.of("erro", "Credenciais invalidas"));
+                        .body(Map.of("erro", "Credenciais inválidas"));
             }
 
             webAppService.sincronizarSessao(session, utilizador);
@@ -57,13 +57,13 @@ public class WebAuthApiController {
             ));
         } catch (Exception e) {
             return ResponseEntity.status(401)
-                    .body(Map.of("erro", "Credenciais invalidas"));
+                    .body(Map.of("erro", "Credenciais inválidas"));
         }
     }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpSession session) {
         session.invalidate();
-        return ResponseEntity.ok(Map.of("mensagem", "Sessao terminada"));
+        return ResponseEntity.ok(Map.of("mensagem", "Sessão terminada"));
     }
 }

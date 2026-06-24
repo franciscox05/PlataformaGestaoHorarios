@@ -26,7 +26,7 @@ public class SegurancaService {
 
         if (passwordNormalizada == null) {
             if (obrigatoria) {
-                throw new IllegalArgumentException("Indica uma password valida.");
+                throw new IllegalArgumentException("Indica uma password válida.");
             }
             return null;
         }
@@ -37,7 +37,7 @@ public class SegurancaService {
 
     public void validarPasswordNova(String password) {
         if (password == null) {
-            throw new IllegalArgumentException("Indica uma password valida.");
+            throw new IllegalArgumentException("Indica uma password válida.");
         }
 
         if (password.length() < TAMANHO_MINIMO_PASSWORD) {
@@ -76,7 +76,7 @@ public class SegurancaService {
     public String gerarHash(String passwordEmTexto) {
         String passwordNormalizada = normalizarTexto(passwordEmTexto);
         if (passwordNormalizada == null) {
-            throw new IllegalArgumentException("Indica uma password valida.");
+            throw new IllegalArgumentException("Indica uma password válida.");
         }
         return passwordEncoder.encode(passwordNormalizada);
     }

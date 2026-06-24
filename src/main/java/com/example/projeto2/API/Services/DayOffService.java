@@ -64,23 +64,23 @@ public class DayOffService {
     @Transactional
     public DayOff registarPedidoFolga(DayOff pedido) {
         if (pedido == null) {
-            throw new IllegalArgumentException("O pedido de folga nao pode ser nulo.");
+            throw new IllegalArgumentException("O pedido de folga não pode ser nulo.");
         }
 
         if (pedido.getIdUtilizador().getId() == null) {
-            throw new IllegalArgumentException("O utilizador do pedido e obrigatorio.");
+            throw new IllegalArgumentException("O utilizador do pedido é obrigatório.");
         }
 
         if (pedido.getDataAusencia() == null) {
-            throw new IllegalArgumentException("A data de ausencia e obrigatoria.");
+            throw new IllegalArgumentException("A data de ausência é obrigatória.");
         }
 
         if (pedido.getDataAusencia().isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("A data de ausencia nao pode estar no passado.");
+            throw new IllegalArgumentException("A data de ausência não pode estar no passado.");
         }
 
         if (pedido.getTipo() == null || pedido.getTipo().isBlank()) {
-            throw new IllegalArgumentException("O tipo de ausencia e obrigatorio.");
+            throw new IllegalArgumentException("O tipo de ausência é obrigatório.");
         }
 
         boolean isBaixa = "baixa".equalsIgnoreCase(pedido.getTipo());
@@ -91,11 +91,11 @@ public class DayOffService {
             LocalDate amanha = hoje.plusDays(1);
             if (!pedido.getDataAusencia().equals(hoje) && !pedido.getDataAusencia().equals(amanha)) {
                 throw new IllegalArgumentException(
-                        "A baixa medica so pode ser registada para hoje ou para amanha.");
+                        "A baixa médica só pode ser registada para hoje ou para amanhã.");
             }
             if (pedido.getMotivo() == null || pedido.getMotivo().isBlank()) {
                 throw new IllegalArgumentException(
-                        "A justificacao e obrigatoria para uma baixa medica.");
+                        "A justificação é obrigatória para uma baixa médica.");
             }
         } else {
             java.time.YearMonth mesAtual = java.time.YearMonth.now();
@@ -103,8 +103,8 @@ public class DayOffService {
             boolean comAntecedenciaSuficiente = !pedido.getDataAusencia().isBefore(LocalDate.now().plusDays(7));
             if (!mesFuturo && !comAntecedenciaSuficiente) {
                 throw new IllegalArgumentException(
-                        "Pedidos de folga no mes atual exigem pelo menos 7 dias de antecedencia. "
-                        + "Se precisas faltar a um turno mais proximo, pede uma Permuta.");
+                        "Pedidos de folga no mês atual exigem pelo menos 7 dias de antecedência. "
+                        + "Se precisas faltar a um turno mais próximo, pede uma Permuta.");
             }
             // Validações adicionais só fazem sentido quando o horário do mês já está publicado.
             // Para meses futuros, o pedido fica pendente e é avaliado aquando da geração do horário.
@@ -154,15 +154,15 @@ public class DayOffService {
     public List<DayOff> registarPedidoFeriasIntervalo(Utilizador utilizador,
                                                        LocalDate inicio, LocalDate fim,
                                                        String motivo) {
-        if (utilizador == null) throw new IllegalArgumentException("Utilizador obrigatorio.");
-        if (inicio == null || fim == null) throw new IllegalArgumentException("Intervalo de datas obrigatorio.");
-        if (fim.isBefore(inicio)) throw new IllegalArgumentException("A data de fim nao pode ser anterior ao inicio.");
-        if (inicio.isBefore(LocalDate.now())) throw new IllegalArgumentException("A data de inicio nao pode estar no passado.");
+        if (utilizador == null) throw new IllegalArgumentException("Utilizador obrigatório.");
+        if (inicio == null || fim == null) throw new IllegalArgumentException("Intervalo de datas obrigatório.");
+        if (fim.isBefore(inicio)) throw new IllegalArgumentException("A data de fim não pode ser anterior ao início.");
+        if (inicio.isBefore(LocalDate.now())) throw new IllegalArgumentException("A data de início não pode estar no passado.");
 
         java.time.YearMonth mesAtual = java.time.YearMonth.now();
         if (java.time.YearMonth.from(inicio).equals(mesAtual) || java.time.YearMonth.from(fim).equals(mesAtual)) {
             throw new IllegalArgumentException(
-                    "Pedidos de ferias no mes atual nao sao permitidos — o horario ja esta gerado.");
+                    "Pedidos de férias no mês atual não são permitidos — o horário já está gerado.");
         }
 
         List<DayOff> pedidosCriados = new java.util.ArrayList<>();
@@ -201,7 +201,7 @@ public class DayOffService {
     @Transactional(readOnly = true)
     public List<DayOff> listarPedidosPorUtilizador(Integer idUtilizador) {
         if (idUtilizador == null) {
-            throw new IllegalArgumentException("O id do utilizador e obrigatorio.");
+            throw new IllegalArgumentException("O id do utilizador é obrigatório.");
         }
 
         return dayOffRepository.findByIdUtilizadorId(idUtilizador).stream()
@@ -225,7 +225,7 @@ public class DayOffService {
     public List<DayOff> listarPedidosPendentesParaAprovacao(Integer idUtilizadorAprovador) {
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
-                "Este utilizador nao tem permissao para aprovar folgas.");
+                "Este utilizador não tem permissão para aprovar folgas.");
 
         return dayOffRepository.findPedidosPendentesDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
@@ -236,7 +236,7 @@ public class DayOffService {
         if (idLoja == null) return listarPedidosPendentesParaAprovacao(idUtilizadorAprovador);
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
-                "Este utilizador nao tem permissao para aprovar folgas.");
+                "Este utilizador não tem permissão para aprovar folgas.");
         return dayOffRepository.findPedidosPendentesDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
@@ -269,21 +269,21 @@ public class DayOffService {
     @Transactional
     public void cancelarPedidoProprio(Integer idDayOff, Integer idUtilizador) {
         if (idDayOff == null) {
-            throw new IllegalArgumentException("O pedido selecionado e obrigatorio.");
+            throw new IllegalArgumentException("O pedido selecionado é obrigatório.");
         }
         if (idUtilizador == null) {
-            throw new IllegalArgumentException("O utilizador e obrigatorio.");
+            throw new IllegalArgumentException("O utilizador é obrigatório.");
         }
 
         DayOff pedido = dayOffRepository.findById(idDayOff)
-                .orElseThrow(() -> new IllegalArgumentException("Pedido de folga nao encontrado."));
+                .orElseThrow(() -> new IllegalArgumentException("Pedido de folga não encontrado."));
 
         if (!idUtilizador.equals(pedido.getIdUtilizador().getId())) {
-            throw new IllegalArgumentException("Nao podes cancelar um pedido que nao e teu.");
+            throw new IllegalArgumentException("Não podes cancelar um pedido que não é teu.");
         }
 
         if (!"pendente".equalsIgnoreCase(pedido.getEstado())) {
-            throw new IllegalArgumentException("So e possivel cancelar pedidos pendentes.");
+            throw new IllegalArgumentException("Só é possível cancelar pedidos pendentes.");
         }
 
         pedido.setEstado("cancelado");
@@ -327,18 +327,18 @@ public class DayOffService {
     private DayOff atualizarEstadoPedido(Integer idDayOff, Integer idUtilizadorAprovador,
                                           Integer idLoja, String novoEstado, String motivoDecisao) {
         if (idDayOff == null) {
-            throw new IllegalArgumentException("O pedido selecionado e obrigatorio.");
+            throw new IllegalArgumentException("O pedido selecionado é obrigatório.");
         }
 
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
-                "Este utilizador nao tem permissao para aprovar folgas.");
+                "Este utilizador não tem permissão para aprovar folgas.");
 
         DayOff pedido = dayOffRepository.findById(idDayOff)
-                .orElseThrow(() -> new IllegalArgumentException("Pedido de folga nao encontrado."));
+                .orElseThrow(() -> new IllegalArgumentException("Pedido de folga não encontrado."));
 
         if (!"pendente".equalsIgnoreCase(pedido.getEstado())) {
-            throw new IllegalArgumentException("Este pedido ja foi tratado.");
+            throw new IllegalArgumentException("Este pedido já foi tratado.");
         }
 
         boolean pedidoVisivelAoAprovador = dayOffRepository.findPedidosPendentesDaLoja(
@@ -347,7 +347,7 @@ public class DayOffService {
                 .anyMatch(dayOff -> dayOff.getIdDayoff().equals(idDayOff));
 
         if (!pedidoVisivelAoAprovador) {
-            throw new IllegalArgumentException("Nao tens permissao para gerir este pedido.");
+            throw new IllegalArgumentException("Não tens permissão para gerir este pedido.");
         }
 
         pedido.setEstado(novoEstado);
@@ -397,7 +397,7 @@ public class DayOffService {
                 .anyMatch(inicioTurno -> inicioTurno.isBefore(limiteMinimo));
 
         if (existeTurnoComMenosDe24Horas) {
-            throw new IllegalArgumentException("Os pedidos de folga precisam de ser feitos com pelo menos 24 horas de antecedencia em relacao ao turno.");
+            throw new IllegalArgumentException("Os pedidos de folga precisam de ser feitos com pelo menos 24 horas de antecedência em relação ao turno.");
         }
     }
 
@@ -419,7 +419,7 @@ public class DayOffService {
 
         if (!existeHorarioPublicado) {
             throw new IllegalArgumentException(
-                    "Ainda nao existe horario publicado para o mes selecionado.");
+                    "Ainda não existe horário publicado para o mês selecionado.");
         }
     }
 
@@ -428,7 +428,7 @@ public class DayOffService {
         List<Horario> turnoNoDia = horarioRepository.findHorariosPublicadosPorUtilizadorEntreDatas(
                 idUtilizador, dataAusencia, dataAusencia);
         if (turnoNoDia.isEmpty()) {
-            throw new IllegalArgumentException("Ja te encontras de folga neste dia.");
+            throw new IllegalArgumentException("Já te encontras de folga neste dia.");
         }
     }
 
@@ -478,7 +478,7 @@ public class DayOffService {
     public List<DayOff> listarHistoricoDecisoesDaLoja(Integer idUtilizadorAprovador) {
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, LojautilizadorHelper.APROVACAO,
-                "Este utilizador nao tem permissao para ver o historico de folgas.");
+                "Este utilizador não tem permissão para ver o histórico de folgas.");
         return dayOffRepository.findDecididosDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 
@@ -488,7 +488,7 @@ public class DayOffService {
         if (idLoja == null) return listarHistoricoDecisoesDaLoja(idUtilizadorAprovador);
         Lojautilizador ligacaoAtiva = lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizadorAprovador, idLoja, LojautilizadorHelper.APROVACAO,
-                "Este utilizador nao tem permissao para ver o historico de folgas.");
+                "Este utilizador não tem permissão para ver o histórico de folgas.");
         return dayOffRepository.findDecididosDaLoja(ligacaoAtiva.getIdLoja().getId());
     }
 

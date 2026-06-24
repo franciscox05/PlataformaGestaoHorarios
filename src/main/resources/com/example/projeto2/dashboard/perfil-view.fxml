@@ -4,8 +4,8 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -70,29 +70,71 @@
 
                         <Region styleClass="card-divider" maxHeight="1.0" maxWidth="Infinity" />
 
-                        <GridPane hgap="16.0" vgap="16.0">
+                        <GridPane hgap="16.0" vgap="10.0">
                             <columnConstraints>
                                 <ColumnConstraints minWidth="90.0" />
                                 <ColumnConstraints hgrow="ALWAYS" />
+                                <ColumnConstraints halignment="RIGHT" minWidth="36.0" />
                             </columnConstraints>
-                            <Label styleClass="meta-etiqueta" text="Nome" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+
+                            <Label styleClass="meta-etiqueta, meta-etiqueta-lg" text="Nome" GridPane.columnIndex="0" GridPane.rowIndex="0" />
                             <Label fx:id="lblNomePerfil" styleClass="meta-valor" text="-" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                            <Label styleClass="meta-etiqueta" text="Email" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-                            <Label fx:id="lblEmailPerfil" styleClass="meta-valor" text="-" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                            <Label styleClass="meta-etiqueta" text="Telem&#243;vel" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-                            <Label fx:id="lblTelemovelPerfil" styleClass="meta-valor" text="-" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                            <Label styleClass="meta-etiqueta" text="Estado" GridPane.columnIndex="0" GridPane.rowIndex="3" />
-                            <Label fx:id="lblEstadoPerfil" styleClass="meta-valor" text="-" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                            <Button onAction="#onEditarNomeClick" styleClass="botao-editar-campo"
+                                    GridPane.columnIndex="2" GridPane.rowIndex="0">
+                                <graphic>
+                                    <SVGPath styleClass="icon-pencil"
+                                             content="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                             scaleX="0.58" scaleY="0.58" />
+                                </graphic>
+                                <tooltip>
+                                    <Tooltip text="Editar nome" />
+                                </tooltip>
+                            </Button>
+                            <Region styleClass="campo-linha-divisor" maxHeight="1.0" maxWidth="Infinity"
+                                    GridPane.columnIndex="0" GridPane.columnSpan="3" GridPane.rowIndex="1" />
+
+                            <Label styleClass="meta-etiqueta, meta-etiqueta-lg" text="Email" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                            <Label fx:id="lblEmailPerfil" styleClass="meta-valor" text="-" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                            <Button onAction="#onEditarEmailClick" styleClass="botao-editar-campo"
+                                    GridPane.columnIndex="2" GridPane.rowIndex="2">
+                                <graphic>
+                                    <SVGPath styleClass="icon-pencil"
+                                             content="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                             scaleX="0.58" scaleY="0.58" />
+                                </graphic>
+                                <tooltip>
+                                    <Tooltip text="Editar email" />
+                                </tooltip>
+                            </Button>
+                            <Region styleClass="campo-linha-divisor" maxHeight="1.0" maxWidth="Infinity"
+                                    GridPane.columnIndex="0" GridPane.columnSpan="3" GridPane.rowIndex="3" />
+
+                            <Label styleClass="meta-etiqueta, meta-etiqueta-lg" text="Telem&#243;vel" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                            <Label fx:id="lblTelemovelPerfil" styleClass="meta-valor" text="-" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                            <Button onAction="#onEditarTelemovelClick" styleClass="botao-editar-campo"
+                                    GridPane.columnIndex="2" GridPane.rowIndex="4">
+                                <graphic>
+                                    <SVGPath styleClass="icon-pencil"
+                                             content="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                             scaleX="0.58" scaleY="0.58" />
+                                </graphic>
+                                <tooltip>
+                                    <Tooltip text="Editar telem&#243;vel" />
+                                </tooltip>
+                            </Button>
                         </GridPane>
 
                         <Region VBox.vgrow="ALWAYS" />
 
-                        <FlowPane hgap="10.0" vgap="10.0">
-                            <Button onAction="#onEditarNomeClick"      styleClass="botao-acao-sm" text="&#9998;  Nome" />
-                            <Button onAction="#onEditarEmailClick"     styleClass="botao-acao-sm" text="&#9998;  Email" />
-                            <Button onAction="#onEditarTelemovelClick" styleClass="botao-acao-sm" text="&#9998;  Telem&#243;vel" />
-                            <Button onAction="#onAlterarPasswordClick" styleClass="botao-danger-sm" text="&#128274;  Password" />
-                        </FlowPane>
+                        <Region styleClass="card-divider" maxHeight="1.0" maxWidth="Infinity" />
+
+                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                            <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                                <Label styleClass="campo-titulo" text="Seguran&#231;a" />
+                                <Label styleClass="texto-ajuda" text="Palavra-passe de acesso a esta conta." wrapText="true" />
+                            </VBox>
+                            <Button onAction="#onAlterarPasswordClick" styleClass="botao-danger-sm" text="&#128274;  Alterar Password" />
+                        </HBox>
                     </VBox>
 
                     <VBox spacing="20.0" styleClass="bento-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
@@ -115,13 +157,13 @@
                                 <ColumnConstraints minWidth="110.0" />
                                 <ColumnConstraints hgrow="ALWAYS" />
                             </columnConstraints>
-                            <Label styleClass="meta-etiqueta" text="Loja" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                            <Label styleClass="meta-etiqueta, meta-etiqueta-lg" text="Loja" GridPane.columnIndex="0" GridPane.rowIndex="0" />
                             <Label fx:id="lblLojaAtual" styleClass="meta-valor" text="-" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                            <Label styleClass="meta-etiqueta" text="Cargo" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                            <Label styleClass="meta-etiqueta, meta-etiqueta-lg" text="Cargo" GridPane.columnIndex="0" GridPane.rowIndex="1" />
                             <Label fx:id="lblCargoAtual" styleClass="meta-valor" text="-" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                            <Label styleClass="meta-etiqueta" text="Entrada" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                            <Label styleClass="meta-etiqueta, meta-etiqueta-lg" text="Entrada" GridPane.columnIndex="0" GridPane.rowIndex="2" />
                             <Label fx:id="lblDataEntrada" styleClass="meta-valor" text="-" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                            <Label styleClass="meta-etiqueta" text="Pr&#243;x. turno" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                            <Label styleClass="meta-etiqueta, meta-etiqueta-lg" text="Pr&#243;x. turno" GridPane.columnIndex="0" GridPane.rowIndex="3" />
                             <Label fx:id="lblProximoTurno" styleClass="meta-valor-destaque" text="-" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="3" />
                         </GridPane>
 

@@ -56,6 +56,7 @@ public class EditarTelemovelController {
 
         if (utilizadorLogado != null && utilizadorLogado.getTelemovel() != null && !utilizadorLogado.getTelemovel().isBlank()) {
             txtTelemovelAtual.setText(utilizadorLogado.getTelemovel());
+            txtTelemovel.setPromptText(utilizadorLogado.getTelemovel());
         } else {
             txtTelemovelAtual.setText("Não definido");
         }

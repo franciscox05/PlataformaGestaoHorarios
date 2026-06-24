@@ -1,6 +1,7 @@
 package com.example.projeto2.DESKTOP.support;
 
 import com.example.projeto2.API.Modules.Horario;
+import com.example.projeto2.API.Modules.Turno;
 import com.example.projeto2.API.Services.geracao.dto.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -192,7 +193,26 @@ public final class DetalheDiaDialog {
                                 Comparator.nullsLast(String::compareToIgnoreCase)))
                 .toList();
 
-        if (turnosDia.isEmpty()) return;
+        // Colaboradores da equipa (qualquer turno publicado no mês carregado) SEM turno
+        // neste dia em concreto = de folga. Um representante por colaborador.
+        Set<Integer> comTurnoHoje = turnosDia.stream()
+                .map(DetalheDiaDialog::idColaboradorHorario)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Integer, Horario> equipaPorColaborador = new LinkedHashMap<>();
+        for (Horario h : horarios) {
+            Integer idColab = idColaboradorHorario(h);
+            if (idColab == null) continue;
+            equipaPorColaborador.putIfAbsent(idColab, h);
+        }
+        List<Horario> folgasDia = equipaPorColaborador.values().stream()
+                .filter(h -> !comTurnoHoje.contains(idColaboradorHorario(h)))
+                .sorted(Comparator.comparing(DetalheDiaDialog::nomeColaborador,
+                        Comparator.nullsLast(String::compareToIgnoreCase)))
+                .toList();
+
+        if (turnosDia.isEmpty() && folgasDia.isEmpty()) return;
 
         VBox listaTurnos = new VBox(10.0);
         listaTurnos.getStyleClass().add("detalhe-dia-lista");
@@ -200,12 +220,30 @@ public final class DetalheDiaDialog {
             listaTurnos.getChildren().add(criarCardPublicado(turno));
         }
 
+        if (!folgasDia.isEmpty()) {
+            listaTurnos.getChildren().add(tituloSeccao("DE FOLGA NESTE DIA", !turnosDia.isEmpty()));
+            for (Horario representante : folgasDia) {
+                listaTurnos.getChildren().add(criarCardFolgaPublicado(representante));
+            }
+        }
+
+        String subtitulo = turnosDia.isEmpty()
+                ? "Ninguém com turno neste dia — toda a equipa está de folga."
+                : turnosDia.size() + " turno(s) publicado(s) · " + folgasDia.size() + " de folga.";
+
+        ScrollPane scroll = new ScrollPane(listaTurnos);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setMaxHeight(440.0);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;");
+
         DialogosHelper.mostrarConteudo(
                 owner,
                 "DETALHE DO DIA",
                 capitalizar(data.format(FORMATO_DIA)),
-                turnosDia.size() + " turno(s) publicado(s) para a equipa neste dia.",
-                listaTurnos
+                subtitulo,
+                scroll
         );
     }
 
@@ -222,12 +260,37 @@ public final class DetalheDiaDialog {
         String cargoNome = turno.getIdLojautilizador() != null && turno.getIdLojautilizador().getIdCargo() != null
                 ? turno.getIdLojautilizador().getIdCargo().getNome()
                 : null;
-        String estadoNome = turno.getEstado() != null ? capitalizar(turno.getEstado().name()) : null;
-        Label cargo = new Label(valorOuTraco(cargoNome) + " · " + valorOuTraco(estadoNome));
+        Label cargo = new Label(valorOuTraco(cargoNome) + " · " + valorOuTraco(nomeTurno(turno)));
         cargo.getStyleClass().add("detalhe-dia-cargo");
         cargo.setWrapText(true);
 
         card.getChildren().addAll(periodo, colaborador, cargo);
+        return card;
+    }
+
+    /** Cartão read-only de um colaborador da equipa sem turno publicado neste dia (de folga). */
+    private static VBox criarCardFolgaPublicado(Horario representante) {
+        VBox card = new VBox(3.0);
+        card.getStyleClass().add("detalhe-dia-turno-card");
+        card.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-width: 1; "
+                + "-fx-border-radius: 10; -fx-background-radius: 10; -fx-opacity: 0.92;");
+
+        Label estado = new Label("Folga");
+        estado.getStyleClass().add("detalhe-dia-periodo");
+        estado.setStyle("-fx-text-fill: #64748b;");
+
+        Label colaborador = new Label(valorOuTraco(nomeColaborador(representante)));
+        colaborador.getStyleClass().add("detalhe-dia-colaborador");
+
+        String cargoNome = representante.getIdLojautilizador() != null
+                && representante.getIdLojautilizador().getIdCargo() != null
+                ? representante.getIdLojautilizador().getIdCargo().getNome()
+                : null;
+        Label cargo = new Label(valorOuTraco(cargoNome) + " · sem turno");
+        cargo.getStyleClass().add("detalhe-dia-cargo");
+        cargo.setWrapText(true);
+
+        card.getChildren().addAll(estado, colaborador, cargo);
         return card;
     }
 
@@ -237,6 +300,21 @@ public final class DetalheDiaDialog {
             return null;
         }
         return h.getIdLojautilizador().getIdUtilizador().getNome();
+    }
+
+    private static Integer idColaboradorHorario(Horario h) {
+        if (h == null || h.getIdLojautilizador() == null
+                || h.getIdLojautilizador().getIdUtilizador() == null) {
+            return null;
+        }
+        return h.getIdLojautilizador().getIdUtilizador().getId();
+    }
+
+    private static String nomeTurno(Horario h) {
+        if (h == null || h.getIdTurno() == null) return null;
+        Turno t = h.getIdTurno();
+        if (t.getNome() != null && !t.getNome().isBlank()) return t.getNome();
+        return t.getTipo() != null ? capitalizar(t.getTipo()) : null;
     }
 
     private static String formatarPeriodo(Horario h) {

@@ -136,7 +136,7 @@ class RegrasGestaoPublicacaoValidationTest extends FluxosCriticosTestSupport {
                 )
         );
 
-        assertTrue(erro.getMessage().contains("tinha de ser lancada ate"));
+        assertTrue(erro.getMessage().contains("tinha de ser lançada até"));
         assertTrue(erro.getMessage().contains(String.valueOf(referenciaProximoMes.getYear())));
     }
 

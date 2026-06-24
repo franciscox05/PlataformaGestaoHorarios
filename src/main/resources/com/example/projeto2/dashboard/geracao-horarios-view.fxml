@@ -314,7 +314,7 @@
                                                 <TableColumn fx:id="colPropostaRotulo"    text="Proposta"  prefWidth="300.0" minWidth="240.0"/>
                                                 <TableColumn fx:id="colPropostaEstado"    text="Estado"    prefWidth="120.0"/>
                                                 <TableColumn fx:id="colPropostaData"      text="Gerada em" prefWidth="150.0"/>
-                                                <TableColumn fx:id="colPropostaScore"     text="Score"     prefWidth="80.0"/>
+                                                <TableColumn fx:id="colPropostaScore"     text="Índice"    prefWidth="80.0"/>
                                                 <TableColumn fx:id="colPropostaQualidade" text="Qualidade" prefWidth="90.0"/>
                                                 <TableColumn fx:id="colPropostaTurnos"    text="Turnos"    prefWidth="75.0"/>
                                             </columns>
@@ -433,7 +433,7 @@
                                                 <Label fx:id="lblPoliticaOtimizacao" styleClass="meta-valor" text="-"/>
                                             </VBox>
                                             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
-                                                <Label styleClass="meta-etiqueta" text="Score"/>
+                                                <Label styleClass="meta-etiqueta" text="&#205;ndice de Otimiza&#231;&#227;o"/>
                                                 <Label fx:id="lblPontuacaoOtimizacao" styleClass="meta-valor" text="-"/>
                                             </VBox>
                                         </HBox>

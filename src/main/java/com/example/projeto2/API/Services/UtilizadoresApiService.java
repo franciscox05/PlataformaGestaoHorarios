@@ -23,7 +23,7 @@ public class UtilizadoresApiService {
     @Transactional(readOnly = true)
     public UtilizadorResponse obterUtilizador(Integer idUtilizador) {
         Utilizador utilizador = utilizadorRepository.findById(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Utilizador nao encontrado."));
+                .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado."));
 
         return toResponse(utilizador);
     }
@@ -31,7 +31,7 @@ public class UtilizadoresApiService {
     @Transactional
     public UtilizadorResponse criarUtilizador(Integer idGestor, CriarUtilizadorRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Os dados do utilizador sao obrigatorios.");
+            throw new IllegalArgumentException("Os dados do utilizador são obrigatórios.");
         }
 
         Integer idCriado = gestaoFuncionariosBLL.guardarColaborador(

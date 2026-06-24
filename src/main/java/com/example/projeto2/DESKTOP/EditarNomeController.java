@@ -46,6 +46,7 @@ public class EditarNomeController {
 
         if (utilizadorLogado != null && utilizadorLogado.getNome() != null && !utilizadorLogado.getNome().isBlank()) {
             txtNomeAtual.setText(utilizadorLogado.getNome());
+            txtNomeNovo.setPromptText(utilizadorLogado.getNome());
         } else {
             txtNomeAtual.setText("Não definido");
         }

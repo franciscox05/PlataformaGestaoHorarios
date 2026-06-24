@@ -35,8 +35,8 @@
 
             <Region minHeight="24.0" />
 
-            <HBox alignment="TOP_LEFT" spacing="16.0">
-                <VBox fx:id="painelFormulario" spacing="14.0" styleClass="bento-card" HBox.hgrow="ALWAYS" prefWidth="0">
+            <VBox alignment="TOP_LEFT" spacing="16.0">
+                <VBox fx:id="painelFormulario" spacing="14.0" styleClass="bento-card">
                     <Label fx:id="lblTituloFormulario" styleClass="card-titulo" text="Nova Prefer&#234;ncia" />
 
                     <VBox spacing="5.0">
@@ -117,7 +117,7 @@
                     </HBox>
                 </VBox>
 
-                <VBox spacing="10.0" styleClass="bento-card" HBox.hgrow="ALWAYS" prefWidth="0">
+                <VBox spacing="10.0" styleClass="bento-card" prefHeight="320.0">
                     <Label styleClass="card-titulo" text="As minhas prefer&#234;ncias" />
                     <Label styleClass="subtitulo" text="Hist&#243;rico das prefer&#234;ncias que registaste." />
                     <TableView fx:id="tabelaPreferencias" VBox.vgrow="ALWAYS" styleClass="tabela-premium">
@@ -133,7 +133,7 @@
                         </columns>
                     </TableView>
                 </VBox>
-            </HBox>
+            </VBox>
 
             <Region minHeight="20.0" />
 

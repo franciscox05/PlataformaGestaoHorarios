@@ -11,7 +11,7 @@
 }
 
 .login-backdrop-image {
-    -fx-background-image: url("../imagens/login/fundologin.png");
+    -fx-background-image: url("../imagens/login/fundologin_4k.png");
     -fx-background-repeat: no-repeat;
     -fx-background-position: center center;
     -fx-background-size: cover;
@@ -19,7 +19,7 @@
 
 .login-backdrop-overlay {
     -fx-background-color:
-        linear-gradient(to right, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.20) 48%, rgba(0,0,0,0.62) 100%);
+        linear-gradient(to right, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.50) 48%, rgba(0,0,0,0.76) 100%);
 }
 
 .login-layout {
@@ -157,12 +157,28 @@
 .botao-mostrar-senha {
     -fx-background-color: transparent;
     -fx-background-radius: 100;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
     -fx-border-radius: 100;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
     -fx-cursor: hand;
+    -fx-pref-width: 34px;
+    -fx-pref-height: 34px;
+    -fx-padding: 7px;
 }
 
 .botao-mostrar-senha:hover {
-    -fx-background-color: rgba(196,18,48,0.07);
+    -fx-background-color: rgba(201,20,40,0.08);
+}
+
+.botao-mostrar-senha:focused {
+    -fx-background-color: transparent;
+}
+
+.botao-mostrar-senha:pressed {
+    -fx-background-color: rgba(201,20,40,0.14);
 }
 
 /* ── BOTÕES ────────────────────────────────────────────────────────── */

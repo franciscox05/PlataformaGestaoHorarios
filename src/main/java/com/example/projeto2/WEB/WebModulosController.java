@@ -37,12 +37,12 @@ public class WebModulosController {
 
     @GetMapping("/gestao-loja")
     public String gestaoLoja(HttpSession session, Model model) {
-        return moduloPlaceholder(session, model, "gestao-loja", "Gestao de loja");
+        return moduloPlaceholder(session, model, "gestao-loja", "Gestão de loja");
     }
 
     @GetMapping("/relatorios")
     public String relatorios(HttpSession session, Model model) {
-        return moduloPlaceholder(session, model, "relatorios", "Relatorios");
+        return moduloPlaceholder(session, model, "relatorios", "Relatórios");
     }
 
     @GetMapping("/relatorios/exportar.csv")

@@ -10,6 +10,7 @@ import com.example.projeto2.DESKTOP.support.FolgasPainelSection;
 import com.example.projeto2.DESKTOP.support.PainelPedidosCoordinator;
 import com.example.projeto2.DESKTOP.support.PermutasPainelSection;
 import com.example.projeto2.DESKTOP.support.PreferenciasPainelSection;
+import com.example.projeto2.DESKTOP.support.TabelaHelper;
 import static com.example.projeto2.DESKTOP.support.PedidosFormatters.descreverPedido;
 import static com.example.projeto2.DESKTOP.support.PedidosFormatters.descreverPeriodoContexto;
 import static com.example.projeto2.DESKTOP.support.PedidosFormatters.formatarAusenciasColaborador;
@@ -27,7 +28,9 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
@@ -287,9 +290,28 @@ public class PainelGerentePedidosController {
         TableColumn<DayOff, String> cMotivo = new TableColumn<>("Motivo");
         cMotivo.setCellValueFactory(c -> new SimpleStringProperty(
                 c.getValue().getMotivo() != null && !c.getValue().getMotivo().isBlank() ? c.getValue().getMotivo() : "-"));
+        cMotivo.setCellFactory(col -> criarCelulaTextoLongo());
 
         tabela.getColumns().addAll(cColaborador, cData, cTipo, cEstado, cMotivo);
         tabela.setMinHeight(360);
+        tabela.setRowFactory(tv -> {
+            TableRow<DayOff> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    DayOff item = row.getItem();
+                    String nome = item.getIdUtilizador() != null ? item.getIdUtilizador().getNome() : "-";
+                    String motivo = item.getMotivo() != null && !item.getMotivo().isBlank() ? item.getMotivo() : "-";
+
+                    LinkedHashMap<String, String> campos = new LinkedHashMap<>();
+                    campos.put("Data de Ausência", item.getDataAusencia() != null ? item.getDataAusencia().format(DATA_FMT) : "-");
+                    campos.put("Tipo", formatarTipoFolga(item.getTipo()));
+
+                    mostrarDetalhePedido(row.getScene().getWindow(), "Pedido de Folga", nome, item.getEstado(),
+                            campos, "Motivo", motivo);
+                }
+            });
+            return row;
+        });
 
         abrirDialogoPaginado("Histórico de Decisões — Folgas", tabela, historico);
     }
@@ -358,6 +380,28 @@ public class PainelGerentePedidosController {
         cDescricao.setCellValueFactory(c -> new SimpleStringProperty(
                 c.getValue().getDescricao() != null && !c.getValue().getDescricao().isBlank()
                         ? c.getValue().getDescricao() : "-"));
+        cDescricao.setCellFactory(col -> criarCelulaTextoLongo());
+
+        tabela.setRowFactory(tv -> {
+            TableRow<Preferencia> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    Preferencia item = row.getItem();
+                    String nome = item.getIdUtilizador() != null ? item.getIdUtilizador().getNome() : "-";
+                    String descricao = item.getDescricao() != null && !item.getDescricao().isBlank()
+                            ? item.getDescricao() : "-";
+
+                    LinkedHashMap<String, String> campos = new LinkedHashMap<>();
+                    campos.put("Período", (item.getDataInicio() != null ? item.getDataInicio().format(DATA_FMT) : "∞")
+                            + " – " + (item.getDataFim() != null ? item.getDataFim().format(DATA_FMT) : "∞"));
+                    campos.put("Tipo", capitalizar(item.getTipo()));
+
+                    mostrarDetalhePedido(row.getScene().getWindow(), "Preferência", nome, item.getEstado(),
+                            campos, "Descrição", descricao);
+                }
+            });
+            return row;
+        });
 
         tabela.getColumns().addAll(cColaborador, cTipo, cPeriodo, cEstado, cDescricao);
         tabela.setMinHeight(300);
@@ -433,14 +477,129 @@ public class PainelGerentePedidosController {
         dialog.setHeaderText(null);
         dialog.initModality(Modality.WINDOW_MODAL);
         dialog.initOwner(obterJanela());
+        dialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("/com/example/projeto2/dashboard/dashboard.css").toExternalForm());
         dialog.getDialogPane().setContent(conteudo);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         Node btnFechar = dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
-        if (btnFechar instanceof Button b) b.setText("Fechar");
+        if (btnFechar instanceof Button b) {
+            b.setText("Fechar");
+            b.getStyleClass().add("botao-secundario");
+        }
         dialog.showAndWait();
     }
 
+    private void mostrarDetalhePedido(Window owner, String tipoPedido, String colaborador, String estado,
+                                       LinkedHashMap<String, String> campos, String motivoTitulo, String motivoTexto) {
+        Label lblTipo = new Label(tipoPedido.toUpperCase(Locale.ROOT));
+        lblTipo.getStyleClass().add("detalhe-pedido-subtitulo");
+
+        Label lblNome = new Label(colaborador);
+        lblNome.getStyleClass().add("detalhe-pedido-nome");
+
+        Label lblBadge = new Label(capitalizar(estado));
+        lblBadge.getStyleClass().addAll("pedido-resumo-badge", classeBadgeEstado(estado));
+
+        Region espacador = new Region();
+        HBox.setHgrow(espacador, Priority.ALWAYS);
+        HBox linhaTopo = new HBox(10, lblNome, espacador, lblBadge);
+        linhaTopo.setAlignment(Pos.CENTER_LEFT);
+
+        VBox cabecalho = new VBox(2, lblTipo, linhaTopo);
+
+        GridPane grade = new GridPane();
+        grade.getStyleClass().add("detalhe-pedido-grid");
+        grade.setHgap(28);
+        grade.setVgap(12);
+        int linha = 0;
+        int coluna = 0;
+        for (Map.Entry<String, String> campo : campos.entrySet()) {
+            Label lblLabel = new Label(campo.getKey().toUpperCase(Locale.ROOT));
+            lblLabel.getStyleClass().add("detalhe-pedido-campo-label");
+            Label lblValor = new Label(campo.getValue());
+            lblValor.getStyleClass().add("detalhe-pedido-campo-valor");
+            lblValor.setWrapText(true);
+            VBox bloco = new VBox(3, lblLabel, lblValor);
+            grade.add(bloco, coluna, linha);
+            coluna++;
+            if (coluna == 2) {
+                coluna = 0;
+                linha++;
+            }
+        }
+
+        Label lblMotivoTitulo = new Label(motivoTitulo);
+        lblMotivoTitulo.getStyleClass().add("detalhe-pedido-motivo-titulo");
+
+        TextArea area = new TextArea(motivoTexto);
+        area.setEditable(false);
+        area.setWrapText(true);
+        area.setPrefRowCount(8);
+        area.getStyleClass().add("detalhe-pedido-motivo-area");
+
+        VBox conteudo = new VBox(14, cabecalho, grade, lblMotivoTitulo, area);
+        conteudo.getStyleClass().add("detalhe-pedido-conteudo");
+        conteudo.setPadding(new Insets(20));
+        conteudo.setPrefWidth(480);
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Detalhe do Pedido");
+        dialog.setHeaderText(null);
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.initOwner(owner);
+        dialog.getDialogPane().getStyleClass().add("detalhe-pedido-dialog");
+        dialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("/com/example/projeto2/dashboard/dashboard.css").toExternalForm());
+        dialog.getDialogPane().setContent(conteudo);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        Node btnFechar = dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
+        if (btnFechar instanceof Button b) {
+            b.setText("Fechar");
+            b.getStyleClass().add("botao-secundario");
+        }
+        dialog.showAndWait();
+    }
+
+    private String classeBadgeEstado(String estado) {
+        if (estado == null) return "badge-rascunho";
+        return switch (estado.toLowerCase(Locale.ROOT)) {
+            case "aprovado", "aprovada" -> "badge-aprovado";
+            case "rejeitado", "rejeitada", "recusado", "recusada" -> "badge-rejeitado";
+            case "pendente" -> "badge-pendente";
+            default -> "badge-rascunho";
+        };
+    }
+
+    private <T> TableCell<T, String> criarCelulaTextoLongo() {
+        return new TableCell<>() {
+            private final Label label = new Label();
+            private final Tooltip tooltip = new Tooltip();
+            {
+                label.getStyleClass().add("texto-celula-longa");
+                label.setWrapText(true);
+                label.prefWidthProperty().bind(widthProperty().subtract(20));
+            }
+
+            @Override
+            protected void updateItem(String texto, boolean empty) {
+                super.updateItem(texto, empty);
+                if (empty || texto == null) {
+                    setGraphic(null);
+                    setText(null);
+                    setTooltip(null);
+                    return;
+                }
+                label.setText(texto);
+                setGraphic(label);
+                setText(null);
+                tooltip.setText(texto + "\n\n(duplo clique no registo para ver na totalidade)");
+                setTooltip(tooltip);
+            }
+        };
+    }
+
     private <T> void abrirDialogoPaginado(String titulo, TableView<T> tabela, List<T> dados) {
+        TabelaHelper.prepararTabela(tabela);
         int[] paginaAtual = {0};
         int total = dados.size();
         int totalPaginas = Math.max(1, (int) Math.ceil((double) total / ITENS_POR_PAGINA));
@@ -478,10 +637,15 @@ public class PainelGerentePedidosController {
         dialog.setHeaderText(null);
         dialog.initModality(Modality.WINDOW_MODAL);
         dialog.initOwner(obterJanela());
+        dialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("/com/example/projeto2/dashboard/dashboard.css").toExternalForm());
         dialog.getDialogPane().setContent(conteudo);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         Node btnFechar = dialog.getDialogPane().lookupButton(ButtonType.CLOSE);
-        if (btnFechar instanceof Button b) b.setText("Fechar");
+        if (btnFechar instanceof Button b) {
+            b.setText("Fechar");
+            b.getStyleClass().add("botao-secundario");
+        }
         dialog.showAndWait();
     }
 

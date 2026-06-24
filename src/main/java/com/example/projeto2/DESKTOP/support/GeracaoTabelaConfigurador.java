@@ -64,7 +64,7 @@ public final class GeracaoTabelaConfigurador {
         // Seleção única: o gestor escolhe UMA alternativa para rever/enviar; a comparação
         // de duas propostas é feita pelos combos dedicados (base/alvo), não por multi-seleção.
         tabela.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        // Colunas fixas — a ordem (Proposta · Estado · Score · Qualidade · Turnos) é estável e previsível.
+        // Colunas fixas — a ordem (Proposta · Estado · Índice · Qualidade · Turnos) é estável e previsível.
         for (TableColumn<PropostaResumo, String> c
                 : java.util.List.of(colRotulo, colEstado, colData, colScore, colQualidade, colTurnos)) {
             c.setReorderable(false);

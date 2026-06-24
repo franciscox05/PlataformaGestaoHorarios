@@ -14,7 +14,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -23,7 +22,6 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -59,6 +57,7 @@ public class PermutasController {
     @FXML private TableColumn<Permuta, String> colTurnoOrigem;
     @FXML private TableColumn<Permuta, String> colTurnoDestino;
     @FXML private TableColumn<Permuta, String> colEstadoPermuta;
+    @FXML private TableColumn<Permuta, Permuta> colAcaoPermuta;
     // ── FXML fields — permuta de folga ────────────────────────────────────────────
 
     @FXML private ComboBox<Horario>       cbMeuTurnoFolga;
@@ -70,6 +69,7 @@ public class PermutasController {
     @FXML private TableColumn<PermutaFolga, String> colPfDiaD;
     @FXML private TableColumn<PermutaFolga, String> colPfDiaY;
     @FXML private TableColumn<PermutaFolga, String> colPfEstado;
+    @FXML private TableColumn<PermutaFolga, PermutaFolga> colPfAcao;
 
     // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -124,7 +124,7 @@ public class PermutasController {
         );
         permutaFolgaHelper = new PermutaFolgaHelper(
                 cbMeuTurnoFolga, cbCompensacaoFolga, btnSubmeterPermutaFolga, lblMensagemFolga,
-                tabelaPermutasFolga, colPfDataPedido, colPfDiaD, colPfDiaY, colPfEstado,
+                tabelaPermutasFolga, colPfDataPedido, colPfDiaD, colPfDiaY, colPfEstado, colPfAcao,
                 permutaFolgaBll, this::obterJanela);
         permutaFolgaHelper.configurar();
     }
@@ -213,21 +213,25 @@ public class PermutasController {
                     case "rejeitado" -> badge.getStyleClass().add("badge-rejeitado");
                     default          -> badge.getStyleClass().add("badge-rascunho");
                 }
-                if ("pendente".equalsIgnoreCase(estado)) {
-                    Button btnCancelar = new Button("✕");
-                    btnCancelar.getStyleClass().add("botao-cancelar-pedido");
-                    btnCancelar.setTooltip(new Tooltip("Cancelar este pedido pendente"));
-                    btnCancelar.setOnAction(ev -> {
-                        Permuta permuta = getTableView().getItems().get(getIndex());
-                        cancelarPermutaPropria(permuta);
-                    });
-                    HBox cell = new HBox(6, badge, btnCancelar);
-                    cell.setAlignment(Pos.CENTER_LEFT);
-                    setGraphic(cell);
-                } else {
-                    setGraphic(badge);
-                }
+                setGraphic(badge);
                 setText(null);
+            }
+        });
+        colAcaoPermuta.setCellValueFactory(cd -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cd.getValue()));
+        colAcaoPermuta.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Permuta permuta, boolean empty) {
+                super.updateItem(permuta, empty);
+                if (empty || permuta == null || permuta.getEstado() == null
+                        || !"pendente".equalsIgnoreCase(permuta.getEstado().name())) {
+                    setGraphic(null);
+                    return;
+                }
+                Button btnCancelar = new Button("Cancelar");
+                btnCancelar.getStyleClass().add("botao-cancelar-pedido-texto");
+                btnCancelar.setTooltip(new Tooltip("Cancelar este pedido pendente"));
+                btnCancelar.setOnAction(ev -> cancelarPermutaPropria(getTableView().getItems().get(getIndex())));
+                setGraphic(btnCancelar);
             }
         });
     }

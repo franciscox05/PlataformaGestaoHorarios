@@ -6,7 +6,6 @@ import com.example.projeto2.API.Modules.Utilizador;
 import com.example.projeto2.API.Services.PermutaFolgaService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -14,7 +13,6 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
-import javafx.scene.layout.HBox;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
 
@@ -37,6 +35,7 @@ public final class PermutaFolgaHelper {
     private final TableColumn<PermutaFolga, String> colPfDiaD;
     private final TableColumn<PermutaFolga, String> colPfDiaY;
     private final TableColumn<PermutaFolga, String> colPfEstado;
+    private final TableColumn<PermutaFolga, PermutaFolga> colPfAcao;
 
     private final PermutaFolgaService service;
     private final Supplier<Window> janelaSupplier;
@@ -54,6 +53,7 @@ public final class PermutaFolgaHelper {
             TableColumn<PermutaFolga, String> colPfDiaD,
             TableColumn<PermutaFolga, String> colPfDiaY,
             TableColumn<PermutaFolga, String> colPfEstado,
+            TableColumn<PermutaFolga, PermutaFolga> colPfAcao,
             PermutaFolgaService service,
             Supplier<Window> janelaSupplier) {
         this.cbMeuTurnoFolga         = cbMeuTurnoFolga;
@@ -65,6 +65,7 @@ public final class PermutaFolgaHelper {
         this.colPfDiaD               = colPfDiaD;
         this.colPfDiaY               = colPfDiaY;
         this.colPfEstado             = colPfEstado;
+        this.colPfAcao               = colPfAcao;
         this.service                 = service;
         this.janelaSupplier          = janelaSupplier;
     }
@@ -87,6 +88,8 @@ public final class PermutaFolgaHelper {
         colPfDiaY.setCellValueFactory(c -> new SimpleStringProperty(formatarTurnoCompensacao(c.getValue().getIdHorarioY())));
         colPfEstado.setCellValueFactory(c -> new SimpleStringProperty(formatarEstado(c.getValue().getEstado())));
         colPfEstado.setCellFactory(col -> criarCelulaEstado());
+        colPfAcao.setCellValueFactory(c -> new javafx.beans.property.ReadOnlyObjectWrapper<>(c.getValue()));
+        colPfAcao.setCellFactory(col -> criarCelulaAcao());
 
         btnSubmeterPermutaFolga.disableProperty().bind(
                 cbMeuTurnoFolga.getSelectionModel().selectedItemProperty().isNull()
@@ -203,21 +206,26 @@ public final class PermutaFolgaHelper {
                     case "rejeitado" -> badge.getStyleClass().add("badge-rejeitado");
                     default          -> badge.getStyleClass().add("badge-rascunho");
                 }
-                if ("pendente".equalsIgnoreCase(estado)) {
-                    Button btnCancel = new Button("✕");
-                    btnCancel.getStyleClass().add("botao-cancelar-pedido");
-                    btnCancel.setTooltip(new Tooltip("Cancelar este pedido pendente"));
-                    btnCancel.setOnAction(ev -> {
-                        PermutaFolga pf = getTableView().getItems().get(getIndex());
-                        cancelarPermutaFolga(pf);
-                    });
-                    HBox cell = new HBox(6, badge, btnCancel);
-                    cell.setAlignment(Pos.CENTER_LEFT);
-                    setGraphic(cell);
-                } else {
-                    setGraphic(badge);
-                }
+                setGraphic(badge);
                 setText(null);
+            }
+        };
+    }
+
+    private TableCell<PermutaFolga, PermutaFolga> criarCelulaAcao() {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(PermutaFolga pf, boolean empty) {
+                super.updateItem(pf, empty);
+                if (empty || pf == null || !"pendente".equalsIgnoreCase(pf.getEstado())) {
+                    setGraphic(null);
+                    return;
+                }
+                Button btnCancel = new Button("Cancelar");
+                btnCancel.getStyleClass().add("botao-cancelar-pedido-texto");
+                btnCancel.setTooltip(new Tooltip("Cancelar este pedido pendente"));
+                btnCancel.setOnAction(ev -> cancelarPermutaFolga(getTableView().getItems().get(getIndex())));
+                setGraphic(btnCancel);
             }
         };
     }

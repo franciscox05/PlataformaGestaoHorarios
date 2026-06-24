@@ -136,15 +136,15 @@ public class GestaoLojaService {
     @Transactional
     public void guardarConfiguracao(Integer idUtilizador, ConfiguracaoLojaRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("A configuracao da loja e obrigatoria.");
+            throw new IllegalArgumentException("A configuração da loja é obrigatória.");
         }
 
         if (request.horaAbertura() == null || request.horaFecho() == null) {
-            throw new IllegalArgumentException("As horas de abertura e fecho sao obrigatorias.");
+            throw new IllegalArgumentException("As horas de abertura e fecho são obrigatórias.");
         }
 
         if (request.horaAbertura().equals(request.horaFecho())) {
-            throw new IllegalArgumentException("A hora de abertura e a hora de fecho nao podem ser iguais.");
+            throw new IllegalArgumentException("A hora de abertura e a hora de fecho não podem ser iguais.");
         }
 
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
@@ -214,11 +214,11 @@ public class GestaoLojaService {
                 }
 
                 Regra regra = regraRepository.findById(regraRequest.idRegra())
-                        .orElseThrow(() -> new IllegalArgumentException("Foi encontrada uma regra invalida no formulario."));
+                        .orElseThrow(() -> new IllegalArgumentException("Foi encontrada uma regra inválida no formulário."));
 
                 Integer valorEspecifico = regraRequest.valorEspecifico();
                 if (valorEspecifico != null && valorEspecifico < 0) {
-                    throw new IllegalArgumentException("Os valores especificos das regras nao podem ser negativos.");
+                    throw new IllegalArgumentException("Os valores específicos das regras não podem ser negativos.");
                 }
 
                 String observacoes = limparTexto(regraRequest.observacoes());

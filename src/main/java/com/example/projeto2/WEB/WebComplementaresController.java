@@ -104,10 +104,10 @@ public class WebComplementaresController {
 
         try {
             if (dataAusencia == null || dataAusencia.isBlank()) {
-                throw new IllegalArgumentException("A data de ausencia e obrigatoria.");
+                throw new IllegalArgumentException("A data de ausência é obrigatória.");
             }
             if (motivo != null && motivo.strip().length() > 500) {
-                throw new IllegalArgumentException("O motivo nao pode ter mais de 500 caracteres.");
+                throw new IllegalArgumentException("O motivo não pode ter mais de 500 caracteres.");
             }
             String tipoNorm = normalizarTipoFolga(tipo);
             Utilizador utilizadorProxy = new Utilizador();
@@ -120,7 +120,7 @@ public class WebComplementaresController {
                 java.time.LocalDate inicio = parseData(dataAusencia, "inicio das ferias");
                 java.time.LocalDate fim = parseData(dataFim, "fim das ferias");
                 dayOffBLL.registarPedidoFeriasIntervalo(utilizadorProxy, inicio, fim, motivoLimpo);
-                redirectAttributes.addFlashAttribute("sucesso", "Pedido de ferias submetido com sucesso.");
+                redirectAttributes.addFlashAttribute("sucesso", "Pedido de férias submetido com sucesso.");
                 return "redirect:/web/complementares?tab=folgas";
             }
 
@@ -161,7 +161,7 @@ public class WebComplementaresController {
                 try {
                     dia = java.time.DayOfWeek.valueOf(diaSemana.toUpperCase());
                 } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException("Dia da semana invalido.");
+                    throw new IllegalArgumentException("Dia da semana inválido.");
                 }
                 dataInicioDate = java.time.LocalDate.now()
                         .with(java.time.temporal.TemporalAdjusters.nextOrSame(dia));
@@ -174,7 +174,7 @@ public class WebComplementaresController {
             preferencia.setDataFim(parseDataOpcional(dataFim));
             preferencia.setDescricao(descricao);
             preferenciaBLL.guardarPreferencia(utilizadorId, preferencia);
-            redirectAttributes.addFlashAttribute("sucesso", "Preferencia guardada com sucesso.");
+            redirectAttributes.addFlashAttribute("sucesso", "Preferência guardada com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         } catch (Exception ex) {
@@ -200,13 +200,13 @@ public class WebComplementaresController {
             Horario turnoOrigem = meusTurnos.stream()
                     .filter(item -> item.getId() != null && item.getId().equals(idHorarioOrigem))
                     .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("O turno de origem selecionado nao e valido."));
+                    .orElseThrow(() -> new IllegalArgumentException("O turno de origem selecionado não é válido."));
 
             List<Horario> turnosElegiveis = horarioBLL.listarTurnosElegiveisParaPermuta(utilizadorId, idHorarioOrigem);
             Horario turnoDestino = turnosElegiveis.stream()
                     .filter(item -> item.getId() != null && item.getId().equals(idHorarioDestino))
                     .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("O turno de destino selecionado nao e elegivel para permuta."));
+                    .orElseThrow(() -> new IllegalArgumentException("O turno de destino selecionado não é elegível para permuta."));
 
             permutaBLL.registarPedidoTroca(utilizadorId, turnoOrigem, turnoDestino);
             redirectAttributes.addFlashAttribute("sucesso", "Pedido de permuta submetido com sucesso.");
@@ -237,7 +237,7 @@ public class WebComplementaresController {
         Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
         try {
             preferenciaBLL.removerPreferencia(utilizadorId, idPreferencia);
-            redirectAttributes.addFlashAttribute("sucesso", "Preferencia removida com sucesso.");
+            redirectAttributes.addFlashAttribute("sucesso", "Preferência removida com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
         }
@@ -248,7 +248,7 @@ public class WebComplementaresController {
         try {
             return LocalDate.parse(valor);
         } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException("A data de " + nomeCampo + " e invalida.");
+            throw new IllegalArgumentException("A data de " + nomeCampo + " é inválida.");
         }
     }
 
@@ -259,7 +259,7 @@ public class WebComplementaresController {
         try {
             return LocalDate.parse(valor);
         } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException("Uma das datas indicadas para a preferencia e invalida.");
+            throw new IllegalArgumentException("Uma das datas indicadas para a preferência é inválida.");
         }
     }
 
@@ -277,12 +277,12 @@ public class WebComplementaresController {
 
     private String normalizarTipoPreferencia(String tipo) {
         if (tipo == null || tipo.isBlank()) {
-            throw new IllegalArgumentException("Seleciona um tipo de preferencia.");
+            throw new IllegalArgumentException("Seleciona um tipo de preferência.");
         }
 
         String normalizado = tipo.trim().toLowerCase(Locale.ROOT);
         if (!TIPOS_PREFERENCIA_VALIDOS.contains(normalizado)) {
-            throw new IllegalArgumentException("O tipo de preferencia selecionado e invalido.");
+            throw new IllegalArgumentException("O tipo de preferência selecionado é inválido.");
         }
         return normalizado;
     }

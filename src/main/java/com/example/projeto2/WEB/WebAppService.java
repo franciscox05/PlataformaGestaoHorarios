@@ -61,18 +61,18 @@ public class WebAppService {
     public Integer obterUtilizadorIdObrigatorio(HttpSession session) {
         Integer idUtilizador = obterUtilizadorId(session);
         if (idUtilizador == null) {
-            throw new IllegalArgumentException("A sessao Web expirou. Inicia sessao novamente.");
+            throw new IllegalArgumentException("A sessão Web expirou. Inicia sessão novamente.");
         }
         return idUtilizador;
     }
 
     public Utilizador obterUtilizadorAutenticado(Integer idUtilizador) {
         if (idUtilizador == null) {
-            throw new IllegalArgumentException("Nao foi possivel identificar o utilizador autenticado.");
+            throw new IllegalArgumentException("Não foi possível identificar o utilizador autenticado.");
         }
 
         return utilizadorRepository.findById(idUtilizador)
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi possivel encontrar o utilizador autenticado."));
+                .orElseThrow(() -> new IllegalArgumentException("Não foi possível encontrar o utilizador autenticado."));
     }
 
     public Utilizador obterUtilizadorAutenticado(HttpSession session) {

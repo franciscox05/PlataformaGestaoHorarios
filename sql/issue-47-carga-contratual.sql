@@ -1,11 +1,11 @@
 BEGIN;
 
 INSERT INTO public.regras (descricao, valor_padrao, tipo)
-SELECT 'Carga contratual mensal gestao (horas)', 176, 'contratual'
+SELECT 'Carga contratual mensal gestão (horas)', 176, 'contratual'
 WHERE NOT EXISTS (
     SELECT 1
     FROM public.regras
-    WHERE LOWER(descricao) = LOWER('Carga contratual mensal gestao (horas)')
+    WHERE LOWER(descricao) = LOWER('Carga contratual mensal gestão (horas)')
 );
 
 INSERT INTO public.regras (descricao, valor_padrao, tipo)
@@ -25,11 +25,11 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO public.regras (descricao, valor_padrao, tipo)
-SELECT 'Carga contratual mensal reforco de fim de semana (horas)', 64, 'contratual'
+SELECT 'Carga contratual mensal reforço de fim de semana (horas)', 64, 'contratual'
 WHERE NOT EXISTS (
     SELECT 1
     FROM public.regras
-    WHERE LOWER(descricao) = LOWER('Carga contratual mensal reforco de fim de semana (horas)')
+    WHERE LOWER(descricao) = LOWER('Carga contratual mensal reforço de fim de semana (horas)')
 );
 
 COMMIT;

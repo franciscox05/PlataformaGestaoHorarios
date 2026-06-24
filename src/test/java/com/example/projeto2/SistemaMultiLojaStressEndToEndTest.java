@@ -205,7 +205,7 @@ class SistemaMultiLojaStressEndToEndTest extends FluxosCriticosTestSupport {
                 "O sistema impede a segunda decisão (sequencialmente) — mas só porque o "
                         + "Gerente A já comitou primeiro. Ver teste de concorrência real no Grupo B "
                         + "para o caso em que isto NÃO protege.");
-        assertTrue(erro.getMessage().contains("ja foi tratado"));
+        assertTrue(erro.getMessage().contains("já foi tratado"));
     }
 
     /**

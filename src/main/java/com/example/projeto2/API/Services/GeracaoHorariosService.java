@@ -320,14 +320,14 @@ public class GeracaoHorariosService {
                             idProposta,
                             ligacaoAtiva.getIdLoja().getId()
                     )
-                    .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada a proposta #" + idProposta + " na tua loja."));
+                    .orElseThrow(() -> new IllegalArgumentException("Não foi encontrada a proposta #" + idProposta + " na tua loja."));
 
             String estadoAtual = normalizarTexto(proposta.getEstado());
             if (ESTADO_APROVADO.equals(estadoAtual) || ESTADO_REJEITADO.equals(estadoAtual)) {
-                throw new IllegalArgumentException("A proposta #" + idProposta + " ja foi decidida pelo supervisor.");
+                throw new IllegalArgumentException("A proposta #" + idProposta + " já foi decidida pelo supervisor.");
             }
             if (!ESTADO_RASCUNHO.equals(estadoAtual) && !ESTADO_PENDENTE.equals(estadoAtual)) {
-                throw new IllegalArgumentException("A proposta #" + idProposta + " esta num estado que nao permite envio ao supervisor.");
+                throw new IllegalArgumentException("A proposta #" + idProposta + " está num estado que não permite envio ao supervisor.");
             }
 
             if (ESTADO_RASCUNHO.equals(estadoAtual)) {
@@ -514,9 +514,9 @@ public class GeracaoHorariosService {
                         idProposta,
                         ligacaoAtiva.getIdLoja().getId()
                 )
-                .orElseThrow(() -> new IllegalArgumentException("Nao foi encontrada nenhuma proposta para a tua loja com esse identificador."));
+                .orElseThrow(() -> new IllegalArgumentException("Não foi encontrada nenhuma proposta para a tua loja com esse identificador."));
         if (!propostaVisivelParaUtilizador(ligacaoAtiva, proposta)) {
-            throw new IllegalArgumentException("Esta proposta ainda nao foi enviada ao supervisor.");
+            throw new IllegalArgumentException("Esta proposta ainda não foi enviada ao supervisor.");
         }
 
         return resultadoBuilder.construirResultado(proposta, horarioRepository.findByIdPropostaHorarioId(proposta.getId()));
@@ -527,7 +527,7 @@ public class GeracaoHorariosService {
         PropostaResultado base = obterPropostaPorId(idUtilizador, idPropostaBase);
         PropostaResultado comparada = obterPropostaPorId(idUtilizador, idPropostaComparada);
         if (!Objects.equals(base.ano(), comparada.ano()) || !Objects.equals(base.mes(), comparada.mes())) {
-            throw new IllegalArgumentException("Seleciona duas propostas do mesmo mes para comparar.");
+            throw new IllegalArgumentException("Seleciona duas propostas do mesmo mês para comparar.");
         }
         return comparacaoService.comparar(base, comparada,
                 resultadoBuilder.rotuloCurtoProposta(base),
@@ -570,7 +570,7 @@ public class GeracaoHorariosService {
     public com.example.projeto2.API.Services.geracao.dto.CriteriosGeracao obterCriteriosGeracao(
             Integer idUtilizador, Integer ano, Integer mes,
             Collection<Integer> idsColaboradoresSelecionados) {
-        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissao(idUtilizador);
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComPermissaoDeConsulta(idUtilizador);
         Loja loja = ligacaoAtiva.getIdLoja();
         int anoNormalizado = normalizarAno(ano);
         int mesNormalizado = normalizarMes(mes);
@@ -792,12 +792,12 @@ public class GeracaoHorariosService {
                 idsColaboradoresSelecionados
         );
         if (colaboradoresAtivos.isEmpty()) {
-            throw new IllegalArgumentException("Nao e possivel gerar horarios sem colaboradores elegiveis e com vinculo valido na loja.");
+            throw new IllegalArgumentException("Não é possível gerar horários sem colaboradores elegíveis e com vínculo válido na loja.");
         }
 
         List<Turno> turnos = turnoRepository.findAtivosVigentesParaLojaNoPeriodo(idLoja, dataInicio, dataFim);
         if (turnos.isEmpty()) {
-            throw new IllegalArgumentException("Nao existem turnos base configurados para gerar a proposta.");
+            throw new IllegalArgumentException("Não existem turnos base configurados para gerar a proposta.");
         }
         if (loja.getHoraAbertura() != null && loja.getHoraFecho() != null) {
             turnos = turnos.stream()
@@ -805,7 +805,7 @@ public class GeracaoHorariosService {
                     .toList();
             if (turnos.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "Nao existem turnos base configurados que caibam no horario de funcionamento da loja.");
+                        "Não existem turnos base configurados que caibam no horário de funcionamento da loja.");
             }
         }
 
@@ -934,7 +934,7 @@ public class GeracaoHorariosService {
 
         Set<Integer> idsSelecionados = normalizarIds(idsColaboradoresSelecionados);
         if (idsSelecionados.isEmpty()) {
-            throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horario.");
+            throw new IllegalArgumentException("Seleciona pelo menos um colaborador para gerar o horário.");
         }
 
         Set<Integer> idsElegiveis = new LinkedHashSet<>();
@@ -949,7 +949,7 @@ public class GeracaoHorariosService {
                 .toList();
         if (!idsInvalidos.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Foram selecionados colaboradores que nao estao elegiveis neste periodo: "
+                    "Foram selecionados colaboradores que não estão elegíveis neste período: "
                             + String.join(", ", idsInvalidos.stream().map(String::valueOf).toList())
                             + "."
             );
@@ -999,7 +999,7 @@ public class GeracaoHorariosService {
                             + HorarioFormatters.nomeMes(dataInicioPeriodo.getMonthValue())
                             + " de "
                             + dataInicioPeriodo.getYear()
-                            + " tinha de ser lancada ate "
+                            + " tinha de ser lançada até "
                             + DATA_FORMATTER.format(dataLimite)
                             + "."
             );
@@ -1017,31 +1017,37 @@ public class GeracaoHorariosService {
                 .anyMatch(proposta -> ESTADO_APROVADO.equals(normalizarTexto(proposta.getEstado())));
 
         if (existePropostaAprovada) {
-            throw new IllegalArgumentException("Ja existe uma proposta aprovada para o periodo selecionado.");
+            throw new IllegalArgumentException("Já existe uma proposta aprovada para o período selecionado.");
         }
 
         long horariosExistentes = horarioRepository.countHorariosVisiveisDaLojaEntreDatas(idLoja, dataInicio, dataFim);
         if (horariosExistentes > 0) {
-            throw new IllegalArgumentException("Ja existem horarios publicados neste periodo. Nao e seguro gerar uma nova proposta mensal.");
+            throw new IllegalArgumentException("Já existem horários publicados neste período. Não é seguro gerar uma nova proposta mensal.");
         }
     }
 
     private Lojautilizador obterLigacaoAtivaComPermissao(Integer idUtilizador) {
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizador, idLojaAtivaSegura(), LojautilizadorHelper.GESTAO,
-                "Nao tens permissao para gerar propostas de horario.");
+                "Não tens permissão para gerar propostas de horário.");
     }
 
     private Lojautilizador obterLigacaoAtivaComAcessoAoPainel(Integer idUtilizador) {
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizador, idLojaAtivaSegura(), LojautilizadorHelper.APROVACAO,
-                "Nao tens permissao para consultar o painel de horarios da loja.");
+                "Não tens permissão para consultar o painel de horários da loja.");
+    }
+
+    private Lojautilizador obterLigacaoAtivaComPermissaoDeConsulta(Integer idUtilizador) {
+        return lojautilizadorHelper.obterLigacaoAtivaComCargo(
+                idUtilizador, idLojaAtivaSegura(), LojautilizadorHelper.APROVACAO,
+                "Não tens permissão para consultar os critérios da proposta mensal.");
     }
 
     private Lojautilizador obterLigacaoAtivaComPermissaoDeValidacao(Integer idUtilizador) {
         return lojautilizadorHelper.obterLigacaoAtivaComCargo(
                 idUtilizador, idLojaAtivaSegura(), LojautilizadorHelper.VALIDACAO,
-                "Nao tens permissao para validar a proposta mensal.");
+                "Não tens permissão para validar a proposta mensal.");
     }
 
     private Optional<PerfilContratual> resolverPerfilContratual(Lojautilizador ligacao) {
@@ -1054,14 +1060,14 @@ public class GeracaoHorariosService {
     private int normalizarAno(Integer ano) {
         int anoAtual = LocalDate.now().getYear();
         if (ano == null || ano < anoAtual || ano > anoAtual + 5) {
-            throw new IllegalArgumentException("Seleciona um ano valido para gerar a proposta mensal.");
+            throw new IllegalArgumentException("Seleciona um ano válido para gerar a proposta mensal.");
         }
         return ano;
     }
 
     private int normalizarMes(Integer mes) {
         if (mes == null || mes < 1 || mes > 12) {
-            throw new IllegalArgumentException("Seleciona um mes valido para gerar a proposta mensal.");
+            throw new IllegalArgumentException("Seleciona um mês válido para gerar a proposta mensal.");
         }
         return mes;
     }
@@ -1071,7 +1077,7 @@ public class GeracaoHorariosService {
             return 1;
         }
         if (quantidade < 1 || quantidade > 20) {
-            throw new IllegalArgumentException("Seleciona entre 1 e 20 alternativas por geracao.");
+            throw new IllegalArgumentException("Seleciona entre 1 e 20 alternativas por geração.");
         }
         return quantidade;
     }
