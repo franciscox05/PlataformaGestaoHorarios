@@ -81,7 +81,17 @@ public final class GrelhaHorarioRenderer {
                                   List<LinhaGrelha> linhas,
                                   LocalDate hoje,
                                   Consumer<LocalDate> aoAbrirDia) {
-        renderizar(container, dias, linhas, hoje, aoAbrirDia, null);
+        renderizar(container, dias, linhas, hoje, aoAbrirDia, null, null);
+    }
+
+    /** Variante ciente do colaborador: ao clicar numa célula passa (dia, idColaborador). */
+    public static void renderizar(VBox container,
+                                  List<LocalDate> dias,
+                                  List<LinhaGrelha> linhas,
+                                  LocalDate hoje,
+                                  Consumer<LocalDate> aoAbrirDia,
+                                  BiConsumer<LocalDate, Integer> aoAbrirDiaPorColaborador) {
+        renderizar(container, dias, linhas, hoje, aoAbrirDia, null, aoAbrirDiaPorColaborador);
     }
 
     /**
@@ -94,6 +104,16 @@ public final class GrelhaHorarioRenderer {
                                   LocalDate hoje,
                                   Consumer<LocalDate> aoAbrirDia,
                                   Set<String> celulasDestacadas) {
+        renderizar(container, dias, linhas, hoje, aoAbrirDia, celulasDestacadas, null);
+    }
+
+    public static void renderizar(VBox container,
+                                  List<LocalDate> dias,
+                                  List<LinhaGrelha> linhas,
+                                  LocalDate hoje,
+                                  Consumer<LocalDate> aoAbrirDia,
+                                  Set<String> celulasDestacadas,
+                                  BiConsumer<LocalDate, Integer> aoAbrirDiaPorColaborador) {
         if (container == null) {
             return;
         }
@@ -149,11 +169,15 @@ public final class GrelhaHorarioRenderer {
             }
             alternado = !alternado;
 
+            final Integer idColab = linha.idColaborador();
+            Consumer<LocalDate> cliqueCelula = (aoAbrirDiaPorColaborador != null && idColab != null)
+                    ? d -> aoAbrirDiaPorColaborador.accept(d, idColab)
+                    : aoAbrirDia;
             for (LocalDate dia : dias) {
                 CelulaTurno celula = linha.celulas() != null ? linha.celulas().get(dia) : null;
                 boolean destacada = celulasDestacadas != null
-                        && celulasDestacadas.contains(chaveCelula(linha.idColaborador(), dia));
-                linhaDias.getChildren().add(construirCelulaDia(celula, dia, hoje, aoAbrirDia, destacada));
+                        && celulasDestacadas.contains(chaveCelula(idColab, dia));
+                linhaDias.getChildren().add(construirCelulaDia(celula, dia, hoje, cliqueCelula, destacada));
             }
 
             sincronizarHover(celulaColab, linhaDias);
@@ -400,7 +424,7 @@ public final class GrelhaHorarioRenderer {
                                            Set<String> celulasDestacadas,
                                            double larguraDisponivel) {
         renderizarDetalhado(container, dias, linhas, hoje, aoAbrirDia, celulasDestacadas,
-                larguraDisponivel, null);
+                larguraDisponivel, null, -1);
     }
 
     /**
@@ -417,6 +441,24 @@ public final class GrelhaHorarioRenderer {
                                            Set<String> celulasDestacadas,
                                            double larguraDisponivel,
                                            BiConsumer<LocalDate, Integer> aoAbrirDiaPorColaborador) {
+        renderizarDetalhado(container, dias, linhas, hoje, aoAbrirDia, celulasDestacadas,
+                larguraDisponivel, aoAbrirDiaPorColaborador, -1);
+    }
+
+    /**
+     * Variante que, além da largura, recebe a altura disponível para a grelha (inclui header +
+     * linhas). Quando {@code alturaDisponivel > 0}, substitui {@code screenH} no cálculo do
+     * chip — imprescindível em modo "Ambas" onde cada grelha ocupa metade do ecrã.
+     */
+    public static void renderizarDetalhado(VBox container,
+                                           List<LocalDate> dias,
+                                           List<LinhaGrelha> linhas,
+                                           LocalDate hoje,
+                                           Consumer<LocalDate> aoAbrirDia,
+                                           Set<String> celulasDestacadas,
+                                           double larguraDisponivel,
+                                           BiConsumer<LocalDate, Integer> aoAbrirDiaPorColaborador,
+                                           double alturaDisponivel) {
         if (container == null) return;
         container.getChildren().clear();
         if (dias == null || dias.isEmpty() || linhas == null || linhas.isEmpty()) return;
@@ -435,10 +477,13 @@ public final class GrelhaHorarioRenderer {
                 (screenW - NOME_COL_DET) / Math.max(1, dias.size())));
 
         // Altura estimada por linha: usada apenas para dimensionar chips e fontes.
-        // As linhas não têm altura fixa — crescem com VGrow=ALWAYS para preencher o ecrã.
-        // 106 = barra de título do SO (~32) + cabeçalho escuro do diálogo (~74)
-        double alturaEstimada = Math.max(36.0, Math.min(90.0,
-                Math.floor((screenH - 106.0 - ALTURA_HEADER_DET) / Math.max(1, ordenadas.size()))));
+        // As linhas não têm altura fixa — crescem com VGrow=ALWAYS para preencher a área.
+        // Quando alturaDisponivel > 0, a grelha foi limitada externamente (p. ex. modo "Ambas"):
+        // usamos esse valor para calibrar os chips em vez de assumir o ecrã completo.
+        double alturaBase = alturaDisponivel > 0 ? alturaDisponivel : (screenH - 106.0);
+        double minAlt     = alturaDisponivel > 0 ? 22.0 : 36.0;
+        double alturaEstimada = Math.max(minAlt, Math.min(90.0,
+                Math.floor((alturaBase - ALTURA_HEADER_DET) / Math.max(1, ordenadas.size()))));
 
         boolean mostrarHoras = larguraDia >= 38.0;
         double chipH    = Math.max(18.0, alturaEstimada * 0.36);

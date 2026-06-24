@@ -1164,9 +1164,27 @@
     -fx-padding: 6px;
     -fx-effect: dropshadow(three-pass-box, rgba(28,27,27,0.10), 14, 0, 0, 3);
 }
-.pesquisa-sugestao { -fx-padding: 8px 10px; }
+.pesquisa-sugestao { -fx-padding: 8px 10px; -fx-background-radius: 7px; }
 .pesquisa-sugestao-titulo { -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: -ink-700; }
 .pesquisa-sugestao-descricao { -fx-font-size: 11px; -fx-text-fill: -ink-400; }
+
+/* ── Estado hover/focus — cor temática Levi's, sem azul padrão JavaFX ── */
+.pesquisa-sugestoes .menu-item:focused {
+    -fx-background-color: rgba(201, 20, 40, 0.09);
+    -fx-background-radius: 7px;
+}
+.pesquisa-sugestoes .menu-item:focused .pesquisa-sugestao-titulo {
+    -fx-text-fill: -levis-red-dark;
+}
+.pesquisa-sugestoes .menu-item:focused .pesquisa-sugestao-descricao {
+    -fx-text-fill: -ink-600;
+}
+/* Barra de foco lateral (acento visual da seleção ativa) */
+.pesquisa-sugestoes .menu-item:focused > .pesquisa-sugestao {
+    -fx-border-color: transparent transparent transparent -levis-red;
+    -fx-border-width: 0 0 0 2.5px;
+    -fx-padding: 8px 10px 8px 9px;
+}
 
 /* ── CHECK BOX ───────────────────────────────────────────────── */
 .check-box {

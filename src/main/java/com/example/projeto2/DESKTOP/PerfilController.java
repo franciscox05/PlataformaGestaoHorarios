@@ -12,12 +12,22 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.effect.GaussianBlur;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Base64;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -69,8 +79,15 @@ public class PerfilController {
     private Label lblTurnosFuturos;
 
     @FXML
+    private StackPane stkPerfilAvatar;
+
+    @FXML
     private Label lblPerfilAvatar;
 
+    @FXML
+    private javafx.scene.control.Button btnRemoverFoto;
+
+    private Consumer<Utilizador> aoAtualizarFoto;
     private final PerfilService perfilBLL;
     private final SessaoService sessaoBLL;
     private final LojautilizadorRepository lojautilizadorRepository;
@@ -85,6 +102,10 @@ public class PerfilController {
         this.sessaoBLL = sessaoBLL;
         this.lojautilizadorRepository = lojautilizadorRepository;
         this.applicationContext = applicationContext;
+    }
+
+    public void setAoAtualizarFoto(Consumer<Utilizador> callback) {
+        this.aoAtualizarFoto = callback;
     }
 
     public void setUtilizadorLogado(Utilizador utilizadorLogado) {
@@ -107,9 +128,8 @@ public class PerfilController {
             }
             PerfilService.PerfilResumo resumo = perfilBLL.obterResumoPerfil(utilizadorLogado, idLojaAtiva);
 
-            if (lblPerfilAvatar != null && resumo.nome() != null && !resumo.nome().isBlank()) {
-                lblPerfilAvatar.setText(String.valueOf(resumo.nome().charAt(0)).toUpperCase());
-            }
+            atualizarAvatarPerfil(utilizadorLogado.getFotoPerfil(), resumo.nome());
+            if (stkPerfilAvatar != null) stkPerfilAvatar.setCursor(javafx.scene.Cursor.HAND);
             lblNomePerfil.setText(resumo.nome());
             lblEmailPerfil.setText(resumo.email());
             lblTelemovelPerfil.setText(resumo.telemovel());
@@ -138,6 +158,103 @@ public class PerfilController {
     private Integer resolverLojaAtivaFallback(Integer idUtilizador) {
         List<Lojautilizador> ligacoesAtivas = lojautilizadorRepository.findLigacoesAtivasByIdUtilizador(idUtilizador);
         return ligacoesAtivas.isEmpty() ? null : ligacoesAtivas.get(0).getIdLoja().getId();
+    }
+
+    @FXML
+    public void onAlterarFotoClick() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Selecionar foto de perfil");
+        fileChooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Imagens", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp")
+        );
+        File ficheiro = fileChooser.showOpenDialog(obterJanelaAtual());
+        if (ficheiro == null) return;
+        try {
+            byte[] bytes = Files.readAllBytes(ficheiro.toPath());
+            if (bytes.length > 2 * 1024 * 1024) {
+                mostrarErro("Imagem demasiado grande", "A foto deve ter menos de 2 MB.");
+                return;
+            }
+            String base64 = Base64.getEncoder().encodeToString(bytes);
+            Utilizador atualizado = perfilBLL.atualizarFotoPerfil(utilizadorLogado.getId(), base64);
+            this.utilizadorLogado = atualizado;
+            atualizarAvatarPerfil(atualizado.getFotoPerfil(), atualizado.getNome());
+            if (aoAtualizarFoto != null) aoAtualizarFoto.accept(atualizado);
+            DialogosHelper.mostrarInformacao(obterJanelaAtual(),
+                    "Foto atualizada", "Foto de perfil atualizada",
+                    "A tua nova foto foi guardada com sucesso.");
+        } catch (java.io.IOException e) {
+            LOGGER.error("Erro ao ler ficheiro de foto.", e);
+            mostrarErro("Erro ao ler ficheiro", "Não foi possível ler o ficheiro selecionado.");
+        } catch (Exception e) {
+            LOGGER.error("Erro ao guardar foto de perfil.", e);
+            mostrarErro("Erro ao guardar", "Não foi possível guardar a foto. Tenta novamente.");
+        }
+    }
+
+    private void atualizarAvatarPerfil(String fotoPerfil, String nome) {
+        if (stkPerfilAvatar == null) return;
+        // Mantém a Circle de fundo (índice 0); substitui o conteúdo seguinte
+        while (stkPerfilAvatar.getChildren().size() > 1) {
+            stkPerfilAvatar.getChildren().remove(stkPerfilAvatar.getChildren().size() - 1);
+        }
+        boolean temFoto = false;
+        if (fotoPerfil != null && !fotoPerfil.isBlank()) {
+            try {
+                byte[] bytes = Base64.getDecoder().decode(fotoPerfil);
+                javafx.scene.image.Image img = new javafx.scene.image.Image(new ByteArrayInputStream(bytes));
+                ImageView iv = new ImageView(img);
+                cropCentrado(iv, img, 96);
+                iv.setClip(new Circle(48, 48, 48));
+                stkPerfilAvatar.getChildren().add(iv);
+                temFoto = true;
+            } catch (Exception e) {
+                LOGGER.warn("Falha ao renderizar foto de perfil.", e);
+            }
+        }
+        if (!temFoto && lblPerfilAvatar != null) {
+            lblPerfilAvatar.setText(nome != null && !nome.isBlank()
+                    ? String.valueOf(nome.charAt(0)).toUpperCase() : "?");
+            if (!stkPerfilAvatar.getChildren().contains(lblPerfilAvatar)) {
+                stkPerfilAvatar.getChildren().add(lblPerfilAvatar);
+            }
+        }
+        if (btnRemoverFoto != null) {
+            btnRemoverFoto.setVisible(temFoto);
+            btnRemoverFoto.setManaged(temFoto);
+        }
+    }
+
+    private static void cropCentrado(ImageView iv, javafx.scene.image.Image img, double size) {
+        double w = img.getWidth();
+        double h = img.getHeight();
+        double side = Math.min(w, h);
+        iv.setViewport(new javafx.geometry.Rectangle2D((w - side) / 2, (h - side) / 2, side, side));
+        iv.setFitWidth(size);
+        iv.setFitHeight(size);
+        iv.setPreserveRatio(false);
+    }
+
+    @FXML
+    public void onRemoverFotoClick() {
+        boolean confirmado = DialogosHelper.confirmarAcao(
+                obterJanelaAtual(),
+                "Remover foto de perfil",
+                "Tens a certeza que queres remover a foto?",
+                "Passará a ser usada a letra inicial do teu nome.",
+                "Remover"
+        );
+        if (confirmado) {
+            try {
+                Utilizador atualizado = perfilBLL.atualizarFotoPerfil(utilizadorLogado.getId(), null);
+                this.utilizadorLogado = atualizado;
+                atualizarAvatarPerfil(null, atualizado.getNome());
+                if (aoAtualizarFoto != null) aoAtualizarFoto.accept(atualizado);
+            } catch (Exception e) {
+                LOGGER.error("Erro ao remover foto.", e);
+                mostrarErro("Erro", "Não foi possível remover a foto.");
+            }
+        }
     }
 
     @FXML

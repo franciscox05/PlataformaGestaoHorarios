@@ -182,6 +182,13 @@ public final class DetalheDiaDialog {
     public static void abrirHorariosPublicados(LocalDate data,
                                                List<Horario> horarios,
                                                Window owner) {
+        abrirHorariosPublicados(data, horarios, owner, null);
+    }
+
+    public static void abrirHorariosPublicados(LocalDate data,
+                                               List<Horario> horarios,
+                                               Window owner,
+                                               Integer idColaboradorDestaque) {
         if (data == null || horarios == null) return;
 
         List<Horario> turnosDia = horarios.stream()
@@ -217,13 +224,21 @@ public final class DetalheDiaDialog {
         VBox listaTurnos = new VBox(10.0);
         listaTurnos.getStyleClass().add("detalhe-dia-lista");
         for (Horario turno : turnosDia) {
-            listaTurnos.getChildren().add(criarCardPublicado(turno));
+            boolean destaque = idColaboradorDestaque != null
+                    && idColaboradorDestaque.equals(idColaboradorHorario(turno));
+            VBox card = criarCardPublicado(turno);
+            if (destaque) aplicarDestaque(card);
+            listaTurnos.getChildren().add(card);
         }
 
         if (!folgasDia.isEmpty()) {
             listaTurnos.getChildren().add(tituloSeccao("DE FOLGA NESTE DIA", !turnosDia.isEmpty()));
             for (Horario representante : folgasDia) {
-                listaTurnos.getChildren().add(criarCardFolgaPublicado(representante));
+                boolean destaque = idColaboradorDestaque != null
+                        && idColaboradorDestaque.equals(idColaboradorHorario(representante));
+                VBox card = criarCardFolgaPublicado(representante);
+                if (destaque) aplicarDestaque(card);
+                listaTurnos.getChildren().add(card);
             }
         }
 
@@ -340,7 +355,10 @@ public final class DetalheDiaDialog {
         Label colaborador = new Label(valorOuTraco(turno.colaborador()));
         colaborador.getStyleClass().add("detalhe-dia-colaborador");
 
-        Label cargo = new Label(valorOuTraco(turno.cargo()) + " · " + valorOuTraco(turno.estado()));
+        String nomeTurnoTexto = turno.turno() != null && !turno.turno().isBlank()
+                ? turno.turno()
+                : turno.estado();
+        Label cargo = new Label(valorOuTraco(turno.cargo()) + " · " + valorOuTraco(nomeTurnoTexto));
         cargo.getStyleClass().add("detalhe-dia-cargo");
         cargo.setWrapText(true);
 

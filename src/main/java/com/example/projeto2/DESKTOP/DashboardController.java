@@ -103,6 +103,9 @@ public class DashboardController implements DashboardNavigator {
     private Label lblSecaoGestao;
 
     @FXML
+    private StackPane stkSidebarAvatar;
+
+    @FXML
     private Label lblAvatarInicial;
 
     @FXML
@@ -520,6 +523,10 @@ public class DashboardController implements DashboardNavigator {
                 pedirFolgaController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof PerfilController perfilController) {
                 perfilController.setUtilizadorLogado(utilizadorLogado);
+                perfilController.setAoAtualizarFoto(utilizadorAtualizado -> {
+                    this.utilizadorLogado = utilizadorAtualizado;
+                    javafx.application.Platform.runLater(this::renderizarAvatarSidebar);
+                });
             } else if (controller instanceof PreferenciasController preferenciasController) {
                 preferenciasController.setUtilizadorLogado(utilizadorLogado);
             } else if (controller instanceof RelatoriosHorasController relatoriosHorasController) {
@@ -658,10 +665,7 @@ public class DashboardController implements DashboardNavigator {
             lblUtilizadorSidebar.setText("Olá, " + primeiroNome + "!");
         }
 
-        if (lblAvatarInicial != null) {
-            String inicial = primeiroNome.isBlank() ? "S" : primeiroNome.substring(0, 1).toUpperCase();
-            lblAvatarInicial.setText(inicial);
-        }
+        renderizarAvatarSidebar();
 
         if (lblTopUserName != null) {
             lblTopUserName.setText(nome.isBlank() ? "Staff" : nome);
@@ -689,6 +693,45 @@ public class DashboardController implements DashboardNavigator {
         // Loja ativa fixa na sidebar (ver Revisao.md, ponto 17 — Fase 4)
         if (lblLojaAtivaSidebar != null) {
             lblLojaAtivaSidebar.setText(obterNomeLojaAtiva(utilizadorLogado.getId()));
+        }
+    }
+
+    private void renderizarAvatarSidebar() {
+        if (stkSidebarAvatar == null) return;
+        String nome = utilizadorLogado != null && utilizadorLogado.getNome() != null
+                ? utilizadorLogado.getNome().trim() : "";
+        String fotoPerfil = utilizadorLogado != null ? utilizadorLogado.getFotoPerfil() : null;
+
+        // Mantém apenas o primeiro filho (background CSS); substitui o conteúdo
+        while (stkSidebarAvatar.getChildren().size() > 1) {
+            stkSidebarAvatar.getChildren().remove(stkSidebarAvatar.getChildren().size() - 1);
+        }
+
+        if (fotoPerfil != null && !fotoPerfil.isBlank()) {
+            try {
+                byte[] bytes = java.util.Base64.getDecoder().decode(fotoPerfil);
+                javafx.scene.image.Image img = new javafx.scene.image.Image(
+                        new java.io.ByteArrayInputStream(bytes));
+                javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
+                double w = img.getWidth(), h = img.getHeight(), side = Math.min(w, h);
+                iv.setViewport(new javafx.geometry.Rectangle2D((w - side) / 2, (h - side) / 2, side, side));
+                iv.setFitWidth(38);
+                iv.setFitHeight(38);
+                iv.setPreserveRatio(false);
+                iv.setClip(new javafx.scene.shape.Circle(19, 19, 19));
+                stkSidebarAvatar.getChildren().add(iv);
+                return;
+            } catch (Exception e) {
+                LOGGER.warn("Falha ao renderizar foto na sidebar.", e);
+            }
+        }
+        // Fallback: letra inicial
+        if (lblAvatarInicial != null) {
+            String inicial = nome.isBlank() ? "S" : nome.substring(0, 1).toUpperCase();
+            lblAvatarInicial.setText(inicial);
+            if (!stkSidebarAvatar.getChildren().contains(lblAvatarInicial)) {
+                stkSidebarAvatar.getChildren().add(lblAvatarInicial);
+            }
         }
     }
 

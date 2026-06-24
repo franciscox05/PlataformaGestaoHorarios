@@ -29,6 +29,6 @@ public record PropostaResumo(
 
     @Override
     public String toString() {
-        return rotulo + " · score " + pontuacao + (recomendada ? " · ★ recomendada" : "");
+        return rotulo + " · índice " + pontuacao + (recomendada ? " · ★ recomendada" : "");
     }
 }

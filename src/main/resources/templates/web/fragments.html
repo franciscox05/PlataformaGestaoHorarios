@@ -187,7 +187,11 @@
                class="flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all active:scale-[0.98] hover:bg-white/10 block"
                style="background:rgba(255,255,255,.05)">
                 <div class="relative shrink-0">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-sm"
+                    <img th:if="${webUtilizador.fotoPerfil != null}"
+                         th:src="'data:image/png;base64,' + ${webUtilizador.fotoPerfil}"
+                         class="w-8 h-8 rounded-full object-cover" alt=""/>
+                    <div th:unless="${webUtilizador.fotoPerfil != null}"
+                         class="w-8 h-8 rounded-full flex items-center justify-center text-white font-display font-bold text-sm"
                          style="background:linear-gradient(135deg,#c0001f,#7a0014)"
                          th:text="${webUtilizador.nome != null && !webUtilizador.nome.isEmpty() ? webUtilizador.nome.substring(0,1).toUpperCase() : 'U'}">U</div>
                     <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 status-online shrink-0"

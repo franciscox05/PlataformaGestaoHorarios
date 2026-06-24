@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -81,6 +82,43 @@ public class WebPerfilController {
             redirectAttributes.addFlashAttribute("sucesso", "Telemóvel atualizado com sucesso.");
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("erro", ex.getMessage());
+        }
+        return "redirect:/web/perfil";
+    }
+
+    @PostMapping("/foto")
+    public String atualizarFoto(@RequestParam("foto") MultipartFile foto,
+                                HttpSession session,
+                                RedirectAttributes redirectAttributes) {
+        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+        try {
+            if (foto == null || foto.isEmpty()) {
+                redirectAttributes.addFlashAttribute("erro", "Nenhuma foto selecionada.");
+                return "redirect:/web/perfil";
+            }
+            if (foto.getSize() > 2L * 1024 * 1024) {
+                redirectAttributes.addFlashAttribute("erro", "A foto deve ter menos de 2 MB.");
+                return "redirect:/web/perfil";
+            }
+            String base64 = java.util.Base64.getEncoder().encodeToString(foto.getBytes());
+            Utilizador utilizadorAtualizado = perfilBLL.atualizarFotoPerfil(utilizadorId, base64);
+            webAppService.sincronizarSessao(session, utilizadorAtualizado);
+            redirectAttributes.addFlashAttribute("sucesso", "Foto de perfil atualizada.");
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("erro", "Erro ao guardar a foto: " + ex.getMessage());
+        }
+        return "redirect:/web/perfil";
+    }
+
+    @PostMapping("/foto/remover")
+    public String removerFoto(HttpSession session, RedirectAttributes redirectAttributes) {
+        Integer utilizadorId = webAppService.obterUtilizadorIdObrigatorio(session);
+        try {
+            Utilizador utilizadorAtualizado = perfilBLL.atualizarFotoPerfil(utilizadorId, null);
+            webAppService.sincronizarSessao(session, utilizadorAtualizado);
+            redirectAttributes.addFlashAttribute("sucesso", "Foto de perfil removida.");
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("erro", "Erro ao remover a foto: " + ex.getMessage());
         }
         return "redirect:/web/perfil";
     }

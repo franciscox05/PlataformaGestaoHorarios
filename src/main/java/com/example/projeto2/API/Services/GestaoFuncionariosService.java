@@ -436,7 +436,8 @@ public class GestaoFuncionariosService {
                 cargo != null ? cargo.getTipo() : null,
                 calcularEstadoNaLoja(colaborador, ligacao),
                 ligacao.getDataInicio(),
-                ligacao.getDataFim()
+                ligacao.getDataFim(),
+                colaborador.getFotoPerfil()
         );
     }
 
@@ -589,7 +590,8 @@ public class GestaoFuncionariosService {
             String cargoTipo,
             String estado,
             LocalDate dataInicio,
-            LocalDate dataFim
+            LocalDate dataFim,
+            String fotoPerfil
     ) {
     }
 

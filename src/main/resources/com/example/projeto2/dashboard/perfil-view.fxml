@@ -24,22 +24,28 @@
     <content>
         <VBox fx:id="raizPerfil" fillWidth="true" spacing="0" styleClass="conteudo-pagina">
 
-            <StackPane styleClass="page-banner perfil-banner" minHeight="200.0"
+            <StackPane styleClass="page-banner perfil-banner" minHeight="220.0"
                        style="-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #9b1c1c 0%, #450a0a 100%); -fx-background-insets: 0; -fx-background-radius: 0;">
-                <VBox alignment="CENTER" spacing="16.0">
-                    <StackPane styleClass="avatar-circle perfil-avatar-circle" prefWidth="96.0" prefHeight="96.0">
+                <VBox alignment="CENTER" spacing="10.0">
+                    <padding><Insets top="24.0" bottom="20.0" /></padding>
+                    <StackPane fx:id="stkPerfilAvatar" styleClass="avatar-circle perfil-avatar-circle"
+                               prefWidth="96.0" prefHeight="96.0"
+                               onMouseClicked="#onAlterarFotoClick">
                         <Circle radius="48.0" styleClass="avatar-bg"
                                 style="-fx-fill: rgba(255,255,255,0.22); -fx-stroke: rgba(255,255,255,0.35); -fx-stroke-width: 2;" />
                         <Label fx:id="lblPerfilAvatar" styleClass="avatar-inicial perfil-avatar-inicial" text="?"
                                style="-fx-text-fill: #ffffff; -fx-font-size: 36px; -fx-font-weight: 700;" />
                     </StackPane>
-                    <VBox alignment="CENTER" spacing="6.0">
+                    <VBox alignment="CENTER" spacing="4.0">
                         <Label styleClass="banner-titulo" text="O Meu Perfil"
                                style="-fx-text-fill: #ffffff;" />
                         <Label styleClass="banner-subtitulo"
                                text="Dados pessoais · V&#237;nculo ativo · Indicadores do m&#234;s"
                                textAlignment="CENTER" wrapText="true"
                                style="-fx-text-fill: rgba(255,255,255,0.78);" />
+                        <Button fx:id="btnRemoverFoto" onAction="#onRemoverFotoClick"
+                                text="Remover foto" managed="false" visible="false"
+                                style="-fx-background-color: transparent; -fx-text-fill: rgba(255,255,255,0.50); -fx-font-size: 11px; -fx-cursor: hand; -fx-padding: 6 0 0 0; -fx-underline: true;" />
                     </VBox>
                 </VBox>
             </StackPane>

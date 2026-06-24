@@ -488,7 +488,8 @@ public class HomeController {
         horariosMensaisAtuais = horarios != null ? horarios : List.of();
         if (vistaGrelhaAtiva) {
             GrelhaHorarioHelper.preencher(boxGrelhaEquipaMensal, periodo, horarios, LocalDate.now(),
-                    this::abrirDetalheDiaMensal);
+                    this::abrirDetalheDiaMensal,
+                    this::abrirDetalheDiaMensalComColaborador);
             ajustarAlturaGrelhaMensal(horarios);
         } else {
             Map<LocalDate, List<String>> eventosPorDia = new LinkedHashMap<>();
@@ -538,6 +539,10 @@ public class HomeController {
 
     private void abrirDetalheDiaMensal(LocalDate data) {
         DetalheDiaDialog.abrirHorariosPublicados(data, horariosMensaisAtuais, obterJanela());
+    }
+
+    private void abrirDetalheDiaMensalComColaborador(LocalDate data, Integer idColaborador) {
+        DetalheDiaDialog.abrirHorariosPublicados(data, horariosMensaisAtuais, obterJanela(), idColaborador);
     }
 
     // ── Semana / Cabeçalho ───────────────────────────────────────────────────

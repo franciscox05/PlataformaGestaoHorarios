@@ -21,10 +21,32 @@
              style="background:linear-gradient(90deg,transparent,rgba(192,0,31,.4),transparent)"></div>
 
         <div class="relative z-10 flex items-center gap-6 p-8">
-            <!-- Avatar grande -->
-            <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-display font-black text-3xl shrink-0"
-                 style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 4px 22px rgba(192,0,31,.42)"
-                 th:text="${resumo.nome() != null && !resumo.nome().isEmpty() ? resumo.nome().substring(0,1).toUpperCase() : 'U'}">U</div>
+            <!-- Avatar grande — foto ou inicial + acções -->
+            <div class="flex flex-col items-center gap-1.5 shrink-0">
+                <label for="inputFotoPerfil" class="relative w-20 h-20 cursor-pointer group" title="Clica para alterar a foto">
+                    <img th:if="${webUtilizador.fotoPerfil != null}"
+                         th:src="'data:image/png;base64,' + ${webUtilizador.fotoPerfil}"
+                         class="w-20 h-20 rounded-2xl object-cover" alt="Foto de perfil"/>
+                    <div th:unless="${webUtilizador.fotoPerfil != null}"
+                         class="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-display font-black text-3xl"
+                         style="background:linear-gradient(135deg,#c0001f,#7a0014);box-shadow:0 4px 22px rgba(192,0,31,.42)"
+                         th:text="${resumo != null and resumo.nome() != null and !resumo.nome().isEmpty() ? resumo.nome().substring(0,1).toUpperCase() : 'U'}">U</div>
+                    <div class="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-[22px]">photo_camera</span>
+                    </div>
+                </label>
+                <form th:action="@{/web/perfil/foto}" method="post" enctype="multipart/form-data" id="formFotoPerfil">
+                    <input type="file" id="inputFotoPerfil" name="foto" accept="image/*" class="hidden"
+                           onchange="document.getElementById('formFotoPerfil').submit()"/>
+                </form>
+                <form th:if="${webUtilizador.fotoPerfil != null}"
+                      th:action="@{/web/perfil/foto/remover}" method="post">
+                    <button type="submit"
+                            class="font-body text-[11px] text-white/60 hover:text-white transition-colors underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0">
+                        Remover foto
+                    </button>
+                </form>
+            </div>
             <div>
                 <div class="flex items-center gap-2 mb-2">
                     <div class="h-px w-6" style="background:linear-gradient(90deg,#c0001f,transparent)"></div>

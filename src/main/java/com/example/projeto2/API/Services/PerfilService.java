@@ -140,6 +140,13 @@ public class PerfilService {
     }
 
     @Transactional
+    public Utilizador atualizarFotoPerfil(Integer idUtilizador, String base64Foto) {
+        Utilizador utilizador = obterUtilizadorPersistido(idUtilizador);
+        utilizador.setFotoPerfil(base64Foto);
+        return utilizadorRepository.save(utilizador);
+    }
+
+    @Transactional
     public Utilizador atualizarEmail(Integer idUtilizador, String novoEmail) {
         Utilizador utilizador = obterUtilizadorPersistido(idUtilizador);
         String emailNormalizado = normalizarTexto(novoEmail);

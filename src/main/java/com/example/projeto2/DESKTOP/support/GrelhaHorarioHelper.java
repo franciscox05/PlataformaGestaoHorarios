@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -43,7 +44,17 @@ public final class GrelhaHorarioHelper {
                                   List<Horario> horarios,
                                   LocalDate hoje,
                                   Consumer<LocalDate> aoAbrirDia) {
-        preencherIntervalo(container, periodo.atDay(1), periodo.atEndOfMonth(), horarios, hoje, aoAbrirDia);
+        preencherIntervalo(container, periodo.atDay(1), periodo.atEndOfMonth(), horarios, hoje, aoAbrirDia, null);
+    }
+
+    /** Variante com clique ciente do colaborador: células passam (dia, idColaborador). */
+    public static void preencher(VBox container,
+                                  YearMonth periodo,
+                                  List<Horario> horarios,
+                                  LocalDate hoje,
+                                  Consumer<LocalDate> aoAbrirDia,
+                                  BiConsumer<LocalDate, Integer> aoAbrirDiaPorColaborador) {
+        preencherIntervalo(container, periodo.atDay(1), periodo.atEndOfMonth(), horarios, hoje, aoAbrirDia, aoAbrirDiaPorColaborador);
     }
 
     /**
@@ -56,7 +67,7 @@ public final class GrelhaHorarioHelper {
                                          List<Horario> horarios,
                                          LocalDate hoje,
                                          Consumer<LocalDate> aoAbrirDia) {
-        preencherIntervalo(container, inicio, fim, horarios, hoje, aoAbrirDia);
+        preencherIntervalo(container, inicio, fim, horarios, hoje, aoAbrirDia, null);
     }
 
     /** Implementação partilhada pela grelha mensal e semanal. */
@@ -65,7 +76,8 @@ public final class GrelhaHorarioHelper {
                                             LocalDate fim,
                                             List<Horario> horarios,
                                             LocalDate hoje,
-                                            Consumer<LocalDate> aoAbrirDia) {
+                                            Consumer<LocalDate> aoAbrirDia,
+                                            BiConsumer<LocalDate, Integer> aoAbrirDiaPorColaborador) {
         if (container == null) {
             return;
         }
@@ -116,7 +128,7 @@ public final class GrelhaHorarioHelper {
                     entry.getKey(), nomes.get(entry.getKey()), cargos.get(entry.getKey()), entry.getValue()));
         }
 
-        GrelhaHorarioRenderer.renderizar(container, dias, linhas, hoje, aoAbrirDia);
+        GrelhaHorarioRenderer.renderizar(container, dias, linhas, hoje, aoAbrirDia, aoAbrirDiaPorColaborador);
     }
 
     /** Constrói "09:00 - 15:00" a partir das horas do turno do {@link Horario}; {@code null} se não houver. */

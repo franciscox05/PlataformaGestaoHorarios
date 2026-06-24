@@ -334,11 +334,19 @@
                                                 <Label styleClass="bento-card-titulo" text="Compara&#231;&#227;o de alternativas"/>
                                             </VBox>
                                         </HBox>
-                                        <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                            <ComboBox fx:id="cbComparacaoBase" maxWidth="Infinity" HBox.hgrow="ALWAYS"
-                                                      promptText="Alternativa base" styleClass="campo-combo"/>
-                                            <ComboBox fx:id="cbComparacaoAlvo" maxWidth="Infinity" HBox.hgrow="ALWAYS"
-                                                      promptText="Alternativa a comparar" styleClass="campo-combo"/>
+                                        <HBox alignment="BOTTOM_LEFT" spacing="10.0">
+                                            <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                                <Label text="Base" styleClass="campo-label"
+                                                       style="-fx-font-size:11px;-fx-font-weight:600;-fx-text-fill:#475569;"/>
+                                                <ComboBox fx:id="cbComparacaoBase" maxWidth="Infinity"
+                                                          promptText="Alternativa base" styleClass="campo-combo"/>
+                                            </VBox>
+                                            <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                                <Label text="Comparada" styleClass="campo-label"
+                                                       style="-fx-font-size:11px;-fx-font-weight:600;-fx-text-fill:#475569;"/>
+                                                <ComboBox fx:id="cbComparacaoAlvo" maxWidth="Infinity"
+                                                          promptText="Alternativa a comparar" styleClass="campo-combo"/>
+                                            </VBox>
                                             <Button fx:id="btnCompararPropostas" onAction="#onCompararPropostasClick"
                                                     styleClass="botao-acao" text="Comparar"/>
                                             <Button fx:id="btnExpandirComparacao" onAction="#onExpandirComparacaoClick"
@@ -787,8 +795,9 @@
                                                 <Label styleClass="bento-card-subtitulo"
                                                        text="Clica num dia para ver o detalhe e ajustar turnos (trocar ou marcar folga)."/>
                                             </HBox>
-                                            <ScrollPane fitToHeight="true"
-                                                        hbarPolicy="AS_NEEDED"
+                                            <ScrollPane fitToWidth="true"
+                                                        fitToHeight="true"
+                                                        hbarPolicy="NEVER"
                                                         vbarPolicy="NEVER"
                                                         style="-fx-background-color:transparent;-fx-background:transparent;-fx-border-color:transparent;">
                                                 <content>

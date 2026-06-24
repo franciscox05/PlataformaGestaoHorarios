@@ -608,10 +608,12 @@ public class GeracaoHorariosController {
             area.setPadding(new javafx.geometry.Insets(10, 24, 24, 24));
             javafx.scene.layout.VBox.setVgrow(area, javafx.scene.layout.Priority.ALWAYS);
 
-            // Títulos completos: o rótulo já inclui mês/ano (sem repetir) e juntamos o Score
+            // Títulos completos: o rótulo já inclui mês/ano (sem repetir) e juntamos o Índice
             // de cada alternativa para se perceber, de relance, qual está melhor pontuada.
-            final String tituloBase = "Proposta base · " + base.rotulo() + "  ·  Score " + base.pontuacao();
-            final String tituloAlvo = "Proposta alvo · " + alvo.rotulo() + "  ·  Score " + alvo.pontuacao();
+            final String tituloBase = "Proposta base · " + base.rotulo() + "  ·  Índice " + base.pontuacao()
+                    + (base.recomendada() ? "  ·  ★ recomendada" : "");
+            final String tituloAlvo = "Proposta alvo · " + alvo.rotulo() + "  ·  Índice " + alvo.pontuacao()
+                    + (alvo.recomendada() ? "  ·  ★ recomendada" : "");
 
             Runnable renderizar = () -> {
                 boolean diferencas = grupoVista.getSelectedToggle() == btnDiferencas;
@@ -641,18 +643,19 @@ public class GeracaoHorariosController {
                 } else if (soAlvo) {
                     conteudo = construirVistaHorarioProposta(tituloAlvo, resAlvo, grelha, true, janela);
                 } else {
-                    // Modo "Ambas": empilhado na vertical — cada proposta ocupa a largura total,
-                    // idêntica ao Painel, e percorre-se na vertical para ver a outra.
-                    javafx.scene.Node pBase = construirVistaHorarioProposta(tituloBase, resBase, grelha, false, janela);
-                    javafx.scene.Node pAlvo = construirVistaHorarioProposta(tituloAlvo, resAlvo, grelha, false, janela);
+                    // Modo "Ambas": dois painéis sem scroll — cada um ocupa metade da altura
+                    // disponível. altaGrelha inclui header + linhas de cada grelha.
+                    // Overhead: cabeçalho modal (~58px) + toolbar (~48px) + padding área (34px)
+                    //           + espaçamento entre painéis (16px) + 2 × padding+título painel (~108px)
+                    double altaGrelha = (javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() - 264.0) / 2.0;
+                    javafx.scene.Node pBase = construirVistaHorarioProposta(tituloBase, resBase, grelha, false, janela, altaGrelha);
+                    javafx.scene.Node pAlvo = construirVistaHorarioProposta(tituloAlvo, resAlvo, grelha, false, janela, altaGrelha);
                     javafx.scene.layout.VBox empilhado = new javafx.scene.layout.VBox(16, pBase, pAlvo);
                     empilhado.setFillWidth(true);
-                    javafx.scene.control.ScrollPane spExterior = new javafx.scene.control.ScrollPane(empilhado);
-                    spExterior.setFitToWidth(true);
-                    spExterior.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
-                    spExterior.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
-                    spExterior.setStyle("-fx-background-color: white; -fx-background: white;");
-                    conteudo = spExterior;
+                    empilhado.setMaxHeight(Double.MAX_VALUE);
+                    javafx.scene.layout.VBox.setVgrow(pBase, javafx.scene.layout.Priority.ALWAYS);
+                    javafx.scene.layout.VBox.setVgrow(pAlvo, javafx.scene.layout.Priority.ALWAYS);
+                    conteudo = empilhado;
                 }
                 javafx.scene.layout.VBox.setVgrow(conteudo, javafx.scene.layout.Priority.ALWAYS);
                 area.getChildren().add(conteudo);
@@ -694,14 +697,20 @@ public class GeracaoHorariosController {
      * Constrói o painel de horário de uma proposta com o <b>mesmo estilo do Painel</b>
      * (grelha detalhada com chips coloridos + horas, ou calendário mensal).
      *
-     * @param preencherAltura {@code true} quando o painel ocupa sozinho a área (vistas "Só base"/
-     *                        "Só alvo"): a grelha estica para encher a altura. {@code false} no modo
-     *                        "Ambas", em que dois painéis ficam empilhados e cada um toma a altura
-     *                        natural do seu conteúdo, deixando o scroll vertical ao contentor exterior.
+     * @param preencherAltura  {@code true} quando o painel ocupa sozinho a área ("Só base"/"Só alvo").
+     * @param alturaDisponivel altura em px disponível para este painel (header + linhas);
+     *                         {@code -1} para usar a altura do ecrã completo.
      */
     private javafx.scene.Node construirVistaHorarioProposta(String titulo, PropostaResultado p,
                                                             boolean grelha, boolean preencherAltura,
                                                             javafx.stage.Window ownerModal) {
+        return construirVistaHorarioProposta(titulo, p, grelha, preencherAltura, ownerModal, -1);
+    }
+
+    private javafx.scene.Node construirVistaHorarioProposta(String titulo, PropostaResultado p,
+                                                            boolean grelha, boolean preencherAltura,
+                                                            javafx.stage.Window ownerModal,
+                                                            double alturaDisponivel) {
         YearMonth ym = periodoDaProposta(p);
         javafx.scene.layout.VBox painel = new javafx.scene.layout.VBox(10);
         painel.setStyle("-fx-background-color: #ffffff; -fx-border-color: #e5e7eb; -fx-border-width: 1; "
@@ -744,7 +753,8 @@ public class GeracaoHorariosController {
                             dia -> abrirDetalheDiaProposta(dia, p, ownerModal, null), // clique no cabeçalho do dia
                             null, larguraGrelha,
                             // clique numa célula dia×colaborador → realça esse colaborador no detalhe
-                            (dia, idColab) -> abrirDetalheDiaProposta(dia, p, ownerModal, idColab));
+                            (dia, idColab) -> abrirDetalheDiaProposta(dia, p, ownerModal, idColab),
+                            alturaDisponivel);
 
             if (preencherAltura) {
                 // Vista única: a grelha estica para encher a altura disponível.
@@ -763,8 +773,23 @@ public class GeracaoHorariosController {
                 javafx.scene.layout.VBox.setVgrow(sp, javafx.scene.layout.Priority.ALWAYS);
                 painel.getChildren().add(sp);
             } else {
-                // Modo "Ambas" empilhado: altura natural; o scroll vertical é do contentor exterior.
-                painel.getChildren().add(grelhaBox);
+                // Modo "Ambas": grelha cresce para preencher o painel; sem scroll.
+                grelhaBox.setMaxHeight(Double.MAX_VALUE);
+                javafx.scene.layout.VBox.setVgrow(grelhaBox, javafx.scene.layout.Priority.ALWAYS);
+                if (!grelhaBox.getChildren().isEmpty()
+                        && grelhaBox.getChildren().getFirst() instanceof javafx.scene.layout.HBox raizGrelha) {
+                    raizGrelha.setMaxHeight(Double.MAX_VALUE);
+                    javafx.scene.layout.VBox.setVgrow(raizGrelha, javafx.scene.layout.Priority.ALWAYS);
+                }
+                javafx.scene.control.ScrollPane spAmbas = new javafx.scene.control.ScrollPane(grelhaBox);
+                spAmbas.setFitToWidth(true);
+                spAmbas.setFitToHeight(true);
+                spAmbas.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+                spAmbas.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+                spAmbas.setStyle("-fx-background-color: white; -fx-background: white;");
+                javafx.scene.layout.VBox.setVgrow(spAmbas, javafx.scene.layout.Priority.ALWAYS);
+                painel.getChildren().add(spAmbas);
+                javafx.scene.layout.VBox.setVgrow(painel, javafx.scene.layout.Priority.ALWAYS);
             }
         } else {
             javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();

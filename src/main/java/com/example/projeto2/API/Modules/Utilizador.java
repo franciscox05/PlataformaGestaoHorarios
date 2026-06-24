@@ -32,6 +32,9 @@ public class Utilizador {
     @Column(name = "estado", columnDefinition = "estado_user_enum")
     private EstadoUtilizador estado;
 
+    @Column(name = "foto_perfil", columnDefinition = "TEXT")
+    private String fotoPerfil;
+
     @OneToMany(mappedBy = "idUtilizador")
     private Set<DayOff> dayOffs = new LinkedHashSet<>();
 
@@ -84,6 +87,10 @@ public class Utilizador {
     public EstadoUtilizador getEstado() { return estado; }
 
     public void setEstado(EstadoUtilizador estado) { this.estado = estado; }
+
+    public String getFotoPerfil() { return fotoPerfil; }
+
+    public void setFotoPerfil(String fotoPerfil) { this.fotoPerfil = fotoPerfil; }
 
     public Set<DayOff> getDayOffs() {
         return dayOffs;

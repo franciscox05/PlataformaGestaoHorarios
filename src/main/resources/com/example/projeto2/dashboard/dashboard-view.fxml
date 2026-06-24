@@ -99,7 +99,7 @@
                           onMouseClicked="#onTopPerfilClick"
                           styleClass="sidebar-user-row, sidebar-user-row-clickable">
                         <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="sidebar-user-card" HBox.hgrow="ALWAYS">
-                            <StackPane styleClass="sidebar-avatar">
+                            <StackPane fx:id="stkSidebarAvatar" styleClass="sidebar-avatar">
                                 <Label fx:id="lblAvatarInicial"
                                        styleClass="sidebar-avatar-text"
                                        text="L" />

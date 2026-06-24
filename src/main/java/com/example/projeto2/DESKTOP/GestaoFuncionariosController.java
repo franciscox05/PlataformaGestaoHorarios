@@ -35,11 +35,15 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.stage.Window;
@@ -87,6 +91,8 @@ public class GestaoFuncionariosController {
     @FXML private TableColumn<ColaboradorLinha, String> colTelemovel;
     @FXML private TableColumn<ColaboradorLinha, String> colCargo;
     @FXML private TableColumn<ColaboradorLinha, String> colEstado;
+    @FXML private StackPane stkFormAvatar;
+    @FXML private Label lblFormAvatarInicial;
     @FXML private TextField txtNome;
     @FXML private TextField txtEmail;
     @FXML private TextField txtTelemovel;
@@ -636,7 +642,8 @@ public class GestaoFuncionariosController {
         return new ColaboradorLinha(
                 colaborador.idUtilizador(), colaborador.nome(), colaborador.email(),
                 valorOuTraco(colaborador.telemovel()), colaborador.idCargo(),
-                colaborador.cargoNome(), formatarEstado(colaborador.estado())
+                colaborador.cargoNome(), formatarEstado(colaborador.estado()),
+                colaborador.fotoPerfil()
         );
     }
 
@@ -650,6 +657,7 @@ public class GestaoFuncionariosController {
         selecionarCargoFormulario(colaborador.idCargo());
         cbEstado.setValue(colaborador.ativo() ? ESTADO_ATIVO : ESTADO_INATIVO);
         atualizarEstadoAcoes();
+        renderizarAvatarFormulario(colaborador.fotoPerfil(), colaborador.nome());
     }
 
     private void limparFormularioParaNovo() {
@@ -659,6 +667,38 @@ public class GestaoFuncionariosController {
         cbEstado.setValue(ESTADO_ATIVO);
         selecionarCargoFormulario(null);
         atualizarEstadoAcoes();
+        renderizarAvatarFormulario(null, null);
+    }
+
+    private void renderizarAvatarFormulario(String fotoPerfil, String nome) {
+        if (stkFormAvatar == null) return;
+        while (stkFormAvatar.getChildren().size() > 1) {
+            stkFormAvatar.getChildren().remove(stkFormAvatar.getChildren().size() - 1);
+        }
+        if (fotoPerfil != null && !fotoPerfil.isBlank()) {
+            try {
+                byte[] bytes = java.util.Base64.getDecoder().decode(fotoPerfil);
+                javafx.scene.image.Image img = new javafx.scene.image.Image(
+                        new java.io.ByteArrayInputStream(bytes));
+                double w = img.getWidth(), h = img.getHeight(), side = Math.min(w, h);
+                ImageView iv = new ImageView(img);
+                iv.setViewport(new Rectangle2D((w - side) / 2, (h - side) / 2, side, side));
+                iv.setFitWidth(44);
+                iv.setFitHeight(44);
+                iv.setPreserveRatio(false);
+                iv.setClip(new Circle(22, 22, 22));
+                stkFormAvatar.getChildren().add(iv);
+                return;
+            } catch (Exception ignored) {}
+        }
+        if (lblFormAvatarInicial != null) {
+            String inicial = nome != null && !nome.isBlank()
+                    ? String.valueOf(nome.charAt(0)).toUpperCase() : "?";
+            lblFormAvatarInicial.setText(inicial);
+            if (!stkFormAvatar.getChildren().contains(lblFormAvatarInicial)) {
+                stkFormAvatar.getChildren().add(lblFormAvatarInicial);
+            }
+        }
     }
 
     private boolean selecionarColaborador(Integer idUtilizador) {
@@ -1061,7 +1101,7 @@ public class GestaoFuncionariosController {
 
     private record ColaboradorLinha(
             Integer idUtilizador, String nome, String email, String telemovel,
-            Integer idCargo, String cargo, String estado) {
+            Integer idCargo, String cargo, String estado, String fotoPerfil) {
         private boolean ativo() { return ESTADO_ATIVO.equalsIgnoreCase(estado); }
     }
 
