@@ -107,6 +107,7 @@ INSERT INTO public.utilizadores (id_utilizador, nome, email, telemovel, password
     -- Braga Parque — gestão
     (1,  'Francisco Gomes',   'francisco.gomes@levis.com',   '912000001', '123456', 'ativo'),
     (2,  'Tiago Costa',       'tiago.costa@levis.com',       '912000002', '123456', 'ativo'),
+    (7,  'Beatriz Nogueira',  'beatriz.nogueira@levis.com',  '912000007', '123456', 'ativo'),
     -- Braga Parque — FT
     (3,  'Henrique Siano',    'henrique.siano@levis.com',    '912000003', '123456', 'ativo'),
     (15, 'Rita Mendes',       'rita.mendes@levis.com',       '912000015', '123456', 'ativo'),
@@ -143,6 +144,7 @@ INSERT INTO public.lojautilizador
     (4,  4,  1, 5, '2025-01-15'),  -- Tiago Eiras        PT
     (5,  5,  1, 5, '2025-01-15'),  -- Afonso Barbosa     PT
     (6,  6,  1, 6, '2025-03-01'),  -- Micael Martins     reforço FDS
+    (7,  7,  1, 3, '2026-06-01'),  -- Beatriz Nogueira   sub-gerente
     -- Braga Parque — FT adicional
     (16, 15, 1, 4, '2025-02-01'),  -- Rita Mendes
     (17, 16, 1, 4, '2025-02-15'),  -- Pedro Luz
@@ -228,6 +230,12 @@ INSERT INTO public.horarios (id_lojautilizador, id_turno, data_turno, estado, id
 SELECT 6, 1, d::date, 'aprovado', 1
 FROM generate_series('2026-06-01'::date,'2026-06-30'::date,'1 day') d
 WHERE EXTRACT(DOW FROM d) IN (6, 0);
+
+-- lu7 BN  (sub-gerente, manhã turno 1)  — descanso Ter+Qua
+INSERT INTO public.horarios (id_lojautilizador, id_turno, data_turno, estado, id_proposta_horario)
+SELECT 7, 1, d::date, 'aprovado', 1
+FROM generate_series('2026-06-01'::date,'2026-06-30'::date,'1 day') d
+WHERE EXTRACT(DOW FROM d) NOT IN (2, 3);
 
 -- lu16 RM (FT, noite turno 3)  — descanso Sex+Sáb
 INSERT INTO public.horarios (id_lojautilizador, id_turno, data_turno, estado, id_proposta_horario)
@@ -318,6 +326,11 @@ INSERT INTO public.horarios (id_lojautilizador, id_turno, data_turno, estado, id
 SELECT 6, 1, d::date, 'aprovado', 2
 FROM generate_series('2026-07-01'::date,'2026-07-31'::date,'1 day') d
 WHERE EXTRACT(DOW FROM d) IN (6, 0);
+
+INSERT INTO public.horarios (id_lojautilizador, id_turno, data_turno, estado, id_proposta_horario)
+SELECT 7, 1, d::date, 'aprovado', 2
+FROM generate_series('2026-07-01'::date,'2026-07-31'::date,'1 day') d
+WHERE EXTRACT(DOW FROM d) NOT IN (2, 3);
 
 INSERT INTO public.horarios (id_lojautilizador, id_turno, data_turno, estado, id_proposta_horario)
 SELECT 16, 3, d::date, 'aprovado', 2
@@ -553,6 +566,27 @@ VALUES
 (6,'ferias','2026-09-21','2026-09-25',
  'Férias de Setembro.',
  'aprovado','Aprovado.',1,'2026-06-15 09:00:00'),
+
+-- ── Beatriz Nogueira (id=7) ───────────────────────────────────────────────────
+(7,'folga_preferida','2026-06-02','2026-08-31',
+ 'Prefiro descansar às terças-feiras.',
+ 'aprovado','Confirmado.',1,'2026-05-20 10:00:00'),
+
+(7,'turnos','2026-06-01','2026-08-31',
+ 'Prefiro turnos de manhã (10h-19h) como sub-gerente.',
+ 'aprovado','Aprovado.',1,'2026-05-20 10:00:00'),
+
+(7,'colegas','2026-06-01','2026-08-31',
+ 'Prefiro trabalhar com Francisco Gomes para manter continuidade de gestão.',
+ 'aprovado','Aprovado.',1,'2026-05-20 10:00:00'),
+
+(7,'folgas','2026-08-14','2026-08-14',
+ 'Folga a 14 de Agosto (véspera do feriado da Assunção).',
+ 'aprovado','Folga aprovada.',1,'2026-07-01 09:00:00'),
+
+(7,'ferias','2026-08-25','2026-08-28',
+ 'Férias: 25 a 28 de Agosto.',
+ 'aprovado','Aprovado.',1,'2026-06-10 09:00:00'),
 
 -- ── Rita Mendes (id=15) ───────────────────────────────────────────────────────
 (15,'folga_preferida','2026-06-05','2026-08-31',
@@ -791,6 +825,9 @@ VALUES
     (18, '2026-08-05', 'Férias de Agosto', 'ferias', 'aprovado'),
     (18, '2026-08-06', 'Férias de Agosto', 'ferias', 'aprovado'),
     (18, '2026-08-07', 'Férias de Agosto', 'ferias', 'aprovado'),
+
+    -- Beatriz Nogueira — folga aprovada Ago 14
+    (7,  '2026-08-14', 'Véspera do feriado da Assunção — folga planeada', 'folga', 'aprovado'),
 
     -- Luis Pinto — folga aprovada Ago 20
     (22, '2026-08-20', 'Consulta médica', 'folga', 'aprovado'),
