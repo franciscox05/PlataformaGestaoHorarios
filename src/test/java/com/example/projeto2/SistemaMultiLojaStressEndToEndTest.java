@@ -374,7 +374,7 @@ class SistemaMultiLojaStressEndToEndTest extends FluxosCriticosTestSupport {
             criarLigacaoAtiva(colaboradorMultiLoja, lojaB, cargoFullTime);
 
             DayOff pedido = dayOffBLL.registarPedidoFolga(
-                    novoPedidoFolga(colaboradorMultiLoja, LocalDate.now().plusDays(15)));
+                    novoPedidoFolga(colaboradorMultiLoja, dataFolgaMesSeguinte()));
 
             paraLimpar.add(pedido);
             paraLimpar.add(colaboradorMultiLoja);
@@ -416,7 +416,14 @@ class SistemaMultiLojaStressEndToEndTest extends FluxosCriticosTestSupport {
                         msgPerdedora.contains("tratado") || msgPerdedora.contains("optimistic")
                                 || msgPerdedora.contains("lock") || msgPerdedora.contains("row was updated")
                                 || msgPerdedora.contains("concurr") || msgPerdedora.contains("staleobject")
-                                || msgPerdedora.contains("row count"),
+                                || msgPerdedora.contains("row count")
+                                // 3ª janela legítima da corrida: o vencedor comita ENTRE o guard
+                                // "pendente" (findById, DayOffService.java:337-342) e a query de
+                                // visibilidade (findPedidosPendentesDaLoja, :344-351) do perdedor.
+                                // Em READ COMMITTED a query fresca já vê o pedido decidido, este sai
+                                // da lista de pendentes e o serviço bloqueia com o guard de
+                                // visibilidade — é proteção real, não um lost update silencioso.
+                                || msgPerdedora.contains("não tens permissão para gerir este pedido"),
                         "A decisão perdedora deve falhar por proteção de concorrência (optimistic "
                                 + "lock ou guard 'já foi tratado'), não silenciosamente. Mensagem: "
                                 + perdedora.mensagemErro());

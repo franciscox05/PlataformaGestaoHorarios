@@ -273,6 +273,21 @@ abstract class FluxosCriticosTestSupport {
         return utilizadorRepository.save(utilizador);
     }
 
+    /**
+     * Data segura para pedidos de folga em testes: dia 15 do mês SEGUINTE.
+     *
+     * <p>{@code DayOffService.registarPedidoFolga} só corre as validações de
+     * "mês publicado" e "já estás de folga" quando a data cai no mês corrente
+     * ({@code mesFuturo == false}). Testes que usavam {@code now().plusDays(12..20)}
+     * eram verdes no fim do mês (data caía no mês seguinte) e vermelhos no
+     * início do mês (data caía no mês corrente, sem turno publicado nesse dia).
+     * Ancorar ao mês seguinte torna estes cenários — que testam RBAC/aprovação,
+     * não a validação de folgas — independentes do dia em que a suite corre.
+     */
+    protected LocalDate dataFolgaMesSeguinte() {
+        return LocalDate.now().plusMonths(1).withDayOfMonth(15);
+    }
+
     protected DayOff criarDayOffAprovado(Utilizador utilizador, LocalDate data, String motivo) {
         DayOff dayOff = new DayOff();
         dayOff.setIdUtilizador(utilizador);

@@ -155,7 +155,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
         criarHorarioPublicadoSemProposta(colega, LocalDate.now().plusDays(5), turno);
         flushAndClear();
 
-        DayOff pedido = dayOffBLL.registarPedidoFolga(novoPedidoFolga(colega, LocalDate.now().plusDays(12)));
+        DayOff pedido = dayOffBLL.registarPedidoFolga(novoPedidoFolga(colega, dataFolgaMesSeguinte()));
         flushAndClear();
 
         IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
@@ -183,7 +183,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
         criarHorarioPublicadoSemProposta(colaborador, LocalDate.now().plusDays(5), turno);
         flushAndClear();
 
-        DayOff pedido = dayOffBLL.registarPedidoFolga(novoPedidoFolga(colaborador, LocalDate.now().plusDays(12)));
+        DayOff pedido = dayOffBLL.registarPedidoFolga(novoPedidoFolga(colaborador, dataFolgaMesSeguinte()));
         flushAndClear();
 
         // Pode aprovar — supervisor está em APROVACAO.
@@ -219,7 +219,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
         flushAndClear();
 
         DayOff pedidoNaLojaA = dayOffBLL.registarPedidoFolga(
-                novoPedidoFolga(colaboradorA, LocalDate.now().plusDays(12)));
+                novoPedidoFolga(colaboradorA, dataFolgaMesSeguinte()));
         flushAndClear();
 
         IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
@@ -373,7 +373,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
         flushAndClear();
 
         MockHttpSession sessao = sessaoDoColaborador(colaborador, fixture.loja());
-        LocalDate dataAusencia = LocalDate.now().plusDays(15);
+        LocalDate dataAusencia = dataFolgaMesSeguinte();
 
         mockMvc.perform(post("/web/complementares/folgas")
                         .session(sessao)
@@ -407,7 +407,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
         flushAndClear();
 
         MockHttpSession sessao = sessaoDoColaborador(colaborador, fixture.loja());
-        LocalDate dataAusencia = LocalDate.now().plusDays(20);
+        LocalDate dataAusencia = dataFolgaMesSeguinte();
 
         mockMvc.perform(post("/web/complementares/folgas")
                         .session(sessao)
@@ -591,7 +591,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
         criarHorarioPublicadoSemProposta(colaborador, LocalDate.now().plusDays(3), turno);
         flushAndClear();
 
-        DayOff pedido = dayOffBLL.registarPedidoFolga(novoPedidoFolga(colaborador, LocalDate.now().plusDays(14)));
+        DayOff pedido = dayOffBLL.registarPedidoFolga(novoPedidoFolga(colaborador, dataFolgaMesSeguinte()));
         flushAndClear();
 
         // Chamada EXATA que o botao "Aprovar" do PainelGerentePedidosController dispara
@@ -633,7 +633,7 @@ class FluxosTotaisPersonaEndToEndTest extends FluxosCriticosTestSupport {
         flushAndClear();
 
         DayOff pedidoNaLojaB = dayOffBLL.registarPedidoFolga(
-                novoPedidoFolga(colaboradorLojaB, LocalDate.now().plusDays(14)));
+                novoPedidoFolga(colaboradorLojaB, dataFolgaMesSeguinte()));
         flushAndClear();
 
         try {
