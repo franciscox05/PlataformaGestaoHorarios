@@ -554,12 +554,26 @@ public final class DialogosHelper {
     }
 
     private static Rectangle2D obterLimites(Window owner) {
-        if (owner != null && owner.getWidth() > 0 && owner.getHeight() > 0) {
-            return new Rectangle2D(owner.getX(), owner.getY(), owner.getWidth(), owner.getHeight());
+        Window janelaRaiz = obterJanelaRaiz(owner);
+        if (janelaRaiz != null && janelaRaiz.getWidth() > 0 && janelaRaiz.getHeight() > 0) {
+            return new Rectangle2D(janelaRaiz.getX(), janelaRaiz.getY(), janelaRaiz.getWidth(), janelaRaiz.getHeight());
         }
 
         Screen screen = Screen.getPrimary();
         return screen != null ? screen.getVisualBounds() : new Rectangle2D(0, 0, 1480, 920);
+    }
+
+    /**
+     * Sobe a cadeia de janelas-dono até à janela principal da aplicação. Sem isto, um
+     * diálogo aberto a partir de outro diálogo (ex.: confirmação dentro de "Editar Nome")
+     * fica limitado ao tamanho da janela pequena que o abriu, em vez de cobrir o ecrã todo.
+     */
+    private static Window obterJanelaRaiz(Window owner) {
+        Window atual = owner;
+        while (atual instanceof Stage stageAtual && stageAtual.getOwner() != null) {
+            atual = stageAtual.getOwner();
+        }
+        return atual;
     }
 
     private static void carregarCss(Scene scene) {

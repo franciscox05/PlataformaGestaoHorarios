@@ -4,7 +4,6 @@ import com.example.projeto2.API.Modules.Preferencia;
 import com.example.projeto2.API.Services.PainelGerenteService;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -35,6 +34,7 @@ public final class PreferenciasPainelSection {
     private final Button btnRejeitar;
     private final PainelGerenteService bll;
     private final PainelPedidosCoordinator coord;
+    private final PaginadorTabela<Preferencia> paginador;
 
     public PreferenciasPainelSection(TableView<Preferencia> tabela,
                                      TableColumn<Preferencia, String> colColaborador,
@@ -45,7 +45,10 @@ public final class PreferenciasPainelSection {
                                      Button btnAprovar,
                                      Button btnRejeitar,
                                      PainelGerenteService bll,
-                                     PainelPedidosCoordinator coord) {
+                                     PainelPedidosCoordinator coord,
+                                     Label lblPagina,
+                                     Button btnPaginaAnterior,
+                                     Button btnPaginaProxima) {
         this.tabela = tabela;
         this.colColaborador = colColaborador;
         this.colTipo = colTipo;
@@ -56,6 +59,7 @@ public final class PreferenciasPainelSection {
         this.btnRejeitar = btnRejeitar;
         this.bll = bll;
         this.coord = coord;
+        this.paginador = new PaginadorTabela<>(tabela, lblPagina, btnPaginaAnterior, btnPaginaProxima);
     }
 
     public void configurar() {
@@ -79,8 +83,7 @@ public final class PreferenciasPainelSection {
     }
 
     public void mostrarDados(List<Preferencia> preferencias) {
-        tabela.setItems(FXCollections.observableArrayList(preferencias));
-        tabela.refresh();
+        paginador.definirItens(preferencias);
     }
 
     public void tratar(boolean aprovar) {
@@ -145,7 +148,7 @@ public final class PreferenciasPainelSection {
                     setText(null);
                     return;
                 }
-                Label badge = new Label(tipo.toUpperCase(LOCALE_PT));
+                Label badge = new Label(tipo);
                 badge.getStyleClass().addAll("badge-estado",
                         (tipo.toLowerCase(LOCALE_PT).contains("folga") || tipo.toLowerCase(LOCALE_PT).contains("fer"))
                                 ? "badge-folga"

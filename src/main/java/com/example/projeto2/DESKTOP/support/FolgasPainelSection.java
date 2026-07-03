@@ -4,7 +4,6 @@ import com.example.projeto2.API.Modules.DayOff;
 import com.example.projeto2.API.Services.PainelGerenteService;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -36,6 +35,7 @@ public final class FolgasPainelSection {
     private final Button btnRejeitar;
     private final PainelGerenteService bll;
     private final PainelPedidosCoordinator coord;
+    private final PaginadorTabela<DayOff> paginador;
 
     private Map<Integer, String> nomesColaboradores = Map.of();
 
@@ -48,7 +48,10 @@ public final class FolgasPainelSection {
                                Button btnAprovar,
                                Button btnRejeitar,
                                PainelGerenteService bll,
-                               PainelPedidosCoordinator coord) {
+                               PainelPedidosCoordinator coord,
+                               Label lblPagina,
+                               Button btnPaginaAnterior,
+                               Button btnPaginaProxima) {
         this.tabela = tabela;
         this.colColaborador = colColaborador;
         this.colData = colData;
@@ -59,6 +62,7 @@ public final class FolgasPainelSection {
         this.btnRejeitar = btnRejeitar;
         this.bll = bll;
         this.coord = coord;
+        this.paginador = new PaginadorTabela<>(tabela, lblPagina, btnPaginaAnterior, btnPaginaProxima);
     }
 
     public void configurar() {
@@ -77,8 +81,7 @@ public final class FolgasPainelSection {
 
     public void mostrarDados(List<DayOff> folgas, Map<Integer, String> nomes) {
         this.nomesColaboradores = nomes != null ? nomes : Map.of();
-        tabela.setItems(FXCollections.observableArrayList(folgas));
-        tabela.refresh();
+        paginador.definirItens(folgas);
     }
 
     public void mostrarErro(String mensagem) {

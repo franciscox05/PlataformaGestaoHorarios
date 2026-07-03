@@ -99,6 +99,9 @@ public class PainelGerentePedidosController {
     @FXML private Button btnAprovarFolga;
     @FXML private Button btnRejeitarFolga;
     @FXML private Button btnHistoricoFolgas;
+    @FXML private Label lblPaginaFolgas;
+    @FXML private Button btnPaginaAnteriorFolgas;
+    @FXML private Button btnPaginaProximaFolgas;
     @FXML private TableView<Permuta>   tabelaPermutasPendentes;
     @FXML private TableColumn<Permuta, String> colPermutaColaborador;
     @FXML private TableColumn<Permuta, String> colPermutaPedido;
@@ -107,6 +110,9 @@ public class PainelGerentePedidosController {
     @FXML private Button btnAprovarPermuta;
     @FXML private Button btnRejeitarPermuta;
     @FXML private Button btnHistoricoPermutas;
+    @FXML private Label lblPaginaPermutas;
+    @FXML private Button btnPaginaAnteriorPermutas;
+    @FXML private Button btnPaginaProximaPermutas;
     @FXML private TableView<Preferencia> tabelaPreferenciasPendentes;
     @FXML private TableColumn<Preferencia, String> colPreferenciaColaborador;
     @FXML private TableColumn<Preferencia, String> colPreferenciaTipo;
@@ -115,10 +121,9 @@ public class PainelGerentePedidosController {
     @FXML private Button btnAprovarPreferencia;
     @FXML private Button btnRejeitarPreferencia;
     @FXML private Button btnHistoricoPreferencias;
-    @FXML private Button btnAtalhoFolgas;
-    @FXML private Button btnAtalhoPermutas;
-    @FXML private Button btnAtalhoPreferencias;
-    @FXML private Button btnAtalhoHorarios;
+    @FXML private Label lblPaginaPreferencias;
+    @FXML private Button btnPaginaAnteriorPreferencias;
+    @FXML private Button btnPaginaProximaPreferencias;
 
     private final PainelGerenteService painelGerenteBLL;
     private final SnapshotOperacionalLojaService snapshotOperacionalLojaBLL;
@@ -161,20 +166,23 @@ public class PainelGerentePedidosController {
                 tabelaFolgasPendentes,
                 colFolgaColaborador, colFolgaData, colFolgaTipo, colFolgaMotivo,
                 lblFeedbackFolgas, btnAprovarFolga, btnRejeitarFolga,
-                painelGerenteBLL, coord);
+                painelGerenteBLL, coord,
+                lblPaginaFolgas, btnPaginaAnteriorFolgas, btnPaginaProximaFolgas);
 
         permutasSection = new PermutasPainelSection(
                 tabelaPermutasPendentes,
                 colPermutaColaborador, colPermutaPedido, colPermutaOrigem, colPermutaDestino,
                 lblFeedbackPermutas, btnAprovarPermuta, btnRejeitarPermuta,
-                painelGerenteBLL, coord);
+                painelGerenteBLL, coord,
+                lblPaginaPermutas, btnPaginaAnteriorPermutas, btnPaginaProximaPermutas);
 
         preferenciasSection = new PreferenciasPainelSection(
                 tabelaPreferenciasPendentes,
                 colPreferenciaColaborador, colPreferenciaTipo, colPreferenciaDescricao,
                 txtDecisaoPreferencia, lblFeedbackPreferencias,
                 btnAprovarPreferencia, btnRejeitarPreferencia,
-                painelGerenteBLL, coord);
+                painelGerenteBLL, coord,
+                lblPaginaPreferencias, btnPaginaAnteriorPreferencias, btnPaginaProximaPreferencias);
 
         folgasSection.configurar();
         permutasSection.configurar();
@@ -182,11 +190,6 @@ public class PainelGerentePedidosController {
 
         configurarTabelaContexto();
         tabelaColaboradoresEnvolvidos.setPlaceholder(new Label("Seleciona um pedido para veres os colaboradores envolvidos."));
-
-        btnAtalhoFolgas.setTooltip(new Tooltip("Abrir módulo de folgas (Ctrl+1)"));
-        btnAtalhoPermutas.setTooltip(new Tooltip("Abrir módulo de permutas (Ctrl+2)"));
-        btnAtalhoPreferencias.setTooltip(new Tooltip("Abrir módulo de preferências (Ctrl+3)"));
-        btnAtalhoHorarios.setTooltip(new Tooltip("Abrir módulo de horários (Ctrl+4)"));
 
         configurarSelecaoContextual();
         configurarAtalhosRapidos();

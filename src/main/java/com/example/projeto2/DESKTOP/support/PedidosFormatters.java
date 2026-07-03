@@ -35,7 +35,7 @@ public final class PedidosFormatters {
         if (tipo == null || tipo.isBlank()) return "-";
         return switch (tipo.toLowerCase(LOCALE_PT)) {
             case "ferias" -> "Férias";
-            case "folgas" -> "Folgas";
+            case "folga", "folgas" -> "Folgas";
             case "baixa"  -> "Baixa";
             default       -> tipo;
         };

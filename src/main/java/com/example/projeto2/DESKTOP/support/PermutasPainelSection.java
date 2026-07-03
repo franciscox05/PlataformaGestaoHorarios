@@ -4,7 +4,6 @@ import com.example.projeto2.API.Modules.Permuta;
 import com.example.projeto2.API.Services.PainelGerenteService;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -30,6 +29,7 @@ public final class PermutasPainelSection {
     private final Button btnRejeitar;
     private final PainelGerenteService bll;
     private final PainelPedidosCoordinator coord;
+    private final PaginadorTabela<Permuta> paginador;
 
     public PermutasPainelSection(TableView<Permuta> tabela,
                                  TableColumn<Permuta, String> colColaborador,
@@ -40,7 +40,10 @@ public final class PermutasPainelSection {
                                  Button btnAprovar,
                                  Button btnRejeitar,
                                  PainelGerenteService bll,
-                                 PainelPedidosCoordinator coord) {
+                                 PainelPedidosCoordinator coord,
+                                 Label lblPagina,
+                                 Button btnPaginaAnterior,
+                                 Button btnPaginaProxima) {
         this.tabela = tabela;
         this.colColaborador = colColaborador;
         this.colPedido = colPedido;
@@ -51,6 +54,7 @@ public final class PermutasPainelSection {
         this.btnRejeitar = btnRejeitar;
         this.bll = bll;
         this.coord = coord;
+        this.paginador = new PaginadorTabela<>(tabela, lblPagina, btnPaginaAnterior, btnPaginaProxima);
     }
 
     public void configurar() {
@@ -68,8 +72,7 @@ public final class PermutasPainelSection {
     }
 
     public void mostrarDados(List<Permuta> permutas) {
-        tabela.setItems(FXCollections.observableArrayList(permutas));
-        tabela.refresh();
+        paginador.definirItens(permutas);
     }
 
     public void tratar(boolean aprovar) {
