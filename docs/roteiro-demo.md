@@ -20,13 +20,13 @@ Password comum:
 
 Perfis:
 
-- `francisco@levis.com`
-  - subgerente da Levi's Braga Parque
-  - ideal para mostrar dashboard, gestao da loja, gestao de funcionarios, aprovacao de preferencias, geracao de horarios, relatorios, folgas, permutas, perfil e preferencias
-
 - `francisco.gomes@levis.com`
   - gerente da Levi's Braga Parque
-  - alternativa para demonstrar fluxos de gestao
+  - ideal para mostrar dashboard, gestao da loja, gestao de funcionarios, aprovacao de preferencias, geracao de horarios, relatorios, folgas, permutas, perfil e preferencias
+
+- `tiago.costa@levis.com`
+  - supervisor da Levi's Braga Parque
+  - ideal para mostrar a validacao/aprovacao de propostas de horario antes da publicacao para a equipa
 
 - `henrique.siano@levis.com`
   - colaborador full-time
@@ -34,7 +34,7 @@ Perfis:
 
 ## 3. Sequencia sugerida
 
-1. Fazer login como `francisco@levis.com`.
+1. Fazer login como `francisco.gomes@levis.com`.
 2. Mostrar o dashboard e os proximos turnos.
 3. Mostrar a gestao da loja e das regras.
 4. Mostrar a gestao de funcionarios.

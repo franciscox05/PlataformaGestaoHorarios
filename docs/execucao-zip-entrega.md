@@ -67,6 +67,6 @@ Password das contas demo:
 
 Perfis recomendados:
 
-- `francisco@levis.com`
-- `francisco.gomes@levis.com`
-- `henrique.siano@levis.com`
+- `francisco.gomes@levis.com` (gerente da loja)
+- `tiago.costa@levis.com` (supervisor — valida/aprova propostas de horario)
+- `henrique.siano@levis.com` (colaborador)

@@ -157,8 +157,8 @@ Todas as contas abaixo usam a password:
 
 Contas recomendadas:
 
-- Gerencia com acesso completo: `francisco@levis.com`
 - Gerente da loja: `francisco.gomes@levis.com`
+- Supervisor (valida/aprova propostas de horario): `tiago.costa@levis.com`
 - Colaborador para fluxos do funcionario: `henrique.siano@levis.com`
 
 Com estas contas consegues demonstrar:
