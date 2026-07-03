@@ -463,6 +463,20 @@ public class GeracaoHorariosService {
         return resultados;
     }
 
+    @Transactional
+    public void apagarRascunho(Integer idUtilizador, Integer idProposta) {
+        Lojautilizador ligacaoAtiva = obterLigacaoAtivaComAcessoAoPainel(idUtilizador);
+        PropostaHorarioMensal proposta = propostaHorarioMensalRepository
+                .findByIdAndIdLojaId(idProposta, ligacaoAtiva.getIdLoja().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Proposta não encontrada."));
+        if (!ESTADO_RASCUNHO.equals(normalizarTexto(proposta.getEstado()))) {
+            throw new IllegalArgumentException("Só é possível apagar propostas em rascunho.");
+        }
+        historicoHorarioEstadoRepository.deleteByHorarioPropostaId(idProposta);
+        horarioRepository.deleteByIdPropostaHorarioId(idProposta);
+        propostaHorarioMensalRepository.delete(proposta);
+    }
+
     @Transactional(readOnly = true)
     public List<PropostaResumo> listarPropostas(Integer idUtilizador, Integer ano, Integer mes) {
         Lojautilizador ligacaoAtiva = obterLigacaoAtivaComAcessoAoPainel(idUtilizador);

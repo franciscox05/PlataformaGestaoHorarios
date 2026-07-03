@@ -2,6 +2,7 @@ package com.example.projeto2.API.Repositories;
 
 import com.example.projeto2.API.Modules.Horario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -429,7 +430,9 @@ public interface HorarioRepository extends JpaRepository<Horario, Integer> {
                                                @Param("horaFim") LocalTime horaFim,
                                                @Param("idHorarioExcluir") Integer idHorarioExcluir);
 
-    void deleteByIdPropostaHorarioId(Integer idPropostaHorario);
+    @Modifying
+    @Query("DELETE FROM Horario h WHERE h.idPropostaHorario.id = :idProposta")
+    void deleteByIdPropostaHorarioId(@Param("idProposta") Integer idPropostaHorario);
 
     boolean existsByIdLojautilizadorIdAndDataTurnoAndIdPropostaHorarioId(
             Integer idLojautilizador, LocalDate dataTurno, Integer idPropostaHorario);

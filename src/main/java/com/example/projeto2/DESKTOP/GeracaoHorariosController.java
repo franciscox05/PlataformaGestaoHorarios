@@ -112,6 +112,11 @@ public class GeracaoHorariosController {
     @FXML private TableColumn<PropostaResumo, String> colPropostaEstado;
     @FXML private TableColumn<PropostaResumo, String> colPropostaData;
     @FXML private TableColumn<PropostaResumo, String> colPropostaScore;
+    @FXML private HBox hboxPaginacao;
+    @FXML private Button btnApagarRascunho;
+    @FXML private Button btnPaginaAnterior;
+    @FXML private Button btnPaginaSeguinte;
+    @FXML private Label lblPagina;
     @FXML private TableColumn<PropostaResumo, String> colPropostaQualidade;
     @FXML private TableColumn<PropostaResumo, String> colPropostaTurnos;
     @FXML private ComboBox<PropostaResumo> cbComparacaoBase;
@@ -193,6 +198,9 @@ public class GeracaoHorariosController {
     private SelecaoColaboradoresPainel selecaoColaboradoresPainel;
     private boolean grelhaVistaSemanais = true;
     private LocalDate grelhaDataInicio = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+    private List<PropostaResumo> todasPropostas = List.of();
+    private int paginaAtual = 0;
+    private static final int PROPOSTAS_POR_PAGINA = 10;
     private boolean verificacaoAtiva = false;
     // Verdadeiro quando a proposta atual cumpre TODAS as regras obrigatórias. Gateia o avanço
     // "Rever → Enviar" e o envio ao supervisor: uma proposta não-conforme não pode ser submetida.
@@ -296,8 +304,7 @@ public class GeracaoHorariosController {
                 emptyStateCalendarioMensal.setManaged(true);
             }
             atualizarCalendarioMensal();
-            stepperPanel.atualizar(false, podeGerar, propostaAtual,
-                    !tabelaPropostas.getItems().isEmpty());
+            stepperPanel.atualizar(false, podeGerar, propostaAtual, !todasPropostas.isEmpty());
             stepperPanel.marcarPassoAtual(0);
         });
     }
@@ -1387,7 +1394,7 @@ public class GeracaoHorariosController {
     }
 
     private void selecionarPropostaNaTabela(Integer idProposta) {
-        if (idProposta == null || tabelaPropostas.getItems() == null) return;
+        if (idProposta == null) return;
         suprimirCarregamentoPorSelecao = true;
         try {
             tabelaPropostas.getItems().stream()
@@ -1947,17 +1954,31 @@ public class GeracaoHorariosController {
     }
 
     private void aplicarListaPropostas(List<PropostaResumo> propostas, Integer idSelecionar) {
-        List<PropostaResumo> propostasSeguras = propostas != null ? propostas : List.of();
-        tabelaPropostas.setItems(FXCollections.observableArrayList(propostasSeguras));
-        cbComparacaoBase.setItems(FXCollections.observableArrayList(propostasSeguras));
-        cbComparacaoAlvo.setItems(FXCollections.observableArrayList(propostasSeguras));
-        if (cbSelecaoProposta != null) cbSelecaoProposta.setItems(FXCollections.observableArrayList(propostasSeguras));
+        todasPropostas = propostas != null ? propostas : List.of();
 
-        if (propostasSeguras.size() >= 2) {
-            cbComparacaoBase.setValue(propostasSeguras.get(0));
-            cbComparacaoAlvo.setValue(propostasSeguras.get(1));
-        } else if (propostasSeguras.size() == 1) {
-            cbComparacaoBase.setValue(propostasSeguras.get(0));
+        // Se a proposta a selecionar existe, navega para a página onde ela está
+        if (idSelecionar != null) {
+            for (int i = 0; i < todasPropostas.size(); i++) {
+                if (idSelecionar.equals(todasPropostas.get(i).idProposta())) {
+                    paginaAtual = i / PROPOSTAS_POR_PAGINA;
+                    break;
+                }
+            }
+        } else {
+            paginaAtual = 0;
+        }
+
+        aplicarPaginaAtual();
+
+        cbComparacaoBase.setItems(FXCollections.observableArrayList(todasPropostas));
+        cbComparacaoAlvo.setItems(FXCollections.observableArrayList(todasPropostas));
+        if (cbSelecaoProposta != null) cbSelecaoProposta.setItems(FXCollections.observableArrayList(todasPropostas));
+
+        if (todasPropostas.size() >= 2) {
+            cbComparacaoBase.setValue(todasPropostas.get(0));
+            cbComparacaoAlvo.setValue(todasPropostas.get(1));
+        } else if (todasPropostas.size() == 1) {
+            cbComparacaoBase.setValue(todasPropostas.get(0));
             cbComparacaoAlvo.setValue(null);
         } else {
             cbComparacaoBase.setValue(null);
@@ -1966,6 +1987,103 @@ public class GeracaoHorariosController {
 
         if (idSelecionar != null) selecionarPropostaNaTabela(idSelecionar);
         atualizarEstadoInterativo();
+    }
+
+    private void aplicarPaginaAtual() {
+        int totalPaginas = totalPaginas();
+        if (paginaAtual >= totalPaginas && totalPaginas > 0) paginaAtual = totalPaginas - 1;
+        if (paginaAtual < 0) paginaAtual = 0;
+
+        int inicio = paginaAtual * PROPOSTAS_POR_PAGINA;
+        int fim = Math.min(inicio + PROPOSTAS_POR_PAGINA, todasPropostas.size());
+        List<PropostaResumo> pagina = todasPropostas.isEmpty() ? List.of() : todasPropostas.subList(inicio, fim);
+        tabelaPropostas.setItems(FXCollections.observableArrayList(pagina));
+
+        atualizarControlsPaginacao();
+    }
+
+    private void atualizarControlsPaginacao() {
+        if (lblPagina == null) return;
+        int total = totalPaginas();
+        lblPagina.setText("Página " + (total == 0 ? 0 : paginaAtual + 1) + " de " + Math.max(1, total));
+        if (btnPaginaAnterior != null) btnPaginaAnterior.setDisable(paginaAtual <= 0);
+        if (btnPaginaSeguinte != null) btnPaginaSeguinte.setDisable(paginaAtual >= total - 1);
+        if (hboxPaginacao != null) {
+            boolean visivel = !todasPropostas.isEmpty();
+            hboxPaginacao.setVisible(visivel);
+            hboxPaginacao.setManaged(visivel);
+        }
+    }
+
+    private int totalPaginas() {
+        return (int) Math.ceil((double) todasPropostas.size() / PROPOSTAS_POR_PAGINA);
+    }
+
+    @FXML
+    public void onPaginaAnteriorClick() {
+        if (paginaAtual > 0) { paginaAtual--; aplicarPaginaAtual(); }
+    }
+
+    @FXML
+    public void onPaginaSeguinteClick() {
+        if (paginaAtual < totalPaginas() - 1) { paginaAtual++; aplicarPaginaAtual(); }
+    }
+
+    @FXML
+    public void onApagarRascunhoClick() {
+        PropostaResumo selecionada = tabelaPropostas.getSelectionModel().getSelectedItem();
+        if (selecionada == null || !propostaEmRascunho(selecionada)) {
+            mostrarErro("Seleciona um rascunho na lista para o apagar.");
+            return;
+        }
+        String nomeBase = selecionada.rotulo()
+                .replaceAll("(?i)\\s*·\\s*rascunho\\s*$", "").trim();
+        javafx.scene.text.TextFlow mensagemRich = construirMensagemApagarRascunho(
+                nomeBase, selecionada.pontuacao());
+        boolean confirmado = DialogosHelper.confirmarAcaoDanger(
+                obterJanela(),
+                "Apagar rascunho",
+                "Tens a certeza que queres apagar este rascunho?",
+                mensagemRich,
+                "Apagar definitivamente"
+        );
+        if (!confirmado) return;
+
+        executarOperacaoEmSegundoPlano(
+                "A apagar rascunho…",
+                () -> {
+                    validarUtilizadorAutenticado();
+                    geracaoHorariosBLL.apagarRascunho(utilizadorLogado.getId(), selecionada.idProposta());
+                    return geracaoHorariosBLL.listarPropostas(
+                            utilizadorLogado.getId(), spAno.getValue(), cbMes.getValue().numero());
+                },
+                propostas -> {
+                    aplicarListaPropostas(propostas, null);
+                    if (propostaAtual != null && selecionada.idProposta().equals(propostaAtual.idProposta())) {
+                        limparResultado();
+                    }
+                    mostrarSucesso("Rascunho eliminado com sucesso.");
+                },
+                erro -> mostrarErro(resolverMensagemErro(erro, "Não foi possível apagar o rascunho."))
+        );
+    }
+
+    private static javafx.scene.text.TextFlow construirMensagemApagarRascunho(String nome, int indice) {
+        javafx.scene.text.Text t1 = new javafx.scene.text.Text("A proposta \"");
+        javafx.scene.text.Text tNome = new javafx.scene.text.Text(nome);
+        tNome.setStyle("-fx-font-weight: 700;");
+        javafx.scene.text.Text t2 = new javafx.scene.text.Text("\" com índice ");
+        javafx.scene.text.Text tIdx = new javafx.scene.text.Text(String.valueOf(indice));
+        tIdx.setStyle("-fx-font-weight: 700; -fx-fill: #c91428;");
+        javafx.scene.text.Text t3 = new javafx.scene.text.Text(
+                " e todos os seus turnos serão eliminados permanentemente. Esta ação não pode ser desfeita.");
+        for (javafx.scene.text.Text t : new javafx.scene.text.Text[]{t1, t2, t3}) {
+            t.setStyle("-fx-fill: #374151; -fx-font-size: 13px;");
+        }
+        javafx.scene.text.TextFlow tf = new javafx.scene.text.TextFlow(t1, tNome, t2, tIdx, t3);
+        tf.setMaxWidth(504.0);
+        tf.setStyle("-fx-line-spacing: 2px;");
+        return tf;
     }
 
     private boolean propostaEmRascunho(PropostaResumo proposta) {
@@ -2012,8 +2130,10 @@ public class GeracaoHorariosController {
         if (btnExportarPdfHorario != null) btnExportarPdfHorario.setDisable(semDados);
         if (btnVerificarHorario != null) btnVerificarHorario.setDisable(semDados);
 
-        boolean temPropostasLista = tabelaPropostas.getItems() != null && !tabelaPropostas.getItems().isEmpty();
+        boolean temPropostasLista = !todasPropostas.isEmpty();
         boolean temPropostaSelecionada = propostaAtual != null;
+        if (btnApagarRascunho != null)
+            btnApagarRascunho.setDisable(emProcessamento || !existePropostaEmRascunhoSelecionada());
         if (btnPasso1Continuar != null) btnPasso1Continuar.setDisable(emProcessamento || !temPropostasLista);
         if (btnPasso2Continuar != null) btnPasso2Continuar.setDisable(emProcessamento || !temPropostaSelecionada);
         // "Rever → Enviar" exige adicionalmente que a proposta cumpra todas as regras
@@ -2034,7 +2154,7 @@ public class GeracaoHorariosController {
     }
 
     private void atualizarEmptyStates() {
-        boolean temPropostas = tabelaPropostas.getItems() != null && !tabelaPropostas.getItems().isEmpty();
+        boolean temPropostas = !todasPropostas.isEmpty();
         alternarEmptyState(emptyStatePropostas, tabelaPropostas, temPropostas);
 
         boolean temDistribuicao = tabelaResumoColaboradores.getItems() != null && !tabelaResumoColaboradores.getItems().isEmpty();

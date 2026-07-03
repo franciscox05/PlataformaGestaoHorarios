@@ -4585,3 +4585,76 @@
     -fx-text-fill: #374151;
     -fx-wrap-text: true;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BLOCO CSS — PAGINAÇÃO DE ALTERNATIVAS
+════════════════════════════════════════════════════════════════════════════ */
+
+.paginacao-barra {
+    -fx-padding: 8px 0 0 0;
+    -fx-spacing: 6px;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.paginacao-btn {
+    -fx-background-color: white;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #374151;
+    -fx-min-width: 36px;
+    -fx-pref-width: 36px;
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-cursor: hand;
+}
+.paginacao-btn:hover {
+    -fx-background-color: #f1f5f9;
+    -fx-border-color: #94a3b8;
+}
+.paginacao-btn:disabled {
+    -fx-opacity: 0.38;
+    -fx-cursor: default;
+}
+
+.paginacao-info {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #64748b;
+    -fx-padding: 0 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BLOCO CSS — DIÁLOGO DANGER (apagar rascunho)
+════════════════════════════════════════════════════════════════════════════ */
+
+.dialogo-faixa-danger {
+    -fx-background-color: #fff1f2;
+    -fx-background-radius: 20px 20px 0 0;
+}
+
+.dialogo-danger-icone-wrap {
+    -fx-background-color: #fecdd3;
+    -fx-background-radius: 100px;
+}
+
+.dialogo-danger-icone {
+    -fx-fill: #c91428;
+    -fx-scale-x: 1.1;
+    -fx-scale-y: 1.1;
+}
+
+.dialogo-kicker-danger {
+    -fx-text-fill: #c91428;
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
+    -fx-letter-spacing: 1.2px;
+}
+
+.botao-perigo:disabled {
+    -fx-opacity: 0.40;
+    -fx-cursor: default;
+}

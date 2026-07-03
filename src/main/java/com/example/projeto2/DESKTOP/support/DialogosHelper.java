@@ -93,6 +93,44 @@ public final class DialogosHelper {
         return confirmado.get();
     }
 
+    /**
+     * Diálogo de confirmação destrutiva com conteúdo em texto simples.
+     */
+    public static boolean confirmarAcaoDanger(Window owner,
+                                              String titulo,
+                                              String cabecalho,
+                                              String conteudo,
+                                              String textoConfirmar) {
+        javafx.scene.text.Text t = new javafx.scene.text.Text(conteudo);
+        t.getStyleClass().add("dialogo-mensagem");
+        t.setWrappingWidth(504.0);
+        javafx.scene.text.TextFlow tf = new javafx.scene.text.TextFlow(t);
+        return confirmarAcaoDanger(owner, titulo, cabecalho, tf, textoConfirmar);
+    }
+
+    /**
+     * Diálogo de confirmação destrutiva com conteúdo rico (TextFlow, Label, etc.).
+     */
+    public static boolean confirmarAcaoDanger(Window owner,
+                                              String titulo,
+                                              String cabecalho,
+                                              javafx.scene.Node conteudoNode,
+                                              String textoConfirmar) {
+        AtomicReference<Boolean> confirmado = new AtomicReference<>(false);
+
+        Button btnConfirmar = criarBotao(textoConfirmar, "botao-perigo");
+        Button btnCancelar  = criarBotao("Cancelar", "botao-secundario");
+
+        Stage stage = construirStageDialogoDanger(
+                owner, titulo, cabecalho, conteudoNode, btnCancelar, btnConfirmar);
+
+        btnCancelar.setOnAction(e -> { confirmado.set(false); stage.close(); });
+        btnConfirmar.setOnAction(e -> { confirmado.set(true);  stage.close(); });
+        stage.setOnCloseRequest(e -> confirmado.set(false));
+        stage.showAndWait();
+        return confirmado.get();
+    }
+
     public static void mostrarErro(Window owner, String titulo, String cabecalho, String conteudo) {
         mostrarMensagem(owner, titulo, cabecalho, conteudo);
     }
@@ -415,6 +453,96 @@ public final class DialogosHelper {
             }
         });
 
+        return stage;
+    }
+
+    /**
+     * Diálogo de confirmação para ações destrutivas: faixa de topo vermelha com ícone
+     * de aviso, para distinguir claramente de um diálogo de confirmação normal.
+     */
+    private static Stage construirStageDialogoDanger(Window owner,
+                                                     String titulo,
+                                                     String cabecalho,
+                                                     javafx.scene.Node conteudoNode,
+                                                     Button... botoes) {
+        StackPane overlay = new StackPane();
+        overlay.getStyleClass().add("dialogo-overlay");
+
+        VBox cartao = new VBox(0.0);
+        cartao.getStyleClass().addAll("dialogo-card", "dialogo-card-danger");
+        cartao.setMaxWidth(560.0);
+        cartao.setMaxHeight(Region.USE_PREF_SIZE);
+        cartao.setFillWidth(true);
+
+        // Faixa vermelha com ícone de aviso
+        VBox faixa = new VBox(10.0);
+        faixa.getStyleClass().addAll("dialogo-faixa", "dialogo-faixa-danger");
+        faixa.setPadding(new Insets(22.0, 28.0, 18.0, 28.0));
+
+        // Ícone de lixo (delete)
+        StackPane iconCircle = new StackPane();
+        iconCircle.getStyleClass().add("dialogo-danger-icone-wrap");
+        iconCircle.setMinSize(44.0, 44.0);
+        iconCircle.setPrefSize(44.0, 44.0);
+        iconCircle.setMaxSize(44.0, 44.0);
+        SVGPath icone = new SVGPath();
+        icone.setContent("M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z");
+        icone.getStyleClass().add("dialogo-danger-icone");
+        iconCircle.getChildren().add(icone);
+
+        Label lblKicker = new Label(titulo != null ? titulo.toUpperCase() : "ATENÇÃO");
+        lblKicker.getStyleClass().addAll("dialogo-kicker", "dialogo-kicker-danger");
+
+        Label lblCabecalho = new Label(cabecalho);
+        lblCabecalho.getStyleClass().add("dialogo-titulo");
+        lblCabecalho.setWrapText(true);
+
+        faixa.getChildren().addAll(iconCircle, lblKicker, lblCabecalho);
+
+        VBox corpo = new VBox(0.0);
+        corpo.getStyleClass().add("dialogo-corpo");
+        corpo.setPadding(new Insets(20.0, 28.0, 8.0, 28.0));
+        corpo.getChildren().add(conteudoNode);
+
+        HBox barraBotoes = new HBox(12.0);
+        barraBotoes.getStyleClass().add("dialogo-botoes");
+        barraBotoes.setAlignment(Pos.CENTER);
+        barraBotoes.setPadding(new Insets(16.0, 28.0, 24.0, 28.0));
+        barraBotoes.getChildren().addAll(botoes);
+
+        cartao.getChildren().addAll(faixa, corpo, barraBotoes);
+        overlay.getChildren().add(cartao);
+        StackPane.setAlignment(cartao, Pos.CENTER);
+
+        Scene scene = new Scene(overlay);
+        scene.setFill(Color.TRANSPARENT);
+        carregarCss(scene);
+
+        Stage stage = new Stage();
+        stage.initStyle(StageStyle.TRANSPARENT);
+        stage.setResizable(false);
+        stage.setTitle(titulo != null ? titulo : "");
+        if (owner != null) {
+            stage.initOwner(owner);
+            stage.initModality(Modality.WINDOW_MODAL);
+        } else {
+            stage.initModality(Modality.APPLICATION_MODAL);
+        }
+        stage.setScene(scene);
+
+        Rectangle2D limites = obterLimites(owner);
+        overlay.setPrefSize(limites.getWidth(), limites.getHeight());
+        stage.setX(limites.getMinX());
+        stage.setY(limites.getMinY());
+        stage.setWidth(limites.getWidth());
+        stage.setHeight(limites.getHeight());
+
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ESCAPE) { stage.close(); event.consume(); }
+        });
+        overlay.setOnMouseClicked(event -> {
+            if (event.getTarget() == overlay) { stage.close(); event.consume(); }
+        });
         return stage;
     }
 

@@ -306,6 +306,7 @@
                                                    wrapText="true"/>
                                         </VBox>
                                         <TableView fx:id="tabelaPropostas" styleClass="tabela-premium"
+                                                   prefHeight="358.0" minHeight="358.0"
                                                    VBox.vgrow="ALWAYS">
                                             <columnResizePolicy>
                                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
@@ -319,6 +320,32 @@
                                                 <TableColumn fx:id="colPropostaTurnos"    text="Turnos"    prefWidth="75.0"/>
                                             </columns>
                                         </TableView>
+
+                                        <!-- Barra inferior: paginação + apagar -->
+                                        <HBox fx:id="hboxPaginacao" alignment="CENTER_LEFT" spacing="8.0"
+                                              styleClass="paginacao-barra">
+                                            <Button fx:id="btnApagarRascunho"
+                                                    onAction="#onApagarRascunhoClick"
+                                                    styleClass="botao-perigo"
+                                                    text="Apagar rascunho">
+                                                <graphic>
+                                                    <FontIcon iconLiteral="mdi2t-trash-can-outline" iconSize="16"/>
+                                                </graphic>
+                                            </Button>
+                                            <Region HBox.hgrow="ALWAYS"/>
+                                            <Button fx:id="btnPaginaAnterior"
+                                                    onAction="#onPaginaAnteriorClick"
+                                                    styleClass="paginacao-btn"
+                                                    text="&#8592;">
+                                            </Button>
+                                            <Label fx:id="lblPagina" styleClass="paginacao-info"
+                                                   text="Página 1 de 1"/>
+                                            <Button fx:id="btnPaginaSeguinte"
+                                                    onAction="#onPaginaSeguinteClick"
+                                                    styleClass="paginacao-btn"
+                                                    text="&#8594;">
+                                            </Button>
+                                        </HBox>
                                     </VBox>
 
                                     <!-- COMPARAÇÃO DE ALTERNATIVAS -->

@@ -472,18 +472,14 @@ public final class GrelhaHorarioRenderer {
         double screenW = larguraDisponivel > 0
                 ? larguraDisponivel
                 : Screen.getPrimary().getVisualBounds().getWidth();
-        double screenH = Screen.getPrimary().getVisualBounds().getHeight();
         double larguraDia = Math.max(34.0, Math.min(72.0,
                 (screenW - NOME_COL_DET) / Math.max(1, dias.size())));
 
-        // Altura estimada por linha: usada apenas para dimensionar chips e fontes.
-        // As linhas não têm altura fixa — crescem com VGrow=ALWAYS para preencher a área.
-        // Quando alturaDisponivel > 0, a grelha foi limitada externamente (p. ex. modo "Ambas"):
-        // usamos esse valor para calibrar os chips em vez de assumir o ecrã completo.
-        double alturaBase = alturaDisponivel > 0 ? alturaDisponivel : (screenH - 106.0);
-        double minAlt     = alturaDisponivel > 0 ? 22.0 : 36.0;
-        double alturaEstimada = Math.max(minAlt, Math.min(90.0,
-                Math.floor((alturaBase - ALTURA_HEADER_DET) / Math.max(1, ordenadas.size()))));
+        // Altura fixa por linha: confortável para mostrar avatar + nome + cargo sem sobrepor.
+        // O scroll vertical do corpoDias trata do resto — não tentamos comprimir N linhas no ecrã.
+        // Em modo "Ambas" (duas grelhas empilhadas) usamos uma altura ligeiramente menor para
+        // deixar mais linhas visíveis sem scroll, mas nunca abaixo do mínimo legível.
+        double alturaEstimada = alturaDisponivel > 0 ? 52.0 : 64.0;
 
         boolean mostrarHoras = larguraDia >= 38.0;
         double chipH    = Math.max(18.0, alturaEstimada * 0.36);
@@ -538,16 +534,14 @@ public final class GrelhaHorarioRenderer {
 
             HBox nomeCell = construirCelulaColabDetalhada(
                     linha.nome(), linha.cargo(), corAvatar, bg, alturaEstimada);
-            nomeCell.setMaxHeight(Double.MAX_VALUE);
+            fixarAltura(nomeCell, alturaEstimada);
             fixarLargura(nomeCell, NOME_COL_DET);
-            VBox.setVgrow(nomeCell, Priority.ALWAYS); // linha expande para preencher
 
             HBox rowDias = new HBox();
             rowDias.setAlignment(Pos.CENTER_LEFT);
-            rowDias.setMaxHeight(Double.MAX_VALUE);
+            fixarAltura(rowDias, alturaEstimada);
             rowDias.setStyle("-fx-background-color: " + bg
                     + "; -fx-border-color: #f1f5f9; -fx-border-width: 0 0 1 0;");
-            VBox.setVgrow(rowDias, Priority.ALWAYS);  // linha expande para preencher
 
             // Clique na célula: se houver callback ciente do colaborador, leva o id desta linha;
             // caso contrário, recai no callback de dia simples (cabeçalho/uso legado).
@@ -569,31 +563,53 @@ public final class GrelhaHorarioRenderer {
             corpoDias.getChildren().add(rowDias);
         }
 
+        // Espaçador reativo no fundo da coluna fixa: compensa a diferença de altura de viewport
+        // causada pela barra horizontal do scrollCorpo (~15px). Quando os dois ranges forem iguais,
+        // o sync de vvalue pode ser feito por cópia directa sem conversão de offset de pixel.
+        Region folgaInferior = new Region();
+        folgaInferior.setMinHeight(0);
+        folgaInferior.setPrefHeight(0);
+        folgaInferior.setMaxHeight(0);
+        colunaFixaBody.getChildren().add(folgaInferior);
+
         colunaFixaBody.setStyle("-fx-border-color: #e2e8f0; -fx-border-width: 0 2 0 0; "
                 + "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 6, 0, 2, 0);");
         ScrollPane scrollColunaFixa = new ScrollPane(colunaFixaBody);
         scrollColunaFixa.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollColunaFixa.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollColunaFixa.setFitToWidth(true);
-        scrollColunaFixa.setFitToHeight(true);
+        scrollColunaFixa.setFitToHeight(false);
         scrollColunaFixa.setPannable(false);
         scrollColunaFixa.setStyle("-fx-background-color: white; -fx-background: white;");
         fixarLargura(scrollColunaFixa, NOME_COL_DET);
 
-        // fitToHeight=true: o corpo estica até à altura do ScrollPane quando há espaço de
-        // sobra (distribuído pelas linhas com VGrow=ALWAYS); quando o conteúdo é maior do
-        // que a área visível, mantém o tamanho natural e mostra a barra vertical — único
-        // ScrollPane com barras visíveis; os outros dois são apenas "espelhos" sincronizados.
         ScrollPane scrollCorpo = new ScrollPane(corpoDias);
         scrollCorpo.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollCorpo.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollCorpo.setFitToHeight(true);
+        scrollCorpo.setFitToHeight(false);
         scrollCorpo.setFitToWidth(false);
         scrollCorpo.setPannable(false);
         scrollCorpo.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         HBox.setHgrow(scrollCorpo, Priority.ALWAYS);
 
         scrollCorpo.hvalueProperty().addListener((obs, ov, nv) -> scrollHdrDias.setHvalue(nv.doubleValue()));
+
+        // Quando o viewport do scrollCorpo muda de tamanho (barra horizontal aparece/desaparece),
+        // ajustamos o espaçador inferior da coluna fixa para que os dois ranges verticais fiquem iguais.
+        // Range igual → vvalue idêntico → pixel offset idêntico → alinhamento perfeito em todo o scroll.
+        javafx.beans.value.ChangeListener<javafx.geometry.Bounds> ajustarEspacador = (obs, ov, nv) -> {
+            javafx.geometry.Bounds vpC = scrollCorpo.getViewportBounds();
+            javafx.geometry.Bounds vpF = scrollColunaFixa.getViewportBounds();
+            if (vpC == null || vpF == null || vpC.getHeight() <= 0 || vpF.getHeight() <= 0) return;
+            double delta = Math.max(0.0, vpF.getHeight() - vpC.getHeight());
+            folgaInferior.setMinHeight(delta);
+            folgaInferior.setPrefHeight(delta);
+            folgaInferior.setMaxHeight(delta);
+        };
+        scrollCorpo.viewportBoundsProperty().addListener(ajustarEspacador);
+        scrollColunaFixa.viewportBoundsProperty().addListener(ajustarEspacador);
+
+        // Com ranges iguais a cópia directa do vvalue garante alinhamento em toda a gama de scroll.
         scrollCorpo.vvalueProperty().addListener((obs, ov, nv) -> scrollColunaFixa.setVvalue(nv.doubleValue()));
 
         HBox linhaCorpo = new HBox(scrollColunaFixa, scrollCorpo);
